@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+	        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <meta name="viewport" content="width=device-width">
+
+        <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+	<link href='http://fonts.googleapis.com/css?family=Open+Sans|Oxygen+Mono|Marvel:700' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="http://clusterlabs.org/css/normalize.20121116.css">
+        <link rel="stylesheet" href="http://clusterlabs.org/css/main.20121117.css">
+        <script src="http://clusterlabs.org/js/vendor/modernizr-2.6.2.min.js"></script>
+
+        <title>Cluster Labs - The Home of Pacemaker</title>
+        <meta name="description" content="">
+    </head>
+    <body>
+		<section id="banner">
+	  <a href="/" id="logo"></a>
+	</section>
+
+	<section id="navigation">
+	  <nav>
+	    <a href="http://clusterlabs.org/#info">About</a>
+	    <a href="http://clusterlabs.org/doc/">Documentation</a>
+	    <a href="http://clusterlabs.org/faq.html">FAQ</a>
+	    <a href="http://clusterlabs.org/help.html">Help</a>
+	    <a href="http://clusterlabs.org/quickstart.html">Quickstart</a>
+	    <a href="http://clusterlabs.org/developers.html">Developers</a>
+	  </nav>
+	</section>
+
+	<section class="clear"></section>
+
+
+	<section id="main">
+	  	  <p>
+	    All examples assume two nodes that are reachable by their short name and IP address:
+	    <ul>
+	      <li>node1 - 192.168.1.1</li>
+	      <li>node2 - 192.168.1.2</li>
+	    </ul>
+	  </p>
+	  <p>
+	    The convention followed is that <strong>[ALL] #</strong>
+	    denotes a command that needs to be run on all cluster
+	    machines, and <strong>[ONE] #</strong> indicates a command
+	    that only needs to be run on one cluster host.
+	  </p>
+
+
+	  <h1>RHEL 6.4 onwards</h1>
+	  <h2>Install</h2>
+	  <p>
+	    Pacemaker ships as part of the Red
+	    Hat <a href="http://www.redhat.com/products/enterprise-linux-add-ons/high-availability/">High
+	    Availability Add-on</a>.  The easiest way to try it out on RHEL is to install it from the <a href="http://scientificlinux.org">Scientific Linux</a> or <a href="http://www.centos.org">CentOS</a> repositories.
+	  </p>
+	  <p>
+	    If you are already running CentOS or Scientific Linux, you can skip this step.  Otherwise, to teach the machine where to find the CentOS packages, run:
+	  </p>
+	  <p class="command">
+[ALL] # cat <<EOF > /etc/yum.repo.d/centos.repo
+[centos-6-base]
+name=CentOS-$releasever - Base
+mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os
+#baseurl=http://mirror.centos.org/centos/$releasever/os/$basearch/
+enabled=1
+EOF
+	    </p>
+	  <p>
+	    Next we use yum to install pacemaker and some other
+	    necessary packages we will need:
+	  </p>
+	  <p class="command">
+[ALL] # yum install pacemaker cman pcs ccs resource-agents
+	  </p>
+
+	  <h2>Configure Cluster Membership and Messaging</h2>
+	  <p>
+	    The supported stack on RHEL6 is based on CMAN, so thats
+	    what Pacemaker uses too.
+	  </p>
+
+	  <p>
+	    We now create a CMAN cluster and populate it with some
+	    nodes.  Note that the name cannot exceed 15 characters
+	    (we'll use 'pacemaker1').
+	  </p>
+	  <p class="command">
+[ONE] # ccs -f /etc/cluster/cluster.conf --createcluster pacemaker1
+
+[ONE] # ccs -f /etc/cluster/cluster.conf --addnode node1
+[ONE] # ccs -f /etc/cluster/cluster.conf --addnode node2
+	  </p>
+
+	  <p>
+	    Next we need to teach CMAN how to send it's fencing
+	    requests to Pacemaker.  We do this regardless of whether
+	    or not fencing is enabled within Pacemaker.
+	  </p>
+	  <p class="command">
+[ONE] # ccs -f /etc/cluster/cluster.conf --addfencedev pcmk agent=fence_pcmk
+
+[ONE] # ccs -f /etc/cluster/cluster.conf --addmethod pcmk-redirect node1
+[ONE] # ccs -f /etc/cluster/cluster.conf --addmethod pcmk-redirect node2
+
+[ONE] # ccs -f /etc/cluster/cluster.conf --addfenceinst pcmk node1 pcmk-redirect port=node1
+[ONE] # ccs -f /etc/cluster/cluster.conf --addfenceinst pcmk node2 pcmk-redirect port=node2
+	  </p>
+	  <p>
+	    Now copy <strong>/etc/cluster/cluster.conf</strong> to all
+	    the other nodes that will be part of the cluster.
+	  </p>
+
+	  <h2>Start the Cluster</h2>
+	  <p>
+	    CMAN was originally written for rgmanager and assumes the
+	    cluster should not start until the node has
+	    <a href="http://en.wikipedia.org/wiki/Quorum">quorum</a>,
+	    so before we try to start the cluster, we need to disable
+	    this behavior:
+	  </p>
+          <p class="command">
+[ALL] # echo "CMAN_QUORUM_TIMEOUT=0" >> /etc/sysconfig/cman
+	  </p>
+	  <p>
+	    Now, on each machine, run:
+	  </p>
+	  <p class="command">
+[ALL] # service cman start
+[ALL] # service pacemaker start
+	  </p>
+
+	  <h2>A note for users of prior RHEL versions</h2>
+
+	  <p>
+	    The original cluster shell (crmsh)
+	    is <a href="http://blog.clusterlabs.org/blog/2013/pacemaker-on-rhel6-dot-4/">no
+	    longer available</a> on RHEL.  To help people make the
+	    transition there is
+	    a <a href="https://github.com/ClusterLabs/pacemaker/blob/master/doc/pcs-crmsh-quick-ref.md">
+	    quick reference guide</a> for those wanting to know what
+	    the pcs equivalent is for various crmsh commands.
+	  </p>
+
+	  <h2>Set Cluster Options</h2>
+	  <p>
+	    With so many devices and possible topologies, it is nearly
+	    impossible to include Fencing in a document like this.
+	    For now we will disable it.
+	  </p>
+	  <p class="command">
+[ONE] # pcs property set stonith-enabled=false
+	  </p>
+	  <p>
+	    One of the most common ways to deploy Pacemaker is in a
+	    2-node configuration.  However quorum as a concept makes
+	    no sense in this scenario (because you only have it when
+	    more than half the nodes are available), so we'll disable
+	    it too.
+	  </p>
+	  <p class="command">
+[ONE] # pcs property set no-quorum-policy=ignore
+	  </p>
+	  <p>
+	    For demonstration purposes, we will force the cluster to
+	    move services after a single failure:
+	  </p>
+	  <p class="command">
+[ONE] # pcs resource defaults migration-threshold=1
+	  </p>
+
+	  <h2>Add a Resource</h2>
+	  <p>
+	    Lets add a cluster service, we'll choose one doesn't
+	    require any configuration and works everywhere to make
+	    things easy.  Here's the command:
+	  </p>
+	  <p class="command">
+[ONE] # pcs resource create my_first_svc ocf:pacemaker:Dummy op monitor interval=120s
+	  </p>
+	  <p>
+	    "<strong>my_first_svc</strong>" is the name the service
+	    will be known as.
+	  </p>
+	  <p>
+	    "<strong>ocf:pacemaker:Dummy</strong>" tells Pacemaker
+	    which script to use
+	    (<a href="https://github.com/ClusterLabs/pacemaker/blob/master/extra/resources/Dummy">Dummy</a>
+	    - an agent that's useful as a template and for guides like
+	    this one), which namespace it is in (pacemaker) and what
+	    standard it conforms to
+	    (<a href="/doc/en-US/Pacemaker/1.1-pcs/html/Pacemaker_Explained/s-resource-supported.html#_open_cluster_framework">OCF</a>).
+	  </p>
+	  <p>
+	    "<strong>op monitor interval=120s</strong>" tells Pacemaker to
+	    check the health of this service every 2 minutes by
+	    calling the agent's <strong>monitor</strong> action.
+	  </p>
+	  <p>
+	    You should now be able to see the service running using:
+	  </p>
+          <p class="command">
+[ONE] # pcs status
+	  </p>
+	  <p>
+	    or
+	  </p>
+          <p class="command">
+[ONE] # crm_mon -1
+	  </p>
+
+	  <h2>Simulate a Service Failure</h2>
+	  <p>
+	    We can simulate an error by telling the service to stop
+	    directly (without telling the cluster):
+	  </p>
+	  <p class="command">
+[ONE] # crm_resource --resource my_first_svc --force-stop
+	  </p>
+	  <p>
+	    If you now run <strong>crm_mon</strong> in interactive
+	    mode (the default), you should see (within the monitor
+	    interval - 2 minutes) the cluster notice
+	    that <strong>my_first_svc</strong> failed and move it to
+	    another node.
+	  </p>
+	  <h2>Next Steps</h2>
+	  <p>
+	    <ul>
+	      <li>Configure <a href="/doc/en-US/Pacemaker/1.1-pcs/html/Clusters_from_Scratch/ch09.html">Fencing</a></li>
+	      <li>Add more services - see <a href="/doc/en-US/Pacemaker/1.1-pcs/html/Clusters_from_Scratch/ch06.html">Clusters from Scratch</a> for examples of how to add IP address, Apache and DRBD to a cluster</li>
+	      <li>Learn how to make services <a href="/doc/en-US/Pacemaker/1.1-pcs/html/Clusters_from_Scratch/_specifying_a_preferred_location.html">prefer a specific host</a></li>
+	      <li>Learn how to make services <a href="/doc/en-US/Pacemaker/1.1-pcs/html/Clusters_from_Scratch/_ensuring_resources_run_on_the_same_host.html">run on the same host</a></li>
+	      <li>Learn how to make services <a href="/doc/en-US/Pacemaker/1.1-pcs/html/Clusters_from_Scratch/_controlling_resource_start_stop_ordering.html">start and stop</a> in a specific order</li>
+	      <li>Find out what else Pacemaker can do - see <a href="/doc/en-US/Pacemaker/1.1-pcs/html/Pacemaker_Explained/index.html">Pacemaker Explained</a> for an comprehensive list of concepts and options</li>
+	    </ul>
+	  </p>
+
+
+	</section>
+
+		<footer>
+	  <p>Find out more about Pacemaker on <a href="http://clusterlabs.org/wiki">our wiki</a><br/>
+	  <sub>Send <b>site</b> feedback to the project <a href="mailto:pacemaker@oss.clusterlabs.org">mailing list</a> or maintainer: <a href="mailto:andrew@beekhof.net">Andrew Beekhof</a></sub>
+	  </p>
+	</footer>
+
+        <!--script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+            <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.8.2.min.js"><\/script>')</script-->
+        <script src="http://clusterlabs.org/js/plugins.20121116.js"></script>
+        <script src="http://clusterlabs.org/js/main.20121116.js"></script>
+	<script type="text/javascript" src="http://clusterlabs.org/js/retina.20121116.js"></script>
+
+        <script>
+            var _gaq=[['_setAccount','UA-8156370-1'],['_trackPageview']];
+            (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+            g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+            s.parentNode.insertBefore(g,s)}(document,'script'));
+        </script>
+
+    </body>
+</html>
