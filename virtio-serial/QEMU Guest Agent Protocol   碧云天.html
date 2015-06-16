@@ -1,0 +1,878 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>QEMU Guest Agent Protocol | 碧云天</title> 
+<meta name="description" content="qemu官网上说QEMU Guest Agent 目标是使用qmp指令标准实现虚拟机操作系统层的访问，作为将来QAPI的一部分。但是到qemu 0.15为止，Guest Agent是通过主机的一个独立的字符设备（一般是一个unix socket），来和客户机通信的，而客户机那端要有一个virtio-serial 或者 isa-serial 通道（channel）例如默认的客户机上为/dev/virtio-ports/org.qemu.g" />
+<meta name="keywords" content="" />
+<link rel="stylesheet" href="http://chinacloud.org/wp-content/themes/HotNewspro/style.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="http://chinacloud.org/wp-content/themes/HotNewspro/css/css.css" />
+<link rel="stylesheet" href="http://chinacloud.org/wp-content/themes/HotNewspro/css/highlight.css" />
+<link rel="stylesheet" href="http://chinacloud.org/wp-content/themes/HotNewspro/css/img.css" />
+<link rel="pingback" href="http://chinacloud.org/xmlrpc.php" />
+<link rel="shortcut icon" href="http://chinacloud.org/wp-content/themes/HotNewspro/images/favicon.ico" />
+<script type="text/javascript" src="http://chinacloud.org/wp-content/themes/HotNewspro/js/jquery.min.js" ></script>
+<link rel="alternate" type="application/rss+xml" title="碧云天 &raquo; Feed" href="http://chinacloud.org/feed/" />
+<link rel="alternate" type="application/rss+xml" title="碧云天 &raquo; 评论Feed" href="http://chinacloud.org/comments/feed/" />
+<link rel="alternate" type="application/rss+xml" title="碧云天 &raquo; QEMU Guest Agent Protocol评论Feed" href="http://chinacloud.org/2014/01/21/qemu-guest-agent-protocol/feed/" />
+<link rel='stylesheet' id='ms_global_search_css_style-css'  href='http://chinacloud.org/wp-content/plugins/multisite-global-search/style.css?ver=3.7.3' type='text/css' media='all' />
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://chinacloud.org/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://chinacloud.org/wp-includes/wlwmanifest.xml" /> 
+<link rel='prev' title='为什么“官方”版打车软件会全面沦陷？' href='http://chinacloud.org/2014/01/18/%e4%b8%ba%e4%bb%80%e4%b9%88%e5%ae%98%e6%96%b9%e7%89%88%e6%89%93%e8%bd%a6%e8%bd%af%e4%bb%b6%e4%bc%9a%e5%85%a8%e9%9d%a2%e6%b2%a6%e9%99%b7%ef%bc%9f/' />
+<link rel='next' title='Amoeba简介' href='http://chinacloud.org/2014/01/21/amoeba%e7%ae%80%e4%bb%8b/' />
+<meta name="generator" content="WordPress 3.7.3" />
+<link rel='canonical' href='http://chinacloud.org/2014/01/21/qemu-guest-agent-protocol/' />
+<link rel='shortlink' href='http://chinacloud.org/?p=275' />
+		<link href="http://chinacloud.org/wp-content/themes/HotNewspro/styles/1-gray.css" rel="stylesheet" type="text/css" />
+
+<style type="text/css">
+.banner img{
+	margin: 0 0 5px 0;
+}
+</style>
+
+<script type="text/javascript" src="http://chinacloud.org/wp-content/themes/HotNewspro/comments-ajax.js"></script>
+<script type="text/javascript" src="http://chinacloud.org/wp-content/themes/HotNewspro/js/reply.js"></script>
+<script type="text/javascript" src="http://chinacloud.org/wp-content/themes/HotNewspro/js/custom.js"></script>
+<script type="text/javascript" src="http://chinacloud.org/wp-content/themes/HotNewspro/js/superfish.js"></script>
+<script type="text/javascript" src="http://chinacloud.org/wp-content/themes/HotNewspro/js/mousewheel.js"></script>
+<script type="text/javascript" src="http://chinacloud.org/wp-content/themes/HotNewspro/js/fancybox.js"></script>
+<script type="text/javascript">
+	$(document).ready(function() {
+
+		$("a[rel=example_group]").fancybox({
+			'transitionIn'		: 'none',
+			'transitionOut'		: 'none',
+			'titlePosition' 	: 'over',
+			'titleFormat'		: function(title, currentArray, currentIndex, currentOpts) {
+				return '<span id="fancybox-title-over">共 ' + currentArray.length + ' 张图片，当前第 ' + (currentIndex + 1) +' 张 '+ (title.length ? ' &nbsp; ' + title : '') + '</span>';
+			}
+		});
+
+		$("#various").fancybox({
+			'padding'			: 0,
+			'autoScale'			: false,
+			'transitionIn'		: 'none',
+			'transitionOut'		: 'none'
+		});
+		$("#download").fancybox({
+			'transitionIn'		: 'none',
+			'transitionOut'		: 'none'
+		});
+	});
+</script><script type="text/javascript">
+$(function () {
+$('.thumbnail img,.thumbnail_t img,.box_comment img,#slideshow img,.cat_ico,.cat_name,.r_comments img,.v_content_list img').hover(
+function() {$(this).fadeTo("fast", 0.5);},
+function() {$(this).fadeTo("fast", 1);
+});
+});
+</script>
+<!-- PNG -->
+<!--[if lt IE 7]>
+<script type="text/javascript" src="http://chinacloud.org/wp-content/themes/HotNewspro/js/pngfix.js"></script>
+<script type="text/javascript">
+DD_belatedPNG.fix('.boxCaption,.top_box,.logo,.reply,.imgcat,.banner img,#fancybox-left-ico,#fancybox-right-ico,#fancybox-close');
+</script>
+<![endif]-->
+<!-- 图片延迟加载 -->
+<script type="text/javascript" src="http://chinacloud.org/wp-content/themes/HotNewspro/js/lazyload.js"></script>
+<script type="text/javascript">
+	$(function() {          
+    	$(".entry_box img,.entry_box_h img,#entry img,.entry_b img").lazyload({
+            effect:"fadeIn",
+			failurelimit : 30
+          });
+    	});
+</script><!-- IE6菜单 -->
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+sfHover = function() {
+	if (!document.getElementsByTagName) return false;
+	var sfEls = document.getElementById("menu").getElementsByTagName("li");
+
+	for (var i=0; i<sfEls.length; i++) {
+		sfEls[i].onmouseover=function() {
+			this.className+=" sfhover";
+		}
+		sfEls[i].onmouseout=function() {
+			this.className=this.className.replace(new RegExp(" sfhover\\b"), "");
+		}
+	}	
+	var sfEls = document.getElementById("topnav").getElementsByTagName("li");
+	for (var i=0; i<sfEls.length; i++) {
+		sfEls[i].onmouseover=function() {
+			this.className+=" sfhover";
+		}
+	}
+}
+if (window.attachEvent) window.attachEvent("onload", sfHover);
+//--><!]]></script>
+<!-- 预加载 -->
+<link rel="prefetch" href="http://chinacloud.org">
+<link rel="prerender" href="http://chinacloud.org">
+</head>
+<body class="single single-post postid-275 single-format-standard">
+<div id="wrapper">
+	<div id="top">
+		<div id='topnav'>
+			<div class="left_top ">
+				<div class="home_h"><a href="http://chinacloud.org" title="首  页" class="home_h"></a></div>
+				<div class="menu-menu-main-container"><ul id="menu-menu-main" class="menu"><li id="menu-item-8" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-8"><a href="http://chinacloud.org/category/news/">新闻</a>
+<ul class="sub-menu">
+	<li id="menu-item-9" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-9"><a href="http://chinacloud.org/category/news/iaas/">IaaS</a></li>
+	<li id="menu-item-10" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-10"><a href="http://chinacloud.org/category/news/paas/">PaaS</a></li>
+	<li id="menu-item-11" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-11"><a href="http://chinacloud.org/category/news/saas/">SaaS</a></li>
+	<li id="menu-item-12" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-12"><a href="http://chinacloud.org/category/news/xaas/">XaaS</a></li>
+	<li id="menu-item-69" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-69"><a href="http://chinacloud.org/category/news/other/">综合</a></li>
+</ul>
+</li>
+<li id="menu-item-28" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor menu-item-has-children menu-item-28"><a href="http://chinacloud.org/category/tech/">技术</a>
+<ul class="sub-menu">
+	<li id="menu-item-35" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-35"><a href="http://chinacloud.org/category/tech/virtualization/">虚拟化</a></li>
+	<li id="menu-item-31" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-31"><a href="http://chinacloud.org/category/tech/%e5%ad%98%e5%82%a8/">存储</a></li>
+	<li id="menu-item-33" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-33"><a href="http://chinacloud.org/category/tech/database/">数据库</a></li>
+	<li id="menu-item-34" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-34"><a href="http://chinacloud.org/category/tech/network/">网络</a></li>
+	<li id="menu-item-29" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-29"><a href="http://chinacloud.org/category/tech/devops/">DevOps</a></li>
+	<li id="menu-item-30" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-30"><a href="http://chinacloud.org/category/tech/web/">web交互</a></li>
+	<li id="menu-item-32" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-32"><a href="http://chinacloud.org/category/tech/architecture/">应用架构</a></li>
+	<li id="menu-item-36" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-36"><a href="http://chinacloud.org/category/tech/physical/">设备设施</a></li>
+</ul>
+</li>
+<li id="menu-item-13" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-13"><a href="http://chinacloud.org/category/company/">公司列表</a>
+<ul class="sub-menu">
+	<li id="menu-item-38" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-38"><a href="http://chinacloud.org/category/company/iaascomp/">IaaS</a></li>
+	<li id="menu-item-15" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-15"><a href="http://chinacloud.org/category/company/paascomp/">PaaS</a></li>
+	<li id="menu-item-16" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-16"><a href="http://chinacloud.org/category/company/saascomp/">SaaS</a></li>
+	<li id="menu-item-17" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-17"><a href="http://chinacloud.org/category/company/xaascomp/">XaaS</a></li>
+</ul>
+</li>
+<li id="menu-item-19" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-19"><a href="http://chinacloud.org/category/opensource/">开源项目</a>
+<ul class="sub-menu">
+	<li id="menu-item-55" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-55"><a href="http://chinacloud.org/category/opensource/devops-opensource/">DevOps</a></li>
+	<li id="menu-item-56" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-56"><a href="http://chinacloud.org/category/opensource/sdn/">SDN</a></li>
+	<li id="menu-item-57" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-57"><a href="http://chinacloud.org/category/opensource/blockstorage/">块设备存储</a></li>
+	<li id="menu-item-58" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-58"><a href="http://chinacloud.org/category/opensource/objectstorage/">对象存储系统</a></li>
+	<li id="menu-item-59" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-59"><a href="http://chinacloud.org/category/opensource/database-opensource/">数据库</a></li>
+	<li id="menu-item-60" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-60"><a href="http://chinacloud.org/category/opensource/filesystem/">文件系统</a></li>
+	<li id="menu-item-61" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-61"><a href="http://chinacloud.org/category/opensource/virtualization-opensource/">虚拟化</a></li>
+	<li id="menu-item-62" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-62"><a href="http://chinacloud.org/category/opensource/virtmanage/">虚拟化管理</a></li>
+</ul>
+</li>
+<li id="menu-item-65" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-65"><a href="http://chinacloud.org/%e5%8d%9a%e5%ae%a2%e7%be%a4/">博客群</a></li>
+<li id="menu-item-346" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-346"><a href="http://wiki.chinacloud.org">百科</a></li>
+</ul></div> 
+			</div>
+			<!-- end: left_top --> 
+			<div id="searchbar">
+				<form method="get" id="searchform" action="http://chinacloud.org/">
+	<input type="text" name="s" id="s" class="swap_value" />
+	<input type="image" src="http://chinacloud.org/wp-content/themes/HotNewspro/images/go.gif" id="go" alt="Search" title="搜索" />
+</form>			</div>
+			<!-- end: searchbar -->
+		</div>
+		<!-- end: topnav -->
+	</div>
+	<!-- end: top -->
+	<div id="header">
+		<div class="header_c">
+			<div class="login_t"><a id="showbtn"  onclick="showid('smallLay');">登录</a>   &#8260; <a href="http://chinacloud.org/wp-login.php?action=register">注册</a><div id="smallLay">
+	<div id="smallLay_box">
+	<!-- if not logged -->
+	<form action="http://chinacloud.org/wp-login.php?redirect_to=http%3A%2F%2Fchinacloud.org%2F2014%2F01%2F21%2Fqemu-guest-agent-protocol%2F" method="post" id="loginform">
+		<div class="loginblock">
+			<p class="login"><input type="text" name="log" id="log" size="" tabindex="11" /></p>
+			<p class="password"><input type="password" name="pwd" id="pwd"  size="" tabindex="12" /></p>
+			<p class="lefted"><button value="Submit" id="submit_t" type="submit" tabindex="13">登&nbsp;录</button></p>
+		</div>
+		<input type="hidden" name="redirect_to" value="/2014/01/21/qemu-guest-agent-protocol/" />
+		<input type="checkbox" name="rememberme" id="modlogn_remember" value="yes"  checked="checked" alt="Remember Me" />下次自动登录
+	</form>
+	<!-- end if not logged -->
+	</div>
+</div>
+</div>
+			<div class="time">
+<script type="text/javascript">
+today=new Date();
+var day; var date; var hello;
+hour=new Date().getHours()
+if(hour < 6)hello='  凌晨好! '
+else if(hour < 9)hello=' 早上好! '
+else if(hour < 12)hello=' 上午好! '
+else if(hour < 14)hello=' 中午好! '
+else if(hour < 17)hello=' 下午好! '
+else if(hour < 19)hello=' 傍晚好! '
+else if(hour < 22)hello=' 晚上好! '
+else {hello='夜深了! '}
+var webUrl = webUrl;
+document.write(' '+hello);
+</script>
+<span id=localtime>
+<script type="text/javascript">
+today=new Date(); var tdate,tday, x,year; var x = new Array("星期日", "星期一", "星期二", "星期三", "星期四", "星期五","星期六");
+var MSIE=navigator.userAgent.indexOf("MSIE");
+if(MSIE != -1)
+year =(today.getFullYear());
+else
+year = (today.getYear()+1900);
+tdate= year+ "年" + (today.getMonth() + 1 ) + "月" + today.getDate() + "日" + " " + x[today.getDay()];
+document.write(tdate);
+</script>
+</span>
+</div>						<h1 class="site_title"><a href="http://chinacloud.org">碧云天</a></h1>
+			<h2 class="site_description">云计算信息中心</h2>
+								</div>
+		<div class="clear"></div>
+		<!-- end: header_c -->
+	</div>
+	<!-- end: header -->
+	<div id="top_hot">
+	<div id="featured">
+				<div class="item">
+			<div class="top_t">
+							</div>
+			<!-- 截图 -->
+			<div class="thumbnail_hot">
+									<a href="http://chinacloud.org/2014/04/22/%e5%a4%a7%e8%af%9d%e5%a4%a7%e4%ba%8c%e5%b1%82%e7%bd%91%e7%bb%9c%e6%8a%80%e6%9c%af%e5%b9%b6%e6%80%bb%e7%bb%93%e5%ae%83%e4%b8%8eopenstack%e7%9a%84%e5%85%b3%e7%b3%bb/" rel="bookmark" title="大二层网络技术并总结它与OpenStack的关系"><img class="home-thumb" src="http://chinacloud.org/wp-content/themes/HotNewspro/images/random/9.jpg" width="236px" height="155px" alt="大二层网络技术并总结它与OpenStack的关系"/></a>
+										</div>
+			<div class="top_box"><a href="http://chinacloud.org/2014/04/22/%e5%a4%a7%e8%af%9d%e5%a4%a7%e4%ba%8c%e5%b1%82%e7%bd%91%e7%bb%9c%e6%8a%80%e6%9c%af%e5%b9%b6%e6%80%bb%e7%bb%93%e5%ae%83%e4%b8%8eopenstack%e7%9a%84%e5%85%b3%e7%b3%bb/" rel="bookmark" title="大二层网络技术并总结它与OpenStack的关系">详细内容</a></div>
+			<div class="boxCaption">
+				<h2><a href="http://chinacloud.org/2014/04/22/%e5%a4%a7%e8%af%9d%e5%a4%a7%e4%ba%8c%e5%b1%82%e7%bd%91%e7%bb%9c%e6%8a%80%e6%9c%af%e5%b9%b6%e6%80%bb%e7%bb%93%e5%ae%83%e4%b8%8eopenstack%e7%9a%84%e5%85%b3%e7%b3%bb/" title="Permalink to 大二层网络技术并总结它与OpenStack的关系">大二层网络技术并总结它与OpenS</a></h2>
+			</div>
+		</div>
+			<div class="item">
+			<div class="top_t">
+							</div>
+			<!-- 截图 -->
+			<div class="thumbnail_hot">
+									<a href="http://chinacloud.org/2014/04/17/%e6%b5%85%e8%b0%88%ef%bc%9a%e7%a1%85%e8%b0%b7%e7%9a%84%e4%ba%ba%e6%96%87%e7%b2%be%e7%a5%9e%e4%b8%8e%e6%80%9d%e7%bb%b4%e6%a8%a1%e5%bc%8f/" rel="bookmark" title="浅谈：硅谷的人文精神与思维模式"><img class="home-thumb" src="http://geekpark-img.qiniudn.com/uploads/reading/seed/b9206f0a2a1b459db93124c20285aa56.jpg?imageView/2/w/620/q/100" width="236px" height="155px" alt="浅谈：硅谷的人文精神与思维模式"/></a>
+										</div>
+			<div class="top_box"><a href="http://chinacloud.org/2014/04/17/%e6%b5%85%e8%b0%88%ef%bc%9a%e7%a1%85%e8%b0%b7%e7%9a%84%e4%ba%ba%e6%96%87%e7%b2%be%e7%a5%9e%e4%b8%8e%e6%80%9d%e7%bb%b4%e6%a8%a1%e5%bc%8f/" rel="bookmark" title="浅谈：硅谷的人文精神与思维模式">详细内容</a></div>
+			<div class="boxCaption">
+				<h2><a href="http://chinacloud.org/2014/04/17/%e6%b5%85%e8%b0%88%ef%bc%9a%e7%a1%85%e8%b0%b7%e7%9a%84%e4%ba%ba%e6%96%87%e7%b2%be%e7%a5%9e%e4%b8%8e%e6%80%9d%e7%bb%b4%e6%a8%a1%e5%bc%8f/" title="Permalink to 浅谈：硅谷的人文精神与思维模式">浅谈：硅谷的人文精神与思维模式</a></h2>
+			</div>
+		</div>
+			<div class="item">
+			<div class="top_t">
+							</div>
+			<!-- 截图 -->
+			<div class="thumbnail_hot">
+									<a href="http://chinacloud.org/2014/04/16/447/" rel="bookmark" title="【转】iproute2策略路由思路讲解、命令示例及相关功能源代码分析"><img class="home-thumb" src="http://chinacloud.org/wp-content/themes/HotNewspro/images/random/14.jpg" width="236px" height="155px" alt="【转】iproute2策略路由思路讲解、命令示例及相关功能源代码分析"/></a>
+										</div>
+			<div class="top_box"><a href="http://chinacloud.org/2014/04/16/447/" rel="bookmark" title="【转】iproute2策略路由思路讲解、命令示例及相关功能源代码分析">详细内容</a></div>
+			<div class="boxCaption">
+				<h2><a href="http://chinacloud.org/2014/04/16/447/" title="Permalink to 【转】iproute2策略路由思路讲解、命令示例及相关功能源代码分析">【转】iproute2策略路由思路讲解</a></h2>
+			</div>
+		</div>
+			<div class="item">
+			<div class="top_t">
+							</div>
+			<!-- 截图 -->
+			<div class="thumbnail_hot">
+									<a href="http://chinacloud.org/2014/04/16/cloudstack-vrouter-%e5%8a%9f%e8%83%bd/" rel="bookmark" title="CloudStack Vrouter 功能"><img class="home-thumb" src="http://chinacloud.org/wp-content/themes/HotNewspro/images/random/14.jpg" width="236px" height="155px" alt="CloudStack Vrouter 功能"/></a>
+										</div>
+			<div class="top_box"><a href="http://chinacloud.org/2014/04/16/cloudstack-vrouter-%e5%8a%9f%e8%83%bd/" rel="bookmark" title="CloudStack Vrouter 功能">详细内容</a></div>
+			<div class="boxCaption">
+				<h2><a href="http://chinacloud.org/2014/04/16/cloudstack-vrouter-%e5%8a%9f%e8%83%bd/" title="Permalink to CloudStack Vrouter 功能">CloudStack Vrouter 功能</a></h2>
+			</div>
+		</div>
+		<div class="clear"></div>
+	</div>
+</div>	<!-- scroll -->
+	<ul class="scroll">
+	<li class="sct">
+		<a href="#">&nbsp;&nbsp;&nbsp;</a>
+		<div><a class="scroll_t">返回顶部</a></div>
+	</li>
+		<li class="scc">
+		<a href="#">&nbsp;&nbsp;&nbsp;</a>
+		<div><a class="scroll_c">查看留言</a></div>
+	</li>
+		<li class="scb">
+		<a href="#">&nbsp;&nbsp;&nbsp;</a>
+		<div><a class="scroll_b">转到底部</a></div>
+	</li>
+</ul><script type="text/javascript">
+    function doZoom(size) {
+        var zoom = document.all ? document.all['entry'] : document.getElementById('entry');
+        zoom.style.fontSize = size + 'px';
+    }
+</script>
+<div id="content">
+			 <!-- menu -->
+		<div id="map">
+			<div class="browse">现在的位置: <a title="返回首页" href="http://chinacloud.org/">首页</a> &gt; <a href="http://chinacloud.org/category/tech/" title="查看技术中的全部文章">技术</a> &gt; <a href="http://chinacloud.org/category/tech/virtualization/" title="查看虚拟化中的全部文章" rel="category tag">虚拟化</a> &gt; 正文</div>
+			<div id="feed"><a href="http://chinacloud.org/feed/" title="RSS">RSS</a></div>
+		</div>
+		<!-- end: menu -->
+		<div class="entry_box_s">
+			<div class="context">
+				<div class="context_t">
+					<span class="prev"><a href="http://chinacloud.org/2013/11/24/%e8%99%9a%e6%8b%9f%e5%8c%96%e4%b8%8b%e7%9a%84%e5%86%85%e5%ad%98%e5%85%b1%e4%ba%ab/" rel="prev">上篇</a></span>
+					<span class="next"><a href="http://chinacloud.org/2014/01/21/what-is-network-virtualization-%e5%85%88%e6%94%b6%e4%ba%86%ef%bc%8c%e4%b8%8d%e7%9c%8b/" rel="next">下篇</a></span>
+				</div>
+			</div>
+			<div class="entry_title_box">
+				<!-- 分类图标 -->
+				<div class="ico"></div>
+				<!-- end: 分类图标 -->
+				<h2 class="entry_title">QEMU Guest Agent Protocol</h2>
+				<div class="archive_info">
+					<span class="date">2014年01月21日</span>
+					<span class="category"> &#8260; <a href="http://chinacloud.org/category/tech/virtualization/" title="查看虚拟化中的全部文章" rel="category tag">虚拟化</a></span>
+										&#8260; 共 3296字					&#8260; 字号 <span class="font"><a href="javascript:doZoom(12)">小</a> <a href="javascript:doZoom(13)">中</a> <a href="javascript:doZoom(18)">大</a></span>
+					<span class="comment"> &#8260; <a href="http://chinacloud.org/2014/01/21/qemu-guest-agent-protocol/#respond" title="《QEMU Guest Agent Protocol》上的评论">暂无评论</a></span>
+					 &#8260; 阅读 307 次					<span class="edit"></span>
+				</div>
+			</div>
+			<!-- end: entry_title_box -->
+			<div class="entry">
+				<div id="entry">
+																				<p>qemu官网上说QEMU Guest Agent 目标是使用qmp指令标准实现虚拟机操作系统层的访问，作为将来QAPI的一部分。但是到qemu 0.15为止，Guest Agent是通过主机的一个独立的字符设备（一般是一个unix socket），来和客户机通信的，而客户机那端要有一个virtio-serial 或者 isa-serial 通道（channel）例如默认的客户机上为/dev/virtio-ports/org.qemu.guest_agent.0</p>
+<p>下边介绍一下 Guest Agent的使用：</p>
+<p>首先要在虚拟机里安装qemu-ga工具，对于linux来说简单，centos只需运行 yum install qemu-guest-agent</p>
+<p>如果源码安装，如下</p>
+<p>build:</p>
+<pre> # for linux
+ ./configure
+ make qemu-ga #should be built on|for target guest</pre>
+<pre> # for Windows using MinGW on linux/cygwin (example for Fedora 18)
+ ./configure --enable-guest-agent --cross-prefix=i686-w64-mingw32-
+ make qemu-ga.exe</pre>
+<p>install:</p>
+<pre> # for linux
+ sudo make install</pre>
+<pre># for Windows
+ 1. make sure virtio-serial Windows drivers are installed and
+    working correctly (vioser-test utility that ships with
+    virtio-win ISO can help to confirm this)
+    (<a title="http://alt.fedoraproject.org/pub/alt/virtio-win/latest/images/bin/" href="http://alt.fedoraproject.org/pub/alt/virtio-win/latest/images/bin/" rel="nofollow">http://alt.fedoraproject.org/pub/alt/virtio-win/latest/images/bin/</a>)
+ 2. copy qemu-ga.exe to a directory on your windows guest, along
+    with the following libraries all extracted/installed to the
+    same directory:
+    a) Contents of 'bin' directory from 'GLib' runtime
+       (<a title="http://www.gtk.org/download/win32.php" href="http://www.gtk.org/download/win32.php" rel="nofollow">http://www.gtk.org/download/win32.php</a>)
+    b) 'intl.dll' for 'gettext' runtime
+       (<a title="http://www.gtk.org/download/win32.php" href="http://www.gtk.org/download/win32.php" rel="nofollow">http://www.gtk.org/download/win32.php</a>)
+    c) depending on your build environment, you may also need
+       'libssp-0.dll', which can be obtained from your mingw sys-root
+ 3. Make sure C:\Program Files\QEMU\run exists (create it if it doesn't)
+ 4. open a command prompt (as administrator), and run
+    `qemu-ga.exe -s install` to install qemu-ga service
+ 5. manually start qemu-ga service via `net start qemu-ga`, or enable
+    autostart for qemu-ga service via 'Control Panel'&gt;'Services'
+    configuration menu.
+运行虚拟机，如果命令行运行如下</pre>
+<pre>qemu \
+ -drive file=/home/mdroth/vm/rhel6_64_base.raw,snapshot=off,if=virtio \
+ -net nic,model=virtio,macaddr=52:54:00:12:34:00 \
+ -net tap,script=/etc/qemu-ifup \
+ -vnc :1 -m 1024 --enable-kvm \
+ -chardev socket,path=/tmp/qga.sock,server,nowait,id=qga0 \
+ -device virtio-serial \
+ -device virtserialport,chardev=qga0,name=org.qemu.guest_agent.0"
+
+如果虚拟机用libvirt管理 需要在 虚拟机的xml文件加入如下几行</pre>
+<p>&lt;channel type='unix'&gt;<br />
+&lt;source mode='bind' path='/var/lib/libvirt/qemu/f16x86_64.agent'/&gt;<br />
+&lt;target type='virtio' name='org.qemu.guest_agent.0'/&gt;<br />
+&lt;address type='virtio-serial' controller='0' bus='0' port='1'/&gt;<br />
+&lt;/channel&gt;</p>
+<p>虚拟机启动后，运行</p>
+<pre>./qemu-ga -m virtio-serial -p /dev/virtio-ports/org.qemu.guest_agent.0
+这样就可以和虚拟机通信了
+
+你可以用socat 工具来试一下，当然如果要做项目 要单独写一个socket通讯</pre>
+<pre> mdroth@illuin:~$ sudo socat unix-connect:/var/lib/libvirt/qemu/f16x86_64.agent readline
+ {"execute":"guest-sync", "arguments":{"id":1234}}
+ {"return": 1234}</pre>
+<pre> {"execute":"guest-ping"}
+ {"return": {}}</pre>
+<pre> {"execute": "guest-info"}
+ {"return": {"version": "1.0"}}</pre>
+<pre> // write "hello world!\n" to /tmp/testqga
+ {"execute":"guest-file-open", "arguments":{"path":"/tmp/testqga","mode":"w+"}}
+ {"return": 0}
+ {"execute":"guest-file-write", "arguments":{"handle":0,"buf-b64":"aGVsbG8gd29ybGQhCg=="}}
+ {"return": {"count": 13, "eof": false}}
+ {"execute":"guest-file-close", "arguments":{"handle":0}}
+ {"return": {}}</pre>
+<pre> // read back the "hello world!\n" from /tmp/testqga
+ {"execute":"guest-file-open", "arguments":{"path":"/tmp/testqga","mode":"r"}}
+ {"return": 1}
+ {"execute":"guest-file-read", "arguments":{"handle":1,"count":1024}}
+ {"return": {"buf-b64": "aGVsbG8gd29ybGQhCg==", "count": 13, "eof": true}}
+ {"execute":"guest-file-close","arguments":{"handle":1}}
+ {"return": {}}</pre>
+<pre> // freeze and unfreeze freezable guest filesystems
+ {"execute":"guest-fsfreeze-status"}
+ {"return": "thawed"}
+ {"execute":"guest-fsfreeze-freeze"}
+ {"return": 3}
+ {"execute":"guest-fsfreeze-status"}
+ {"return": "frozen"}
+ {"execute":"guest-fsfreeze-thaw"}
+ {"return": 3}
+ {"execute":"guest-fsfreeze-status"}
+ {"return": "thawed"}</pre>
+<pre></pre>
+<div style="clear:both; margin-top:5px; margin-bottom:5px;"></div><div style="float:left"><!-- JiaThis Button BEGIN -->
+<div id="jiathis_style_32x32">
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_tqq"></a>
+	<a class="jiathis_button_renren"></a>
+	<a class="jiathis_button_kaixin001"></a>
+	<a href="http://www.jiathis.com/share/" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" src="http://v2.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END --></div><div style="clear:both; margin-top:5px; margin-bottom:5px;"></div>														</div>
+							</div>
+			<div class="back_b">
+				<a href="javascript:void(0);" onclick="history.back();">返回</a>
+			</div>
+			<div class="clear"></div>
+			<!-- end: entry -->
+			<i class="lt"></i>
+			<i class="rt"></i>
+		</div>
+		<div class="entry_sb">
+			<i class="lb"></i>
+			<i class="rb"></i>
+		</div>
+		<!-- ad -->
+								<div class="context_b">
+			【上篇】<a href="http://chinacloud.org/2014/01/18/%e4%b8%ba%e4%bb%80%e4%b9%88%e5%ae%98%e6%96%b9%e7%89%88%e6%89%93%e8%bd%a6%e8%bd%af%e4%bb%b6%e4%bc%9a%e5%85%a8%e9%9d%a2%e6%b2%a6%e9%99%b7%ef%bc%9f/" rel="prev">为什么“官方”版打车软件会全面沦陷？</a><br/>【下篇】<a href="http://chinacloud.org/2014/01/21/amoeba%e7%ae%80%e4%bb%8b/" rel="next">Amoeba简介</a>			<i class="lt"></i>
+			<i class="rt"></i>
+			<i class="lb"></i>
+			<i class="rb"></i>
+		</div>
+		<!-- relatedposts -->
+		<div class="entry_b">
+	<div class="relatedposts">
+<h4>您可能还会对这些文章感兴趣！</h4>
+<ol>
+		<li><a href="http://chinacloud.org/2014/01/21/what-is-network-virtualization-%e5%85%88%e6%94%b6%e4%ba%86%ef%bc%8c%e4%b8%8d%e7%9c%8b/">What is Network Virtualization?--先收了</a></li>
+		<li><a href="http://chinacloud.org/2013/11/24/%e8%99%9a%e6%8b%9f%e5%8c%96%e4%b8%8b%e7%9a%84%e5%86%85%e5%ad%98%e5%85%b1%e4%ba%ab/">虚拟化下的内存共享</a></li>
+		<li><a href="http://chinacloud.org/2013/11/24/%e5%9b%be%e8%a7%a3vmware%e5%86%85%e5%ad%98%e6%9c%ba%e5%88%b6-delxu-tech-notebook-51cto%e6%8a%80%e6%9c%af%e5%8d%9a%e5%ae%a2/">图解VMware内存机制 - delxu Tech Notebook - 51C</a></li>
+		<li><a href="http://chinacloud.org/2013/11/24/vmware%e5%86%85%e5%ad%98%e5%88%86%e9%85%8d%e5%88%9d%e6%8e%a2/">VMware内存分配初探 </a></li>
+	</ol>
+</div>	<div class="related_img">
+		<div class="related_img_box">
+		<div class="thumbnail_t">
+	</div>
+<!-- 截图 -->
+<div class="thumbnail">
+	<a href="http://chinacloud.org/2014/01/21/what-is-network-virtualization-%e5%85%88%e6%94%b6%e4%ba%86%ef%bc%8c%e4%b8%8d%e7%9c%8b/" rel="bookmark" title="What is Network Virtualization?&#8211;先收了">
+		<img class="home-thumb" src="http://commondatastorage.googleapis.com/bradhedlund/blog/what-is-network-virtualization/server_virtualization_No_network_virtualization.PNG" width="140px" height="100px" alt="What is Network Virtualization?&#8211;先收了"/>
+	</a>
+	</div>
+	</div>
+		<div class="related_img_box">
+		<div class="thumbnail_t">
+	</div>
+<!-- 截图 -->
+<div class="thumbnail">
+	<a href="http://chinacloud.org/2014/01/15/%e5%85%ac%e9%92%a5%e7%a7%81%e9%92%a5%e6%95%b0%e5%ad%97%e8%af%81%e4%b9%a6/" rel="bookmark" title="公钥,私钥,数字证书">
+		<img class="home-thumb" src="http://chinacloud.org/wp-content/themes/HotNewspro/images/random/1.jpg" width="140px" height="100px" alt="公钥,私钥,数字证书"/>
+	</a>
+	</div>
+	</div>
+		<div class="related_img_box">
+		<div class="thumbnail_t">
+	</div>
+<!-- 截图 -->
+<div class="thumbnail">
+	<a href="http://chinacloud.org/2014/01/18/%e4%b8%ba%e4%bb%80%e4%b9%88%e5%ae%98%e6%96%b9%e7%89%88%e6%89%93%e8%bd%a6%e8%bd%af%e4%bb%b6%e4%bc%9a%e5%85%a8%e9%9d%a2%e6%b2%a6%e9%99%b7%ef%bc%9f/" rel="bookmark" title="为什么“官方”版打车软件会全面沦陷？">
+		<img class="home-thumb" src="http://chinacloud.org/wp-content/themes/HotNewspro/images/random/15.jpg" width="140px" height="100px" alt="为什么“官方”版打车软件会全面沦陷？"/>
+	</a>
+	</div>
+	</div>
+		<div class="related_img_box">
+		<div class="thumbnail_t">
+	</div>
+<!-- 截图 -->
+<div class="thumbnail">
+	<a href="http://chinacloud.org/2013/12/18/linux%e5%ae%b9%e5%99%a8%e8%bf%90%e8%a1%8c%e6%97%b6docker%e5%bc%80%e6%ba%90/" rel="bookmark" title="Linux容器运行时Docker开源">
+		<img class="home-thumb" src="http://cms.csdnimg.cn/article/201303/28/5153db2d214a4.jpg" width="140px" height="100px" alt="Linux容器运行时Docker开源"/>
+	</a>
+	</div>
+	</div>
+		</div>	<div class="clear"></div>
+		<i class="lt"></i>
+		<i class="rt"></i>
+</div>
+<div class="entry_sb">
+	<i class="lb"></i>
+	<i class="rb"></i>
+</div>		<!-- end: relatedposts -->
+		<!-- entrymeta -->
+		<div class="entrymeta">
+			<div class="authorbio">
+				<div class="author_pic">
+					<img alt='' src='http://1.gravatar.com/avatar/551f79dcd0472b2cf72d82ead367b4e8?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' />				</div>
+				<div class="clear"></div>
+				<div class="author_text">
+					<h4>作者: <span><a href="http://chinacloud.org/author/liuhaibin/" title="由liuhaibin发布" rel="author">liuhaibin</a></span></h4>
+				</div>
+			</div>
+			<span class="spostinfo">
+				<ul>
+					<li>该日志由 liuhaibin 于3月前发表在<a href="http://chinacloud.org/category/tech/virtualization/" title="查看虚拟化中的全部文章" rel="category tag">虚拟化</a>分类下，最后更新于 2014年01月21日.</li>
+					<li>转载请注明: <a href="http://chinacloud.org/2014/01/21/qemu-guest-agent-protocol/" rel="bookmark" title="本文固定链接 http://chinacloud.org/2014/01/21/qemu-guest-agent-protocol/">QEMU Guest Agent Protocol | 碧云天</a><a href="#" onclick="copy_code('http://chinacloud.org/2014/01/21/qemu-guest-agent-protocol/'); return false;"> +复制链接</a></li>
+					<li class="content_tag"></li>
+				</ul>
+			</span>
+			<i class="lt"></i>
+			<i class="rt"></i>
+			<div class="clear"></div>
+		</div>
+		<div class="entry_sb">
+			<i class="lb"></i>
+			<i class="rb"></i>
+		</div>
+		<!-- end: entrymeta -->
+	<div class="ct"></div>
+	<!-- You can start editing here. -->
+			<!-- If comments are open, but there are no comments. -->
+	 						<div id="respond_box">
+	<div id="respond">
+		<h3>给我留言</h3>
+		<div class="cancel-comment-reply">
+			<a rel="nofollow" id="cancel-comment-reply-link" href="/2014/01/21/qemu-guest-agent-protocol/#respond" style="display:none;">点击这里取消回复。</a>		</div>
+				<span class="set_avatar"><a title="去申请一个自己的Gravatar全球通用头像" target="_blank" href="http://en.gravatar.com/">留言无头像?</a></span>
+		<form action="http://chinacloud.org/wp-comments-post.php" method="post" id="commentform">
+				<div id="comment-author-info">
+		<p>
+			<input type="text" name="author" id="author" class="commenttext" value="" size="22" tabindex="1" />
+			<label for="author">昵称 *</label>
+		</p>
+		<p>
+			<input type="text" name="email" id="email" class="commenttext" value="" size="22" tabindex="2" />
+			<label for="email">邮箱 *</label>
+		</p>
+		<p>
+			<input type="text" name="url" id="url" class="commenttext" value="" size="22" tabindex="3" />
+			<label for="url">网址</label>
+		</p>
+	</div>
+      
+		<!--<p><small><strong>XHTML:</strong> You can use these tags: <code>&lt;a href=&quot;&quot; title=&quot;&quot;&gt; &lt;abbr title=&quot;&quot;&gt; &lt;acronym title=&quot;&quot;&gt; &lt;b&gt; &lt;blockquote cite=&quot;&quot;&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=&quot;&quot;&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=&quot;&quot;&gt; &lt;strike&gt; &lt;strong&gt; </code></small></p>-->
+      <div class="clear"></div>
+		<p><textarea name="comment" id="comment" tabindex="4"></textarea></p>
+		<p>
+			<script type="text/javascript">
+/* <![CDATA[ */
+    function grin(tag) {
+    	var myField;
+    	tag = ' ' + tag + ' ';
+        if (document.getElementById('comment') && document.getElementById('comment').type == 'textarea') {
+    		myField = document.getElementById('comment');
+    	} else {
+    		return false;
+    	}
+    	if (document.selection) {
+    		myField.focus();
+    		sel = document.selection.createRange();
+    		sel.text = tag;
+    		myField.focus();
+    	}
+    	else if (myField.selectionStart || myField.selectionStart == '0') {
+    		var startPos = myField.selectionStart;
+    		var endPos = myField.selectionEnd;
+    		var cursorPos = endPos;
+    		myField.value = myField.value.substring(0, startPos)
+    					  + tag
+    					  + myField.value.substring(endPos, myField.value.length);
+    		cursorPos += tag.length;
+    		myField.focus();
+    		myField.selectionStart = cursorPos;
+    		myField.selectionEnd = cursorPos;
+    	}
+    	else {
+    		myField.value += tag;
+    		myField.focus();
+    	}
+    }
+/* ]]> */
+</script>
+<a href="javascript:grin(':?:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_question.gif" alt="" /></a>
+<a href="javascript:grin(':razz:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_razz.gif" alt="" /></a>
+<a href="javascript:grin(':sad:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_sad.gif" alt="" /></a>
+<a href="javascript:grin(':evil:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_evil.gif" alt="" /></a>
+<a href="javascript:grin(':!:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_exclaim.gif" alt="" /></a>
+<a href="javascript:grin(':smile:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_smile.gif" alt="" /></a>
+<a href="javascript:grin(':oops:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_redface.gif" alt="" /></a>
+<a href="javascript:grin(':grin:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_biggrin.gif" alt="" /></a>
+<a href="javascript:grin(':eek:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_surprised.gif" alt="" /></a>
+<a href="javascript:grin(':shock:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_eek.gif" alt="" /></a>
+<a href="javascript:grin(':???:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_confused.gif" alt="" /></a>
+<a href="javascript:grin(':cool:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_cool.gif" alt="" /></a>
+<a href="javascript:grin(':lol:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_lol.gif" alt="" /></a>
+<a href="javascript:grin(':mad:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_mad.gif" alt="" /></a>
+<a href="javascript:grin(':twisted:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_twisted.gif" alt="" /></a>
+<a href="javascript:grin(':roll:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_rolleyes.gif" alt="" /></a>
+<a href="javascript:grin(':wink:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_wink.gif" alt="" /></a>
+<a href="javascript:grin(':idea:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_idea.gif" alt="" /></a>
+<a href="javascript:grin(':arrow:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_arrow.gif" alt="" /></a>
+<a href="javascript:grin(':neutral:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_neutral.gif" alt="" /></a>
+<a href="javascript:grin(':cry:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_cry.gif" alt="" /></a>
+<a href="javascript:grin(':mrgreen:')"><img src="http://chinacloud.org/wp-includes/images/smilies/icon_mrgreen.gif" alt="" /></a>
+<br />		</p>
+		<div class="submitted">
+			<input class="submit" name="submit" type="submit" id="submit" tabindex="5" value="提交留言"/>
+			<input class="reset" name="reset" type="reset" id="reset" tabindex="6" value="重写" />
+			<input type='hidden' name='comment_post_ID' value='275' id='comment_post_ID' />
+<input type='hidden' name='comment_parent' id='comment_parent' value='0' />
+		</div>
+		<div class="picture"><a href='javascript:embedImage();' >插入图片</a></div>
+		<script type="text/javascript">	//Crel+Enter
+			$(document).keypress(function(e){
+				if(e.ctrlKey && e.which == 13 || e.which == 10) { 
+					$(".submit").click();
+					document.body.focus();
+				} else if (e.shiftKey && e.which==13 || e.which == 10) {
+					$(".submit").click();
+				}
+			})
+		</script>
+		
+<div id="captchaImgDiv">
+
+<div class="captchaSizeDivLarge"><img id="si_image_com" class="si-captcha" src="http://chinacloud.org/wp-content/plugins/si-captcha-for-wordpress/captcha/securimage_show.php?si_form_id=com&amp;prefix=TWX48NdDoAeoNB0e" width="175" height="60" alt="验证图片" title="验证图片" />
+    <input id="si_code_com" name="si_code_com" type="hidden"  value="TWX48NdDoAeoNB0e" />
+    <div id="si_refresh_com">
+<a href="#" rel="nofollow" title="刷新验证码" onclick="si_captcha_refresh('si_image_com','com','/wp-content/plugins/si-captcha-for-wordpress/captcha','http://chinacloud.org/wp-content/plugins/si-captcha-for-wordpress/captcha/securimage_show.php?si_form_id=com&amp;prefix='); return false;">
+      <img class="captchaImgRefresh" src="http://chinacloud.org/wp-content/plugins/si-captcha-for-wordpress/captcha/images/refresh.png" width="22" height="20" alt="刷新验证码" onclick="this.blur();" /></a>
+  </div>
+  </div>
+<div id="captchaInputDiv"><input id="captcha_code" name="captcha_code" type="text" value="" tabindex="4"  />
+ <label id="captcha_code_label" for="captcha_code">验证码</label><span class="required">*</span>
+ </div>
+</div>
+      <script type='text/javascript'>
+          var sUrlInput = document.getElementById("comment");
+                  var oParent = sUrlInput.parentNode;
+          var sSubstitue = document.getElementById("captchaImgDiv");
+                  oParent.appendChild(sSubstitue, sUrlInput);
+      </script>
+            <noscript>
+          <style type='text/css'>#submit {display:none;}</style><br />           <input name="submit" type="submit" id="submit-alt" tabindex="6" value="提交" />
+          </noscript>
+  <input type="checkbox" name="comment_mail_notify" id="comment_mail_notify" value="comment_mail_notify" checked="checked" style="margin-left:0px;" /><label for="comment_mail_notify">有人回复时邮件通知我</label>    </form>
+
+	<div class="clear"></div>
+      </div>
+	<i class="lt"></i>
+	<i class="rt"></i>
+  </div>
+<div class="respond_b">
+	<i class="lb"></i>
+	<i class="rb"></i>	
+</div>
+ 	</div>
+<!-- end: content -->
+<div id="sidebar">
+	
+		<div id="tabs">
+	<div class="box_top">
+		<i class="rt"></i>
+	</div>
+	<ul class="htotabs">
+		<li class="widget1"><a href="#tab-widget1">最新文章</a></li>
+		<li class="widget2"><a href="#tab-widget2">近期热门</a></li>
+		<li class="widget3"><a href="#tab-widget3">分类目录</a></li>
+		<div class="clear"></div>
+	</ul>
+	<div class="tab-inside">
+		<ul id="tab-widget1">
+			<div class="tab_latest">
+				<ul>
+										<li><a href="http://chinacloud.org/2014/04/22/%e5%a4%a7%e8%af%9d%e5%a4%a7%e4%ba%8c%e5%b1%82%e7%bd%91%e7%bb%9c%e6%8a%80%e6%9c%af%e5%b9%b6%e6%80%bb%e7%bb%93%e5%ae%83%e4%b8%8eopenstack%e7%9a%84%e5%85%b3%e7%b3%bb/" rel="bookmark" title="详细阅读 大二层网络技术并总结它与OpenStack的关系">大二层网络技术并总结它与OpenSta</a></li>
+										<li><a href="http://chinacloud.org/2014/04/17/%e6%b5%85%e8%b0%88%ef%bc%9a%e7%a1%85%e8%b0%b7%e7%9a%84%e4%ba%ba%e6%96%87%e7%b2%be%e7%a5%9e%e4%b8%8e%e6%80%9d%e7%bb%b4%e6%a8%a1%e5%bc%8f/" rel="bookmark" title="详细阅读 浅谈：硅谷的人文精神与思维模式">浅谈：硅谷的人文精神与思维模式</a></li>
+										<li><a href="http://chinacloud.org/2014/04/16/447/" rel="bookmark" title="详细阅读 【转】iproute2策略路由思路讲解、命令示例及相关功能源代码分析">【转】iproute2策略路由思路讲解、命</a></li>
+										<li><a href="http://chinacloud.org/2014/04/16/cloudstack-vrouter-%e5%8a%9f%e8%83%bd/" rel="bookmark" title="详细阅读 CloudStack Vrouter 功能">CloudStack Vrouter 功能</a></li>
+										<li><a href="http://chinacloud.org/2014/04/15/cebit-2014%ef%bc%9a%e5%8d%8e%e4%b8%ba%e6%95%b0%e6%8d%ae%e4%b8%ad%e5%bf%83%e7%bd%91%e7%bb%9c%e5%b0%86%e8%b5%b0%e5%90%91sdn/" rel="bookmark" title="详细阅读 CeBIT 2014：华为数据中心网络将走向SDN">CeBIT 2014：华为数据中心网络将</a></li>
+										<li><a href="http://chinacloud.org/2014/04/15/onf%e6%89%a7%e8%a1%8c%e6%80%bb%e8%a3%81dan-pitt%e5%b0%86%e5%87%ba%e5%b8%ad2014%e5%85%a8%e7%90%83sdn%e6%8a%80%e6%9c%af%e5%a4%a7%e4%bc%9a/" rel="bookmark" title="详细阅读 ONF执行总裁Dan Pitt将出席“2014全球SDN技术大会”">ONF执行总裁Dan Pitt将出席“2</a></li>
+										<li><a href="http://chinacloud.org/2014/04/13/cloudstack-vrouter/" rel="bookmark" title="详细阅读 CloudStack Vrouter">CloudStack Vrouter</a></li>
+										<li><a href="http://chinacloud.org/2014/03/23/%e4%ba%ac%e4%b8%9c%e6%8b%9b%e8%82%a1%e4%b9%a6%e7%9a%8416%e4%b8%aa%e7%83%ad%e8%be%a3%e7%9c%8b%e7%82%b9/" rel="bookmark" title="详细阅读 京东招股书的16个热辣看点">京东招股书的16个热辣看点</a></li>
+										<li><a href="http://chinacloud.org/2014/03/14/%e7%a7%91%e6%8a%80%e6%97%a0%e6%9e%81%e9%99%90%ef%bc%9a%e6%af%94-4g-%e5%bf%ab-1000-%e5%80%8d%e7%9a%84-pcell/" rel="bookmark" title="详细阅读 科技无极限：比 4G 快 1000 倍的 pCell">科技无极限：比 4G 快 1000 倍的 p</a></li>
+										<li><a href="http://chinacloud.org/2014/03/11/apache-avro-%e4%b8%8e-thrift-%e6%af%94%e8%be%83/" rel="bookmark" title="详细阅读 Apache Avro 与 Thrift 比较">Apache Avro 与 Thrift 比较</a></li>
+									</ul>
+	<div class="clear"></div>
+			</div>
+		</ul>
+		<ul id="tab-widget2">
+			<div class="tab_latest">
+				<ul>
+				    				</ul>
+			</div>
+  		</ul>
+		<ul id="tab-widget3"> 
+			<div class="categories_c">
+				<ul>
+				    	<li class="cat-item cat-item-14"><a href="http://chinacloud.org/category/tech/devops/" title="DevOps">DevOps</a>
+</li>
+	<li class="cat-item cat-item-30"><a href="http://chinacloud.org/category/opensource/devops-opensource/" title="DevOps">DevOps</a>
+</li>
+	<li class="cat-item cat-item-29"><a href="http://chinacloud.org/category/opensource/sdn/" title="SDN">SDN</a>
+</li>
+	<li class="cat-item cat-item-28"><a href="http://chinacloud.org/category/opensource/blockstorage/" title="块设备存储">块设备存储</a>
+</li>
+	<li class="cat-item cat-item-9"><a href="http://chinacloud.org/category/tech/%e5%ad%98%e5%82%a8/" title="存储">存储</a>
+</li>
+	<li class="cat-item cat-item-11"><a href="http://chinacloud.org/category/tech/architecture/" title="应用架构">应用架构</a>
+</li>
+	<li class="cat-item cat-item-7"><a href="http://chinacloud.org/category/tech/" title="技术">技术</a>
+</li>
+	<li class="cat-item cat-item-1"><a href="http://chinacloud.org/category/uncategorized/" title="查看未分类下的所有文章">未分类</a>
+</li>
+	<li class="cat-item cat-item-33"><a href="http://chinacloud.org/category/news/other/" title="查看综合下的所有文章">综合</a>
+</li>
+	<li class="cat-item cat-item-10"><a href="http://chinacloud.org/category/tech/network/" title="网络">网络</a>
+</li>
+	<li class="cat-item cat-item-8"><a href="http://chinacloud.org/category/tech/virtualization/" title="虚拟化">虚拟化</a>
+</li>
+	<li class="cat-item cat-item-24"><a href="http://chinacloud.org/category/opensource/virtualization-opensource/" title="查看虚拟化下的所有文章">虚拟化</a>
+</li>
+	<li class="cat-item cat-item-12"><a href="http://chinacloud.org/category/tech/physical/" title="设备设施">设备设施</a>
+</li>
+				</ul>
+				<div class="clear"></div>
+			</div>
+		</ul>
+	</div>
+</div>
+<div class="box-bottom">
+	<i class="lb"></i>
+	<i class="rb"></i>
+</div>
+<script type="text/javascript">
+jQuery(document).ready(function(){
+	jQuery( '.htotabs').each(function(){
+		jQuery(this).children( 'li').children( 'a:first').addClass( 'selected' ); // Add .selected class to first tab on load
+	});
+	jQuery( '.tab-inside > *').hide();
+	jQuery( '.tab-inside > *:first-child').show();
+	jQuery( '.htotabs li a').mouseover(function(evt){ // Init Click funtion on Tabs
+		var clicked_tab_ref = jQuery(this).attr( 'href' ); // Strore Href value
+		jQuery(this).parent().parent().children( 'li').children( 'a').removeClass( 'selected' ); //Remove selected from all tabs
+		jQuery(this).addClass( 'selected' );
+		jQuery(this).parent().parent().parent().children( '.tab-inside').children( '*').hide();
+		jQuery( '.tab-inside ' + clicked_tab_ref).fadeIn(100);
+		 evt.preventDefault();
+	})
+})
+</script>		
+		<div class="widget">
+					</div>
+		<div class="widget">
+					</div>
+
+	
+	
+			
+	<div class="widget">
+			</div>
+
+		<div class="widget">
+					</div>
+	
+				<div class="clear"></div>
+
+			</div><div class="clear"></div>
+<div class="footer_top">
+	<div id="menu">
+						<ul id="cat-nav" class="nav">
+					<li class="page_item page-item-63"><a href="http://chinacloud.org/%e5%8d%9a%e5%ae%a2%e7%be%a4/">博客群</a></li>
+				</ul>
+			</div>
+	<h2 class="blogtitle">
+	<a href="http://chinacloud.org/" title="碧云天">返回首页</a></h2>
+		<big class="lt"></big>
+	<big class="rt"></big>
+</div>
+<!-- 页脚 -->
+<div class="footer_bottom_a">
+	Copyright &copy; 2013-2014 碧云天&nbsp;&nbsp;保留所有权利.
+	&nbsp;&nbsp;Theme by <a target="_blank" href="http://zmingcx.com" title="主题：知更鸟">Robin</a>
+	<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_5726851'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s17.cnzz.com/stat.php%3Fid%3D5726851' type='text/javascript'%3E%3C/script%3E"));</script>	<big class="lb"></big>
+	<big class="rb"></big>
+</div>
+<!-- 首页页脚 -->
+ <div class="clear"></div>
+</div>
+<script type='text/javascript' src='http://chinacloud.org/wp-content/plugins/si-captcha-for-wordpress/captcha/si_captcha.js?ver=1.0'></script>
+<script type="text/javascript">
+//<![CDATA[
+var si_captcha_styles = "\
+<!-- begin SI CAPTCHA Anti-Spam - comment form style -->\
+<style type='text/css'>\
+div#captchaImgDiv { display:block; }\
+.captchaSizeDivSmall { width:175px; height:45px; padding-top:10px; }\
+.captchaSizeDivLarge { width:250px; height:60px; padding-top:10px; }\
+img#si_image_com,#si_image_reg,#si_image_log,#si_image_side_login { border-style:none; margin:0; padding-right:5px; float:left; }\
+.captchaImgRefresh { border-style:none; margin:0; vertical-align:bottom; }\
+div#captchaInputDiv { display:block; padding-top:15px; padding-bottom:5px; }\
+label#captcha_code_label { margin:0; }\
+input#captcha_code { width:65px; }\
+</style>\
+<!-- end SI CAPTCHA Anti-Spam - comment form style -->\
+";
+jQuery(document).ready(function($) {
+$('head').append(si_captcha_styles);
+});
+//]]>
+</script>
+<link rel='stylesheet' id='nlpcss-css'  href='http://chinacloud.org/wp-content/plugins/network-latest-posts/css/default_style.css?ver=3.7.3' type='text/css' media='all' />
+<script type='text/javascript' src='http://chinacloud.org/wp-includes/js/jquery/jquery.js?ver=1.10.2'></script>
+<script type='text/javascript' src='http://chinacloud.org/wp-includes/js/jquery/jquery-migrate.min.js?ver=1.2.1'></script>
+</body></html>
+<div id="gg">
+	<div class="close"><a href="javascript:void(0)" onclick="$('#gg').slideUp('slow');" title="关闭">×</a>
+	<div id="feedb"><a href="http://chinacloud.org/feed/" title="欢迎订阅本站" class="image"><img src="http://chinacloud.org/wp-content/themes/HotNewspro/images/feed.gif" /></a></div>
+	<div class="bulletin">
+		<ul>
+					</ul>
+	</div>
+</div>
+<script type="text/javascript">
+ // 关闭
+function turnoff(obj){
+document.getElementById(obj).style.display="none";
+}
+ // 文字滚动
+    (function($){
+    $.fn.extend({
+    Scroll:function(opt,callback){
+    if(!opt) var opt={};
+    var _this=this.eq(0).find("ul:first");
+    var        lineH=_this.find("li:first").height(),
+    line=opt.line?parseInt(opt.line,10):parseInt(this.height()/lineH,10),
+    speed=opt.speed?parseInt(opt.speed,10):7000, //卷动速度，数值越大，速度越慢（毫秒）
+    timer=opt.timer?parseInt(opt.timer,10):7000; //滚动的时间间隔（毫秒）
+    if(line==0) line=1;
+    var upHeight=0-line*lineH;
+    scrollUp=function(){
+    _this.animate({
+    marginTop:upHeight
+    },speed,function(){
+    for(i=1;i<=line;i++){
+    _this.find("li:first").appendTo(_this);
+    }
+    _this.css({marginTop:0});
+    });
+    }
+    _this.hover(function(){
+    clearInterval(timerID);
+    },function(){
+    timerID=setInterval("scrollUp()",timer);
+    }).mouseout();
+    }
+    })
+    })(jQuery);
+    $(document).ready(function(){
+    $(".bulletin").Scroll({line:1,speed:1000,timer:5000});//修改此数字调整滚动时间
+    });
+</script>

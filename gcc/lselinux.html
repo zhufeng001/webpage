@@ -1,0 +1,595 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<meta http-equiv="x-ua-compatible" content="ie=7" />
+<meta name="UYId" content="art_66432" />
+<title>用SELinux加强网络安全(2) - 51CTO.COM</title>
+<meta name="description" content="SELinux(Security-Enhanced Linux) 是美国国家安全局（NAS）对于强制访问控制的实现，是 Linux&reg; 上最杰出的新安全子系统。本文主要介绍了怎样通过SELinux从而加强网络安全。"/>
+<meta name="keywords" content="SELinux,安全"/>
+<base target="_blank" />
+<link href="http://images.51cto.com/images/art1105/css/grid.css" rel="stylesheet" type="text/css" />
+<link type="text/css" rel="stylesheet" href="http://images.51cto.com/images/art/css/art_master_top.css" />
+<link href="http://book.51cto.com/images/bookspec/css/css3.css" rel="stylesheet" type="text/css" />
+<script language="javaScript" src="http://www.51cto.com/php/base_art.js"></SCRIPT>
+<script src="http://www.51cto.com/images/homepage/index_1_down.js"></script>
+<style type="text/css">
+.bds_tools a{ padding:0; margin:0;}
+</style>
+</head>
+<body >
+<!-- 导航 开始-->
+<div id="home_top">    <div class="top_nav">        <div class="left" style="width:400px"><div class="logo_51cto" title="51CTO.COM - 技术成就梦想 -  中国领先的IT技术网站"></div><a href="http://www.51cto.com/">首页</a><img width="16" height="25" align="absmiddle" src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif" style="padding-top: 2px;"><a onmouseover="show(1,this);" onmouseout="popupClose();" href="http://www.51cto.com/col/35/" target="_blank">技术频道<img align="absmiddle" src="http://images.51cto.com/images/art/top_images/nav_ico1.gif" style="padding-left: 4px;"></a><img width="16" height="25" align="absmiddle" src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif"><a onmouseover="show(2,this);" onmouseout="popupClose();" href="http://www.51cto.com" target="_blank">51CTO旗下网站<img align="absmiddle" src="http://images.51cto.com/images/art/top_images/nav_ico1.gif" style="padding-left: 4px;"></a><img width="16" height="25" align="absmiddle" src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif"><a href="http://www.51cto.com/about/map.htm" target="_blank">地图</a> <a href="http://www.51cto.com/about/rss.html" target="_blank"><img src="http://images.51cto.com/files/uploadimg/20110922/143749870.gif" style="vertical-align:middle; margin-bottom: 5px; margin-left:5px;"></a>       </div>        <div class="right">            <div class="more"><img width="27" height="16" align="absmiddle" src="http://home.51cto.com/public/themes/blue/images/top_shequ.gif">社区：<a href="http://edu.51cto.com/" target="_blank" style="color:#CC0000">学院</a><a href="http://down.51cto.com" target="_blank">下载</a><a href="http://bbs.51cto.com" target="_blank">论坛</a><a href="http://blog.51cto.com" target="_blank">博客</a><a onmouseover="show(3,this)" onmouseout="popupClose()" href="javascript:viod(0);">更多<img align="absmiddle" src="http://images.51cto.com/images/art/top_images/nav_ico1.gif" style="padding-left: 4px;"></a>            </div>            <span id="login_status"><div class="login" id="login_status"></div>    </span>                </div>    </div></div>
+<div class="subMenu1" id="s1" onmouseover="popupNoClose();" onmouseout="popupClose();">
+<ul>
+<li><a href="http://network.51cto.com" target="_blank">网络</a></li>
+<li><a href="http://netsecurity.51cto.com" target="_blank">安全</a></li>
+<li><a href="http://developer.51cto.com" target="_blank">开发</a></li>
+<li><a href="http://database.51cto.com" target="_blank">数据库</a></li>
+<li><a href="http://server.51cto.com" target="_blank">服务器</a></li>
+<li><a href="http://os.51cto.com" target="_blank">系统</a></li>
+<li><a href="http://virtual.51cto.com" target="_blank">虚拟化</a></li>
+<li><a href="http://cloud.51cto.com" target="_blank">云计算</a></li>
+<li><a href="http://developer.51cto.com/embed/" target="_blank">嵌入式</a></li>
+<li><a href="http://mobile.51cto.com/" target="_blank">移动开发</a></li>
+</ul>
+</div> 
+<div class="subMenu2" id="s2" onmouseover="popupNoClose()" onmouseout="popupClose()">
+<ul>
+<li><a href="http://www.51cto.com" target="_blank" title="中国领先的IT技术网站">51CTO.COM</a></li>
+<li><a href="http://www.cioage.com" target="_blank" title="中国首个专门服务于CIO的专业网站">CIOage.com</a></li>
+<li><a href="http://www.watchstor.com/" target="_blank"  title="领先的中文存储网络媒体">WatchStor.com</a></li>
+<li><a href="http://www.hc3i.cn/" target="_blank"  title="中国首家专注于数字医疗及医疗信息化的专业网站">HC3i.cn</a></li>
+</ul>
+</div>
+<script src="http://www.51cto.com/js/jquery-1.8.3.min.js"></script>
+<script>
+$(function(){
+	$(".bann").height(265);	 
+	$(".bann").css("background-color","white");
+});
+
+</script>
+
+<script src="http://www.51cto.com/head_art_more1.js"></script>
+<!-- 登陆信息 -->
+<!-- 导航 结束--> 
+ <div class="g_39 mb10">
+	<div id="tonglanad" class="fl"></div>
+	<div id="list4" class="fr">
+		<ul>
+			<li id="wordlinkad1"></li>
+			<li id="wordlinkad2"></li>
+			<li id="wordlinkad3"></li>
+			<li id="wordlinkad4"></li>
+		</ul>
+	</div>
+<br class="dle"/>
+</div>
+
+<div class="g_39 menu">
+<DIV class=subNav_logo><IMG src="http://www.51cto.com/images/sunbanner/anquan_logo.gif"></DIV>
+<DIV class=subNav_l><A href="http://netsecurity.51cto.com/" target=_blank>首页</A> | <A href="http://netsecurity.51cto.com/col/1073/" target=_blank>动态</A> | <A href="http://netsecurity.51cto.com/col/514/" target=_blank>病毒</A> | <A href="http://netsecurity.51cto.com/col/566/" target=_blank>漏洞</A> | <A href="http://netsecurity.51cto.com/col/518/" target=_blank>黑客</A> | <A href="http://netsecurity.51cto.com/col/1057/" target=_blank>ARP</A> | <A href="http://netsecurity.51cto.com/col/1062/" target=_blank>嗅探扫描</A> | <A href="http://netsecurity.51cto.com/col/1070/" target=_blank>Web安全</A> | <A href="http://netsecurity.51cto.com/col/1066/" target=_blank>邮件安全</A> |&nbsp; <A href="http://publish.51cto.com/list/512/" target=_blank>全部文章</A></DIV>  
+<div class="search fr">
+<dl>
+<form name=searchform action="http://www.51cto.com/php/search.php" target="_blank" method=post style="margin:0px; padding:0px;">
+<dt class="fl"><input name="keyword" type="text" class="searchInput f14 input" value="请输入关键字" onfocus="doempty(this, '请输入关键字');" onblur="doempty(this, '请输入关键字');" /></dt>
+<dd class="fl"><input type="image" src="http://images.51cto.com/images/art/newart1012/images/search.gif" /></dd></form>
+</dl>
+</div>
+<br class="dle"/>
+</div>
+<div class="g_39 b3-s-4273B3 rel">
+<!--width : 26*25 - 15 = 635px-->
+<div class="g_26 fl m_l">
+<div class="brief bgF8F8F8">
+<p class="crumb ">您所在的位置：<a href='http://netsecurity.51cto.com'>网络安全</a> &gt; <a href='http://netsecurity.51cto.com/col/1148/'>系统和服务器安全</a> &gt;  <b>用SELinux加强网络安全(2)</b> </p>
+<h1>用SELinux加强网络安全(2)</h1>
+<div class="msg">
+<div>2008-02-29 14:59  Joshua Brindle/黄永兵译  51CTO.com <span class="f12-a"><a href="#commment" target="_self"></a></span> 字号：<span class="f14-b"><a href="javascript:setfont(12);" target="_self">T</a></span> | <span class="f16-b"><a href="javascript:setfont(16);" target="_self">T</a></span></div>
+<div class='artHd' id='books' style='padding:5px 25px;display:none;'></div>
+<div class="fav"><a href="javascript:favorBox('open');" title="一键收藏，随时查看，分享好友！" target="_self"><img src="http://images.51cto.com/images/art/newart1012/images/Fav.gif" alt="一键收藏，随时查看，分享好友！" border="0" /></a></div>
+</div>
+<div class="brieftext">
+<p class="f14 green">SELinux(Security-Enhanced Linux) 是美国国家安全局（NAS）对于强制访问控制的实现，是 Linux&reg; 上最杰出的新安全子系统。本文主要介绍了怎样通过SELinux从而加强网络安全。</p>
+<p class="ad">AD：<script src="http://www.51cto.com/js/article/keywords_ad_new.js"></script>
+</p>
+</div>
+</div>
+<div class="tag bgF8F8F8" id="indexlist" style="display:none;">
+<ul id="indexliststr">
+</ul>
+<br class="dle"/>
+</div>
+<div class="content bgF8F8F8 f14">
+<div id="content">
+在SELinux中有两种标记网络通讯的方法：NetLabel，它是CIPSO的实现，另外一种是基于IPSec的标记，我将不讨论NetLabel，因为它仅仅提供了SELinux上下文MLS支持，并且主要是应用于传统的可靠的操作系统如HP-UX和Solaris与SELinux进行协作。基于IPSec的标记条目内容，目前只工作在SELinux系统之间。</p>
+<p>因为NetLabel主要为传统的可靠的系统提供MLS支持，我将不讨论它，我将重点介绍基于IPSec的标记。</p>
+<p>在这里将涉及到一些IPSec的知识，如果你对它们还不熟悉请参阅IPSec相关文档，尤其要知道什么是SPD和SA，以及它们在IPSec中的角色。</p>
+<p>首先你需要准备一个支持IPSec的内核，如果你使用的是redhat的系统就很容易了，可以使用目前Fedora rawhide内核或LSSP内核，LSSP内核可以在</p>
+<p><A href="http://people.redhat.com/sgrubb/files/lspp/">http://people.redhat.com/sgrubb/files/lspp/</A>找到，如果不是redhat的系统，可以升级到2.6.22内核，它包含了IPSec的支持。</p>
+<p>你还需要一个ipsec工具用来标记，rawhide或LSSP版本也将在这里用到，一旦你安装好所有需要的东西就可以开始使用IPSec标记了，我们将从简单的标记SA开始。</p>
+<p>首先，我有一组程序用来测试并确定所有需要的东西都在工作，它们是一个简单的客户端和连接用的服务端，使用getpeercon()返回网络套接字的上下文。</p>
+<TABLE cellSpacing=0 borderColorDark=#ffffff cellPadding=2 width=400 align=center borderColorLight=black border=1>
+<TBODY>
+<TR>
+<TD class=code bgColor=#e6e6e6><PRE>client.c【译者注：内容见附录A】
+server.c【译者注：内容见附录B】
+编译它们并将其连接到libselinux：
+gcc -o client client.c -lselinux
+gcc -o server server.c –lselinux
+</PRE></TD></TR></TBODY></TABLE>
+<p>首先尝试在没有IPSec的情况运行它们看会发生什么：</p>
+<p>我的测试用机是192.168.147.132（主机名：scarecrow）和192.168.147.130（主机名：poisonivy），很明显，请替换为你的ip地址。</p>
+<p>在192.168.147.132上运行服务端和客户端后，在其他机器上的输出类似下面这样：</p>
+<TABLE cellSpacing=0 borderColorDark=#ffffff cellPadding=2 width=400 align=center borderColorLight=black border=1>
+<TBODY>
+<TR>
+<TD class=code bgColor=#e6e6e6><PRE>[root@poisonivy ~]# ./client 192.168.147.132 
+getpeercon: Protocol not available Received: Hello, (null) from (null)
+[root@scarecrow ~]# ./server 
+getsockopt: Protocol not available server: got connection from 
+192.168.147.130, (null) 
+getpeercon()返回协议不可用，因为在本次连接中没有标记被启用，你可以根据
+错误信息来判断你是否使用了标记网络套接字。
+
+</PRE></TD></TR></TBODY></TABLE>
+<p>如果我们在这两台机器之间不指定一个上下文而产生一个SA，我们将得到同样的结果：&nbsp;</p>
+<TABLE cellSpacing=0 borderColorDark=#ffffff cellPadding=2 width=400 align=center borderColorLight=black border=1>
+<TBODY>
+<TR>
+<TD class=code bgColor=#e6e6e6><PRE>[root@scarecrow ~]# cat dev/ipsec/setkey.scarecrow.test 
+spdflush; 
+flush; 
+spdadd 192.168.147.130 192.168.147.132 any
+-P in ipsec esp/transport//require; 
+spdadd 192.168.147.132 192.168.147.130 any 
+-P out ipsec esp/transport//require; 
+[root@poisonivy ~]# cat dev/ipsec/setkey.poisonivy.test 
+spdflush; 
+flush; 
+spdadd 192.168.147.132 192.168.147.130 any 
+-P in ipsec esp/transport//require; 
+spdadd 192.168.147.130 192.168.147.132 any 
+-P out ipsec esp/transport//require; 
+
+</PRE></TD></TR></TBODY></TABLE>
+<p>然后运行：</p>
+<TABLE cellSpacing=0 borderColorDark=#ffffff cellPadding=2 width=400 align=center borderColorLight=black border=1>
+<TBODY>
+<TR>
+<TD class=code bgColor=#e6e6e6><PRE>[root@poisonivy ~]# setkey -f dev/ipsec/setkey.poisonivy.test 
+[root@scarecrow ~]# setkey -f dev/ipsec/setkey.scarecrow.test 
+
+</PRE></TD></TR></TBODY></TABLE>
+<p>注意：当尝试连接时，要想创建SA两台机器都需要运行racoon。</p>
+<p>象之前那样运行服务端和客户端会得到同样的结果，你可以使用setkey –D来查看新创建的SA，注意它是没有标记的SA。</p>
+<p> 
+<p class="blank10"></p> 
+<div class="page"><a href='66432.htm' target='_self' class='prew'><span><em>&lt;&lt;</em>  上一页</span></a> <a href='66432.htm' target='_self'><span>1</span></a> <em id='cur'>2</em><a href='66432_2.htm' target='_self'><span>3</span></a> <a href='66432_3.htm' target='_self'><span>4</span></a> <a href='66432_4.htm' target='_self'><span>5</span></a> <a href='66432_5.htm' target='_self'><span>6</span></a> <a href='66432_2.htm' target='_self' class='next'><span>下一页<em>&gt;&gt;</em></span></a><a href='66432_all.htm' target='_blank' class='next'><span>查看全文</span></a></div> 
+<div class="docu"><strong class="f12">内容导航</strong><div class="f12"><table width='100%'><tr><td width='50%'>&nbsp;第 1 页：<a href='66432.htm' target='_self'>用SELinux加强网络安全（1）</a></td> <td width='50%'>&nbsp;第 2 页：<a href='66432_1.htm' target='_self'><font color=red>用SELinux加强网络安全（2）</font></a></td> </tr><tr><td width='50%'>&nbsp;第 3 页：<a href='66432_2.htm' target='_self'>用SELinux加强网络安全（3）</a></td> <td width='50%'>&nbsp;第 4 页：<a href='66432_3.htm' target='_self'>用SELinux加强网络安全（4）</a></td> </tr><tr><td width='50%'>&nbsp;第 5 页：<a href='66432_4.htm' target='_self'>附录A</a></td> <td width='50%'>&nbsp;第 6 页：<a href='66432_5.htm' target='_self'>附录B</a></td> </tr></table></div><br class="dle"/></div> 
+
+
+<div class="f12"> <span class="fl">原文：<a href="http://netsecurity.51cto.com/art/200802/66432.htm" class="blue"><b>用SELinux加强网络安全(2)</b></a></span> <span class="fr"><a href="http://netsecurity.51cto.com">返回网络安全首页</a></span> </div>
+<p class="blank1"></p>
+</div>
+<script type="text/javascript">
+/*主站文章页600*60，创建于2013-9-23*/
+var cpro_id = "u1372942";
+</script> <script src="http://cpro.baidustatic.com/cpro/ui/c.js" type="text/javascript"></script>
+<iframe width="600" scrolling="no" height="239" frameborder="0" src="http://widget.weibo.com/relationship/bulkfollow.php?language=zh_cn&amp;uids=1708729084,1706976420,1644305150,1679562080,1895358713,2409965067&amp;wide=0&amp;color=C2D9F2,FFFFFF,0082CB,666666&amp;showtitle=1&amp;showinfo=1&amp;sense=0&amp;verified=1&amp;count=6&amp;refer='+encodeURIComponent(location.href)+'&amp;dpc=1"></iframe>
+<div class="tips">
+<div style="float:left;">
+<span style="float:left; margin-top:4px;">分享到：</span>
+<!-- Baidu Button BEGIN -->
+    <div id="bdshare" class="bdshare_t bds_tools get-codes-bdshare" style="margin-right:5px; float:left;">
+        <a class="bds_qzone"></a>
+        <a class="bds_tsina"></a>
+        <a class="bds_tqq"></a>
+        <a class="bds_renren"></a>
+        <a class="bds_t163"></a>
+        <span class="bds_more"></span>
+		<a class="shareCount"></a>
+
+</div>
+<!--<div class="fl"> 
+    </div>
+--><script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=585532" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+	var bds_config = {'snsKey':{'tsina':'2378297317'}};
+	document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?t=" + new Date().getHours();
+</script>
+<!-- Baidu Button END -->
+
+
+
+</div><div class="fr blue"><a href="javascript:AddFavorite(document.location.href,document.title);" target="_self">收藏</a>|<a href="javascript:window.print();" target="_self">打印</a>|<a id="msnqqcopy" title="分享本资源给好友" target="_self">复制</a></div>
+</div>
+</div>
+<!--内容 end-->
+<div class="topbiaoqing">
+<div class="biaoqing fixfloat pad" >
+<ul>
+<li><a href='javascript:getcountscom(66432,1)' target="_self"><img src="http://images.51cto.com/images/art1105/images/bq1.jpg" /></a>
+<div><a href='javascript:getcountscom(66432,1)' target="_self">给力</a></div>
+<span id="66432_1">(0票)</span></li>
+<li><a href='javascript:getcountscom(66432,2)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq2.jpg" /></a>
+<div><a href='javascript:getcountscom(66432,2)'  target="_self">动心</a></div>
+<span id="66432_2">(0票)</span></li>
+<li><a href='javascript:getcountscom(66432,3)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq3.jpg" /></a>
+<div><a href='javascript:getcountscom(66432,3)'  target="_self">废话</a></div>
+<span id="66432_3">(0票)</span></li>
+<li><a href='javascript:getcountscom(66432,4)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq4.jpg" /></a>
+<div><a href='javascript:getcountscom(66432,4)'  target="_self">专业</a></div>
+<span id="66432_4">(0票)</span></li>
+<li><a href='javascript:getcountscom(66432,5)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq5.jpg" /></a>
+<div><a href='javascript:getcountscom(66432,5)'  target="_self">标题党</a></div>
+<span id="66432_5">(0票)</span></li>
+<li><a href='javascript:getcountscom(66432,6)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq6.jpg" /></a>
+<div><a href='javascript:getcountscom(66432,6)'  target="_self">路过</a></div>
+<span id="66432_6">(0票)</span></li>
+</ul>
+</div>
+<script language="javascript"> 
+getcountscom(66432,11);
+
+</script>
+</div>
+<p class="blank10"></p>
+<!--reltag end-->
+
+<p class="blank10"></p>
+<div class="uyan">
+<div id="uyan_frame"></div>
+<script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js?uid=1609262"></script>
+</div>
+<!--box end-->
+
+<div class="bor">
+<div class="titbg pl15">关于<a href='http://www.51cto.com/php/search.php?keyword=SELinux' target='_blank' class='underline'>SELinux</a>&nbsp;&nbsp;<a href='http://www.51cto.com/php/search.php?keyword=%B0%B2%C8%AB' target='_blank' class='underline'>安全</a>的更多文章</div>
+<div class="reltag">
+<ul class="fl list02">
+  <li><a href="http://netsecurity.51cto.com/art/201311/418859.htm" title="网络安全顾问：未来人们使用的互联网将很不安全">网络安全顾问：未来人们使用的互联网将很不</a></li><li><a href="http://netsecurity.51cto.com/art/201311/418796.htm" title="Websense2014年网络安全8大预测：高级恶意软件将减少">Websense2014年网络安全8大预测：高级恶意</a></li><li><a href="http://netsecurity.51cto.com/art/201311/418780.htm" title="企业保护资产的最基本安全分析方法">企业保护资产的最基本安全分析方法</a></li><li><a href="http://netsecurity.51cto.com/art/201311/418748.htm" title="CRM和ERP安全最佳实践：如何保护老化软件">CRM和ERP安全最佳实践：如何保护老化软件</a></li><li><a href="http://netsecurity.51cto.com/art/201311/418289.htm" title="Web浏览器扩展程序安全：缓解浏览器插件威胁">Web浏览器扩展程序安全：缓解浏览器插件威</a></li>
+</ul>
+<div class="fr">
+<div class="h5 f12"><a href="http://book.51cto.com/art/201310/414931.htm" title="Android应用程序安全"><b>Android应用程序安全</b></a></div>
+<a href="http://book.51cto.com/art/201310/414931.htm" title="Android应用程序安全"><img src="http://s1.51cto.com/wyfs01/M01/31/A6/wKioOVJyMnyBuPuTAAAZtIu05HY116.gif" alt="Android应用程序安全" width="100" height="80" border="0" /></a>
+<p class="c666">本书是一本系统讲解Android应用开发安全的书籍。它首先介绍了And<a class="blue"href="http://book.51cto.com/art/201310/414931.htm" title="Android应用程序安全">[详细]</a></p>
+</div>
+</div></div>
+
+<p class="blank10"></p>
+
+
+
+<div class="relart fl bor">
+<div class="titbg">
+<h3 class="fl t1">栏目热门</h3>
+<a href="/click/1148" class="tmore">更多&gt;&gt;</a></div>
+<ul>
+  
+	  <li><a href="http://netsecurity.51cto.com/art/201310/412279.htm" title="iOS 7：升级一小步 安全一大步">iOS 7：升级一小步 安全一大步</a></li>
+	  
+	  <li><a href="http://netsecurity.51cto.com/art/201309/411766.htm" title="Windows命令行kill进程小技巧">Windows命令行kill进程小技巧</a></li>
+	  
+	  <li><a href="http://netsecurity.51cto.com/art/201311/415496.htm" title="如何使用DHCP snooping技术防御网络攻击?">如何使用DHCP snooping技术防御网络攻击?</a></li>
+	  
+	  <li><a href="http://netsecurity.51cto.com/art/201310/413432.htm" title="Linux提权后获取敏感信息的方法与途径">Linux提权后获取敏感信息的方法与途径</a></li>
+	  
+	  <li><a href="http://netsecurity.51cto.com/art/201310/413627.htm" title="两个易被忽视的linux安全权限配置问题">两个易被忽视的linux安全权限配置问题</a></li>
+	  
+</ul>
+</div>
+<div class="cathot fr bor">
+<div class="titbg">
+<h3 class="fl t1">同期最新</h3>
+<a href="/col/1148" class="tmore">更多&gt;&gt;</a></div>
+<ul>
+	
+	  <li><a href="http://netsecurity.51cto.com/art/200802/66356.htm" title="微软Forefront企业安全解决方案">微软Forefront企业安全解决方案</a></li>
+	  
+	  <li><a href="http://netsecurity.51cto.com/art/200802/66257.htm" title="ISA Server 2006 中的自动检测概念">ISA Server 2006 中的自动检测概念</a></li>
+	  
+	  <li><a href="http://netsecurity.51cto.com/art/200802/66255.htm" title="深入理解及配置ISA Server 2006访问规则">深入理解及配置ISA Server 2006访问规则</a></li>
+	  
+	  <li><a href="http://netsecurity.51cto.com/art/200802/66254.htm" title="ISA Server 2006 中的企业管理">ISA Server 2006 中的企业管理</a></li>
+	  
+	  <li><a href="http://netsecurity.51cto.com/art/200802/66235.htm" title="Microsoft Forefront新亮点">Microsoft Forefront新亮点</a></li>
+	  
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="bor">
+<div class="titbg">
+<h3 class="fl t1"><a href="http://netsecurity.51cto.com">网络安全</a></h3>
+<span class="pl10">频道导航</span></div>
+ <UL class=xtlist>
+<LI><SPAN class=tit>热门</SPAN> 
+<DIV><A href="http://netsecurity.51cto.com/col/1074/">安全观察</A>|<A href="http://netsecurity.51cto.com/col/924/">DDoS攻击</A>|<A href="http://netsecurity.51cto.com/col/572/">产品案例</A></DIV></LI>
+<LI><SPAN class=tit>保护</SPAN> 
+<DIV><A href="http://netsecurity.51cto.com/col/1068/">数据保护</A>|<A href="http://netsecurity.51cto.com/col/1537/">终端安全</A>|<A href="http://netsecurity.51cto.com/col/1148/">服务器安全</A></DIV></LI>
+<LI class=last><SPAN class=tit>专题</SPAN> 
+<DIV><A href="http://netsecurity.51cto.com/col/1156/">专题汇总</A>|<A href="http://netsecurity.51cto.com/secu/Intranet_Security/">内网安全</A>|<A href="http://netsecurity.51cto.com/art/201011/235748.htm">安全工具</A></DIV></LI></UL> 
+</div> 
+<p class="blank10"></p>
+<DIV class=leftbotcon>
+<DIV class="bor jdlist">
+<DIV class=titbg>
+<H3 class=t2>热点推荐</H3></DIV>
+<UL>
+<LI><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-t-4']);" href="http://mobile.51cto.com/mobile-182392.htm"><IMG src="http://images.51cto.com/files/uploadimg/20100202/153546162.jpg"></A> 
+<DIV class=name><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-t-4']);" href="http://mobile.51cto.com/mobile-182392.htm">Android开发应用详解</A></DIV></LI>
+<LI><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-t-4']);" href="http://developer.51cto.com/art/201106/266369.htm"><IMG src="http://images.51cto.com/files/uploadimg/20110608/133620622.jpg"></A> 
+<DIV class=name><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-t-4']);" href="http://developer.51cto.com/art/201106/266369.htm">那些性感的让人尖叫的程序员</A></DIV></LI>
+<LI><A href="http://developer.51cto.com/art/200907/133407.htm"><IMG src="http://images.51cto.com/files/uploadimg/20090702/134217922.jpg"></A> 
+<DIV class=name><A href="http://developer.51cto.com/art/200907/133407.htm">HTML5 下一代Web开发标准详解</A></DIV></LI>
+<LI><A href="http://developer.51cto.com/art/201104/257581.htm"><IMG src="http://images.51cto.com/files/uploadimg/20110426/123123954.jpg"></A> 
+<DIV class=name><A href="http://developer.51cto.com/art/201104/257581.htm">高性能WEB开发应用指南</A></DIV></LI>
+<LI><A href="http://os.51cto.com/art/200706/49181.htm"><IMG src="http://images.51cto.com/files/uploadimg/20070613/195816929.jpg"></A> 
+<DIV class=name><A href="http://os.51cto.com/art/200706/49181.htm">Ubuntu开源技术交流频道</A></DIV></LI></UL></DIV>
+<P class=blank10></P>
+<DIV class="bor hotTag"><STRONG>热门标签：</STRONG> <A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-2]);" href="http://os.51cto.com/windows/">windows频道</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://mobile.51cto.com/">移动开发</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://cloud.51cto.com/">云计算</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://mobile.51cto.com/mobile/objc/">objective-c</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://network.51cto.com/art/200909/151122.htm">tp-link路由器设置图解</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://developer.51cto.com/art/200907/133407.htm">html5</A> </DIV></DIV>
+<div class="leftbotbox"> </div>
+</div>
+<!--left end-->
+<div class="g_13 fr">
+<div class="focus fixfloat"> 
+ <img width="298" style="border: 1px solid #CCCCCC; margin:5px 0px 5px;" src="http://www.51cto.com/images/weixin.png"><div class="hot">
+<ul>
+<li class="tit"><em>专题</em> <a href="http://network.51cto.com/network/taiyi/">太一星晨高性能机架式产品发布会</a> </li>
+<li class="con"><dl><dt><a href="http://network.51cto.com/network/taiyi/"><img border="0" src="http://s3.51cto.com/wyfs02/M00/24/42/wKiom1NN9F3B8d-VAAAQZ2Xc_dA613.jpg"/></a></dt>
+<dd>凭借虚拟化技术的支撑，太一星晨不断追求业务精细化管理，高性能，可弹性扩展的多重保障。</dd>
+</dl></li></ul><ol class="hotlist"><li><a href="http://netsecurity.51cto.com/art/201404/435175.htm">互联网安全：OpenSSL“心脏出血”</a></li><li><a href="http://netsecurity.51cto.com/secu/pandian2013/shijian/">2013年终盘点之网络安全事件篇</a></li></ol></div>
+<p id="hzh_one">
+<script language="JavaScript" src="http://www.51cto.com/ad/art/hzh/ad.js" type="text/javascript"></script>
+</p>
+</div>
+<div class="rank">
+<div class="tlt">
+      <h3>文章排行</h3>
+      <a onmouseover="change_top10(3);" id="top_3">本月</a><a onmouseover="change_top10(2);" id="top_2">本周</a><a onmouseover="change_top10(1);" class="myon" id="top_1">24小时</a> </div>
+ <div id="top10_1" style="display: block;" class="list"><ul>
+<li><a href="http://netsecurity.51cto.com/art/201105/264844.htm" target="_blank" title="完全教程 Aircrack-ng破解WEP、WPA-PSK">完全教程 Aircrack-ng破解WEP、WPA-PSK</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435699.htm" target="_blank" title="科普：详解流量劫持的形成原因">科普：详解流量劫持的形成原因</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435795.htm" target="_blank" title="4G来了，安全在哪儿?">4G来了，安全在哪儿?</a>
+<li><a href="http://netsecurity.51cto.com/art/201109/288603.htm" target="_blank" title="如何学习黑客技术？初级黑客入门速成学">如何学习黑客技术？初级黑客入门速成学</a>
+<li><a href="http://netsecurity.51cto.com/art/200706/48728.htm" target="_blank" title="Nagios远程监控软件的安装与配置详解">Nagios远程监控软件的安装与配置详解</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435474.htm" target="_blank" title="记一次完整的办公网渗透到idc过程">记一次完整的办公网渗透到idc过程</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/436686.htm" target="_blank" title="央行：二维码不能作为可信支付方式大为">央行：二维码不能作为可信支付方式大为</a>
+<li><a href="http://netsecurity.51cto.com/art/200903/115574.htm" target="_blank" title="WPA/WPA2加密高速破解的真相">WPA/WPA2加密高速破解的真相</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435105.htm" target="_blank" title="这些开源安全工具，你用过多少">这些开源安全工具，你用过多少</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/436517.htm" target="_blank" title="短小实用 渗透用的Python小脚本">短小实用 渗透用的Python小脚本</a>
+</ul></div>
+<div id="top10_2" style="display: none;" class="list"><ul>
+<li><a href="http://netsecurity.51cto.com/art/201404/435787.htm" target="_blank" title="“心脏流血”余毒或将永远残留下去">“心脏流血”余毒或将永远残留下去</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435986.htm" target="_blank" title="甲骨文发布大量安全补丁 修复104个漏洞">甲骨文发布大量安全补丁 修复104个漏洞</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435795.htm" target="_blank" title="4G来了，安全在哪儿?">4G来了，安全在哪儿?</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435969.htm" target="_blank" title="保护企业数据的七大方法">保护企业数据的七大方法</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/436517.htm" target="_blank" title="短小实用 渗透用的Python小脚本">短小实用 渗透用的Python小脚本</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435988.htm" target="_blank" title="保护物联网安全的正确方法">保护物联网安全的正确方法</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435989.htm" target="_blank" title="物联网：安全雷区">物联网：安全雷区</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/436313.htm" target="_blank" title="一周海外安全事件回顾(2014.04.14-04.2">一周海外安全事件回顾(2014.04.14-04.2</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/436296.htm" target="_blank" title="浏览器安全策略说之内容安全策略CSP">浏览器安全策略说之内容安全策略CSP</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/436117.htm" target="_blank" title="勒索软件“BitCrypt”瞄准比特币!">勒索软件“BitCrypt”瞄准比特币!</a>
+</ul></div>
+<div id="top10_3" style="display: none;" class="list"><ul>
+<li><a href="http://netsecurity.51cto.com/art/201403/434002.htm" target="_blank" title="能“干掉”苹果的中国“黑客”">能“干掉”苹果的中国“黑客”</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435105.htm" target="_blank" title="这些开源安全工具，你用过多少">这些开源安全工具，你用过多少</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435151.htm" target="_blank" title="OpenSSL漏洞简述与网络检测方法">OpenSSL漏洞简述与网络检测方法</a>
+<li><a href="http://netsecurity.51cto.com/art/201403/434040.htm" target="_blank" title="黑掉ATM取款机?只需一条短信">黑掉ATM取款机?只需一条短信</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435075.htm" target="_blank" title="关于OpenSSL“心脏出血”漏洞的分析">关于OpenSSL“心脏出血”漏洞的分析</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435048.htm" target="_blank" title="揭秘中国顶尖黑客Keen安全团队">揭秘中国顶尖黑客Keen安全团队</a>
+<li><a href="http://netsecurity.51cto.com/art/201403/434327.htm" target="_blank" title="路由器被“入侵” 邻居可看遍你的电脑">路由器被“入侵” 邻居可看遍你的电脑</a>
+<li><a href="http://netsecurity.51cto.com/art/201404/435064.htm" target="_blank" title="XP退役：三方博弈">XP退役：三方博弈</a>
+<li><a href="http://netsecurity.51cto.com/art/201403/433753.htm" target="_blank" title="黑客开发无人机窃取路人手机隐私信息">黑客开发无人机窃取路人手机隐私信息</a>
+<li><a href="http://netsecurity.51cto.com/art/201403/433928.htm" target="_blank" title="金山毒霸引发系统崩溃问题技术分析">金山毒霸引发系统崩溃问题技术分析</a>
+</ul></div>
+ 
+ </div>
+<p class="blank1"></p>
+
+<div class="bor">
+<div class="titbg">
+<h3 class="fl t1">热点专题</h3>
+<a href="http://netsecurity.51cto.com/speclist/1148" class="tmore">更多&gt;&gt;</a></div>
+<ul class="plist01">
+<li><a href="http://netsecurity.51cto.com/art/201309/410143.htm" title="2013ISC新兴安全威胁论坛"><img src="http://s4.51cto.com/wyfs01/M01/1B/99/wKioOVIukPbQVz4PAAAS0OTguIs402.jpg" alt="2013ISC新兴安全威胁论坛" width="100" height="80" /></a>
+<h5><a href="http://netsecurity.51cto.com/art/201309/410143.htm" title="2013ISC新兴安全威胁论坛">2013ISC新兴安全威胁</a></h5>
+<div class="c666">为更好地应对互联网安全挑战，交流最新的安全技术与解</div>
+</li><li><a href="http://netsecurity.51cto.com/art/201308/406576.htm" title="2013黑帽大会:揭秘世界黑客的武林大会"><img src="http://s3.51cto.com/wyfs01/M01/14/70/wKioJlIDMkODBI8AAAAOBOKhfPE826.jpg" alt="2013黑帽大会:揭秘世界黑客的武林大会" width="100" height="80" /></a>
+<h5><a href="http://netsecurity.51cto.com/art/201308/406576.htm" title="2013黑帽大会:揭秘世界黑客的武林大会">2013黑帽大会:揭秘世</a></h5>
+<div class="c666">Blackhat安全技术大会是世界上最好的能够了解未来安全</div>
+</li><li><a href="http://netsecurity.51cto.com/art/201307/404778.htm" title="智能安全分析：利用大数据推动高效安全"><img src="http://s7.51cto.com/wyfs01/M02/31/0D/wKioJlJkkRnyvVMtAAAv5gBan54937.jpg" alt="智能安全分析：利用大数据推动高效安全" width="100" height="80" /></a>
+<h5><a href="http://netsecurity.51cto.com/art/201307/404778.htm" title="智能安全分析：利用大数据推动高效安全">智能安全分析：利用大</a></h5>
+<div class="c666">今天, 组织越来越重视通过大数据技术来获取安全智能。</div>
+</li> 
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="tagCloud">
+<div class="tlt">
+<h3>热点标签</h3>
+</div>
+<div class="taglist"><A title=应用安全 href="http://netsecurity.51cto.com/secu/appsecurity/">应用安全</A> <A title=安全工具 href="http://netsecurity.51cto.com/art/201011/235748.htm">安全工具</A> <A title=OWASP十大热门威胁及对策 href="http://netsecurity.51cto.com/art/201103/252558.htm">OWASP十大热门威胁及对策</A> <A title=2011 href="http://netsecurity.51cto.com/secu/RSA2011/" RSA>2011 RSA</A> <A title=VoIP安全 href="http://netsecurity.51cto.com/art/201011/233248.htm">VoIP安全</A> <A title=启明星辰与网御星云战略重组 href="http://netsecurity.51cto.com/art/201101/241725.htm">启明星辰与网御星云战略重组</A> <A title=DDoS href="http://netsecurity.51cto.com/art/200609/31599.htm">DDoS</A> <A title=ARP攻击 href="http://netsecurity.51cto.com/art/200609/31897.htm">ARP攻击</A> <A title=黑客 href="http://netsecurity.51cto.com/col/518/">黑客</A> <A title=数据库安全 href="http://netsecurity.51cto.com/art/200612/36223.htm">数据库安全</A> <A class=imp title=内网安全 href="http://netsecurity.51cto.com/secu/Intranet_Security/">内网安全</A> <A title=电子邮件安全 href="http://netsecurity.51cto.com/art/200603/22036.htm">电子邮件安全</A> <A title=网康2011 href="http://netsecurity.51cto.com/secu/netentsec_exhibition2011/">网康2011</A> <A title=拯救第一季 href="http://netsecurity.51cto.com/secu/rescuezm/">拯救第一季</A> <A title=上网行为管理 href="http://netsecurity.51cto.com/secu/netentsec2010/">上网行为管理</A> <A title=拯救第二季 href="http://netsecurity.51cto.com/secu/rescuedlp/end/index.html">拯救第二季</A> <A title=下一代防火墙 href="http://netsecurity.51cto.com/secu/barracuda/con2011/">下一代防火墙</A> <A title=Web应用安全 href="http://netsecurity.51cto.com/secu/barracuda2011/">Web应用安全</A> <A title=云安全 href="http://netsecurity.51cto.com/secu/yunanquan2011/">云安全</A> </div>
+</div>
+<div class="rss">
+<ul>
+<li class="lin f12-c"><a href="http://news.51cto.com/col/1323/"><strong>点击这里查看样刊</strong></a></li>
+<li>
+<dl>
+<dt> </dt>
+<dd><a href="http://home.51cto.com/index.php?s=/Subscribe"><img src="http://images.51cto.com/images/art0910/images/dingy.gif" /></a></dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="bor">
+<div class="titbg">
+<h3 class="t1">全站热点</h3>
+</div>
+<div class="webhot fixfloat">
+<ul>
+
+<li>
+  <a href="http://netsecurity.51cto.com/secu/PRISM/"  title="“棱镜”激醒中国信息安全最弱神经"><img src="http://s3.51cto.com/wyfs01/M01/10/18/wKioOVHbcYTSu2qcAAARz_FHziU954.jpg" /></a>
+  <div><a href="http://netsecurity.51cto.com/secu/PRISM/"  title="“棱镜”激醒中国信息安全最弱神经">“棱镜”激醒中国信息安全最弱神经</a></div>
+</li>
+
+<li>
+  <a href="http://netsecurity.51cto.com/art/201306/397905.htm"  title="云计算时代 需要怎样的加密保护"><img src="http://s1.51cto.com/wyfs01/M01/0F/DA/wKioOVHSSlTRHtyeAAAVXhyEen0601.jpg" /></a>
+  <div><a href="http://netsecurity.51cto.com/art/201306/397905.htm"  title="云计算时代 需要怎样的加密保护">云计算时代 需要怎样的加密保护</a></div>
+</li>
+
+</ul>
+</div>
+<p class="blank1"></p>
+<ul class="list03">
+
+<li><a href="http://server.51cto.com/News-407548.htm"  title="谷歌全面宕机：每分钟损失达11万美元">谷歌全面宕机：每分钟损失达11万美元</a></li>
+
+<li><a href="http://server.51cto.com/News-407547.htm"  title="中国将对IBM、甲骨文、EMC进行安全调查">中国将对IBM、甲骨文、EMC进行安全调</a></li>
+
+<li><a href="http://developer.51cto.com/art/201308/407504.htm"  title="开发频道2013年8月第3周重点内容推荐:为即将开学的你准备">开发频道2013年8月第3周重点内容推荐</a></li>
+
+<li><a href="http://book.51cto.com/art/201308/407496.htm"  title="云计算：从基础架构到最佳实践">云计算：从基础架构到最佳实践</a></li>
+
+<li><a href="http://book.51cto.com/art/201308/407482.htm"  title="Bootstrap用户手册：设计响应式网站">Bootstrap用户手册：设计响应式网站</a></li>
+
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="bor">
+<div class="titbg">
+<h3 class="t1">读书</h3>
+</div>
+  
+<div class="catbook"><a href="http://book.51cto.com/art/200712/62993.htm" title="公钥基础设施PKI及其应用"><img src="http://images.51cto.com/files/uploadimg/20071224/154556504.gif" width="66" height="98" border="0" /></a>
+<h5><a href="http://book.51cto.com/art/200712/62993.htm">公钥基础设施PKI及其应用</a></h5>
+<div class="c666 text">公钥基础设施PKI（Public Key Infrastructure）是利用公钥概念和加密技术为网上通信提供的符合标准的一整套安全基础平台。公钥基</div>
+</div>
+
+
+<ul class="list03">
+
+<li><a href="http://book.51cto.com/art/200704/45756.htm" title="计算机病毒防范艺术">计算机病毒防范艺术</a></li>
+
+<li><a href="http://book.51cto.com/art/200704/45761.htm" title="软件工程：实践者的研究方法">软件工程：实践者的研究方法</a></li>
+
+<li><a href="http://book.51cto.com/art/200704/45766.htm" title="数据库原理与应用">数据库原理与应用</a></li>
+
+<li><a href="http://book.51cto.com/art/200704/45771.htm" title="游戏关卡设计">游戏关卡设计</a></li>
+
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="bor">
+<div class="titbg">
+<h3 class="t1 fl">博文推荐</h3>
+<a class="tmore" href="http://blog.51cto.com/">更多&gt;&gt;</a></div>
+
+<ul class="list03">
+ <li><a href="http://lavasoft.blog.51cto.com/62575/236392/" target="_blank" title="Java字符集编码与转码">Java字符集编码与转码</a></li><li><a href="http://didda.blog.51cto.com/812410/236321/" target="_blank" title="部署 Exchange 域安全">部署 Exchange 域安全</a></li><li><a href="http://yuan2.blog.51cto.com/446689/236192/" target="_blank" title="CCNP之IPv6技术-过渡技术（隧道、双协议栈）">CCNP之IPv6技术-过渡技术（隧道、双</a></li><li><a href="http://luckcy.blog.51cto.com/1037681/236182/" target="_blank" title="研发管理人员与HR沟通中存在的问题">研发管理人员与HR沟通中存在的问题</a></li>
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="tj">
+<div class="tlt">
+<h3>最新热帖</h3>
+<a class="more" href="http://bbs.51cto.com/hotthreads.php">更多&gt;&gt;</a></div>
+<ul>
+<li><a href="http://bbs.51cto.com/thread-550558-1.html" target="_blank" title="【JAVA EE企业级开发四步走完全攻略】">【JAVA EE企业级开发四步走完全攻略</a></li><li><a href="http://bbs.51cto.com/thread-26429-1.html" target="_blank" title="通用WAP网站生成系统(PowerDiamond) v.1">通用WAP网站生成系统(PowerDiamond) </a></li><li><a href="http://bbs.51cto.com/thread-11063-1.html" target="_blank" title="八类大学毕业生求职时不受欢迎">八类大学毕业生求职时不受欢迎</a></li><li><a href="http://bbs.51cto.com/thread-6946-1.html" target="_blank" title="IT人为什么难以拿到高薪？【转帖】">IT人为什么难以拿到高薪？【转帖】</a></li><li><a href="http://bbs.51cto.com/thread-4333-1.html" target="_blank" title="想去外企上班">想去外企上班</a></li>
+</ul>
+</div>
+<div class="picAD">
+<script language="JavaScript" src="http://www.51cto.com/ad/art/baidugoogle/ad.js" type="text/javascript"></script>
+</div>
+</div>
+<p class="blank1"></p> 
+<!--leftbotcon end-->
+</div> 
+<div class="subweb">
+<h4>51CTO旗下网站</h4>
+<div>
+<a target="_blank" href="http://www.51cto.com/">领先的IT技术网站 51CTO</a>
+<a target="_blank" href="http://www.watchstor.com/">领先的中文存储媒体 WatchStor</a>
+<a target="_blank" href="http://www.cioage.com/">中国首个CIO网站 CIOage</a>
+<a target="_blank" href="http://www.hc3i.cn/">中国首家数字医疗网站 HC3i</a>
+</div>
+</div>
+<div id="ft"><div id="foot" align="center"><script src="http://images.51cto.com/images/copy_right/copy_right.js"></script></div></div>
+<script src="http://logs.51cto.com/rizhi/count/count.js"></script>
+<!-- START GA.js -->
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-20883758-1']);
+  _gaq.push(['_setDomainName', 'none']);
+  _gaq.push(['_setAllowLinker', true]);
+  _gaq.push(['_addOrganic', 'baidu', 'word']);
+  _gaq.push(['_addOrganic', 'google', 'q']);
+  _gaq.push(['_addOrganic', 'soso', 'w']);
+  _gaq.push(['_addOrganic', '3721', 'name']);
+  _gaq.push(['_addOrganic', 'yodao', 'q']);
+  _gaq.push(['_addOrganic', 'vnet', 'kw']);
+  _gaq.push(['_addOrganic', 'sogou', 'query']);
+  _gaq.push(['_trackPageview']);
+  _gaq.push(['_trackPageLoadTime']);
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+<!-- END GA.js -->
+
+<!-- baidu.js -->
+<script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3Ff77ea1ecd95cb2a1bc65cbcb3aaba7d4' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<!--end baidu.js -->
+<script type="text/javascript">
+
+	$("#uyan_cmt_list").next().remove();	
+	$("#uyan_cmt_list").next().css("display","none");	
+</script>
+
+<!-- 新监测代码 -->
+<!-- 新监测代码 -->
+<div id="MyMoveAd" style="display:none">
+<span id="wordlink_1"><script src="http://www.51cto.com/ad/art/wordlink/wordlink1.js"></script></span>
+<span id="wordlink_2"><script src="http://www.51cto.com/ad/art/wordlink/wordlink2.js"></script></span>
+<span id="wordlink_3"><script src="http://www.51cto.com/ad/art/wordlink/wordlink3.js"></script></span>
+<span id="wordlink_4"><script src="http://www.51cto.com/ad/art/wordlink/wordlink4.js"></script></span>
+<span id="pinglun"><script language="JavaScript" src="http://www.51cto.com/php/getArtCount.php?artid=66432&type=all"></script></span>
+<span id="tonglan"><script language="JavaScript" src="http://www.51cto.com/ad/art/tonglan/ad.js"></script></span>
+<span id="wordlink"><script language="JavaScript" src="http://www.51cto.com/ad/art/wordlink/ad.js"></script></span>
+<script src="http://www.51cto.com/ad/art/wordlink/ad.js"></script>
+<span id="bookss"><script language="JavaScript" src="http://www.51cto.com/php/getBookData.php?artid="></script></span>
+</div>   
+<script language="javascript" src="http://www.51cto.com/js/article/favorite.js"></script>
+
+<script language="javaScript" src="http://www.51cto.com/php/dialog_utf8.js"></SCRIPT>
+<script language="javaScript" src="http://www.51cto.com/mail.js"></script>  
+<script type="text/javascript" src="http://home.51cto.com/apps/favorite/Tpl/default/Public/js/favorbox.js"></script>
+<script language="javascript" src="http://images.51cto.com/images/art/newart1012/clipboard.js"></script>
+<script language="javaScript"> 
+	var thistid=66432; 
+	
+	//收藏按钮
+	var favor_url = 'http://netsecurity.51cto.com/art/200802/66432.htm';  // 如：http://bbs.51cto.com/thread-789649-1.html
+	var favor_title = '用SELinux加强网络安全(2)';       //  
+	
+	//绑定复制按钮
+	copy('msnqqcopy', 'http://netsecurity.51cto.com/art/200802/66432.htm', '分享到MSN/QQ的链接复制成功!');
+//	copy('bbscopy', '[url=http://netsecurity.51cto.com/art/200802/66432.htm][u]用SELinux加强网络安全(2)[/u][/url]', '分享到论坛的UBB代码复制成功!');
+
+</script> 
+<script src=" http://home.51cto.com/index.php?s=/Index/getLoginStatus/reback/http%253A%252F%252Fnetsecurity.51cto.com%252Fart%252F200802%252F66432.htm" charset='utf-8'></script>
+<script src="http://www.51cto.com/php/count.php?view=yes&artID=66432" language="javascript"></script>
+<script language="javascript">
+document.getElementById('books').innerHTML = document.getElementById("bookss").innerHTML; 
+</script>
+
+</body>
+</html>

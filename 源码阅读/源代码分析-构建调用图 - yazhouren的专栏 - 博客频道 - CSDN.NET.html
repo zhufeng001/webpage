@@ -1,0 +1,892 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+     
+    <html xmlns="http://www.w3.org/1999/xhtml">
+    
+<head>
+
+    <script id="allmobilize" charset="utf-8" src="http://a.yunshipei.com/46aae4d1e2371e4aa769798941cef698/allmobilize.min.js"></script>
+ <meta http-equiv="Cache-Control" content="no-siteapp" /><link rel="alternate" media="handheld" href="#" />
+
+    <title>源代码分析-构建调用图 - yazhouren的专栏
+        - 博客频道 - CSDN.NET</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="description" content="在《Ffplay视频播放流程》文章中我给出了一个ffplay的函数调用关系图，在分析代码上会有不小的帮助。那么本文就详细的描述如何从源码中一步步的得到我们想要的函数调用关系图。前置条件下载ffmpeg源码安装graphviz：sudo&gt;http://www.gson.org/egypt/编译整个ffmepg我采用的是默认配置+直接编译的方式，即./con" />
+    <script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+    <script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+        <!--new top-->
+               <link rel="stylesheet" href="http://static.csdn.net/public/common/toolbar/css/index.css">        <!--new top-->
+
+    <link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css?v=1.1" />
+    <link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/yazhouren/rss/list" />
+    <link rel="shortcut icon" href="http://csdnimg.cn/public/favicon.ico" />
+    <link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+ 
+
+
+</head>
+<body>
+    
+   
+      <!--new top-->
+    <script id="toolbar-tpl-scriptId" fixed="true" prod="blog" skin="black" src="http://static.csdn.net/public/common/toolbar/js/html.js" type="text/javascript"></script>
+     <!--new top-->
+    <div id="container">
+        <div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h2>
+                <a href="http://blog.csdn.net/yazhouren">yazhouren的专栏</a></h2>
+            <h3>纸上得来终觉浅，绝知此事要躬行</h3>
+            <div class="clear">
+            </div>
+        </div>
+        <div class="clear">
+        </div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg">
+    </div>
+    <div class="navigator">
+        <ul>
+                <li id="btnContents"><a href="http://blog.csdn.net/yazhouren?viewmode=contents"><span onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_mulu'])">
+                    <img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+                <li id="btnView"><a href="http://blog.csdn.net/yazhouren?viewmode=list"><span onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_zhaiyao'])">
+                    <img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+                <li id="btnRss"><a href="http://blog.csdn.net/yazhouren/rss/list"><span onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_RSS'])">
+                    <img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>                
+
+            </ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "yazhouren";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/yazhouren";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";  
+</script>
+
+        <div id="body">
+            <div id="main">
+                <div class="main">
+                        <div class="ad_class">
+<div class="notice tracking-ad" data-mod='popu_3' > 
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/38514369"target="_blank">
+<font color=blue>7月推荐文章
+</font></a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://bbs.csdn.net/topics/390863850">
+<font color=red>【限时活动】建专辑得大奖</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2014-08-25/2821359">
+<font color=blue>专访张路斌：从HTML5到Unity的游戏开发之路
+</font></a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://blog.csdn.net/blogdevteam/article/details/38657235"><font color=red>当青春遇上互联网，能否点燃你的创业梦
+</font></a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://blog.csdn.net/blogdevteam/article/details/38418263">
+<font color=blue>推荐有礼--找出您心中的技术大牛
+</font></a>
+
+
+</div>                        </div>
+                        
+
+  
+<link href="http://static.blog.csdn.net/css/comment1.css" type="text/css" rel="stylesheet" />
+<link href="http://static.blog.csdn.net/css/style1.css" type="text/css" rel="stylesheet" />
+<script language='JavaScript' type='text/javascript' src='http://download.csdn.net/js/jquery.cookie.js'></script>
+<script type="text/javascript" src="http://csdnimg.cn/rabbit/search-service/main.js"></script>
+<div id="article_details" class="details">
+    <div class="article_title">   
+         <span class="ico ico_type_Repost"></span>
+
+
+    <h1>
+        <span class="link_title"><a href="/yazhouren/article/details/38401153">
+        源代码分析-构建调用图
+        </a></span>
+    </h1>
+</div>
+
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/yazhouren/article/category/1062181" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_fenlei']);">编程</a> 
+        </span>
+    <span class="link_postdate">2014-08-06 14:53</span>
+    <span class="link_view" title="阅读次数">15人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_pinglun'])">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_shoucang']);collectArticle('源代码分析-构建调用图','38401153');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_jubao']);report(38401153,2);return false;" title="举报">举报</a></span>
+    
+</div>
+
+  
+    
+<div id="article_content" class="article_content">
+
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+在《<a target="_blank" target="_blank" style="color:rgb(106,57,6)">Ffplay视频播放流程</a>》文章中我给出了一个ffplay的函数调用关系图，在分析代码上会有不小的帮助。那么本文就详细的描述如何从源码中一步步的得到我们想要的函数调用关系图。</p>
+<h1 style="margin:0px; padding:0px; font-family:Arial; line-height:26px; color:rgb(54,46,43)">
+<a target="_blank" target="_blank" name="t0" style="color:rgb(51,102,153)"></a><a target="_blank" target="_blank" name="t0" style="color:rgb(106,57,6)"></a><span style="font-size:12px">前置条件</span></h1>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+下载ffmpeg源码</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+安装graphviz：sudo&gt;http://www.gson.org/egypt/<br>
+</p>
+<h1 style="margin:0px; padding:0px; font-family:Arial; line-height:26px; color:rgb(54,46,43)">
+<a target="_blank" target="_blank" name="t1" style="color:rgb(51,102,153)"></a><a target="_blank" target="_blank" name="t1" style="color:rgb(106,57,6)"></a><span style="font-size:12px">编译整个ffmepg</span></h1>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+我采用的是默认配置&#43;直接编译的方式，即./configure &amp;&amp;&gt;ffmpeg$ makeCC ffplay.oLD ffplay_gCP ffplaySTRIP ffplay<br>
+我们从上述输出中可以看到，编译ffplay主要有四步：编译(CC)，链接(LD)，重命名(CP)，去除符号表操作(STRIP)，其中编译阶段是我们重点要分析的，因为编译是对源码的直接分析和处理。</p>
+<h1 style="margin:0px; padding:0px; font-family:Arial; line-height:26px; color:rgb(54,46,43)">
+<a target="_blank" target="_blank" name="t2" style="color:rgb(51,102,153)"></a><a target="_blank" target="_blank" name="t2" style="color:rgb(106,57,6)"></a><span style="font-size:12px">生成RTL文件</span></h1>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+确定了需要在编译ffplay的步骤后，我们在makefile中找到具体的编译函数：</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<pre style="white-space:pre-wrap; word-wrap:break-word; font-size:14px; line-height:26px; color:rgb(54,46,43); background-color:rgb(255,255,255)">define COMPILE
+       $(call $(1)DEP,$(1))
+       $($(1)) $($(1)FLAGS) $($(1)_DEPFLAGS) $($(1)_C) $($(1)_O) $&lt;
+endef</pre>
+<br style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+<span style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">因为是编译ffplay.c文件，即此处的$(1)指的是CC，对应的$($(1)FLAGS)就是$(CCFLAGS)，而CCFLAGS的定义中包含$(CFLAGS)，即按照</span><a target="_blank" target="_blank" style="color:rgb(106,57,6); font-family:Arial; font-size:14px; line-height:26px">egypt</a><span style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">中的说明，我们在$(CFLAGS)的定义中添加-fdump-rtl-expand参数即可在make的时候成成RTL文件：</span><span style="color:rgb(51,51,51); font-family:Arial; font-size:14.399999618530273px; line-height:26px"></span>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<pre style="white-space:pre-wrap; word-wrap:break-word; font-size:14px; line-height:26px; color:rgb(54,46,43); background-color:rgb(255,255,255)">CFLAGS     &#43;= $(ECFLAGS) -fdump-rtl-expand</pre>
+<span style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">并且在COMPILE函数中将$($(1)FLAGS)的&#20540;打印出来，那么再次修改ffplay.c并编译后的输出如下：</span><span style="color:rgb(51,51,51); font-family:Arial; font-size:14.399999618530273px; line-height:26px"></span>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<pre style="white-space:pre-wrap; word-wrap:break-word; font-size:14px; line-height:26px; color:rgb(54,46,43); background-color:rgb(255,255,255)">-I. -I./ -D_ISOC99_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_POSIX_C_SOURCE=200112 -D_XOPEN_SOURCE=600 -std=c99 -fomit-frame-pointer -pthread -D_GNU_SOURCE=1 -D_REENTRANT -I/usr/include/SDL -g -Wdeclaration-after-statement -Wall -Wno-parentheses -Wno-switch -Wno-format-zero-length -Wdisabled-optimization -Wpointer-arith -Wredundant-decls -Wno-pointer-sign -Wwrite-strings -Wtype-limits -Wundef -Wmissing-prototypes -Wno-pointer-to-int-cast -Wstrict-prototypes -O3 -fno-math-errno -fno-signed-zeros -fno-tree-vectorize -Werror=implicit-function-declaration -Werror=missing-prototypes -Werror=return-type -Werror=vla  -fdump-rtl-expand -D_GNU_SOURCE=1 -D_REENTRANT -I/usr/include/SDL
+CC	ffplay.o
+LD	ffplay_g
+CP	ffplay
+STRIP	ffplay</pre>
+<br style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+<span style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">并且在当前目录下生成ffplay.c.144r.expand文件，即我们需要的RTL文件。</span><span style="color:rgb(51,51,51); font-family:Arial; font-size:14.399999618530273px; line-height:26px"></span>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<h1 style="margin:0px; padding:0px; font-family:Arial; line-height:26px; color:rgb(54,46,43)">
+<a target="_blank" target="_blank" name="t3" style="color:rgb(51,102,153)"></a><a target="_blank" target="_blank" name="t3" style="color:rgb(106,57,6)"></a>生成DOT文件</h1>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+生成完RTL文件后，我们可以使用现成的一个工具来分析它：egypt，具体命令如下：</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<pre style="white-space:pre-wrap; word-wrap:break-word; font-size:14px; line-height:26px; color:rgb(54,46,43); background-color:rgb(255,255,255)">egypt ffplay.c.144r.expand &gt; ffplay.dot</pre>
+<br style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<h1 style="margin:0px; padding:0px; font-family:Arial; line-height:26px; color:rgb(54,46,43)">
+<a target="_blank" target="_blank" name="t4" style="color:rgb(51,102,153)"></a><a target="_blank" target="_blank" name="t4" style="color:rgb(106,57,6)"></a>生成函数调用图</h1>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+有了dot文件，使用graphviz提供的工具就可以直接生成图形了：</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<pre style="white-space:pre-wrap; word-wrap:break-word; font-size:14px; line-height:26px; color:rgb(54,46,43); background-color:rgb(255,255,255)">dot ffplay.dot -Tpng -o ffplay.png</pre>
+<span style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">其中ffplay.dot是输入文件，-Tpng表示生成png&#26684;式的文件，-o&gt;</span><br style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+文件有点大，请自行保存下来进行查看。</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+<img alt="ffplay调用流程图" src="http://img.blog.csdn.net/20131226141818375?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvbmZlcl9jbg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" style="border:none; max-width:100%"><br>
+</p>
+<h1 style="margin:0px; padding:0px; font-family:Arial; line-height:26px; color:rgb(54,46,43)">
+<a target="_blank" target="_blank" name="t5" style="color:rgb(51,102,153)"></a><a target="_blank" target="_blank" name="t5" style="color:rgb(106,57,6)"></a>去除编译优化</h1>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+这个图看上去有些奇怪，比如在main函数中非常显&#30524;的event_loop函数，哪里去了呢？<br>
+</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+神奇之处就在于CFLAYGS中的-O3参数，gcc的man手册中如是说：</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<div class="dp-highlighter bg_plain" style="font-family:Consolas,'Courier New',Courier,mono,serif; width:693px; overflow:auto; padding-top:1px; line-height:26px; color:rgb(54,46,43); margin:18px 0px!important; background-color:rgb(231,229,220)">
+<div class="bar" style="padding-left:45px">
+<div class="tools" style="padding:3px 8px 10px 10px; font-size:9px; line-height:normal; font-family:Verdana,Geneva,Arial,Helvetica,sans-serif; color:silver; border-left-width:3px; border-left-style:solid; border-left-color:rgb(108,226,108); background-color:rgb(248,248,248)">
+<strong>[plain]</strong>&nbsp;<a target="_blank" target="_blank" href="http://blog.csdn.net/nfer_zhuang/article/details/17554251#" class="ViewSource" title="view plain" style="color:rgb(160,160,160); text-decoration:none; border:none; padding:1px; margin:0px 10px 0px 0px; font-size:9px; display:inline-block; width:16px; height:16px; text-indent:-2000px; background-color:inherit">view
+ plain</a><a target="_blank" target="_blank" href="http://blog.csdn.net/nfer_zhuang/article/details/17554251#" class="CopyToClipboard" title="copy" style="color:rgb(160,160,160); text-decoration:none; border:none; padding:1px; margin:0px 10px 0px 0px; font-size:9px; display:inline-block; width:16px; height:16px; text-indent:-2000px; background-color:inherit">copy</a><a target="_blank" target="_blank" href="https://code.csdn.net/snippets/128835" title="在CODE上查看代码片" style="color:rgb(160,160,160); text-decoration:none; border:none; padding:1px; margin:0px 10px 0px 0px; font-size:9px; display:inline-block; width:16px; height:16px; text-indent:-2000px; background-color:inherit"><img src="https://code.csdn.net/assets/CODE_ico.png" width="12" height="12" alt="在CODE上查看代码片" style="border:none; max-width:100%; position:relative; top:1px; left:2px"></a><a target="_blank" target="_blank" href="https://code.csdn.net/snippets/128835/fork" title="派生到我的代码片" style="color:rgb(160,160,160); text-decoration:none; border:none; padding:1px; margin:0px 10px 0px 0px; font-size:9px; display:inline-block; width:16px; height:16px; text-indent:-2000px; background-color:inherit"><img src="https://code.csdn.net/assets/ico_fork.svg" width="12" height="12" alt="派生到我的代码片" style="border:none; max-width:100%; position:relative; top:2px; left:2px"></a>
+<div style="position:absolute; left:684px; top:2227px; width:18px; height:18px; z-index:99">
+</div>
+<div style="position:absolute; left:540px; top:2226px; width:18px; height:18px; z-index:99">
+</div>
+</div>
+</div>
+<ol start="1" style="padding:0px; border:none; list-style-position:initial; color:rgb(92,92,92); margin:0px 0px 1px 45px!important; background-color:rgb(255,255,255)">
+<li class="alt" style="border-style:none none none solid; border-left-width:3px; border-left-color:rgb(108,226,108); list-style:decimal-leading-zero outside; color:inherit; line-height:18px; margin:0px!important; padding:0px 3px 0px 10px!important">
+<span style="margin:0px; padding:0px; border:none; color:black; background-color:inherit"><span style="margin:0px; padding:0px; border:none; background-color:inherit">-O3&nbsp;Optimize&nbsp;yet&nbsp;more.&nbsp;&nbsp;-O3&nbsp;turns&nbsp;on&nbsp;all&nbsp;optimizations&nbsp;specified&nbsp;by&nbsp;-O2&nbsp;&nbsp;</span></span></li><li style="border-style:none none none solid; border-left-width:3px; border-left-color:rgb(108,226,108); list-style:decimal-leading-zero outside; line-height:18px; margin:0px!important; padding:0px 3px 0px 10px!important; background-color:rgb(248,248,248)">
+<span style="margin:0px; padding:0px; border:none; color:black; background-color:inherit">&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;also&nbsp;turns&nbsp;on&nbsp;the&nbsp;-finline-functions,&nbsp;-funswitch-loops,&nbsp;&nbsp;</span></li><li class="alt" style="border-style:none none none solid; border-left-width:3px; border-left-color:rgb(108,226,108); list-style:decimal-leading-zero outside; color:inherit; line-height:18px; margin:0px!important; padding:0px 3px 0px 10px!important">
+<span style="margin:0px; padding:0px; border:none; color:black; background-color:inherit">&nbsp;&nbsp;&nbsp;&nbsp;-fpredictive-commoning,&nbsp;-fgcse-after-reload,&nbsp;-ftree-vectorize&nbsp;and&nbsp;&nbsp;</span></li><li style="border-style:none none none solid; border-left-width:3px; border-left-color:rgb(108,226,108); list-style:decimal-leading-zero outside; line-height:18px; margin:0px!important; padding:0px 3px 0px 10px!important; background-color:rgb(248,248,248)">
+<span style="margin:0px; padding:0px; border:none; color:black; background-color:inherit">&nbsp;&nbsp;&nbsp;&nbsp;-fipa-cp-clone&nbsp;options.&nbsp;&nbsp;</span></li></ol>
+</div>
+<span style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">我们发现-O3是在-O2优化的基础上，又添加了一系列的优化参数。那么同理，-O2优化肯定也是在-O1优化基础上新增一些优化参数。</span><span style="color:rgb(51,51,51); font-family:Arial; font-size:14.399999618530273px; line-height:26px"></span>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+因此，为了保持生成的RTL文件和源代码保持一致性，我们去除所有的编译优化选项，即在config.mak文件中，从CFLAGS定义中删除-O3字符串：</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<div class="dp-highlighter bg_plain" style="font-family:Consolas,'Courier New',Courier,mono,serif; width:693px; overflow:auto; padding-top:1px; line-height:26px; color:rgb(54,46,43); margin:18px 0px!important; background-color:rgb(231,229,220)">
+<div class="bar" style="padding-left:45px">
+<div class="tools" style="padding:3px 8px 10px 10px; font-size:9px; line-height:normal; font-family:Verdana,Geneva,Arial,Helvetica,sans-serif; color:silver; border-left-width:3px; border-left-style:solid; border-left-color:rgb(108,226,108); background-color:rgb(248,248,248)">
+<strong>[plain]</strong>&nbsp;<a target="_blank" target="_blank" href="http://blog.csdn.net/nfer_zhuang/article/details/17554251#" class="ViewSource" title="view plain" style="color:rgb(160,160,160); text-decoration:none; border:none; padding:1px; margin:0px 10px 0px 0px; font-size:9px; display:inline-block; width:16px; height:16px; text-indent:-2000px; background-color:inherit">view
+ plain</a><a target="_blank" target="_blank" href="http://blog.csdn.net/nfer_zhuang/article/details/17554251#" class="CopyToClipboard" title="copy" style="color:rgb(160,160,160); text-decoration:none; border:none; padding:1px; margin:0px 10px 0px 0px; font-size:9px; display:inline-block; width:16px; height:16px; text-indent:-2000px; background-color:inherit">copy</a><a target="_blank" target="_blank" href="https://code.csdn.net/snippets/128835" title="在CODE上查看代码片" style="color:rgb(160,160,160); text-decoration:none; border:none; padding:1px; margin:0px 10px 0px 0px; font-size:9px; display:inline-block; width:16px; height:16px; text-indent:-2000px; background-color:inherit"><img src="https://code.csdn.net/assets/CODE_ico.png" width="12" height="12" alt="在CODE上查看代码片" style="border:none; max-width:100%; position:relative; top:1px; left:2px"></a><a target="_blank" target="_blank" href="https://code.csdn.net/snippets/128835/fork" title="派生到我的代码片" style="color:rgb(160,160,160); text-decoration:none; border:none; padding:1px; margin:0px 10px 0px 0px; font-size:9px; display:inline-block; width:16px; height:16px; text-indent:-2000px; background-color:inherit"><img src="https://code.csdn.net/assets/ico_fork.svg" width="12" height="12" alt="派生到我的代码片" style="border:none; max-width:100%; position:relative; top:2px; left:2px"></a>
+<div style="position:absolute; left:684px; top:2486px; width:18px; height:18px; z-index:99">
+</div>
+<div style="position:absolute; left:540px; top:2484px; width:18px; height:18px; z-index:99">
+</div>
+</div>
+</div>
+<ol start="1" style="padding:0px; border:none; list-style-position:initial; color:rgb(92,92,92); margin:0px 0px 1px 45px!important; background-color:rgb(255,255,255)">
+<li class="alt" style="border-style:none none none solid; border-left-width:3px; border-left-color:rgb(108,226,108); list-style:decimal-leading-zero outside; color:inherit; line-height:18px; margin:0px!important; padding:0px 3px 0px 10px!important">
+<span style="margin:0px; padding:0px; border:none; color:black; background-color:inherit"><span style="margin:0px; padding:0px; border:none; background-color:inherit">CFLAGS=&nbsp;&nbsp;&nbsp;-std=c99&nbsp;-fomit-frame-pointer&nbsp;-pthread&nbsp;-D_GNU_SOURCE=1&nbsp;-D_REENTRANT&nbsp;-I/usr/include/SDL&nbsp;-g&nbsp;-Wdeclaration-after-statement&nbsp;-Wall&nbsp;-Wno-parentheses&nbsp;-Wno-switch&nbsp;-Wno-format-zero-length&nbsp;-Wdisabled-optimization&nbsp;-Wpointer-arith&nbsp;-Wredundant-decls&nbsp;-Wno-pointer-sign&nbsp;-Wwrite-strings&nbsp;-Wtype-limits&nbsp;-Wundef&nbsp;-Wmissing-prototypes&nbsp;-Wno-pointer-to-int-cast&nbsp;-Wstrict-prototypes&nbsp;&lt;span&nbsp;style=&quot;color:#FF0000;&quot;&gt;&lt;del&gt;-O3&nbsp;&lt;/del&gt;&lt;/span&gt;-fno-math-errno&nbsp;-fno-signed-zeros&nbsp;-fno-tree-vectorize&nbsp;-Werror=implicit-function-declaration&nbsp;-Werror=missing-prototypes&nbsp;-Werror=return-type&nbsp;-Werror=vla&nbsp;&nbsp;</span></span></li></ol>
+</div>
+<span style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">然后重新修改编译ffplay.c，并生成RTL文件和png图片。生成的图形如下：</span><span style="color:rgb(51,51,51); font-family:Arial; font-size:14.399999618530273px; line-height:26px"></span>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+<img alt="未优化的函数调用流程图" src="http://img.blog.csdn.net/20131226143124984?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvbmZlcl9jbg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" align="middle" style="border:none; max-width:100%"><br>
+</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+哇塞，通过这两个图形对比，我们发现编译优化选项做了多大的工作啊，或者说原始代码为了可阅读行，是多么的烂啊！<br>
+</p>
+<h1 style="margin:0px; padding:0px; font-family:Arial; line-height:26px; color:rgb(54,46,43)">
+<a target="_blank" target="_blank" name="t6" style="color:rgb(51,102,153)"></a><a target="_blank" target="_blank" name="t6" style="color:rgb(106,57,6)"></a>手动调整</h1>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+未优化的函数调用关系图太复杂了，在分析问题时，感觉有些老虎吃刺猬无处下嘴啊！</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+那么我们就可以手动打开刚才处理RTL后生成的dot文件，比如去除一些孤立的点，去除一些细节处理等等。最后，我们得到一个比较概要的函数调用关系图。</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+<img alt="函数调用关系概要图" src="http://img.blog.csdn.net/20131226143614046?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvbmZlcl9jbg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" align="middle" style="border:none; max-width:100%"><br>
+</p>
+<p style="font-family:Arial; font-size:14px; line-height:26px; color:rgb(54,46,43)">
+PS:和上述图片对应的dot文件如下：</p>
+
+</div>
+
+
+
+
+<!-- Baidu Button BEGIN -->
+
+<div class="bdsharebuttonbox" style="float: right;">
+<a href="#" class="bds_more" data-cmd="more" style="background-position:0 0 !important; background-image: url(http://bdimg.share.baidu.com/static/api/img/share/icons_0_16.png?v=d754dcc0.png) !important"></a>
+<a href="#" class="bds_qzone" data-cmd="qzone" title="分享到QQ空间"  style="background-position:0 -52px !important"></a>
+<a href="#" class="bds_tsina" data-cmd="tsina" title="分享到新浪微博"style="background-position:0 -104px !important"></a>
+<a href="#" class="bds_tqq" data-cmd="tqq" title="分享到腾讯微博"style="background-position:0 -260px !important"></a>
+<a href="#" class="bds_renren" data-cmd="renren" title="分享到人人网"style="background-position:0 -208px !important"></a>
+<a href="#" class="bds_weixin" data-cmd="weixin" title="分享到微信"style="background-position:0 -1612px !important" ></a>
+</div>
+<script>window._bd_share_config = { "common": { "bdSnsKey": {}, "bdText": "", "bdMini": "1", "bdMiniList": false, "bdPic": "", "bdStyle": "0", "bdSize": "16" }, "share": {} }; with (document) 0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = 'http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion=' + ~(-new Date() / 36e5)];</script>
+<!-- Baidu Button END -->
+
+<!--192.168.100.35-->
+<ul class="article_next_prev">
+            <li class="prev_article"><span  onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_shangyipian']);location.href='/yazhouren/article/details/38400939';">上一篇</span><a href="/yazhouren/article/details/38400939" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_shangyipian'])">webrtc架构</a></li>
+            <li class="next_article"><span onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_xiayipian']);location.href='/yazhouren/article/details/38554261';">下一篇</span><a href="/yazhouren/article/details/38554261" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_xiayipian'])">在应用程序中替换Linux中Glibc的malloc的四种方法</a></li>
+</ul>
+
+<!-- Baidu Button BEGIN -->
+<script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=1536434" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+    document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date()/3600000)
+</script>
+<!-- Baidu Button END -->
+
+
+</div>
+      <dl class="blog-associat-tag">
+        <dt>主题推荐</dt>
+        <dd>
+                <a href="http://www.csdn.net/tag/源代码" target="_blank" class="blog-tage-red" >源代码</a> 
+                <a href="http://www.csdn.net/tag/optimization" target="_blank" class="blog-tage-red" >optimization</a> 
+                <a href="http://www.csdn.net/tag/源码" target="_blank" class="blog-tage-red" >源码</a> 
+                <a href="http://www.csdn.net/tag/图形" target="_blank" class="blog-tage-red" >图形</a> 
+                <a href="http://www.csdn.net/tag/function" target="_blank" class="blog-tage-red" >function</a> 
+        </dd>
+    </dl> 
+
+
+<dl class="blog-ass-articl tracking-ad"  data-mod="popu_36" id="res-relatived"> 
+     <dt><span>猜你在找</span></dt>    
+</dl>
+
+<script type="text/javascript">
+    var searchtitletags = '源代码分析-构建调用图' + ',' + '源代码,optimization,源码,图形,function';
+    searchService({
+        index: 'blog',
+        query: searchtitletags,
+        from: 10,
+        size: 10,
+        appendTo: '#res-relatived',
+        url: 'recommend',
+        his: 2,
+        client: "blog_cf_enhance",
+        tmpl: '<dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="#{ url }" title="#{ title }" strategy="#{ strategy }">#{ title }</a></dd>'
+    });
+
+ </script>   
+
+
+    <div id="ad_cen">
+   
+          <script type="text/javascript">
+              new Ad(4, 'ad_cen');
+          </script>
+    </div>
+<div class="comment_class">
+    <div id="comment_title" class="panel_head">
+        <span class="see_comment">查看评论</span><a name="comments"></a></div>
+    <div id="comment_list">
+    </div>
+    <div id="comment_bar">
+    </div>
+    <div id="comment_form">
+    </div>
+
+    <div class="announce">
+        * 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+</div>
+
+<script type="text/javascript">
+    var fileName = '38401153';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+    <div id="ad_bot">
+    </div>
+    <script type="text/javascript">
+    new Ad(5, 'ad_bot');
+    </script>
+<div id="report_dialog">
+</div>
+
+<div id="d-top"  style="bottom:60px;">
+      
+
+       <a id="quick-reply" class="btn btn-top q-reply" title="快速回复" style="display:none;">
+            <img src="http://static.blog.csdn.net/images/blog-icon-reply.png" alt="快速回复">
+        </a>    
+
+    <a id="d-top-a" class="btn btn-top backtop"  style="display: none;" title="返回顶部" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_huidaodingbu'])" style="">         
+         <img src="http://static.blog.csdn.net/images/top.png" alt="TOP">
+    </a>
+</div>
+<script type="text/javascript">
+    $(function ()
+    {
+        $("#ad_frm_0").height("90px");
+        
+        setTimeout(function(){
+            $("#ad_frm_2").height("200px");
+        },1000);
+        
+
+        if($("#comment_content").length>0)
+        {
+            $("#quick-reply").show();
+
+            $("#quick-reply").click(function(){
+                setEditorFocus();
+            });
+        }       
+     
+        var d_top = $('#d-top-a');
+        document.onscroll = function ()
+        {
+            var scrTop = (document.body.scrollTop || document.documentElement.scrollTop);
+            if (scrTop > 500)
+            {
+                d_top.show();
+            } else
+            {
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function ()
+        {
+            scrollTo(0, 0);
+            this.blur();
+            return false;
+        });
+    });
+  
+</script>
+<style type="text/css">
+    .tag_list
+    {
+        background: none repeat scroll 0 0 #FFFFFF;
+        border: 1px solid #D7CBC1;
+        color: #000000;
+        font-size: 12px;
+        line-height: 20px;
+        list-style: none outside none;
+        margin: 10px 2% 0 1%;
+        padding: 1px;
+    }
+    .tag_list h5
+    {
+        background: none repeat scroll 0 0 #E0DBD3;
+        color: #47381C;
+        font-size: 12px;
+        height: 24px;
+        line-height: 24px;
+        padding: 0 5px;
+        margin: 0;
+    }
+    .tag_list h5 a
+    {
+        color: #47381C;
+    }
+    .classify
+    {
+        margin: 10px 0;
+        padding: 4px 12px 8px;
+    }
+    .classify a
+    {
+        margin-right: 20px;
+        white-space: nowrap;
+    }
+</style>
+<div class="tag_list">
+    <h5>
+        <a href="http://www.csdn.net/tag/" target="_blank">核心技术类目</a></h5>
+    <div class="classify">
+<a title="全部主题" href="http://www.csdn.net/tag" target="_blank" onclick="LogClickCount(this,336);">全部主题</a>
+<a title="Hadoop" href="http://g.csdn.net/5272865" target="_blank" onclick="LogClickCount(this,336);">Hadoop</a>
+<a title="AWS" href="http://g.csdn.net/5272866" target="_blank" onclick="LogClickCount(this,336);">AWS</a>
+<a title="移动游戏" href="http://g.csdn.net/5272870" target="_blank" onclick="LogClickCount(this,336);">移动游戏</a>
+<a title="Java" href="http://g.csdn.net/5272871" target="_blank" onclick="LogClickCount(this,336);">Java</a>
+<a title="Android" href="http://g.csdn.net/5272872" target="_blank" onclick="LogClickCount(this,336);">Android</a>
+<a title="iOS" href="http://g.csdn.net/5272873" target="_blank" onclick="LogClickCount(this,336);">iOS</a>
+<a title="Swift" href="http://g.csdn.net/5272868" target="_blank" onclick="LogClickCount(this,336);">Swift</a>
+<a title="智能硬件" href="http://g.csdn.net/5272869" target="_blank" onclick="LogClickCount(this,336);">智能硬件</a>
+<a title="Docker" href="http://g.csdn.net/5272867" target="_blank" onclick="LogClickCount(this,336);">Docker</a>
+<a title="OpenStack" href="http://g.csdn.net/5272925" target="_blank" onclick="LogClickCount(this,336);">OpenStack</a>
+<a title="VPN" href="http://www.csdn.net/tag/vpn" target="_blank" onclick="LogClickCount(this,336);">VPN</a>
+<a title="Spark" href="http://g.csdn.net/5272924" target="_blank" onclick="LogClickCount(this,336);">Spark</a>
+<a title="ERP" href="http://www.csdn.net/tag/erp" target="_blank" onclick="LogClickCount(this,336);">ERP</a>
+<a title="IE10" href="http://www.csdn.net/tag/ie10" target="_blank" onclick="LogClickCount(this,336);">IE10</a>
+<a title="Eclipse" href="http://www.csdn.net/tag/eclipse" target="_blank" onclick="LogClickCount(this,336);">Eclipse</a>
+<a title="CRM" href="http://www.csdn.net/tag/crm" target="_blank" onclick="LogClickCount(this,336);">CRM</a>
+<a title="JavaScript" href="http://www.csdn.net/tag/javascript" target="_blank" onclick="LogClickCount(this,336);">JavaScript</a>
+<a title="数据库" href="http://www.csdn.net/tag/数据库" target="_blank" onclick="LogClickCount(this,336);">数据库</a>
+<a title="Ubuntu" href="http://www.csdn.net/tag/ubuntu" target="_blank" onclick="LogClickCount(this,336);">Ubuntu</a>
+<a title="NFC" href="http://www.csdn.net/tag/nfc" target="_blank" onclick="LogClickCount(this,336);">NFC</a>
+<a title="WAP" href="http://www.csdn.net/tag/wap" target="_blank" onclick="LogClickCount(this,336);">WAP</a>
+<a title="jQuery" href="http://www.csdn.net/tag/jquery" target="_blank" onclick="LogClickCount(this,336);">jQuery</a>
+<a title="BI" href="http://www.csdn.net/tag/bi" target="_blank" onclick="LogClickCount(this,336);">BI</a>
+<a title="HTML5" href="http://www.csdn.net/tag/html5" target="_blank" onclick="LogClickCount(this,336);">HTML5</a>
+<a title="Spring" href="http://www.csdn.net/tag/spring" target="_blank" onclick="LogClickCount(this,336);">Spring</a>
+<a title="Apache" href="http://www.csdn.net/tag/apache" target="_blank" onclick="LogClickCount(this,336);">Apache</a>
+<a title=".NET" href="http://www.csdn.net/tag/.net" target="_blank" onclick="LogClickCount(this,336);">.NET</a>
+<a title="API" href="http://www.csdn.net/tag/api" target="_blank" onclick="LogClickCount(this,336);">API</a>
+<a title="HTML" href="http://www.csdn.net/tag/html" target="_blank" onclick="LogClickCount(this,336);">HTML</a>
+<a title="SDK" href="http://www.csdn.net/tag/sdk" target="_blank" onclick="LogClickCount(this,336);">SDK</a>
+<a title="IIS" href="http://www.csdn.net/tag/iis" target="_blank" onclick="LogClickCount(this,336);">IIS</a>
+<a title="Fedora" href="http://www.csdn.net/tag/fedora" target="_blank" onclick="LogClickCount(this,336);">Fedora</a>
+<a title="XML" href="http://www.csdn.net/tag/xml" target="_blank" onclick="LogClickCount(this,336);">XML</a>
+<a title="LBS" href="http://www.csdn.net/tag/lbs" target="_blank" onclick="LogClickCount(this,336);">LBS</a>
+<a title="Unity" href="http://www.csdn.net/tag/unity" target="_blank" onclick="LogClickCount(this,336);">Unity</a>
+<a title="Splashtop" href="http://www.csdn.net/tag/splashtop" target="_blank" onclick="LogClickCount(this,336);">Splashtop</a>
+<a title="UML" href="http://www.csdn.net/tag/uml" target="_blank" onclick="LogClickCount(this,336);">UML</a>
+<a title="components" href="http://www.csdn.net/tag/components" target="_blank" onclick="LogClickCount(this,336);">components</a>
+<a title="Windows Mobile" href="http://www.csdn.net/tag/windowsmobile" target="_blank" onclick="LogClickCount(this,336);">Windows Mobile</a>
+<a title="Rails" href="http://www.csdn.net/tag/rails" target="_blank" onclick="LogClickCount(this,336);">Rails</a>
+<a title="QEMU" href="http://www.csdn.net/tag/qemu" target="_blank" onclick="LogClickCount(this,336);">QEMU</a>
+<a title="KDE" href="http://www.csdn.net/tag/kde" target="_blank" onclick="LogClickCount(this,336);">KDE</a>
+<a title="Cassandra" href="http://www.csdn.net/tag/cassandra" target="_blank" onclick="LogClickCount(this,336);">Cassandra</a>
+<a title="CloudStack" href="http://www.csdn.net/tag/cloudstack" target="_blank" onclick="LogClickCount(this,336);">CloudStack</a>
+<a title="FTC" href="http://www.csdn.net/tag/ftc" target="_blank" onclick="LogClickCount(this,336);">FTC</a>
+<a title="coremail" href="http://www.csdn.net/tag/coremail" target="_blank" onclick="LogClickCount(this,336);">coremail</a>
+<a title="OPhone " href="http://www.csdn.net/tag/ophone " target="_blank" onclick="LogClickCount(this,336);">OPhone </a>
+<a title="CouchBase" href="http://www.csdn.net/tag/couchbase" target="_blank" onclick="LogClickCount(this,336);">CouchBase</a>
+<a title="云计算" href="http://www.csdn.net/tag/云计算" target="_blank" onclick="LogClickCount(this,336);">云计算</a>
+<a title="iOS6" href="http://www.csdn.net/tag/iOS6" target="_blank" onclick="LogClickCount(this,336);">iOS6</a>
+<a title="Rackspace " href="http://www.csdn.net/tag/rackspace " target="_blank" onclick="LogClickCount(this,336);">Rackspace </a>
+<a title="Web App" href="http://www.csdn.net/tag/webapp" target="_blank" onclick="LogClickCount(this,336);">Web App</a>
+<a title="SpringSide" href="http://www.csdn.net/tag/springside" target="_blank" onclick="LogClickCount(this,336);">SpringSide</a>
+<a title="Maemo" href="http://www.csdn.net/tag/maemo" target="_blank" onclick="LogClickCount(this,336);">Maemo</a>
+<a title="Compuware" href="http://www.csdn.net/tag/compuware" target="_blank" onclick="LogClickCount(this,336);">Compuware</a>
+<a title="大数据" href="http://www.csdn.net/tag/大数据" target="_blank" onclick="LogClickCount(this,336);">大数据</a>
+<a title="aptech" href="http://www.csdn.net/tag/aptech" target="_blank" onclick="LogClickCount(this,336);">aptech</a>
+<a title="Perl" href="http://www.csdn.net/tag/perl" target="_blank" onclick="LogClickCount(this,336);">Perl</a>
+<a title="Tornado" href="http://www.csdn.net/tag/tornado" target="_blank" onclick="LogClickCount(this,336);">Tornado</a>
+<a title="Ruby" href="http://www.csdn.net/tag/ruby" target="_blank" onclick="LogClickCount(this,336);">Ruby</a>
+<a title="Hibernate" href="http://www.csdn.net/hibernate" target="_blank" onclick="LogClickCount(this,336);">Hibernate</a>
+<a title="ThinkPHP" href="http://www.csdn.net/tag/thinkphp" target="_blank" onclick="LogClickCount(this,336);">ThinkPHP</a>
+<a title="HBase" href="http://www.csdn.net/tag/hbase" target="_blank" onclick="LogClickCount(this,336);">HBase</a>
+<a title="Pure" href="http://www.csdn.net/tag/pure" target="_blank" onclick="LogClickCount(this,336);">Pure</a>
+<a title="Solr" href="http://www.csdn.net/tag/solr" target="_blank" onclick="LogClickCount(this,336);">Solr</a>
+<a title="Angular" href="http://www.csdn.net/tag/angular" target="_blank" onclick="LogClickCount(this,336);">Angular</a>
+<a title="Cloud Foundry" href="http://www.csdn.net/tag/cloudfoundry" target="_blank" onclick="LogClickCount(this,336);">Cloud Foundry</a>
+<a title="Redis" href="http://www.csdn.net/tag/redis" target="_blank" onclick="LogClickCount(this,336);">Redis</a>
+<a title="Scala" href="http://www.csdn.net/tag/scala" target="_blank" onclick="LogClickCount(this,336);">Scala</a>
+<a title="Django" href="http://www.csdn.net/tag/django" target="_blank" onclick="LogClickCount(this,336);">Django</a>
+<a title="Bootstrap" href="http://www.csdn.net/tag/bootstrap" target="_blank" onclick="LogClickCount(this,336);">Bootstrap</a>
+    </div>
+</div>
+
+
+                        <div class="clear">
+                        </div>
+                    </div>                   
+                
+            </div>
+            <div id="side">
+    <div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/yazhouren" target="_blank">
+    <img src="http://avatar.csdn.net/9/0/D/1_yazhouren.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/yazhouren" class="user_name" target="_blank">yazhouren</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_guanzhu'])"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_sixin'])"></a>
+</div>
+<div id="blog_medal">
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>386080次</span></li>
+    <li>积分：<span>9774分</span></li>
+    <li>排名：<span>第428名</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>502篇</span></li>
+    <li>转载：<span>686篇</span></li>
+    <li>译文：<span>2篇</span></li>
+    <li>评论：<span>46条</span></li>
+</ul>
+</ul>
+</div>
+
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="button" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        $("#btnSubmit").click(function () {           
+            search();
+        });
+
+        $("#frmSearch").submit(function () {
+            search();
+            return false;
+        });
+
+        function search()
+        {
+            var url = "http://so.csdn.net/so/search/s.do?q=" + encodeURIComponent($("#inputSearch").val()) + "&u=" + username + "&t=blog";
+            window.location.href = url;
+        }   
+    });
+</script><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/947704" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">心情驿站</a><span>(71)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/947707" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">JOS</a><span>(29)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1062181" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">编程</a><span>(82)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1111811" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">软件常识</a><span>(111)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1122513" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">jenkins</a><span>(13)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1122520" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">工作-快乐与忧伤</a><span>(116)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1127537" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">技术类书籍笔记</a><span>(67)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1127900" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">MFC</a><span>(10)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1137818" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">别人的技术路</a><span>(92)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1142716" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">wimax</a><span>(78)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1163307" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">历史与小说</a><span>(71)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1218516" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">IT news</a><span>(126)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1258508" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">CloudServer</a><span>(138)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1274843" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">美术与音乐</a><span>(1)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1290500" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">金融</a><span>(43)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1345448" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">IT未来</a><span>(19)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1349352" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">P2P</a><span>(17)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1544243" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">编译原理</a><span>(3)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1547781" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">Linux Driver</a><span>(24)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1647403" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">s5pv210-uboot移植</a><span>(14)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yazhouren/article/category/1705929" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">SoC</a><span>(72)</span>
+            </li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/yazhouren/article/month/2014/08">2014年08月</a><span>(22)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2014/07">2014年07月</a><span>(29)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2014/06">2014年06月</a><span>(26)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2014/05">2014年05月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2014/04">2014年04月</a><span>(17)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2014/03">2014年03月</a><span>(31)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2014/02">2014年02月</a><span>(15)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2014/01">2014年01月</a><span>(16)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2013/12">2013年12月</a><span>(23)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2013/11">2013年11月</a><span>(26)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2013/10">2013年10月</a><span>(20)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2013/09">2013年09月</a><span>(25)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2013/08">2013年08月</a><span>(18)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2013/07">2013年07月</a><span>(20)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2013/06">2013年06月</a><span>(20)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2013/05">2013年05月</a><span>(43)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2013/04">2013年04月</a><span>(41)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2013/03">2013年03月</a><span>(54)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2013/02">2013年02月</a><span>(62)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2013/01">2013年01月</a><span>(85)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2012/12">2012年12月</a><span>(63)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2012/11">2012年11月</a><span>(97)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2012/10">2012年10月</a><span>(59)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2012/09">2012年09月</a><span>(58)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2012/08">2012年08月</a><span>(86)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2012/07">2012年07月</a><span>(64)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2012/06">2012年06月</a><span>(45)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2012/05">2012年05月</a><span>(61)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2012/04">2012年04月</a><span>(27)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2012/03">2012年03月</a><span>(9)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2012/02">2012年02月</a><span>(13)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2012/01">2012年01月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/yazhouren/article/month/2011/12">2011年12月</a><span>(6)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head">
+    <span>       
+阅读排行    </span>
+</ul>
+
+<ul class="panel_body itemlist">
+<li>
+<a href="/yazhouren/article/details/7821563" title="王庆根">王庆根</a><span>(12342)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/7995279" title="中国IC设计公司2006年">中国IC设计公司2006年</a><span>(8057)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/7990451" title="王坚：谷歌害怕我们，云OS的竞争对手只有一个——谷歌">王坚：谷歌害怕我们，云OS的竞争对手只有一个——谷歌</a><span>(7985)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/7821253" title="周立功: 我的25年嵌入式生涯">周立功: 我的25年嵌入式生涯</a><span>(6677)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/7612088" title="一名系统研究者的攀登之路-陈海波-">一名系统研究者的攀登之路-陈海波-</a><span>(5955)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/7967099" title="日本上游元器件行业概况与其影响">日本上游元器件行业概况与其影响</a><span>(5853)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/7966950" title="2012全球IT集体裁员">2012全球IT集体裁员</a><span>(5386)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/7919640" title="细数华人那些代工企业">细数华人那些代工企业</a><span>(4690)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/7598671" title="清华梦的粉碎-写给清华大学的退学申请">清华梦的粉碎-写给清华大学的退学申请</a><span>(4356)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/8013582" title="电脑报专访微软亚洲研究院院长洪小文">电脑报专访微软亚洲研究院院长洪小文</a><span>(4278)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/yazhouren/article/details/7704129" title="为什么要有VMA和LMA两个地址？">为什么要有VMA和LMA两个地址？</a><span>(10)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/7527134" title="jenkins结束感言">jenkins结束感言</a><span>(5)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/7453009" title="静态代码分析工具-jenkins应用2(astyle,nsiqcppstyle,c_style_check,cpplint and cUnit,cppUnit,c++test)">静态代码分析工具-jenkins应用2(astyle,nsiqcppstyle,c_style_check,cpplint and cUnit,cppUnit,c++test)</a><span>(4)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/8465614" title="HTML5与Flash相比有哪些好处？">HTML5与Flash相比有哪些好处？</a><span>(3)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/7598671" title="清华梦的粉碎-写给清华大学的退学申请">清华梦的粉碎-写给清华大学的退学申请</a><span>(2)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/8206458" title="AMD裁员">AMD裁员</a><span>(2)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/8493665" title="http 上传中止">http 上传中止</a><span>(2)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/8972935" title="glib学习1-一个简单的例子与g_log">glib学习1-一个简单的例子与g_log</a><span>(2)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/17283159" title="传统ARM中可嵌套的IRQ程序">传统ARM中可嵌套的IRQ程序</a><span>(2)</span>
+</li>
+<li>
+<a href="/yazhouren/article/details/18967901" title="linux墙上时间xtime与高精度时钟gettimeofday">linux墙上时间xtime与高精度时钟gettimeofday</a><span>(2)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel tracking-ad" data-mod="popu_4">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+   
+         <a href="/yazhouren/article/details/18967901#comments">linux墙上时间xtime与高精度时钟gettimeofday</a>
+    <p style="margin:0px;"><a href="/yazhouren" class="user_name">yazhouren</a>:
+@yazhouren:如果没有定义更加精确的clocksource，那精度最高只能是jitter了
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yazhouren/article/details/18967901#comments">linux墙上时间xtime与高精度时钟gettimeofday</a>
+    <p style="margin:0px;"><a href="/yazhouren" class="user_name">yazhouren</a>:
+由于有精确的clocksource,所以gettimeofday可以获得精确的时钟！！！！
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yazhouren/article/details/9750765#comments">JOS lab1-4总结</a>
+    <p style="margin:0px;"><a href="/u012526168" class="user_name">u012526168</a>:
+能否借你lab4源码看一下。
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yazhouren/article/details/17283159#comments">传统ARM中可嵌套的IRQ程序</a>
+    <p style="margin:0px;"><a href="/yazhouren" class="user_name">yazhouren</a>:
+arm使用软中断，也就是x86的trap来实现kernel与user的切换
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yazhouren/article/details/17283159#comments">传统ARM中可嵌套的IRQ程序</a>
+    <p style="margin:0px;"><a href="/yazhouren" class="user_name">yazhouren</a>:
+有个疑问，就是linux进行系统调用也是进入了中断处理函数，这时如何保证切换到别的进程？x86体系结...
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yazhouren/article/details/8493665#comments">http 上传中止</a>
+    <p style="margin:0px;"><a href="/yazhouren" class="user_name">yazhouren</a>:
+我写的意思是，当upload时，浏览器不能主动停止上传，必须上传完成才行
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yazhouren/article/details/8493665#comments">http 上传中止</a>
+    <p style="margin:0px;"><a href="/Maconel" class="user_name">Maconel</a>:
+用chrome做了个测试，服务器在接收的数据达到限制后直接close连接，抓包发现，服务器实际向客户...
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yazhouren/article/details/8972935#comments">glib学习1-一个简单的例子与g_log</a>
+    <p style="margin:0px;"><a href="/yazhouren" class="user_name">yazhouren</a>:
+哦？ 多谢
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yazhouren/article/details/8972935#comments">glib学习1-一个简单的例子与g_log</a>
+    <p style="margin:0px;"><a href="/chenqiang0721" class="user_name">chenqiang0721</a>:
+纠正： 应该是设置export G_MESSAGES_DEBUG=all， 而不是export G_...
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yazhouren/article/details/9421345#comments">lab3</a>
+    <p style="margin:0px;"><a href="/bluesea147" class="user_name">bluesea147</a>:
+提几个建议~env_setupvm()直接copy kern_pgdir的PDX(UTOP)以上部分...
+    </p>
+    </li>
+</ul>
+</div>
+    </div>
+    <div class="clear">
+    </div>
+</div>
+
+            <div class="clear">
+            </div>
+        </div>
+        
+
+<script type="text/javascript" src="http://csdnimg.cn/rabbit/cnick/cnick.js"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js"></script>
+
+
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=692106"></script>
+<script type="text/javascript">
+    document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date() / 120000).toString(36) + '="></' + 'script>');
+</script>
+    <script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js"></script>
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+<script type="text/javascript" src="http://zz.csdn.net/js/count.js"></script>
+<script type="text/javascript">
+    $(function () {
+        function __get_code_toolbar(snippet_id) {
+            return $("<a href='https://code.csdn.net/snippets/"
+                    + snippet_id
+                    + "' target='_blank' title='在CODE上查看代码片' style='text-indent:0;'><img src='https://code.csdn.net/assets/CODE_ico.png' width=12 height=12 alt='在CODE上查看代码片' style='position:relative;top:1px;left:2px;'/></a>"
+                    + "<a href='https://code.csdn.net/snippets/"
+                    + snippet_id
+                    + "/fork' target='_blank' title='派生到我的代码片'  style='text-indent:0;'><img src='https://code.csdn.net/assets/ico_fork.svg' width=12 height=12 alt='派生到我的代码片' style='position:relative;top:2px;left:2px;'/></a>");
+        }
+        
+        $("[code_snippet_id]").each(function () {
+            __s_id = $(this).attr("code_snippet_id");
+            if (__s_id != null && __s_id != "" && __s_id != 0 && parseInt(__s_id) > 70020) {
+                __code_tool = __get_code_toolbar(__s_id);
+                $(this).prev().find(".tools").append(__code_tool);
+            }
+        });
+    });
+</script>
+
+    </div>
+      <!--new top-->
+    
+    <script id="csdn-toolbar-id" btnId="header_notice_num" wrapId="note1" count="5" subCount="5" type="text/javascript" src="http://static.csdn.net/public/common/toolbar/js/toolbar.js"></script>     <!--new top-->
+</body>
+</html>

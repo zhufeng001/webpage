@@ -1,0 +1,966 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Linux内核升级之制作initrd.img及其new-kernel-pkg(.sh)使用 - 走南闯北的专栏 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="Linux内核升级之制作initrd.img及其new-kernel-pkg(.sh)使用" />
+<script src="http://static.blog.csdn.net/Scripts/jquery.js" type="text/javascript"></script>
+<script src="http://static.blog.csdn.net/scripts/plugins.js" type="text/javascript"></script>
+<script src="http://static.blog.csdn.net/scripts/common.js" type="text/javascript"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/sanlinux/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1>
+                <a href="/sanlinux">走南闯北的专栏</a></h1>
+            <h2>--及时同步、及时刷新，每天进步一点点--</h2>
+            <div class="clear">
+            </div>
+        </div>
+        <div class="clear">
+        </div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg">
+    </div>
+    <div class="navigator">
+        <ul>
+            <!--<li id="btnHome"><a href="/sanlinux"><span><img src="http://static.blog.csdn.net/images/ico_home.gif">我的首页</span></a></li>-->
+            <li id="btnContents"><a href="/sanlinux?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="/sanlinux?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="/sanlinux/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "sanlinux";
+    var blog_address = "http://blog.csdn.net/sanlinux";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = $.cookie("UserName");
+</script>
+        
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/7415936" target="_blank"><font color=red>博客频道4月技术图书有奖试读结束，速来领奖！</font></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://www.mobileasiaexpo.cn/?MAECN=CSDN2" target="_blank"><font color=blue>移动业界领袖会议·上海·6.20</font></a>
+<br>
+<a href="http://blog.csdn.net/blogdevteam/article/details/7489275" target="_blank"><font color=blue>第四届云计算大会门票抢购：史上最低价，每日限5张！ </font></a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://topic.csdn.net/u/20120416/10/9123faba-8474-4f2a-a0cf-a1b7d0fe5913.html" target="_blank"><font color=red>【分享季1】：网友推荐130个经典资源，分享再赠分！</font></a>
+
+</div><script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js"></script>
+
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Original"></span>
+    <h3>
+        <span class="link_title"><a href="/sanlinux/article/details/5829311">
+        Linux内核升级之制作initrd.img及其new-kernel-pkg(.sh)使用
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+    <span class="link_postdate">2010-08-21 22:13</span>
+    <span class="link_view" title="阅读次数">696人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('Linux内核升级之制作initrd.img及其new-kernel-pkg(.sh)使用','5829311');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(5829311,2);return false;" title="举报">举报</a></span>
+    
+</div>
+
+    
+<div id="article_content" class="article_content">
+    <p>1、从编译好的源码中拷贝bzImage和System.map文件到/boot目录，并重命名。</p>
+<p># cp linux-2.6.32.6/arch/i386/boot/<strong>bzImage</strong> /boot/<strong>vmlinuz-2.6.32.6</strong></p>
+<p># cp linux-2.6.32.6/<strong>System.map</strong> /boot/<strong>System.map-2.6.32.6</strong></p>
+<p>&nbsp;</p>
+<p>注意：</p>
+<p>1)、vmlinuz和System.map的全名(包括版本号)一定要正确，要不new-kernel-pkg的脚本无法找到上述文件！</p>
+<p>2)、编译过程中执行：make bzImage, make modules, make modules_install(拷贝*.ko文件到/lib/modules/2.6.32.6目录下)</p>
+<p>&nbsp;</p>
+<p>2、执行命令制作initrd-2.6.32.6.img</p>
+<p># <strong>new-kernel-pkg --mkinitrd --depmod --install 2.6.32.6</strong></p>
+<p>&nbsp;</p>
+<p>3、/boot目录文件</p>
+<p><img src="http://hi.csdn.net/attachment/201008/22/0_1282458041rOgm.gif" alt="" /></p>
+<p>&nbsp;</p>
+<p>4、new-kernel-pkg脚本</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>#!/bin/bash</p>
+<p>#</p>
+<p># new-kernel-pkg</p>
+<p># Invoked upon installation or removal of a kernel package, the following</p>
+<p># tasks are/can be done here:</p>
+<p># creation/removal of initrd</p>
+<p># run of depmod/removal of depmod generated files</p>
+<p># addition/removal of kernel images from grub/lilo configuration (via grubby)</p>
+<p>#</p>
+<p># Copyright 2002-2008 Red Hat, Inc. &nbsp;All rights reserved.</p>
+<p>#</p>
+<p># This program is free software; you can redistribute it and/or modify</p>
+<p># it under the terms of the GNU General Public License as published by</p>
+<p># the Free Software Foundation; either version 2 of the License, or</p>
+<p># (at your option) any later version.</p>
+<p>#</p>
+<p># This program is distributed in the hope that it will be useful,</p>
+<p># but WITHOUT ANY WARRANTY; without even the implied warranty of</p>
+<p># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. &nbsp;See the</p>
+<p># GNU General Public License for more details.</p>
+<p>#</p>
+<p># You should have received a copy of the GNU General Public License</p>
+<p># along with this program. &nbsp;If not, see &lt;http://www.gnu.org/licenses/&gt;.</p>
+<p>#</p>
+<p>&nbsp;</p>
+<p>PATH=/sbin:/bin:$PATH</p>
+<p>&nbsp;</p>
+<p>lilo=/sbin/lilo</p>
+<p>&nbsp;</p>
+<p># some defaults that are sane for most arches</p>
+<p>kernelName=vmlinuz</p>
+<p>&nbsp;</p>
+<p>if [ -x ./grubby ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;grubby=./grubby</p>
+<p>else</p>
+<p>&nbsp;&nbsp; &nbsp;grubby=/sbin/grubby</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p>[ -f /etc/sysconfig/kernel ] &amp;&amp; . /etc/sysconfig/kernel</p>
+<p>&nbsp;</p>
+<p>cfgGrub=""</p>
+<p>cfgLilo=""</p>
+<p>runLilo=""</p>
+<p>grubConfig=""</p>
+<p>&nbsp;</p>
+<p>ARCH=$(uname -m)</p>
+<p>&nbsp;</p>
+<p>if [ $ARCH = 'ia64' ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;liloConfig=/boot/efi/EFI/redhat/elilo.conf</p>
+<p>&nbsp;&nbsp; &nbsp;bootPrefix=/boot/efi/EFI/redhat</p>
+<p>&nbsp;&nbsp; &nbsp;liloFlag=elilo</p>
+<p>&nbsp;&nbsp; &nbsp;isx86=""</p>
+<p>elif [ $ARCH = 'ppc64' -o $ARCH = 'ppc' ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;liloConfig=/etc/yaboot.conf</p>
+<p>&nbsp;&nbsp; &nbsp;bootPrefix=/boot</p>
+<p>&nbsp;&nbsp; &nbsp;lilo=/sbin/ybin</p>
+<p>&nbsp;&nbsp; &nbsp;liloFlag=yaboot</p>
+<p>&nbsp;&nbsp; &nbsp;runLilo="yes"</p>
+<p>&nbsp;&nbsp; &nbsp;isx86=""</p>
+<p>elif [ $ARCH = 'sparc' -o $ARCH = 'sparc64' ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;liloConfig=/etc/silo.conf</p>
+<p>&nbsp;&nbsp; &nbsp;bootPrefix=/boot</p>
+<p>&nbsp;&nbsp; &nbsp;liloFlag=silo</p>
+<p>&nbsp;&nbsp; &nbsp;lilo=/sbin/silo</p>
+<p>&nbsp;&nbsp; &nbsp;isx86=""</p>
+<p>elif [ $ARCH = 's390' -o $ARCH = 's390x' ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;liloConfig=/etc/zipl.conf</p>
+<p>&nbsp;&nbsp; &nbsp;bootPrefix=/boot</p>
+<p>&nbsp;&nbsp; &nbsp;liloFlag=zipl</p>
+<p>&nbsp;&nbsp; &nbsp;lilo=/sbin/zipl</p>
+<p>&nbsp;&nbsp; &nbsp;runLilo="yes"</p>
+<p>&nbsp;&nbsp; &nbsp;isx86=""</p>
+<p>else</p>
+<p>&nbsp;&nbsp; &nbsp;# this leaves i?86 and x86_64</p>
+<p>&nbsp;&nbsp; &nbsp;liloConfig=/etc/lilo.conf</p>
+<p>&nbsp;&nbsp; &nbsp;grubConfig=$(readlink -f /etc/grub.conf 2&gt;/dev/null)</p>
+<p>&nbsp;&nbsp; &nbsp;bootPrefix=/boot</p>
+<p>&nbsp;&nbsp; &nbsp;liloFlag=lilo</p>
+<p>&nbsp;&nbsp; &nbsp;isx86="yes"</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p>mode=""</p>
+<p>version=""</p>
+<p>initrd=""</p>
+<p>dracut=""</p>
+<p>initrdfile=""</p>
+<p>moddep=""</p>
+<p>verbose=""</p>
+<p>makedefault=""</p>
+<p>package=""</p>
+<p>mbkernel=""</p>
+<p>mbargs=""</p>
+<p>adddracutargs=""</p>
+<p>addplymouthinitrd=""</p>
+<p>&nbsp;</p>
+<p>usage() {</p>
+<p>&nbsp;&nbsp; &nbsp;echo "Usage: `basename $0` [-v] [--mkinitrd] [--rminitrd] [--dracut]" &gt;&amp;2&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;echo " &nbsp; &nbsp; &nbsp; [--initrdfile=&lt;initrd-image&gt;] [--depmod] [--rmmoddep]" &gt;&amp;2</p>
+<p>&nbsp;&nbsp; &nbsp;echo " &nbsp; &nbsp; &nbsp; [--kernel-args=&lt;args&gt;] [--remove-args=&lt;args&gt;]" &gt;&amp;2&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;echo " &nbsp; &nbsp; &nbsp; [--banner=&lt;banner&gt;] [--multiboot=multiboot]" &gt;&amp;2</p>
+<p>&nbsp;&nbsp; &nbsp;echo " &nbsp; &nbsp; &nbsp; [--mbargs=mbargs] [--make-default] [--add-dracut-args]" &gt;&amp;2</p>
+<p>&nbsp;&nbsp; &nbsp;echo " &nbsp; &nbsp; &nbsp; [--add-plymouth-initrd]" &gt;&amp;2</p>
+<p>&nbsp;&nbsp; &nbsp;echo " &nbsp; &nbsp; &nbsp; &lt;--install | --remove | --update | --rpmposttrans&gt; &lt;kernel-version&gt;" &gt;&amp;2</p>
+<p>&nbsp;&nbsp; &nbsp;echo " &nbsp; &nbsp; &nbsp; (ex: `basename $0` --mkinitrd --depmod --install 2.4.7-2)" &gt;&amp;2</p>
+<p>&nbsp;&nbsp; &nbsp;exit 1</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>install() {</p>
+<p>&nbsp;&nbsp; &nbsp;# XXX kernel should be able to be specified also (or work right on ia64)</p>
+<p>&nbsp;&nbsp; &nbsp;if [ ! -f $bootPrefix/$kernelName-$version ] ; then</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "kernel for $version does not exist, not running grubby"</p>
+<p><span>	</span>return</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;INITRD=""</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -f $initrdfile ]; then</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "found $initrdfile and using it with grubby"</p>
+<p><span>	</span>INITRD="--initrd $initrdfile"</p>
+<p>&nbsp;</p>
+<p><span>	</span>if [ -n "$addplymouthinitrd" ]; then</p>
+<p><span>	</span> &nbsp; &nbsp;INITRD="$INITRD --extra-initrd $bootPrefix/initrd-plymouth.img"</p>
+<p><span>	</span>fi</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;# FIXME: is this a good heuristic to find out if we're on iSeries?</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -d /proc/iSeries ]; then</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "On an iSeries, just making img file"</p>
+<p><span>	</span>if [ -z $initrdfile &nbsp;]; then</p>
+<p><span>	</span> &nbsp; &nbsp;[ -n "$verbose" ] &amp;&amp; echo "No initrd, just adding system map"</p>
+<p><span>	</span> &nbsp; &nbsp;/sbin/addSystemMap $bootPrefix/System.map-$version $bootPrefix/$kernelName-$version $bootPrefix/vmlinitrd-$version</p>
+<p><span>	</span>else</p>
+<p><span>	</span> &nbsp; &nbsp;/sbin/addSystemMap $bootPrefix/System.map-$version $bootPrefix/$kernelName-$version $bootPrefix/vmlinux.sm-$version</p>
+<p><span>	</span> &nbsp; &nbsp;/sbin/addRamDisk $initrdfile $bootPrefix/System.map-$version $bootPrefix/vmlinux.sm-$version $bootPrefix/vmlinitrd-$version 2&gt;/dev/null</p>
+<p><span>	</span> &nbsp; &nbsp;rm $bootPrefix/vmlinux.sm-$version</p>
+<p><span>	</span>fi</p>
+<p><span>	</span>return</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;# get the root filesystem to use</p>
+<p>&nbsp;&nbsp; &nbsp;rootdevice=$(awk '{ if ($1 !~ /^[ /t]*#/ &amp;&amp; $2 == "/") { print $1; }}' /etc/fstab)</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -n "$mbkernel" -a -n "$cfgLilo" -a "$liloFlag" != "elilo" ]; then</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "multiboot specified, not updating lilo.conf"</p>
+<p><span>	</span>cfgLilo=""</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -n "$cfgGrub" ]; then</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "adding $version to $grubConfig"</p>
+<p>&nbsp;</p>
+<p><span>	</span>if [ -n "$banner" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;title="$banner ($version)"</p>
+<p><span>	</span>elif [ -f /etc/redhat-release ]; then</p>
+<p><span>	</span> &nbsp; &nbsp;title="$(sed 's/ release.*$//' &lt; /etc/redhat-release) ($version)"</p>
+<p><span>	</span>else</p>
+<p><span>	</span> &nbsp; &nbsp;title="Red Hat Linux ($version)"</p>
+<p><span>	</span>fi</p>
+<p><span>	</span>$grubby --add-kernel=$bootPrefix/$kernelName-$version /</p>
+<p><span>	</span> &nbsp; &nbsp;$INITRD --copy-default $makedefault --title "$title" /</p>
+<p><span>	</span> &nbsp; &nbsp;${mbkernel:+--add-multiboot="$mbkernel"} ${mbargs:+--mbargs="$mbargs"} /</p>
+<p><span>	</span> &nbsp; &nbsp;--args="root=$rootdevice $kernargs" --remove-kernel="TITLE=$title"</p>
+<p>&nbsp;&nbsp; &nbsp;else</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "$grubConfig does not exist, not running grubby"</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -n "$cfgLilo" ]; then</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "adding $version to $liloConfig"</p>
+<p>&nbsp;</p>
+<p><span>	</span>$grubby --add-kernel=$bootPrefix/$kernelName-$version $INITRD /</p>
+<p><span>		</span>--copy-default $makedefault --title $version /</p>
+<p><span>		</span>${mbkernel:+--add-multiboot="$mbkernel"} ${mbargs:+--mbargs="$mbargs"} /</p>
+<p><span>		</span>--args="root=$rootdevice $kernargs" --remove-kernel="TITLE=$version" /</p>
+<p><span>		</span>--$liloFlag</p>
+<p>&nbsp;</p>
+<p><span>	</span>if [ -n "$runLilo" ]; then&nbsp;</p>
+<p><span>	</span> &nbsp; &nbsp;[ -n "$verbose" ] &amp;&amp; echo "running $lilo"</p>
+<p><span>	</span> &nbsp; &nbsp;if [ ! -x $lilo ] ; then</p>
+<p><span>		</span>[ -n "$verbose" ] &amp;&amp; echo "$lilo does not exist"</p>
+<p><span>	</span> &nbsp; &nbsp;else</p>
+<p><span>		</span>$lilo &gt; /dev/null</p>
+<p><span>	</span> &nbsp; &nbsp;fi</p>
+<p><span>	</span>fi</p>
+<p>&nbsp;&nbsp; &nbsp;else</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "$liloConfig does not exist, not running grubby"</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>&nbsp;</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>rpmposttrans()</p>
+<p>{</p>
+<p>&nbsp;&nbsp; &nbsp;local files</p>
+<p>&nbsp;&nbsp; &nbsp;local f</p>
+<p>&nbsp;&nbsp; &nbsp;files="/etc/kernel/postinst.d/*[^~] /etc/kernel/postinst.d/$version/*[^~]"</p>
+<p>&nbsp;&nbsp; &nbsp;for f in $files ; do</p>
+<p><span>	</span>[ -f $f -a -x $f ] || continue</p>
+<p><span>	</span>$f $version $bootPrefix/$kernelName-$version</p>
+<p>&nbsp;&nbsp; &nbsp;done</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>remove() {</p>
+<p>&nbsp;&nbsp; &nbsp;# FIXME: is this a good heuristic to find out if we're on iSeries?</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -d /proc/iSeries ]; then</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "On an iSeries, remove img file"</p>
+<p><span>	</span>rm -f $bootPrefix/$kernelName-$version.img 2&gt;/dev/null</p>
+<p><span>	</span>return</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;local files</p>
+<p>&nbsp;&nbsp; &nbsp;local f</p>
+<p>&nbsp;&nbsp; &nbsp;files="/etc/kernel/prerm.d/*[^~] /etc/kernel/prerm.d/$version/*[^~]"</p>
+<p>&nbsp;&nbsp; &nbsp;for f in $files ; do</p>
+<p><span>	</span>[ -f $f -a -x $f ] || continue</p>
+<p><span>	</span>$f $version $bootPrefix/$kernelName-$version</p>
+<p>&nbsp;&nbsp; &nbsp;done</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -n "$cfgGrub" ]; then</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "removing $version from $grubConfig"</p>
+<p><span>	</span>$grubby --remove-kernel=$bootPrefix/$kernelName-$version</p>
+<p>&nbsp;&nbsp; &nbsp;else</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "$grubConfig does not exist, not running grubby"</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -n "$cfgLilo" ]; then</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "removing $version from $liloConfig"</p>
+<p><span>	</span>$grubby --remove-kernel=$bootPrefix/$kernelName-$version<span>	</span> &nbsp; &nbsp;/</p>
+<p><span>		</span> &nbsp; &nbsp; --$liloFlag</p>
+<p>&nbsp;</p>
+<p><span>	</span>if [ -n "$runLilo" ]; then&nbsp;</p>
+<p><span>	</span> &nbsp; &nbsp;[ -n "$verbose" ] &amp;&amp; echo "running $lilo"</p>
+<p><span>	</span> &nbsp; &nbsp;if [ ! -x $lilo ] ; then</p>
+<p><span>		</span>[ -n "$verbose" ] &amp;&amp; echo "$lilo does not exist"</p>
+<p><span>	</span> &nbsp; &nbsp;else</p>
+<p><span>		</span>$lilo &gt; /dev/null</p>
+<p><span>	</span> &nbsp; &nbsp;fi</p>
+<p><span>	</span>fi</p>
+<p>&nbsp;&nbsp; &nbsp;else</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "$liloConfig does not exist, not running grubby"</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>update() {</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -n "$cfgGrub" ]; then</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "updating $version from $grubConfig"</p>
+<p><span>	</span>$grubby --update-kernel=$bootPrefix/$kernelName-$version /</p>
+<p><span>	</span> &nbsp; &nbsp;${kernargs:+--args="$kernargs"} /</p>
+<p><span>	</span> &nbsp; &nbsp;${removeargs:+--remove-args="$removeargs"}<span>	</span></p>
+<p>&nbsp;&nbsp; &nbsp;else</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "$grubConfig does not exist, not running grubby"</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -n "$cfgLilo" ]; then</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "updating $version from $liloConfig"</p>
+<p><span>	</span>$grubby --update-kernel=$bootPrefix/$kernelName-$version /</p>
+<p><span>	</span> &nbsp; &nbsp;${kernargs:+--args="$kernargs"} /</p>
+<p><span>	</span> &nbsp; &nbsp;${removeargs:+--remove-args="$removeargs"}<span>	</span>/</p>
+<p><span>		</span> &nbsp; &nbsp; --$liloFlag</p>
+<p>&nbsp;</p>
+<p><span>	</span>if [ -n "$runLilo" ]; then&nbsp;</p>
+<p><span>	</span> &nbsp; &nbsp;[ -n "$verbose" ] &amp;&amp; echo "running $lilo"</p>
+<p><span>	</span> &nbsp; &nbsp;if [ ! -x $lilo ] ; then</p>
+<p><span>		</span>[ -n "$verbose" ] &amp;&amp; echo "$lilo does not exist"</p>
+<p><span>	</span> &nbsp; &nbsp;else</p>
+<p><span>		</span>$lilo &gt; /dev/null</p>
+<p><span>	</span> &nbsp; &nbsp;fi</p>
+<p><span>	</span>fi</p>
+<p>&nbsp;&nbsp; &nbsp;else</p>
+<p><span>	</span>[ -n "$verbose" ] &amp;&amp; echo "$liloConfig does not exist, not running grubby"</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>mkinitrd() {</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -n "$dracut" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp; &nbsp; &nbsp;tool="/sbin/dracut -f $initrdfile $version"</p>
+<p>&nbsp;&nbsp; &nbsp;else</p>
+<p><span>	</span>tool="/sbin/mkinitrd --allow-missing -f $initrdfile $version"</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>&nbsp;&nbsp; &nbsp;[ -n "$verbose" ] &amp;&amp; echo "creating initrd: $tool"</p>
+<p>&nbsp;&nbsp; &nbsp;$tool</p>
+<p>&nbsp;&nbsp; &nbsp;rc=$?</p>
+<p>&nbsp;&nbsp; &nbsp;if [ $rc != 0 ]; then</p>
+<p><span>	</span>echo "mkinitrd failed" &gt;&amp;2</p>
+<p><span>	</span>exit 1</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>rminitrd() {</p>
+<p>&nbsp;&nbsp; &nbsp;[ -n "$verbose" ] &amp;&amp; echo "removing initrd $initrdfile"</p>
+<p>&nbsp;&nbsp; &nbsp;[ -f $initrdfile ] &amp;&amp; rm -f $initrdfile</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>doDepmod() {</p>
+<p>&nbsp;&nbsp; &nbsp;[ -n "$verbose" ] &amp;&amp; echo "running depmod for $version"</p>
+<p>&nbsp;&nbsp; &nbsp;depmod -ae -F /boot/System.map-$version $version</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>doRmmoddep() {</p>
+<p>&nbsp;&nbsp; &nbsp;[ -n "$verbose" ] &amp;&amp; echo "removing modules.dep info for $version"</p>
+<p>&nbsp;&nbsp; &nbsp;[ -d /lib/modules/$version ] &amp;&amp; rm -f /lib/modules/$version/modules.* &nbsp; &nbsp;</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>while [ $# -gt 0 ]; do</p>
+<p>&nbsp;&nbsp; &nbsp;case $1 in</p>
+<p><span>	</span>--mkinitrd)</p>
+<p><span>	</span> &nbsp; &nbsp;initrd="make"</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--rminitrd)</p>
+<p><span>	</span> &nbsp; &nbsp;initrd="remove"</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--dracut)</p>
+<p><span>	</span> &nbsp; &nbsp;dracut=--dracut</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--initrdfile*)</p>
+<p><span>	</span> &nbsp; &nbsp;if echo $1 | grep '=' &gt;/dev/null ; then</p>
+<p><span>	</span> &nbsp; &nbsp;<span>	</span>initrdfile=`echo $1 | sed 's/^--initrdfile=//'`</p>
+<p><span>	</span> &nbsp; &nbsp;else</p>
+<p><span>		</span>initrdfile=$2</p>
+<p><span>		</span>shift</p>
+<p><span>	</span> &nbsp; &nbsp;fi<span>		</span> &nbsp; &nbsp;</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--kernel-args*)</p>
+<p><span>	</span> &nbsp; &nbsp;if echo $1 | grep '=' &gt;/dev/null ; then</p>
+<p><span>	</span> &nbsp; &nbsp;<span>	</span>kernargs=`echo $1 | sed 's/^--kernel-args=//'`</p>
+<p><span>	</span> &nbsp; &nbsp;else</p>
+<p><span>		</span>kernargs=$2</p>
+<p><span>		</span>shift</p>
+<p><span>	</span> &nbsp; &nbsp;fi<span>		</span> &nbsp; &nbsp;</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--remove-args*)</p>
+<p><span>	</span> &nbsp; &nbsp;if echo $1 | grep '=' &gt;/dev/null ; then</p>
+<p><span>	</span> &nbsp; &nbsp;<span>	</span>removeargs=`echo $1 | sed 's/^--remove-args=//'`</p>
+<p><span>	</span> &nbsp; &nbsp;else</p>
+<p><span>		</span>removeargs=$2</p>
+<p><span>		</span>shift</p>
+<p><span>	</span> &nbsp; &nbsp;fi<span>		</span> &nbsp; &nbsp;</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--banner*)</p>
+<p><span>	</span> &nbsp; &nbsp;if echo $1 | grep '=' &gt;/dev/null ; then</p>
+<p><span>	</span> &nbsp; &nbsp;<span>	</span>banner=`echo $1 | sed 's/^--banner=//'`</p>
+<p><span>	</span> &nbsp; &nbsp;else</p>
+<p><span>		</span>banner=$2</p>
+<p><span>		</span>shift</p>
+<p><span>	</span> &nbsp; &nbsp;fi<span>		</span> &nbsp; &nbsp;</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--multiboot*)</p>
+<p><span>	</span> &nbsp; &nbsp;if echo $1 |grep '=' &gt;/dev/null; then</p>
+<p><span>		</span>mbkernel=`echo $1 | sed 's/^--multiboot=//'`</p>
+<p><span>	</span> &nbsp; &nbsp;else</p>
+<p><span>		</span># can't really support having an optional second arg here</p>
+<p><span>		</span># sorry!</p>
+<p><span>		</span>mbkernel="/boot/xen.gz"</p>
+<p><span>	</span> &nbsp; &nbsp;fi</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--mbargs*)</p>
+<p><span>	</span> &nbsp; &nbsp;if echo $1 |grep '=' &gt;/dev/null; then</p>
+<p><span>		</span>mbargs=`echo $1 | sed 's/^--mbargs=//'`</p>
+<p><span>	</span> &nbsp; &nbsp;else</p>
+<p><span>		</span>mbargs="$2"</p>
+<p><span>		</span>shift</p>
+<p><span>	</span> &nbsp; &nbsp;fi</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--depmod)</p>
+<p><span>	</span> &nbsp; &nbsp;moddep="make"</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--rmmoddep)</p>
+<p><span>	</span> &nbsp; &nbsp;moddep="remove"</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--make-default)</p>
+<p><span>	</span> &nbsp; &nbsp;makedefault="--make-default"</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--package)</p>
+<p><span>	</span> &nbsp; &nbsp;if echo $1 | grep '=' &gt;/dev/null ; then</p>
+<p><span>	</span> &nbsp; &nbsp;<span>	</span>package=`echo $1 | sed 's/^--package=//'`</p>
+<p><span>	</span> &nbsp; &nbsp;else</p>
+<p><span>		</span>package=$2</p>
+<p><span>		</span>shift</p>
+<p><span>	</span> &nbsp; &nbsp;fi<span>		</span> &nbsp; &nbsp;</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--add-dracut-args)</p>
+<p><span>	</span> &nbsp; &nbsp;adddracutargs=--add-dracut-args</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>--add-plymouth-initrd)</p>
+<p><span>	</span> &nbsp; &nbsp;addplymouthinitrd=--add-plymouth-initrd</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>-v)</p>
+<p><span>	</span> &nbsp; &nbsp;verbose=-v</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;</p>
+<p><span>	</span>*)</p>
+<p><span>	</span> &nbsp; &nbsp;if [ -z "$mode" ]; then</p>
+<p><span>		</span>mode=$1</p>
+<p><span>	</span> &nbsp; &nbsp;elif [ -z "$version" ]; then</p>
+<p><span>		</span>version=$1</p>
+<p><span>	</span> &nbsp; &nbsp;else</p>
+<p><span>		</span>usage</p>
+<p><span>	</span> &nbsp; &nbsp;fi</p>
+<p><span>	</span> &nbsp; &nbsp;;;</p>
+<p>&nbsp;&nbsp; &nbsp;esac</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;shift</p>
+<p>done</p>
+<p>&nbsp;</p>
+<p># make sure the mode is valid</p>
+<p>if [ "$mode" != "--install" -a "$mode" != "--remove" &nbsp;-a "$mode" != "--update" -a "$mode" != "--rpmposttrans" ] ; then</p>
+<p>&nbsp;&nbsp; &nbsp;usage</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p>if [ -z "$version" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;usage</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p>if [ "$mode" != "--install" -a "$makedefault" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;usage</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p>kernelmajor=`echo $kernel | cut -d . -f 1,2`</p>
+<p>&nbsp;</p>
+<p># kernel image for 2.4 is vmlinux</p>
+<p>if [ $ARCH = 'ppc64' -o $ARCH = 'ppc' ]; then</p>
+<p>&nbsp;&nbsp;if [ "$kernelmajor" == "2.4" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp; &nbsp;kernelName=vmlinux</p>
+<p>&nbsp;&nbsp;fi</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p># set the initrd file based on arch; ia64 is the only currently known oddball</p>
+<p>if [ -z "$initrdfile" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;INITRD_NAME_PREFIX="initrd"</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -n "$dracut" ]; then</p>
+<p><span>	</span>INITRD_NAME_PREFIX="initramfs"</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;if [ `uname -m` = "ia64" ]; then</p>
+<p><span>	</span>initrdfile="/boot/efi/EFI/redhat/$INITRD_NAME_PREFIX-$version.img"</p>
+<p>&nbsp;&nbsp; &nbsp;else</p>
+<p><span>	</span>initrdfile="/boot/$INITRD_NAME_PREFIX-$version.img"</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>&nbsp;</p>
+<p>fi</p>
+<p>[ -n "$verbose" ] &amp;&amp; echo "initrdfile is $initrdfile"</p>
+<p>&nbsp;</p>
+<p># add dracut i18n, keyboard and plymouth kernel args if requested</p>
+<p>if [ -n "$dracut" -o -n "$adddracutargs" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;[ -r /etc/sysconfig/keyboard ] &amp;&amp; . /etc/sysconfig/keyboard&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;[ -r /etc/sysconfig/i18n ] &amp;&amp; . /etc/sysconfig/i18n</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;for i in SYSFONT SYSFONTACM UNIMAP LANG KEYTABLE; do</p>
+<p>&nbsp;&nbsp; &nbsp; &nbsp; &nbsp;val=$(eval echo /$$i)</p>
+<p>&nbsp;&nbsp; &nbsp; &nbsp; &nbsp;[ -n "$val" ] &amp;&amp; kernargs="$kernargs $i=$val"</p>
+<p>&nbsp;&nbsp; &nbsp;done</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp; &nbsp;if [ -n "$KEYBOARDTYPE" -a "$KEYBOARDTYPE" != "pc" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; kernargs="$kernargs KEYBOARDTYPE=$KEYBOARDTYPE"</p>
+<p>&nbsp;&nbsp; &nbsp;fi</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p># set this as the default if we have the package and it matches</p>
+<p>if [ "$mode" == "--install" -a "$UPDATEDEFAULT" == "yes" -a -n "$package" -a -n "$DEFAULTKERNEL" -a "$package" == "$DEFAULTKERNEL" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;makedefault="--make-default"</p>
+<p>&nbsp;&nbsp; &nbsp;[ -n "$verbose" ] &amp;&amp; echo "making it the default based on config"</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p>if [ "$moddep" == "make" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;doDepmod</p>
+<p>elif [ "$moddep" == "remove" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;doRmmoddep</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p>if [ "$initrd" == "make" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;mkinitrd</p>
+<p>elif [ "$initrd" == "remove" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;rminitrd</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p>if [ ! -x $grubby ] ; then</p>
+<p>&nbsp;&nbsp; &nbsp;[ -n "$verbose" ] &amp;&amp; echo "$grubby does not exist"</p>
+<p>&nbsp;&nbsp; &nbsp;exit 0</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>[ -n "$grubConfig" ] &amp;&amp; [ -f "$grubConfig" ] &amp;&amp; cfgGrub=1;</p>
+<p>[ -n "$liloConfig" ] &amp;&amp; [ -f "$liloConfig" ] &amp;&amp; cfgLilo=1;</p>
+<p>&nbsp;</p>
+<p># if we have a lilo config on an x86 box, see if the default boot loader</p>
+<p># is lilo to determine if it should be run</p>
+<p>if [ -n "$cfgLilo" -a -n "$isx86" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;runLilo=$($grubby --bootloader-probe | grep lilo)</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p>if [ "$mode" == "--install" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;install</p>
+<p>elif [ "$mode" == "--remove" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;remove</p>
+<p>elif [ "$mode" == "--update" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;update</p>
+<p>elif [ "$mode" == "--rpmposttrans" ]; then</p>
+<p>&nbsp;&nbsp; &nbsp;rpmposttrans</p>
+<p>fi</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+</div>
+<div class="share_buttons" id="sharePanel"></div>
+
+<div class="article_next_prev">
+        <li class="prev_article">
+            <span>上一篇：</span><a href="http://blog.csdn.net/sanlinux/article/details/5829047">java源码批量编译-javac、jar、java及其ANT使用</a></li>
+        <li class="next_article">
+            <span>下一篇：</span><a href="http://blog.csdn.net/sanlinux/article/details/5829318">The Linux Kernel Module Programming Guide</a></li>
+</div>
+
+
+</div>
+<div id="ad_cen"></div>
+<script type="text/javascript">
+    new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '5829311';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js?v=1.1"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+
+<div class="clear"></div>
+</div>
+</div>
+<div id="side">
+    <div class="side">
+<div id="panel_Profile" class="panel">
+    <ul class="panel_head"><span>个人资料</span></ul>
+    <ul class="panel_body profile">
+        <div id="blog_userface">
+            <a href="http://my.csdn.net/sanlinux" target="_blank">
+            <img src="http://avatar.csdn.net/6/F/7/1_sanlinux.jpg" title="访问我的空间" style="max-width:90%"/>
+            </a>
+            <br />
+            <span><a href="http://my.csdn.net/sanlinux" target="_blank">sanlinux</a></span>
+        </div>
+<div class="interact">
+<!--<a href="#" class="attented" title="已关注"></a>-->
+<a href="#" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="http://my.csdn.net/my/letter/send/sanlinux" class="letter" title="[发私信]"></a>
+</div>
+        <div id="blog_medal">
+        </div>
+        <ul id="blog_rank">
+            <li>访问：<span>94228次</span></li>
+            <li>积分：<span>3034分</span></li>
+            <li>排名：<span>第1259名</span></li>
+        </ul>
+        <ul id="blog_statistics">
+            <li>原创：<span>156篇</span></li>
+            <li>转载：<span>73篇</span></li>
+            <li>译文：<span>41篇</span></li>
+            <li>评论：<span>28条</span></li>
+        </ul>
+    </ul>
+</div>
+
+<script type='text/javascript'>
+var _blogger='sanlinux';
+$(document).ready(function () {
+    $('#span_add_follow').click(function () {
+        var url = "http://my.csdn.net/index.php/follow/do_follow?jsonpcallback=?";
+        $.getJSON(url, { "username": _blogger }, function (data) {
+            if (data.succ == 1) {
+                alert('关注成功！');
+                $('#span_add_follow').attr('class', 'attented').click(function () { return false; });
+            } else {
+                alert(data.msg);
+            }
+        });
+    });
+    if (getUN().toLowerCase() == _blogger.toLowerCase()) {
+        $('.interact').hide();
+    }
+});
+function getUN() {
+    var m = document.cookie.match(new RegExp("(^| )UserName=([^;]*)(;|$)"));
+    if (m) return m[2];
+    else return '';
+}
+</script>
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+    <ul class="panel_head"><span>文章分类</span></ul>
+    <ul class="panel_body">
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/607810">Android嵌入式系统开发</a><span>(33)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/708113">Bash</a><span>(2)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/699426">Bash,Perl</a><span>(0)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/736238">Git &amp;amp; Kernel Hacking</a><span>(26)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/607808">JNI技术</a><span>(6)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/606606">linux</a><span>(160)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/616502">linux C/C++编程开发</a><span>(11)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/607816">PCB设计及其SMT技术</a><span>(0)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/708114">Perl</a><span>(2)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/752721">SCM</a><span>(11)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/752723">VS/Win32/MFC</a><span>(15)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/655102">嵌入式开发idea</a><span>(2)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/615029">自己动手写操作系统</a><span>(1)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/777716">软件项目管理</a><span>(5)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/849945">Git &amp; Kernel Hacking</a><span>(2)</span>
+        
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/sanlinux/article/category/956029">游戏AI编程</a><span>(7)</span>
+        
+        </li>
+    </ul>
+</div><div id="panel_Archive" class="panel">
+    <ul class="panel_head"><span>文章存档</span></ul>
+    <ul class="panel_body">
+        <div id="archive_list">
+        <!--归档统计-->
+        <li><a href="http://blog.csdn.net/sanlinux/article/month/2012/04">2012年04月</a>(5)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2012/02">2012年02月</a>(2)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2011/12">2011年12月</a>(3)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2011/11">2011年11月</a>(8)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2011/10">2011年10月</a>(12)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2011/09">2011年09月</a>(3)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2011/08">2011年08月</a>(2)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2011/07">2011年07月</a>(3)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2011/05">2011年05月</a>(2)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2011/04">2011年04月</a>(11)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2011/03">2011年03月</a>(7)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2011/02">2011年02月</a>(8)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2011/01">2011年01月</a>(6)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2010/12">2010年12月</a>(16)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2010/11">2010年11月</a>(3)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2010/10">2010年10月</a>(7)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2010/09">2010年09月</a>(17)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2010/08">2010年08月</a>(18)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2010/07">2010年07月</a>(27)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2010/06">2010年06月</a>(13)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2010/05">2010年05月</a>(20)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2010/04">2010年04月</a>(15)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2010/03">2010年03月</a>(10)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2010/02">2010年02月</a>(1)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2010/01">2010年01月</a>(7)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2009/12">2009年12月</a>(10)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2009/11">2009年11月</a>(19)</li><li><a href="http://blog.csdn.net/sanlinux/article/month/2009/10">2009年10月</a>(15)</li>
+        </div>
+    </ul>
+</div>
+<div id="hotarticls" class="panel">
+    <ul class="panel_head"><span>阅读排行</span></ul>
+    <ul class="panel_body">
+        <li>
+            <a href="/sanlinux/article/details/4715458" title="Android源码编译反思">Android源码编译反思</a> (3800)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/5568994" title="时钟同步问题：warning: Clock skew detected. Your build may be incomplete.">时钟同步问题：warning: Cloc...</a> (2488)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/5778280" title="eclim的编译安装及其使用">eclim的编译安装及其使用</a> (2304)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/5203923" title="Linux磁盘分区UUID的获取及其UUID的作用">Linux磁盘分区UUID的获取及其UU...</a> (2154)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/5468913" title="扩充Android模拟器分区大小的方法">扩充Android模拟器分区大小的方法</a> (2042)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/5725995" title="Android中使用arm-eabi-gdb和vim进行调试">Android中使用arm-eabi-g...</a> (2005)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/5928750" title="git远程仓库的使用">git远程仓库的使用</a> (1775)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/5171234" title="scim-pinyin编译过程">scim-pinyin编译过程</a> (1715)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/4715103" title="[转贴]Git 魔法">[转贴]Git 魔法</a> (1532)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/4782009" title="Linux Diff命令">Linux Diff命令</a> (1509)
+        </li>
+    </ul>
+</div>
+<div id="hotarticls" class="panel">
+    <ul class="panel_head"><span>评论排行</span></ul>
+    <ul class="panel_body">
+        <li>
+            <a href="/sanlinux/article/details/4715458" title="Android源码编译反思">Android源码编译反思</a> (4)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/6071094" title="将VisualStudio打造成Vim">将VisualStudio打造成Vim</a> (3)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/5778047" title="使用eclipse跟踪调试Android源码及其.classpath的作用分析">使用eclipse跟踪调试Android...</a> (2)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/4781707" title="linux获取文件的路径名及其文件名的方法">linux获取文件的路径名及其文件名的方...</a> (2)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/6332156" title="使用VAssistX为VS2008 c++代码添加函数头注释">使用VAssistX为VS2008 c+...</a> (2)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/5778852" title="eclipse启运时显示:Workspace in use or cannot be created, choose a different one.">eclipse启运时显示:Workspa...</a> (1)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/5171234" title="scim-pinyin编译过程">scim-pinyin编译过程</a> (1)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/6310498" title="git.kernel.org stable和longterm仓库">git.kernel.org stabl...</a> (1)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/5687682" title="Android framework源码之JNI实现过程分析">Android framework源码之...</a> (1)
+        </li>
+        <li>
+            <a href="/sanlinux/article/details/6071603" title=" Visual Assist X--Assign Shortcuts"> Visual Assist X--As...</a> (1)
+        </li>
+    </ul>
+</div>
+<div id="homepageArticles" class="panel">
+    <ul class="panel_head"><span>推荐文章</span></ul>
+    <ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js"></script>
+<script type="text/javascript">
+    new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body">
+    <li>
+    <a href="/sanlinux/article/details/6310498#comments">git.kernel.org stable和longterm仓库</a>
+    <p style="margin:0px;">hzlxg1016:
+mark yi xia xi kan
+    </p>
+    </li>
+    <li>
+    <a href="/sanlinux/article/details/5778852#comments">eclipse启运时显示:Workspace in use or cannot be created, choose a different one.</a>
+    <p style="margin:0px;">zhaojianand:
+谢谢
+    </p>
+    </li>
+    <li>
+    <a href="/sanlinux/article/details/5643271#comments">GRUB Error 28: Selected item cannot fit into memory</a>
+    <p style="margin:0px;">woshi_hujunjun:
+踩一个
+    </p>
+    </li>
+    <li>
+    <a href="/sanlinux/article/details/5687682#comments">Android framework源码之JNI实现过程分析</a>
+    <p style="margin:0px;">kangkangxuxu:
+踩一脚
+    </p>
+    </li>
+    <li>
+    <a href="/sanlinux/article/details/5778047#comments">使用eclipse跟踪调试Android源码及其.classpath的作用分析</a>
+    <p style="margin:0px;">lq651659889:
+我的问题同楼上，楼主能否讲下。
+    </p>
+    </li>
+    <li>
+    <a href="/sanlinux/article/details/5568994#comments">时钟同步问题：warning: Clock skew detected. Your build may be incomplete.</a>
+    <p style="margin:0px;">ww2000e:
+不错
+    </p>
+    </li>
+    <li>
+    <a href="/sanlinux/article/details/6071094#comments">将VisualStudio打造成Vim</a>
+    <p style="margin:0px;">tryfinally:
+VS的有了,可是现在写sql多了想要个viemu for sql..不知有否,只见2.1 2.2 2...
+    </p>
+    </li>
+    <li>
+    <a href="/sanlinux/article/details/5931313#comments">把arm开发板做成USB网卡（RNDIS /Ethernet Gadget）</a>
+    <p style="margin:0px;">dongchong2292482:
+请问你加载了 s3c2410_udc.ko 和g_ether.ko之后连接PC有没有出现 VID和P...
+    </p>
+    </li>
+    <li>
+    <a href="/sanlinux/article/details/6332156#comments">使用VAssistX为VS2008 c++代码添加函数头注释</a>
+    <p style="margin:0px;">w603283716:
+非常有用的工具
+    </p>
+    </li>
+    <li>
+    <a href="/sanlinux/article/details/6332156#comments">使用VAssistX为VS2008 c++代码添加函数头注释</a>
+    <p style="margin:0px;">kid0220:
+这个不错，很实用
+    </p>
+    </li>
+</ul>
+</div>
+    </div>
+    <div class="clear">
+    </div>
+</div>
+
+<div class="clear"></div>
+</div>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/SyntaxHighlighter/shCore-src.js"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ZeroClipboard/ZeroClipboard.js"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/article_code.js"></script>
+
+<script type="text/javascript" src="http://medal.blog.csdn.net/scripts/show.js"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=694851"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js"></script>
+<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js"></script>
+
+
+
+
+
+</div>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-cn">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>PostgreSQL 集群复制方案之使用pgq和londiste工具包 - 与时俱进 - 博客园</title>
+<link type="text/css" rel="stylesheet" href="/bundles/blog-common.css?v=gdNkSiQMyBMkpTeO1ex9qW-60UbMszQItnCUpBAT3LQ1"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="http://common.cnblogs.com/Skins/FFandIE/style.css?id=20140415"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/top5/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/top5/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/top5/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">var currentBlogApp = 'top5', cb_enable_mathjax=false;</script>
+<script src="/bundles/blog-common.js?v=15gzXd7pJ_PNpSlGpVykf0EBaNg79HWL7oD5vVw0NGA1" type="text/javascript"></script>
+</head>
+<body>
+<a name="top"></a>
+<!--PageBeginHtml Block Begin-->
+<div style="text-align:center;background:#fff">
+
+
+</div>
+<!--PageBeginHtml Block End-->
+
+<!--done-->
+<div id="home">
+<div id="header">
+	<div id="blogTitle">
+	<a id="lnkBlogLogo" href="http://www.cnblogs.com/top5/"><img id="blogLogo" src="/Skins/FFandIE/images/logo.png" alt="返回主页" /></a>			
+		
+<!--done-->
+<h1><a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/top5/">与时俱进</a></h1>
+<h2></h2>
+
+
+
+		
+	</div><!--end: blogTitle 博客的标题和副标题 -->
+	<div style="display:none;"><img src="/skins/FFandIE/images/body.gif"/></div>
+	<div id="navigator">
+		
+<!--done-->
+			<ul id="navList">
+				<li><a id="MyLinks1_HomeLink" class="menu" href="http://www.cnblogs.com/">博客园</a></li>
+				<li><a id="MyLinks1_SpaceLink" class="menu" href="http://space.cnblogs.com/">社区</a></li>
+				<li><a id="MyLinks1_MyHomeLink" class="menu" href="http://www.cnblogs.com/top5/">首页</a></li>
+				<li><a id="MyLinks1_NewPostLink" class="menu" rel="nofollow" href="http://i.cnblogs.com/EditPosts.aspx?opt=1">新随笔</a></li>
+				<li><a id="MyLinks1_ContactLink" accesskey="9" class="menu" rel="nofollow" href="http://space.cnblogs.com/msg/send/%e4%b8%8e%e6%97%b6%e4%bf%b1%e8%bf%9b">联系</a></li>
+				<li><a id="MyLinks1_Admin" class="menu" rel="nofollow" href="http://i.cnblogs.com/">管理</a></li>
+				<li><a id="MyLinks1_Syndication" class="menu" href="http://www.cnblogs.com/top5/rss">订阅</a>
+				<a id="MyLinks1_XMLLink" class="aHeaderXML" href="http://www.cnblogs.com/top5/rss"><img src="http://www.cnblogs.com/images/xml.gif" alt="订阅" /></a></li>
+			</ul>
+
+
+		<div class="blogStats">
+			
+			
+<!--done-->
+随笔- 2083&nbsp;
+文章- 0&nbsp;
+评论- 384&nbsp;
+
+			
+		</div><!--end: blogStats -->
+	</div><!--end: navigator 博客导航栏 -->
+</div><!--end: header 头部 -->
+
+<div id="main">
+	<div id="topicList">
+	<div class="forFlow">
+		
+
+<!--done-->
+<div id="topics">
+	<div class = "post">
+		<h1 class = "postTitle">
+			<a id="cb_post_title_url" class="postTitle2" href="http://www.cnblogs.com/top5/archive/2009/11/06/1597156.html">PostgreSQL 集群复制方案之使用pgq和londiste工具包</a>
+		</h1>
+		<div class="clear"></div>
+		<div class="postBody">
+			<div id="cnblogs_post_body"><h3>关于PostgreSQL集群复制方案</h3> <p>可以参考<a target="_blank" href="http://www.pgsqldb.org/mwiki/index.php/25_%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7%EF%BC%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%A4%8D%E5%88%B6" title="25 高可用性，负载均衡和复制">25 高可用性，负载均衡和复制</a>这篇文章了解一些常规的复制方案。 </p> <br /><h3>关于pgq和londiste工具</h3> <p>来自于skype的工具包skytools，其中pgq是基于postgresql的通用队列实现。而londiste是基于pgq的复制工具。这 两个工具的组合类似于slony，但相比二者，前者更简单一些。我们可以简单地把这种复制理解成 producer(provider)/consumer(subscriber)类型。master产生数据在队列中，而slave从队列中取数据并且 作用在自己身上。 </p> <br /><h3>安装</h3> <p>简单描述一下安装过程如下(假设两台机器，一台是master，一台是slave，都已经安装了数据库) </p> <ul><li> 安装psycopg2，到<a target="_blank" href="http://www.initd.org/pub/software/psycopg/psycopg2-2.0.10.tar.gz" text="" title="http://www.initd.org/pub/software/psycopg/psycopg2-2.0.10.tar.gz" rel="nofollow">这里</a>下载 </li></ul> <pre>tar xzvf psycopg2-2.0.7.tar.gz<br />cd psycopg2-2.0.7<br />python setup.py build_ext -Rpgsql的安装目录/lib<br />python setup.py install<br /></pre> <ul><li> 安装skytools，到<a target="_blank" href="http://pgfoundry.org/frs/download.php/1813/skytools-2.1.7.tar.gz" text="" title="http://pgfoundry.org/frs/download.php/1813/skytools-2.1.7.tar.gz" rel="nofollow">这里</a>下载 </li></ul> <pre>tar xzvf skytools-2.1.7.tar.gz<br />cd skytools-2.1.7<br />./configure<br />make <br />make install<br />python setup.py install<br /></pre> <br /><h3> 配置</h3> <ul><li> master-pgq </li></ul> <p>配置文件名：ticker.ini </p> <pre>[pgqadm]<br />job_name = ticker<br />db = dbname=foo host=127.0.0.1 port=5555 user=chry<br /># how often to run maintenance [minutes]<br />maint_delay_min = 1<br /># how often to check for activity [secs]<br />loop_delay = 0.1<br />logfile = %(job_name)s.log<br />pidfile = %(job_name)s.pid<br />use_skylog = 0<br /></pre> <ul><li> master-provider和slave-subscriber </li></ul> <p>配置文件名：replica.ini </p> <pre>[londiste]<br />job_name = lmaster_to_slave<br />provider_db = dbname=foo host=127.0.0.1 port=5555 user=chry<br />subscriber_db = dbname=foo host=205.203.*.* port=5555 user=chry<br /># it will be used as sql ident so no dots/spaces<br />pgq_queue_name = londiste.write<br />pidfile = %(job_name)s.pid<br />logfile = %(job_name)s.log<br />use_skylog = 0<br /></pre> <br /><h3> 启动replication daemon</h3> <ul><li> master(producer) </li></ul> <pre>pgqadm.py ticker.ini ticker -d (启动pgq管理进程)<br />londiste.py replica.ini provider install(安装londiste需要的schema)<br /></pre> <ul><li> slave(consumer) </li></ul> <pre>londiste.py replica.ini subscriber install(安装londiste需要的schema)<br />londiste.py replica.ini replay -d(启动数据复制，replica这个文件被部署了两次)<br /></pre> <p>以上过程需要保证slave可以登录master的数据库。 </p> <br /><h3> 添加一个复制集</h3> <ul><li> 假设你要同步表entry, 其有两个字段：id(sequence, primary key), item text。那么我们还需要同步sequence：entry_id_seq </li></ul> <p>master </p> <pre>londiste.py replica.ini provider add entry<br />londiste.py replica.ini provider add-seq entry_id_seq<br /></pre> <p>slave </p> <pre>londiste.py replica.ini subscriber add entry<br />londiste.py replica.ini subscriber add-seq entry_id_seq<br /></pre> <p>添加完毕。 </p> <br /><h3> 测试结论</h3> <ul><li> 同步的表对象需要有primary key </li><li> 在master操作insert/update/delete操作，可以正确同步到slave相应的表中。但不支持truncate。 </li><li> 如果slave数据库down掉，在slave重新起来的这段时间内的master的数据变化可以同步到slave相应的表中，而旧数据不会被同步。 </li><li> 如果slave上执行insert/update/delete的表操作，那么master是不会影响到的，与之相反，sequence在slave上的任何改变，在master变化时会重置。 </li><li> 要强制旧数据同步，可以在slave上执行： </li></ul> <pre>londiste.py replica.ini subscriber resync -v --force<br /></pre> <br /><h3> 应用场合的探索</h3> <ul><li> 这个方案可以应用在读写可分离的场合，比如结合plproxy的如下应用： </li></ul> <p><a target="_blank" href="http://www.pgsqldb.org/mwiki/index.php/Image:Read_only_cluster.jpg" title="Image:Read_only_cluster.jpg"><img src="http://www.pgsqldb.org/mwiki/images/f/fa/Read_only_cluster.jpg" alt="Image:Read_only_cluster.jpg" longdesc="/mwiki/index.php/Image:Read_only_cluster.jpg" height="250" width="238" /></a> </p><p>一边是feed数据到write集群，一边不仅仅希望读写分开以提高性能，同时可以支持load balance，那么pgq/londiste无疑是比较好的方案。之前可能需要同时写两个节点的数据以保证数据同步，这样不仅性能打折，而且还必须保证 事务，标准的plproxy是不支持事务的。 </p><p>票务搜索就是这类应用，还有一些OLTP以及web应用可能也是合适的场合。 </p></div><div id="MySignature"></div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="blog_post_info">
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"></div>
+</div>
+
+
+		</div>
+		<div class = "postDesc">posted @ <span id="post-date">2009-11-06 09:17</span> <a href='http://www.cnblogs.com/top5/'>与时俱进</a> 阅读(<span id="post_view_count">...</span>) 评论(<span id="post_comment_count">...</span>)  <a href ="http://i.cnblogs.com/EditPosts.aspx?postid=1597156" rel="nofollow">编辑</a> <a href="#" onclick="AddToWz(1597156);return false;">收藏</a></div>
+	</div>
+	<script type="text/javascript">var allowComments=true,isLogined=false,cb_blogId=54434,cb_entryId=1597156,cb_blogApp=currentBlogApp,cb_blogUserGuid='042d1f5d-e618-de11-9510-001cf0cd104b',cb_entryCreatedDate='2009/11/6 9:17:00';loadViewCount(cb_entryId);</script>
+	
+</div><!--end: topics 文章、评论容器-->
+<a name="!comments"></a><div id="blog-comments-placeholder"></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="程序员的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="ad_under_post_holder"></div>
+<script type="text/javascript">
+var enableGoogleAd = true;
+var googletag = googletag || {};
+googletag.cmd = googletag.cmd || [];
+fixPostBodyFormat();
+loadAdUnderPost();
+</script>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+loadBlogSignature();
+LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);
+GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+</script>
+<script type="text/javascript">
+    $.ajax({ url: 'http://counter.cnblogs.com/blog/post/' + cb_entryId, type: 'get', dataType: 'script', cache: true });
+</script>
+</div>
+
+	</div><!--end: forFlow -->
+	</div><!--end: topicList 文章列表容器-->
+
+	<div id="sideBar" class="forFlow">
+		<div id="sideBarMain">
+			
+<!--done-->
+<div class="newsItem">
+<h3 class="catListTitle">公告</h3>
+	<div id="blog-news"></div><script type="text/javascript">loadBlogNews();</script>
+</div>
+
+			<div id="calendar"><div id="blog-calendar" style="display:none"></div><script type="text/javascript">loadBlogDefaultCalendar();</script></div>
+			
+			<DIV id="leftcontentcontainer">
+				<div id="blog-sidecolumn"></div><script type="text/javascript">loadBlogSideColumn();</script>
+			</DIV>
+			
+		</div><!--end: sideBarMain -->
+	</div><!--end: sideBar 侧边栏容器 -->
+	<div class="clear"></div>
+	</div><!--end: main -->
+	<div class="clear"></div>
+	<div id="footer">
+		
+<!--done-->
+Copyright &copy;2014 与时俱进
+	</div><!--end: footer -->
+</div><!--end: home 自定义的最大容器 -->
+<!--PageEndHtml Block Begin-->
+<div style="text-align:center;background:#fff">
+<div style="text-align:left;line-height:30px;width:960px;margin:auto">友情链接：<a href="http://blog.sina.com.cn/s/blog_6bcdefec0100n01d.html" target="_blank">同里老宅院民居客栈</a> 
+<a href="http://www.wjdwlxs.com" target="_blank">吴江东吴旅行社</a> 
+<a href="http://www.114cx.net" target="_blank">114查询</a></div>
+
+
+<br />
+
+
+
+
+</div>
+<!--PageEndHtml Block End-->
+</body>
+</html>

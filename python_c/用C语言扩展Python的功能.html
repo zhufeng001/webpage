@@ -1,0 +1,1247 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+	
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+
+  <html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<title>用C语言扩展Python的功能</title>
+<meta http-equiv="PICS-Label" content='(PICS-1.1 "http://www.icra.org/ratingsv02.html" l gen true r (cz 1 lz 1 nz 1 oz 1 vz 1) "http://www.rsac.org/ratingsv01.html" l gen true r (n 0 s 0 v 0 l 0) "http://www.classify.org/safesurf/" l gen true r (SS~~000 1))'/>
+<link rel="schema.DC" href="http://purl.org/DC/elements/1.0/"/>
+<link rel="SHORTCUT ICON" href="http://www.ibm.com/favicon.ico"/>
+  <meta name="Owner" content="dw@cn.ibm.com"/>
+  <meta name="DC.Language" scheme="rfc1766" content="zh-CN"/>
+  <meta name="IBM.Country" content="CN"/>
+<meta name="Security" content="Public"/>
+<meta name="IBM.SpecialPurpose" content="SP001"/>
+<meta name="IBM.PageAttributes" content="sid=1003,1004"/>
+<meta name="Source" content="v16 Template Generator"/>
+<meta name="Robots" content="index,follow"/>
+<meta name="Abstract" content="Pyton和C分别有着各自的优缺点，用Python开发程序速度快，可靠性高，并且有许多现成模块可供使用，但执行速度相对较慢；C语言则正好相反，其执行速度快，但开发效率低。为了充分利用两种语言各自的优点，比较好的做法是用Python开发整个软件框架，而用C语言实现其关键模块。本文介绍如何利用C语言来扩展Python的功能，并辅以具体的实例讲述如何编写Python的扩展模块。"/>
+<meta name="Description" content="Pyton和C分别有着各自的优缺点，用Python开发程序速度快，可靠性高，并且有许多现成模块可供使用，但执行速度相对较慢；C语言则正好相反，其执行速度快，但开发效率低。为了充分利用两种语言各自的优点，比较好的做法是用Python开发整个软件框架，而用C语言实现其关键模块。本文介绍如何利用C语言来扩展Python的功能，并辅以具体的实例讲述如何编写Python的扩展模块。"/>
+<meta name="Keywords" content="Python、C、脚本语言、扩展模块、Linux, tttlca"/>
+<meta name="DC.Date" scheme="iso8601" content="2003-02-03"/>
+<meta name="DC.Type" scheme="IBM_ContentClassTaxonomy" content="CT316"/>
+<meta name="DC.Subject" scheme="IBM_SubjectTaxonomy" content="SWGC0"/>
+<meta scheme="IBM_WTMCategory" name="IBM.WTMCategory" content="SOFDCLNXCN" />
+<meta name="DC.Rights" content="© Copyright IBM Corporation 2003"/>
+<meta name="IBM.Effective" scheme="W3CDTF" content="2003-02-03"/>
+<meta name="title" content="用C语言扩展Python的功能"/>
+
+<!-- HEADER_SCRIPTS_AND_CSS_INCLUDE -->
+<link href="//dw1.s81c.com/common/v16/css/all.css" media="all" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/screen.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/screen-uas.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/cn/zh/screen-fonts.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/handheld.css" media="handheld" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/print.css" media="print" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/overlay.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+
+<!-- dW-specific CSS -->
+<link href="//dw1.s81c.com/developerworks/css/dw-screen.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/dw-mf/dw-mf2013-N.css" rel="stylesheet" title="www" type="text/css"/>	
+<link href="//dw1.s81c.com/developerworks/css/dw-local-site-N.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+
+<link href="//dw1.s81c.com/developerworks/css/dw-screen-comments-ratings-signin.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/js/jquery/cluetip98/jquery.cluetip.css" media="screen,projection" rel="stylesheet"  title="www" type="text/css" />
+
+<!-- JPP: LOCAL URL FOR TESTING V16 DEFIANT MASTHEAD/FOOTER -->
+
+<script src="//dw1.s81c.com/common/js/ibmcommon.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/common/js/dynamicnav.js" type="text/javascript">//</script>
+<script language="JavaScript" src="//dw1.s81c.com/developerworks/js/urltactic.js" type="text/javascript"></script>
+<!-- Rating_START -->
+<script language="JavaScript" type="text/javascript">
+  // <![CDATA[
+
+ dwr = {};
+  dwr.clickhere = '点击评分';
+  dwr.starIntro = ''; 
+  dwr.stars = '星';
+  dwr.star = '星'; 
+  dwr.avgRatingOf = '平均分';
+  dwr.youRated = '您的评分是';
+  dwr.avgRating = '平均分';
+  dwr.basedOnVote = '共 {1} 个评分'; // {1} to be substitue by code
+  dwr.basedOnVotes = '共 {1} 个评分';
+  dwr.leftParen = '（'; 
+  dwr.rightParen = ' ）'; 
+  dwr.space = ' '; 
+  dwr.yourRating = '您的评分';
+dwr.avgRating2 = '总共 {1} 评分的平均分';
+dwr.avgRating3 = '平均分{1} 星';
+dwr.rateThisArticle = '为本文评分';
+dwr.votes = '{1}个评分';
+dwr.vote = '{1}个评分';
+dwr.submitErr = '错误：提交失败，请重试。';
+dwr.noRatingErr = '错误：请选择一个评分并重新提交。';
+dwr.submit = '提交';
+// ]]>
+</script>
+
+<!-- Rating_START -->
+<script language="JavaScript" src="//dw1.s81c.com/developerworks/js/artrating/showrating.js" type="text/javascript"></script>
+<style type="text/css">
+  .metavalue {
+  display: none;
+  }
+</style>
+<!-- Rating_END --><!-- RESERVED_HEADER_INCLUDE -->
+<script language="javascript" src="//dw1.s81c.com/developerworks/js/ajax1.js" type="text/javascript"></script>
+<script language="javascript" src="//dw1.s81c.com/developerworks/js/search_counter-maverick.js" type="text/javascript"></script>
+<script language="javascript" src="//dw1.s81c.com/developerworks/js/request_referer_capture-maverick.js" type="text/javascript"></script>
+<script language="JavaScript" type="text/javascript">
+ <!--
+ setDefaultQuery('defaultHere');
+ //-->
+</script>
+<script language="JavaScript" type="text/javascript">
+ <!--
+ function openNewWindow(url,tar,arg){window.open(url,tar,arg);}
+ //-->
+</script>
+  <!-- Include file support -->
+  <script language="JavaScript" type="text/javascript">
+    (function($) {
+    jQuery.extend({
+    getInc: function(u,d){
+    if(u==null)return;
+    jQuery.ajax({
+    type: "GET",
+    url: u,
+    dataType: "text",
+    success: function(t) {
+    jQuery(d).html(t);
+    ibmCommon.initShowHide(jQuery(d).children()[0]);	
+    },
+    async: true
+    });
+    }
+    });
+    })(jQuery);
+  </script>
+</head>
+
+<body id="ibm-com">
+<div id="ibm-top" class="ibm-landing-page">
+
+<!-- MASTHEAD_BEGIN -->
+<!-- MASTHEAD_BEGIN -->
+<div class="ibm-access"><a href="#ibm-content">跳转到主要内容</a></div>
+<div id="ibm-masthead-dw">
+  
+    <!-- TOP ROW -->    
+    <div id="dw-masthead-top-row">
+    	<ul id="ibm-mast-options-dw">
+			<li id="dw-mast-top-4">
+				<a href="http://www.ibm.com/developerworks/cn/" class=""><img width="43" height="22" aria-label="dW" alt="dW" src="//dw1.s81c.com/developerworks/i/mf/dwn-dw-badge.png"></a>
+			</li>
+    		<li id="dw-mast-top-0" class="navtab"> 	
+    			<a class="dw-mf-noscript" href="#" title="登录（或注册）需启用 JavaScript">登录 (或注册)</a>
+    		</li>
+    		<li id="dw-mast-top-1" class="navtab">
+    				<a href="#SELECTLANG">中文</a>
+			</li>
+        	<li id="dw-mast-top-2" class="navtab dw-mf-hide">
+				<a href="#">[userid]</a>
+			</li>
+    		<li id="dw-mast-top-3" class="navtab">
+				<a href="#">IBM</a>
+			</li>
+    	</ul>
+	</div>
+    
+    <!-- TOP ROW SLIDER -->
+    <div id="ibm-my-menu-dw">    
+        <div class="ibm-ribbon-pane-dw">
+            <div class="ibm-ribbon-section-dw">
+                <!-- Sign-in -->
+                <div class="dw-mast-columns">                
+					<div class="dw-mast-col-1-1">
+						<div id="dw-mast-sso">
+							<!--<div id="dw-mast-sso-reg">
+								<p class="dw-mast-sso-reg-cn">如果您还没有注册到 IBM 注册系统，我们为给您带来的不便表示道歉，并请您马上注册。 							
+									<a href="#" onclick="(function () {window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh&amp;d='+encodeURIComponent(location.href);})();">现在注册</a>。</p>
+							</div>-->
+							<div id="signin_error_mf" class="dw-mf-hide"></div>
+							<div id="dw-mast-sso-form">
+								<form id="sForm_mf" action="" method="post" name="sForm_name_mf" onsubmit="return false;">
+									<div id="dw-mast-sso-id" class="dw-mast-sso-id-cn">
+										<label for="ibmid_mf">IBM ID：</label>
+										<input id="ibmid_mf" type="text" value="" name="ibmid_name_mf" maxlength="100" onkeypress="handleEP(event,this.form,'mf');"/>
+									</div>
+									<div id="dw-mast-sso-pw" class="dw-mast-sso-pw-cn">
+										<label for="pw_mf">密码：</label>
+										<input id="pw_mf" type="password" value="" name="pw_name_mf" maxlength="100" onkeypress="handleEP(event,this.form,'mf');"/>
+									</div>
+									<div id="dw-mast-sso-target" class="dw-mast-sso-target-cn">
+										<p class="dw-mf-perm-box">
+											<input id="perm_mf" type="checkbox" name="perm_name_mf"/><label for="perm_mf"> 保持登录。</label>
+										</p>
+									</div>
+									<div id="dw-mast-sso-terms">
+										<p class="dw-mast-sso-terms-cn">单击提交则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+									<div>
+										<input class="dw-mf-submit-btn-cn" name="ibm_submit_name_mf" value="提交" onclick="signin('mf');return false;" type="submit" />
+									</div>
+								</form>
+							</div>
+							<div id="dw-mast-sso-update">
+								<div id="dw-mast-sso-update-id">
+									<ul>
+										<li><a class="ibm-forward-link" href="#" onclick="(function () {window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.href);})();">需要一个 IBM ID？</a></li>
+										
+									<li><a class="ibm-forward-link" href="/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a></li>
+									</ul>
+								</div>
+								<div id="dw-mast-sso-update-pw">
+								<ul class="dw-mf-pwupdate">
+									<li><a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Dzh_CN%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a></li>
+									<li><a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></li>
+								</ul>
+									</div>
+							</div>
+							<div id="dw-mast-sso-text">
+			<!-- lk v17 updated text -->				    
+			<p>这是您第一次登陆到 developerWorks，已经自动为您创建了您的概要文件。 <strong>选择您概要文件中可以公开的信息的信息（如姓名、国家/地区，以及公司），这些信息同时也会与您所发布的内容相关联。 </strong>您可以随时更新您的 IBM 账号。</p>
+							<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+							</div>
+							<div class="dw-mast-close">
+								<ul>
+									<li><div class="dw-mast-close-sign-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+								</ul>
+							</div>	
+						</div>
+						
+						<div id="dw-mast-dname" class="dw-mf-hide">
+							<p>当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+							<div id="signin_dname_error_mf" class="dw-mf-hide"></div>
+							<div id="dw-mast-dname-form">
+								<form id="dForm_mf" action="" method="post" name="dForm_name_mf" onsubmit="return false;">
+									<div id="dw-mast-dname-mf">
+										<label for="dname_mf">昵称：</label>
+										<input id="dname_mf" name="dname_name_mf" maxlength="31" size="25" value="" type="text" onkeypress="handleEP(event,this.form,'mf');" />
+									</div>
+									<div id="dw-mast-dname-terms">
+										<p class="dw-mast-dname-terms-cn">单击<strong>提交</strong>则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+									<div>
+										<input class="dw-mf-submit-btn-cn" name="dname_submit_name_mf" value="提交" onclick="signin('mf');return false;" type="submit" />
+									</div>
+								</form>								
+							</div>
+							<div id="dw-mast-dname-secure">
+								<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+							</div>
+							<div class="dw-mast-close">
+								<ul>
+									<li><div class="dw-mast-close-sign-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+								</ul>
+							</div>	
+						</div>
+	
+						<div id="dw-mast-auth" class="dw-mf-hide">
+							<div>
+
+								<h2>developerWorks 社区:</h2>
+<!-- lk v17 updated links and text -->							    
+               		<ul>
+							<li><a id="dw-mast-top-0-0" href="//www.ibm.com/developerworks/community/homepage?lang=zh">我的首页</a></li>						    
+							<li><a
+							    href="//www.ibm.com/developerworks/community/profiles/html/myProfileView.do?lang=zh">我的概要信息</a></li>
+							<li><a
+							    href="//www.ibm.com/developerworks/community/groups/service/html/mycommunities?lang=zh">我的社区</a></li>
+			                 <li><a href="/developerworks/community/news/?lang=zh">设置</a></li>
+										    
+						</ul>      
+							</div>
+							<div class="dw-mast-more">
+								<ul class="ibm-link-list">
+									<li><a class="dw-more-link" href="#" onclick="signOut(); return false;"><strong>退出</strong></a></li>
+								</ul>
+							</div>
+							<div class="dw-mast-close">
+								<ul>
+									<li><div class="dw-mast-close-sign"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+								</ul>
+							</div>		
+						</div>
+						
+					</div>
+                	
+                </div>
+                <!-- Site selector --> 
+				<div class="dw-mast-columns">
+					<div class="dw-mast-col-2-1">
+						<h2>选择语言：</h2>
+						<ul>
+							<li><a id="dw-mast-top-1-0" href="http://www.ibm.com/developerworks/">English</a></li>
+							<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+							<li><a href="http://www.ibm.com/developerworks/jp/">日本語</a></li>
+						    <li><a href="http://www.ibm.com/developerworks/ru/">Русский</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-col-2-2">
+						<ul>
+							<li><a href="http://www.ibm.com/developerworks/br/">Português (Brasil)</a></li>
+							<li><a href="http://www.ibm.com/developerworks/ssa/">Español</a></li>
+							<li><a href="http://www.ibm.com/developerworks/vn/">Việt</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-close">
+						<ul>
+							<li><div class="dw-mast-close-lang"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+						</ul>
+                    </div>
+                </div>
+                <div class="dw-mast-columns"><!-- Authenticated --></div>
+                <!-- IBM -->
+				<div class="dw-mast-columns">
+					<div class="dw-mast-col-2-1">
+						<ul>
+							<li><a id="dw-mast-top-3-0" href="http://www.ibm.com/cn/zh/">IBM 主页</a></li>
+							<li><a href="http://www.ibm.com/solutions/cn/zh/">解决方案</a></li>
+							<li><a href="http://www.ibm.com/software/cn/">软件</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-col-2-2 dw-mast-ibm">
+						<ul>
+							<li><a href="http://www.ibm.com/support/cn/zh/">支持门户</a></li>
+							<li><a href="http://www.ibm.com/support/documentation/cn/zh/">产品文档</a></li>
+							<li><a href="http://www.ibm.com/redbooks/">Redbooks（英文）</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-close">
+						<ul>
+							<li><div class="dw-mast-close-ibm-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+						</ul>
+                    </div> 
+				</div>
+			</div>
+        </div>
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div id="ibm-universal-nav-dw">
+        <ul id="ibm-unav-links-dw">
+        <li id="ibm-unav-home-dwlogo">
+				<a href="http://www.ibm.com/developerworks/cn/"><img width="225" height="28" alt="developerWorks&reg;" src="//dw1.s81c.com/developerworks/i/mf/dwn-dw-wordmark.png"></a>
+            </li>
+        </ul>
+    	<ul id="ibm-menu-links-dw" class="ibm-menu-links-dw-cn">
+    		<li id="dw-mast-nav-0"><a href="http://www.ibm.com/developerworks/cn/topics">技术主题</a></li>
+    		<li id="dw-mast-nav-1"><a
+    			href="http://www.ibm.com/developerworks/cn/downloads/">软件下载</a></li>
+    		<li id="dw-mast-nav-2"><a
+    			href="https://www.ibm.com/developerworks/community/?lang=zh">社区</a></li>
+    		<li id="dw-mast-nav-3"><a href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></li>
+    	</ul>
+		<form id="ibm-search-form" action="//www.ibm.com/search/csass/search/" method="get" name="form1">
+		<p>
+		<label for="q"><span class="ibm-access">搜索 developerWorks</span></label>
+		<input type="text" value="搜索 developerWorks" name="q" maxlength="100" id="q"/>
+    		<input type="hidden" name="sn" value="dw" />
+    		<input type="hidden" name="lang" value="zh" />
+    		<input type="hidden" name="cc" value="CN" />
+    		<input type="hidden" name="en" value="utf" />
+    		<input type="hidden" name="hpp" value="20" />
+    		<input type="hidden" name="dws" value="cndw" />
+    		<input type="hidden" name="lo" value="zh" />
+			<input type="submit" id="ibm-search-dw" class="ibm-btn-search-dw" name="Search" value="搜索" />
+    		</p>
+    	</form>  
+    </div>
+    
+    <!-- BOTTOM ROW SLIDER -->
+    <div id="ibm-common-menu-dw">
+        <div class="ibm-ribbon-pane-dw">
+            <div class="ibm-ribbon-section-dw">
+				<!-- Technical topics category -->
+  
+            	<div class="dw-mast-columns">
+            	<div class="dw-mast-col-5-1">
+            		<h2><a id="dw-mast-nav-0-0" href="http://www.ibm.com/developerworks/cn/topics/">技术主题</a></h2>
+            		
+            		<ul>
+            		  
+            			<li><a href="http://www.ibm.com/developerworks/cn/aix/">AIX and UNIX</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/bigdata/">Big data</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/cloud/">Cloud computing</a></li>
+						<li><a href="http://www.ibm.com/developerworks/cn/agile/">DevOps</a></li>
+            		
+            			
+            		</ul>     
+            	</div>
+            	<div class="dw-mast-col-5-2">
+            		
+            		<ul>
+						<li><a href="http://www.ibm.com/developerworks/cn/ibmi/">IBM i</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/data/">Information management</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/java/">Java technology</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/linux/">Linux</a></li>
+            			
+           			
+            		</ul>
+            	</div>
+            	<div class="dw-mast-col-5-3">
+            		
+            		<ul>
+						<li><a href="http://www.ibm.com/developerworks/cn/lotus/">Lotus</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/mobile/">Mobile development</a></li>
+						<li><a href="http://www.ibm.com/developerworks/cn/opensource/">Open source</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/rational/">Rational</a></li>
+            			<!--<li><a href="http://www.ibm.com/developerworks/cn/webservices/">SOA and web services</a></li>-->
+						
+            			</ul>
+            		
+            	</div>
+            	<div class="dw-mast-col-5-4">
+            		<ul>
+					<li><a href="http://www.ibm.com/developerworks/cn/social/">Social Business</a></li> 
+             		<li><a href="http://www.ibm.com/developerworks/cn/web/">Web development</a></li>  
+					<li><a href="http://www.ibm.com/developerworks/cn/websphere/">WebSphere</a></li> 
+           		<!--	<li><a href="http://www.ibm.com/developerworks/cn/xml/">XML</a></li>-->
+            		</ul>        
+            	</div>
+            	<div class="dw-mast-col-5-5">
+            		<ul>
+            			<li><a href="http://www.ibm.com/developerworks/cn/library/"><strong>文档库</strong></a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/products/"><strong>产品 A - Z</strong></a></li>				    
+            		</ul>        
+            	</div>
+            	<div class="dw-mast-close">
+            		<ul>
+            			<li><div class="dw-mast-close-tech-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            		</ul>
+            	</div>
+            </div>
+            	<!-- Evaluation software category -->
+            	<div class="dw-mast-columns">
+            		<div class="dw-mast-col-2-1">
+            			<h2><a id="dw-mast-nav-1-0" href="http://www.ibm.com/developerworks/cn/downloads">软件下载</a></h2>
+            			<ul>
+							<li><a href="http://www.ibm.com/developerworks/cn/downloads/#ba">Big data</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#data">Information management</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#lotus">Lotus</a></li>
+            				
+            			</ul>            
+            		</div>
+            		<div class="dw-mast-col-2-2">
+            			<ul>
+							<li><a href="http://www.ibm.com/developerworks/cn/downloads/#rational">Rational</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#tivoli">Tivoli</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#websphere">WebSphere</a></li>
+            				
+            			</ul>            
+            		</div>
+            		<div class="dw-mast-close">
+            			<ul>
+            				<li><div class="dw-mast-close-eval-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            			</ul>
+            		</div>
+            	</div>
+            	<!-- Community category -->
+                <!-- lk v17 removed links, updated urls -->
+            	<div class="dw-mast-columns">
+            		<div class="dw-mast-col-2-1">
+            			<h2><a id="dw-mast-nav-2-0" href="https://www.ibm.com/developerworks/community/?lang=zh">社区</a></h2>
+            			<ul>
+            				<li><a href="https://www.ibm.com/developerworks/community/homepage/?lang=zh">我的首页</a></li>
+            				<li><a href="https://www.ibm.com/developerworks/community/profiles/?lang=zh">概要信息</a></li>
+            				<li><a href="https://www.ibm.com/developerworks/community/groups/?lang=zh">群组</a></li>
+							<li><a href="https://www.ibm.com/developerworks/community/blogs/?lang=zh">博客</a></li>
+             			</ul>     
+            		</div>
+            		<div class="dw-mast-col-2-2">
+            			<ul>
+                    
+				    <li><a href="https://www.ibm.com/developerworks/community/forums/?lang=zh">论坛</a></li>
+					<li><a href="https://www.ibm.com/developerworks/community/wikis/?lang=zh">Wiki</a></li>
+					<li><a href="https://www.ibm.com/developerworks/community/activities/?lang=zh">活动</a></li>
+            			</ul>
+            		</div>
+            		<div class="dw-mast-close">
+            			<ul>
+            				<li><div class="dw-mast-close-comm-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            			</ul>
+            		</div>
+            	</div>
+            	<!-- Events category -->
+            	<div class="dw-mast-columns">
+            		<div class="dw-mast-col-1-1">
+            			<h2><a id="dw-mast-nav-3-0" href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></h2>
+            			<ul>
+            				<li><a href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/swi/">多媒体课堂</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/find/webcasts/">网络广播（英文）</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/find/events/">查找活动（技术讲座，网络广播，会议等）（英文）</a></li> 
+            			</ul>            
+            		</div>
+            		<div class="dw-mast-close">
+            			<ul>
+            				<li><div class="dw-mast-close-event-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            			</ul>
+            		</div>
+            	</div>
+            </div>
+        </div>
+    </div>
+	
+</div>
+<div id="fdiv" class="ibm-access"></div>
+<!-- MASTHEAD_END --><!-- MASTHEAD_END -->
+
+<div id="ibm-pcon">
+
+<!-- CONTENT_BEGIN -->
+<div id="ibm-content">
+
+<!-- Navigation_Trail_BEGIN -->
+<!-- &nbsp; -->
+      <div id="ibm-content-head"><ul id="ibm-navigation-trail"><li class="ibm-first"><a href="http://www.ibm.com/developerworks/cn/">developerWorks 中国</a></li><li><a href="http://www.ibm.com/developerworks/cn/linux/">Linux</a></li><li><a href="http://www.ibm.com/developerworks/cn/views/linux/libraryview.jsp">文档库</a></li></ul></div>
+<!-- Navigation_Trail_END -->
+
+<!-- dW_Summary Area_START -->
+<div id="dw-summary-article">
+
+<div class="dw-content-head">
+<h1>用C语言扩展Python的功能</h1><p><em>如何找到、使用和参与开放源代码项目</em></p>
+</div>
+
+<div class="ibm-container-body ibm-two-column">
+
+<div class="ibm-column ibm-first">
+<div class="author"><a class="dwauthor" rel="#authortip1" href="#author1">肖文鹏</a> (<a href="mailto:xiaowp@263.net?subject=用C语言扩展Python的功能&amp;cc= ">xiaowp@263.net</a>), 北京理工大学计算机系硕士研究生</div><div id="authortip1" class="dwauthor-onload-state ibm-no-print">肖文鹏，是北京理工大学计算机系的一名硕士研究生，主要从事操作系统和分布式计算环境的研究，喜爱Linux和Python。你可以通过
+        <a href="mailto:xiaowp@263.net?cc= ">xiaowp@263.net</a>与他取得联系。
+      </div>
+<p></p>
+  <p><strong>简介：</strong>&nbsp;Pyton和C分别有着各自的优缺点，用Python开发程序速度快，可靠性高，并且有许多现成模块可供使用，但执行速度相对较慢；C语言则正好相反，其执行速度快，但开发效率低。为了充分利用两种语言各自的优点，比较好的做法是用Python开发整个软件框架，而用C语言实现其关键模块。本文介绍如何利用C语言来扩展Python的功能，并辅以具体的实例讲述如何编写Python的扩展模块。</p>
+
+ 
+</div>
+
+<div class="ibm-column ibm-second">
+
+<p class="leading"><b>发布日期：</b>&nbsp;2003 年 2 月 03 日
+  
+<br /><b>级别：</b>&nbsp;初级
+    
+
+<br /><strong>访问情况 ：</strong>&nbsp;21914 次浏览
+  <br /><strong>评论：</strong>&nbsp;<span id="nCmts"><img alt="" src="//dw1.s81c.com/developerworks/i/circle-preloader.gif" height="12" width="50" /><img alt="" src="//dw1.s81c.com/i/c.gif" height="14" width="1" /></span>
+  <!-- Rating_Area_Begin -->
+  <div id="art-rating-summary"></div>
+  <!-- Rating_Area_End -->
+  <br />
+</p>
+</div>
+
+</div>
+</div>
+<!-- dW_Summary_Area_END -->
+
+<!-- CONTENT_BODY -->
+<div id="ibm-content-body">
+
+<!-- MAIN_COLUMN_BEGIN -->
+<div id="ibm-content-main">
+
+<!-- Related_Searches_Area_And_Overlays_Begin -->
+
+<!-- MAIN_COLUMN_CONTAINER_BEGIN -->
+<div class="ibm-container">
+
+<!-- MAIN_COLUMN_CONTENT_BEGIN -->
+<p><a name="N10039"><span class="atitle">一、简介</span></a></p>
+      <p>Python是一门功能强大的高级脚本语言，它的强大不仅表现在其自身的功能上，而且还表现在其良好的可扩展性上，正因如此，Python已经开始受到越来越多人的青睐，并且被屡屡成功地应用于各类大型软件系统的开发过程中。</p>
+      <p>与其它普通脚本语言有所不同，Python程序员可以借助Python语言提供的API，使用C或者C++来对Python进行功能性扩展，从而即可以利用Python方便灵活的语法和功能，又可以获得与C或者C++几乎相同的执行性能。执行速度慢是几乎所有脚本语言都具有的共性，也是倍受人们指责的一个重要因素，Python则通过与C语言的有机结合巧妙地解决了这一问题，从而使脚本语言的应用范围得到了很大扩展。</p>
+      <p>在用Python开发实际软件系统时，很多时候都需要使用C/C++来对Python进行扩展。最常见的情况是目前已经存在一个用C编写的库，需要在Python语言中使用该库的某些功能，此时就可以借助Python提供的扩展功能来实现。此外，由于Python从本质上讲还是一种脚本语言，某些功能用Python实现可能很难满足实际软件系统对执行效率的要求，此时也可以借助Python提供的扩展功能，将这些关键代码段用C或者C++实现，从而提供程序的执行性能。</p>
+      <p>本文主要介绍Python提供的C语言扩展接口，以及如何使用这些接口和C/C++语言来对Python进行功能性扩展，并辅以具体的实例讲述如何实现Python的功能扩展。</p>
+      <div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="N1004B"><span class="atitle">二、Python的C语言接口</span></a></p>
+      <p>Python是用C语言实现的一种脚本语言，本身具有优良的开放性和可扩展性，并提供了方便灵活的应用程序接口(API)，从而使得C/C++程序员能够在各个级别上对Python解释器的功能进行扩展。在使用C/C++对Python进行功能扩展之前，必须首先掌握Python解释所提供的C语言接口。</p>
+      <p><a name="N10054"><span class="smalltitle">2.1 Python对象(PyObject)</span></a></p>
+      <p>Python是一门面向对象的脚本语言，所有的对象在Python解释器中都被表示成PyObject，PyObject结构包含Python对象的所有成员指针，并且对Python对象的类型信息和引用计数进行维护。在进行Python的扩展编程时，一旦要在C或者C++中对Python对象进行处理，就意味着要维护一个PyObject结构。</p>
+      <p>在Python的C语言扩展接口中，大部分函数都有一个或者多个参数为PyObject指针类型，并且返回值也大都为PyObject指针。</p>
+      <p><a name="N10060"><span class="smalltitle">2.2 引用计数</span></a></p>
+      <p>为了简化内存管理，Python通过引用计数机制实现了自动的垃圾回收功能，Python中的每个对象都有一个引用计数，用来计数该对象在不同场所分别被引用了多少次。每当引用一次Python对象，相应的引用计数就增1，每当消毁一次Python对象，则相应的引用就减1，只有当引用计数为零时，才真正从内存中删除Python对象。</p>
+      <p>下面的例子说明了Python解释器如何利用引用计数来对Pyhon对象进行管理：</p>
+       
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+例1:refcount.py
+class refcount:
+    # etc.
+r1 = refcount() # 引用计数为1
+r2 = r1         # 引用计数为2
+del(r1)         # 引用计数为1
+del(r2)         # 引用计数为0，删除对象
+</pre></td></tr></table><br /> 
+      <p>在C/C++中处理Python对象时，对引用计数进行正确的维护是一个关键问题，处理不好将很容易产生内存泄漏。Python的C语言接口提供了一些宏来对引用计数进行维护，最常见的是用Py_INCREF()来增加使Python对象的引用计数增1，用Py_DECREF()来使Python对象的引用计数减1。</p>
+      <p><a name="N10073"><span class="smalltitle">2.3 数据类型</span></a></p>
+      <p>Python定义了六种数据类型：整型、浮点型、字符串、元组、列表和字典，在使用C语言对Python进行功能扩展时，首先要了解如何在C和Python的数据类型间进行转化。</p>
+      <p>
+        <strong>2.3.1 整型、浮点型和字符串</strong>
+      </p>
+      <p>在Python的C语言扩展中要用到整型、浮点型和字符串这三种数据类型时相对比较简单，只需要知道如何生成和维护它们就可以了。下面的例子给出了如何在C语言中使用Python的这三种数据类型：</p>
+       
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+例2：typeifs.c
+// build an integer
+PyObject* pInt = Py_BuildValue("i", 2003);
+assert(PyInt_Check(pInt));
+int i = PyInt_AsLong(pInt);
+Py_DECREF(pInt);
+// build a float
+PyObject* pFloat = Py_BuildValue("f", 3.14f);
+assert(PyFloat_Check(pFloat));
+float f = PyFloat_AsDouble(pFloat);
+Py_DECREF(pFloat);
+// build a string
+PyObject* pString = Py_BuildValue("s", "Python");
+assert(PyString_Check(pString);
+int nLen = PyString_Size(pString);
+char* s = PyString_AsString(pString);
+Py_DECREF(pString);
+</pre></td></tr></table><br /> 
+      <p>
+        <strong>2.3.2 元组</strong>
+      </p>
+      <p>Python语言中的元组是一个长度固定的数组，当Python解释器调用C语言扩展中的方法时，所有非关键字(non-keyword)参数都以元组方式进行传递。下面的例子示范了如何在C语言中使用Python的元组类型：</p>
+       
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+例3：typetuple.c
+// create the tuple
+PyObject* pTuple = PyTuple_New(3);
+assert(PyTuple_Check(pTuple));
+assert(PyTuple_Size(pTuple) == 3);
+// set the item
+PyTuple_SetItem(pTuple, 0, Py_BuildValue("i", 2003));
+PyTuple_SetItem(pTuple, 1, Py_BuildValue("f", 3.14f));
+PyTuple_SetItem(pTuple, 2, Py_BuildValue("s", "Python"));
+// parse tuple items
+int i;
+float f;
+char *s;
+if (!PyArg_ParseTuple(pTuple, "ifs", &amp;i, &amp;f, &amp;s))
+    PyErr_SetString(PyExc_TypeError, "invalid parameter");
+// cleanup
+Py_DECREF(pTuple);
+</pre></td></tr></table><br /> 
+      <p>
+        <strong>2.3.3 列表</strong>
+      </p>
+      <p>Python语言中的列表是一个长度可变的数组，列表比元组更为灵活，使用列表可以对其存储的Python对象进行随机访问。下面的例子示范了如何在C语言中使用Python的列表类型：</p>
+       
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+例4：typelist.c
+// create the list
+PyObject* pList = PyList_New(3); // new reference
+assert(PyList_Check(pList));
+// set some initial values
+for(int i = 0; i &lt; 3; ++i)
+    PyList_SetItem(pList, i, Py_BuildValue("i", i));
+// insert an item
+PyList_Insert(pList, 2, Py_BuildValue("s", "inserted"));
+// append an item
+PyList_Append(pList, Py_BuildValue("s", "appended"));
+// sort the list
+PyList_Sort(pList);
+// reverse the list
+PyList_Reverse(pList);
+// fetch and manipulate a list slice
+PyObject* pSlice = PyList_GetSlice(pList, 2, 4); // new reference
+for(int j = 0; j &lt; PyList_Size(pSlice); ++j) {
+  PyObject *pValue = PyList_GetItem(pList, j);
+  assert(pValue);
+}
+Py_DECREF(pSlice);
+// cleanup
+Py_DECREF(pList);
+</pre></td></tr></table><br /> 
+      <p>
+        <strong>2.3.4 字典</strong>
+      </p>
+      <p>Python语言中的字典是一个根据关键字进行访问的数据类型。下面的例子示范了如何在C语言中使用Python的字典类型：</p>
+       
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+例5：typedic.c
+// create the dictionary
+PyObject* pDict = PyDict_New(); // new reference
+assert(PyDict_Check(pDict));
+// add a few named values
+PyDict_SetItemString(pDict, "first", 
+                     Py_BuildValue("i", 2003));
+PyDict_SetItemString(pDict, "second", 
+                     Py_BuildValue("f", 3.14f));
+// enumerate all named values
+PyObject* pKeys = PyDict_Keys(); // new reference
+for(int i = 0; i &lt; PyList_Size(pKeys); ++i) {
+  PyObject *pKey = PyList_GetItem(pKeys, i);
+  PyObject *pValue = PyDict_GetItem(pDict, pKey);
+  assert(pValue);
+}
+Py_DECREF(pKeys);
+// remove a named value
+PyDict_DelItemString(pDict, "second");
+// cleanup
+Py_DECREF(pDict);
+</pre></td></tr></table><br /> 
+      <div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="N100B0"><span class="atitle">三、Python的C语言扩展</span></a></p>
+      <p><a name="N100B6"><span class="smalltitle">3.1 模块封装</span></a></p>
+      <p>在了解了Python的C语言接口后，就可以利用Python解释器提供的这些接口来编写Python的C语言扩展，假设有如下一个C语言函数：</p>
+       
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+例6：example.c
+int fact(int n)
+{
+  if (n &lt;= 1) 
+    return 1;
+  else 
+    return n * fact(n - 1);
+} 
+</pre></td></tr></table><br /> 
+      <p>该函数的功能是计算某个给定自然数的阶乘，如果想在Python解释器中调用该函数，则应该首先将其实现为Python中的一个模块，这需要编写相应的封装接口，如下所示：</p>
+       
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+例7: wrap.c
+#include &lt;Python.h&gt;
+PyObject* wrap_fact(PyObject* self, PyObject* args) 
+{
+  int n, result;
+  
+  if (! PyArg_ParseTuple(args, "i:fact", &amp;n))
+    return NULL;
+  result = fact(n);
+  return Py_BuildValue("i", result);
+}
+static PyMethodDef exampleMethods[] = 
+{
+  {"fact", wrap_fact, METH_VARARGS, "Caculate N!"},
+  {NULL, NULL}
+};
+void initexample() 
+{
+  PyObject* m;
+  m = Py_InitModule("example", exampleMethods);
+}
+</pre></td></tr></table><br /> 
+      <p>一个典型的Python扩展模块至少应该包含三个部分：导出函数、方法列表和初始化函数。</p>
+      <p><a name="N100CD"><span class="smalltitle">3.2 导出函数</span></a></p>
+      <p>要在Python解释器中使用C语言中的某个函数，首先要为其编写相应的导出函数，上述例子中的导出函数为wrap_fact。在Python的C语言扩展中，所有的导出函数都具有相同的函数原型：</p>
+      <pre>PyObject* method(PyObject* self, PyObject* args);</pre>
+      <p>该函数是Python解释器和C函数进行交互的接口，带有两个参数：self和args。参数self只在C函数被实现为内联方法(built-in method)时才被用到，通常该参数的值为空(NULL)。参数args中包含了Python解释器要传递给C函数的所有参数，通常使用Python的C语言扩展接口提供的函数PyArg_ParseTuple()来获得这些参数值。</p>
+      <p>所有的导出函数都返回一个PyObject指针，如果对应的C函数没有真正的返回值(即返回值类型为void)，则应返回一个全局的None对象(Py_None)，并将其引用计数增1，如下所示：</p>
+       
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+PyObject* method(PyObject *self, PyObject *args) 
+{
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+</pre></td></tr></table><br /> 
+      <p><a name="N100E3"><span class="smalltitle">3.3 方法列表</span></a></p>
+      <p>方法列表中给出了所有可以被Python解释器使用的方法，上述例子对应的方法列表为：</p>
+       
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+static PyMethodDef exampleMethods[] = 
+{
+  {"fact", wrap_fact, METH_VARARGS, "Caculate N!"},
+  {NULL, NULL}
+};
+</pre></td></tr></table><br /> 
+      <p>方法列表中的每项由四个部分组成：方法名、导出函数、参数传递方式和方法描述。方法名是从Python解释器中调用该方法时所使用的名字。参数传递方式则规定了Python向C函数传递参数的具体形式，可选的两种方式是METH_VARARGS和METH_KEYWORDS，其中METH_VARARGS是参数传递的标准形式，它通过Python的元组在Python解释器和C函数之间传递参数，若采用METH_KEYWORD方式，则Python解释器和C函数之间将通过Python的字典类型在两者之间进行参数传递。</p>
+      <p><a name="N100F3"><span class="smalltitle">3.4 初始化函数</span></a></p>
+      <p>所有的Python扩展模块都必须要有一个初始化函数，以便Python解释器能够对模块进行正确的初始化。Python解释器规定所有的初始化函数的函数名都必须以init开头，并加上模块的名字。对于模块example来说，则相应的初始化函数为:</p>
+       
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+void initexample() 
+{
+  PyObject* m;
+  m = Py_InitModule("example", exampleMethods);
+}
+</pre></td></tr></table><br /> 
+      <p>当Python解释器需要导入该模块时，将根据该模块的名称查找相应的初始化函数，一旦找到则调用该函数进行相应的初始化工作，初始化函数则通过调用Python的C语言扩展接口所提供的函数Py_InitModule()，来向Python解释器注册该模块中所有可以用到的方法。</p>
+      <p><a name="N10103"><span class="smalltitle">3.5 编译链接</span></a></p>
+      <p>要在Python解释器中使用C语言编写的扩展模块，必须将其编译成动态链接库的形式。下面以RedHat Linux 8.0为例，介绍如何将C编写的Python扩展模块编译成动态链接库：</p>
+       
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+[xiaowp@gary code]$ gcc -fpic -c -I/usr/include/python2.2 \
+                    -I /usr/lib/python2.2/config \
+                    example.c wrapper.c
+[xiaowp@gary code]$ gcc -shared -o example.so example.o wrapper.o
+</pre></td></tr></table><br /> 
+      <p><a name="N10110"><span class="smalltitle">3.6 引入Python解释器</span></a></p>
+      <p>当生成Python扩展模块的动态链接库后，就可以在Python解释器中使用该扩展模块了，与Python自带的模块一样，扩展模块也是通过import命令引入后再使用的，如下所示：</p>
+       
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+[xiaowp@gary code]$ python
+Python 2.2.1 (#1, Aug 30 2002, 12:15:30)
+[GCC 3.2 20020822 (Red Hat Linux Rawhide 3.2-4)] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+&gt;&gt;&gt; import example
+&gt;&gt;&gt; example.fact(4)
+24
+&gt;&gt;&gt;
+</pre></td></tr></table><br /> 
+      <div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="N1011D"><span class="atitle">四、结束语</span></a></p>
+      <p>作为一门功能强大的脚本语言，Python将被更加广泛地应用于各个领域。为了克服脚本语言执行速度慢的问题，Python提供了相应的C语言扩展接口，通过将影响执行性能的关键代码用C语言实现，可以很大程度上提高用Python编写的脚本在运行时的速度，从而满足实际需要。</p>
+    <!-- CMA ID: 20821 --> <!-- Site ID: 10 --> <!-- XSLT stylesheet used to transform this file:  dw-article-6.0-beta.xsl -->
+<br />
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p>
+      <ol>
+        <li>可以从Python(
+          <a href="http://www.python.org">http://www.python.org</a>)网站着手了解所有关于Python的内容。
+        </li>
+        <li>可以在Python网站上找到正式的Python C/API文档(
+          <a href="http://www.python.org/doc/current/api/api.html">http://www.python.org/doc/current/api/api.html</a>)。
+        </li>
+        <li>可以在Python网站上找到正式的编写Python扩展模块的文档(
+          <a href="http://www.python.org/doc/current/api/api.html">http://www.python.org/doc/current/api/api.html</a>)。
+        </li>
+      </ol>
+<p><a name="author"><span class="atitle">关于作者</span></a></p><div class="ibm-container ibm-portrait-module ibm-alternate-two"><div class="ibm-container-body"><p><a name="author1"> </a>肖文鹏，是北京理工大学计算机系的一名硕士研究生，主要从事操作系统和分布式计算环境的研究，喜爱Linux和Python。你可以通过
+        <a href="mailto:xiaowp@263.net?cc= ">xiaowp@263.net</a>与他取得联系。
+      </p></div></div>
+<!-- MAIN_COLUMN_CONTENT_END -->
+  <!-- OVERLAYS_START -->
+  <!-- Report_Abuse_Start -->
+  <div class="ibm-common-overlay ibm-no-print" id="reportabuseoverlay">
+    <div class="ibm-head"><p><a class="ibm-common-overlay-close" href="#">关闭 [x]</a></p></div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <a class="ibm-access" name="reportabuseoverlay">关于报告滥用的帮助</a>   
+        <div class="ibm-title"><h1>报告滥用</h1></div>
+        <div class="ibm-container ibm-alternate">
+          <p><strong>谢谢!</strong>  此内容已经标识给管理员注意。</p>
+          <div class="ibm-overlay-rule"><hr /></div>
+          <div class="ibm-buttons-row">
+            <input type="button" onclick="ibmCommon.Overlays.hide('reportabuseoverlay');return false;" class="ibm-btn-cancel-sec dw-btn-cancel-sec" name="ibm-cancel" value="关闭" />
+          </div>
+        </div>
+      </div> 
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Report_Abuse_Error_Start -->
+  <div class="ibm-common-overlay ibm-no-print" id="reportabuseoverlayerror">
+    <div class="ibm-head"><p><a class="ibm-common-overlay-close" href="#">关闭 [x]</a></p></div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <a class="ibm-access" name="reportabuseoverlayerror">关于报告滥用的帮助</a>   
+        <div class="ibm-title"><h1>报告滥用</h1></div>
+        <div class="ibm-container ibm-alternate">
+          <p class="ibm-ind-error"><strong>报告滥用提交失败。  请稍后重试。</strong></p>
+          <div class="ibm-overlay-rule"><hr /></div>
+          <div class="ibm-buttons-row">
+            <input type="button" onclick="ibmCommon.Overlays.hide('reportabuseoverlayerror');return false;" class="ibm-btn-cancel-sec dw-btn-cancel-sec" name="ibm-cancel" value="关闭" />
+          </div>
+        </div>
+      </div> 
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Sign in OVERLAY STARTS HERE --> 
+  <div class="ibm-common-overlay" id="signin_overlay">
+    <div class="ibm-head">
+      <p><a class="ibm-common-overlay-close" href="#" onclick="clearForm();">关闭 [x]</a></p>
+    </div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <div class="ibm-title ibm-subtitle">
+          <h1>developerWorks：登录</h1>
+          <div id="ibm-overlay-error-signin" class="no-display"></div>
+        </div>
+        
+        <div class="ibm-container ibm-alternate ibm-buttons-last">
+          <div class="ibm-container-body">
+
+            <form class="ibm-column-form" id="sFormId" action="" method="post" name="sForm" onsubmit="return false;">
+              <p><label for="ibmid">IBM ID：</label><span><input name="ibm-id" id="ibmid" size="25" value="" class="required" type="text" onkeypress="handleEP(event,this.form);" />
+                <br /><a class="ibm-forward-link" href="#" onclick="(function () {window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.href);})();">需要一个 IBM ID？</a>
+                <br /><a class="ibm-forward-link" href="/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a></span>   
+              </p> 
+              <p><label for="password">密码：</label><span><input name="password" id="password" size="25" value="" class="required" type="password" onkeypress="handleEP(event,this.form);" /><br />
+                <a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Dzh_CN%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a><br />
+                <a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></span></p> 
+
+              <p class="dw-perm-box">
+                <span><input id="perm" type="checkbox" name="perm_name"/><label for="perm"> 保持登录。</label></span>
+              </p>
+
+              <p>单击提交则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">使用条款</a></p>
+              <div class="ibm-buttons-row">
+                <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+                  <input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="clearForm();ibmCommon.Overlays.hide('signin_overlay');return false;"/></p>
+              </div>
+            </form>
+            <div class="ibm-overlay-rule"><hr /></div>
+            <p>当您初次登录到 developerWorks 时，将会为您创建一份概要信息。<strong>您在 developerWorks 概要信息中选择公开的信息将公开显示给其他人，但您可以随时修改这些信息的显示状态。</strong>您的姓名（除非选择隐藏）和昵称将和您在 developerWorks 发布的内容一同显示。</p>
+            <div class="dw-overlay-legal"><p>所有提交的信息确保安全。</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Sign in OVERLAY ENDS HERE --> 
+  
+  
+  <!-- Display name OVERLAY STARTS HERE --> 
+  <div class="ibm-common-overlay" id="displayname_overlay">
+    <div class="ibm-head">
+      <p><a class="ibm-common-overlay-close" href="#" onclick="clearForm();">关闭 [x]</a></p>
+    </div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <div class="ibm-title ibm-subtitle">
+          <h1>请选择您的昵称：</h1>
+          <div id="ibm-overlay-error-dname" class="no-display"></div>
+        </div>
+        <div class="ibm-container ibm-alternate ibm-buttons-last">
+          <div class="ibm-container-body">
+            <p class="ibm-overlay-intro">当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+            <form id="dFormId" method="post" action="" name="dForm" onsubmit="return false;" class="ibm-column-form">
+              <p><label for="displayname">昵称：</label><span><input name="displayname" id="displayname" size="25" value="" type="text" onkeypress="handleEP(event,this.form);" /></span><span class="ibm-form-note">（长度在 3 至 31 个字符之间）</span>
+              </p>
+              
+              <div class="ibm-overlay-rule"><hr />
+              </div>
+              <p>单击<strong>提交</strong>则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">使用条款</a>.</p>
+              <div class="ibm-buttons-row">
+                <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+                  <input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="clearForm();ibmCommon.Overlays.hide('displayname_overlay');return false;" /></p>
+              </div>
+            </form>
+            <div class="ibm-overlay-rule"><hr /></div>
+            <div class="dw-overlay-legal"><p>所有提交的信息确保安全。</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Display name OVERLAY ENDS HERE -->
+  <!-- OVERLAYS_END -->
+  <!-- RATINGS START -->
+  <p class="ibm-no-print"><span class="atitle"><a name="iratings">为本文评分</a></span></p>
+  <input id="art-rating" name="ratinga" type="hidden" value="0"/><div id="art-rating-module"></div>
+  <script language="JavaScript" type="text/javascript">
+    // <![CDATA[
+   // widget div id and article id as args
+   window.artRating.init('art-rating-module','art-rating-summary');
+// ]]>
+  </script>
+  <!-- RATINGS END --> 
+  
+  <!-- INLINE_COMMENTS_START -->
+  <p class="ibm-no-print"><span class="atitle"><a name="icomments">评论</a></span></p>
+    <script language="JavaScript" type="text/javascript">
+      // <![CDATA[
+dwc = {};
+dwc.cmts = '条评论';
+dwc.signInPreText = '请';
+dwc.signIn = '登录';
+dwc.or = '或';
+dwc.register = '注册';
+dwc.signInPostText = '';
+dwc.leaveCmt = '后发表评论。';
+dwc.view = '查看';
+dwc.totalCmts = '共有评论';
+dwc.postYourCmt = '添加您的评论';
+dwc.show = '显示：';
+dwc.recentCmts = '最新评论';
+dwc.allCmts = '所有评论';
+dwc.tooLongCmt = '您的评论超过了 1000 字符限制';
+dwc.numCharsLeft = '剩余 <span id="charCount">{1}</span> 字符';
+dwc.reportAbuse = '报告滥用';
+dwc.notifyMsg = '有新评论时提醒我';
+dwc.htmlWarning = '注意：评论中不支持 HTML 语法'; 
+dwc.cmt = '评论：';
+dwc.addCmts = '添加评论';
+dwc.addCmt = '添加评论';
+dwc.doNotErase = '--在下方添加评论--'; 
+dwc.viewOrAddCmts = '查看或添加评论';
+dwc.reportInapprCont = '举报不良信息';
+dwc.reportInapprContLink = 'http://www.ibm.com/developerworks/forums/forum.jspa?forumID=1834';
+dwc.postingCmt = '正在发布评论……';
+dwc.noCmt = '快来添加第一条评论';
+dwc.netwkErr = '在检索评论时出错，请稍后刷新。';
+dwc.addACmt = '添加评论';
+dwc.instructCmt = '标有星号（<span class="ibm-required">*</span>）的是必填项目。';
+dwc.btnPost = '发布';
+dwc.btnPostAnon = '匿名发布';
+dwc.btnClrCmt = '清除评论';
+dwc.btnCancel = '取消';
+dwc.showRecent = '显示最新的 {1} 条评论'; // {1} is the count to be substituted
+dwc.showNext = '显示后 {1} 条评论'; // {1} is the count to be substituted
+dwc.showAllCmts = '显示所有评论';
+dwc.enterCmt = '请输入评论内容。';
+dwc.loginErr = '暂时无法验证您的登录状态，请稍后再试。';
+dwc.postErr = '暂时无法发布您的评论，请稍后再试。';
+dwc.postBy = '由 <strong>{1}</strong>  于 {2} '; // {1} is the author to be substituted; {2} is the date
+dwc.siteId = 10;
+dwc.lang = 'zh_CN';
+dwc.viperLang = 'zh';
+// ]]>
+    </script>
+    <div id="threadShow"></div>
+  <!-- INLINE_COMMENTS_END -->
+  
+
+  <p class="ibm-ind-link ibm-back-to-top"><a class="ibm-anchor-up-link" href="#ibm-pcon">回页首</a></p>
+
+<!-- Overlays -->
+<!-- lk - pull in overlays from ww when required on cn -->
+  </div>
+<!-- MAIN_COLUMN_CONTAINER_END -->
+
+<!-- Rating_Meta_BEGIN -->
+<!--Rating_Meta_BEGIN--><div class="metavalue">static.content.url=http://www.ibm.com/developerworks/js/artrating/</div><div class="metavalue">SITE_ID=10</div><div class="metavalue">Zone=Linux</div><div class="metavalue">ArticleID=20821</div><div class="metavalue">ArticleTitle=用C语言扩展Python的功能</div><div class="metavalue">publish-date=02032003</div><div class="metavalue">author1-email=xiaowp@263.net</div><div class="metavalue">author1-email-cc= </div><script language="javascript" type="text/javascript">document.write('<div class="metavalue">url='+location.href.replace(/</g, '%3C')+'</div>');</script><!--Rating_Meta_END-->
+<!-- Rating_Meta_END -->
+
+</div>
+<!-- MAIN_COLUMN_END-->
+
+<!-- RIGHT_COLUMN_BEGIN -->
+<div id="ibm-content-sidebar">
+
+<!-- RIGHT_COLUMN_CONTENT_BEGIN --> 
+<div class="ibm-container"><h2>内容</h2><div class="ibm-container-body"><img alt="" height="1" width="1" src="//www.ibm.com/i/c.gif"/><ul class="ibm-bullet-list"><li><a class="ibm-feature-link" href="#N10039">一、简介</a></li><li><a class="ibm-feature-link" href="#N1004B">二、Python的C语言接口</a></li><li><a class="ibm-feature-link" href="#N100B0">三、Python的C语言扩展</a></li><li><a class="ibm-feature-link" href="#N1011D">四、结束语</a></li><li><a class="ibm-feature-link" href="#resources">参考资料 </a></li><li><a class="ibm-feature-link" href="#author">关于作者</a></li><li><a class="ibm-feature-link" href="#icomments">建议</a></li></ul></div></div>
+
+ 
+
+
+<!-- Dig_Deeper -->
+
+<!-- High_Visibility_Offer -->
+
+<!-- Special_Offers -->
+
+<!-- RIGHT_COLUMN_CONTENT_END -->
+
+</div>
+<!-- RIGHT_COLUMN_END -->
+
+<!-- CONTENT_BODY_END -->
+</div>
+
+</div>
+<!-- CONTENT_END -->
+
+ <!-- END_IBM-PCON -->
+</div>
+
+<!-- FOOTER_BEGIN -->
+<div id="ibm-footer">
+<!-- IBM footer container; disabled -->
+</div>
+
+<div id="ibm-page-tools-dw">
+	<div id="dw-footer-top-row">
+		<ul id="dw-foot-options">
+			<li id="dw-print"><a class="ibm-print-link" href="#">打印此页面</a></li>
+		</ul>
+		<ul id="ibm-foot-options-dw">
+			<li id="dw-foot-0"><a href="#">分享此页面</a></li>
+			<li id="dw-foot-1"><a href="#">关注 developerWorks</a></li>
+		</ul>
+	</div>       
+	
+	
+	<!-- TOP ROW SLIDER -->
+    <div id="dw-page-tools-menu">    
+        <div class="ibm-ribbon-pane-dw">
+            <div class="ibm-ribbon-section-dw">
+				<!-- Share this page -->			
+                <div class="dw-footer-columns">
+                    <div class="dw-footer-col-4-1">
+                    	<h2>分享此页面：</h2>                            
+						<ul class="ibm-link-list">
+						  <!--<li><a id="dw-foot-0-0" class="dwcn-sina-link"
+						        href="#"
+						        onClick="javascript:location.href='http://hits.sinajs.cn/A1/weiboshare.html?&amp;appkey=&amp;title='+escape(document.title)+'&amp;url='+escape(location.href)'+'&amp;pic=&ralateUid&amp;language=zh_cn;
+						        ">新浪微博</a></li> -->
+						   <li><a id="dw-foot-0-0" class="dwcn-sina-link"
+						        href="#"
+						        onClick="javascript:location.href='http://service.weibo.com/share/share.php?title='+encodeURIComponent(document.title)+'&amp;url='+escape(location.href)+'&amp;language=zh_cn'
+						        ; ">新浪微博</a></li> 
+						   <li><a class="dwcn-renren-link"
+						        href="#" onClick="javascript:location.href='http://share.renren.com/share/buttonshare?title='+encodeURIComponent(document.title)+'&amp;link='+escape(location.href);
+						        ">人人网</a></li> 
+						    <li><a class="dwcn-tencent-link"
+						        href="#" onClick="javascript:location.href='http://v.t.qq.com/share/share.php?title='+encodeURIComponent(document.title)+'&amp;url='+escape(location.href);
+						        ">腾讯微博</a></li> 
+						   				
+						</ul>
+                    </div>
+                    <div class="dw-footer-col-4-2">
+						<ul class="ibm-link-list">
+						    <li><a class="dwcn-sohu-link"
+						        href="#"
+						        onClick="javascript:location.href='http://t.sohu.com/third/post.jsp?title='+encodeURIComponent(document.title)+'&amp;link='+escape(location.href);
+						        ">搜狐微博</a></li>
+						    
+						    <li><a class="dwcn-netease-link"
+						        href="#"
+						        onClick="javascript:location.href='http://t.163.com/article/user/checkLogin.do?info='+encodeURIComponent(document.title)+ '' +escape(location.href);
+						        ">网易微博</a></li>
+						    <li><a class="ibm-facebook-link" href="#">Facebook</a></li>
+						</ul>
+                </div>
+                    <div class="dw-footer-col-4-3">
+						<ul class="ibm-link-list">
+						 <li><a class="ibm-linkedin-link" href="#">LinkedIn</a></li>   
+						 <li><a class="ibm-twitter-link" href="#">Twitter</a></li>   
+						 <li><a class="ibm-delicious-link" href="#">Delicious</a></li>
+						
+						</ul>
+                    </div>
+                   <div class="dw-footer-col-4-4">
+						<ul class="ibm-link-list">
+						 <li><a class="ibm-digg-link" href="#">Digg</a></li>   
+						 <li><a class="ibm-email-link" href="#">发送此页面</a></li>
+						</ul>
+                    </div>
+                    <div class="dw-footer-close">
+						<ul>
+							<li><div class="dw-footer-close-share"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10"/></a></div></li>
+						</ul>
+                    </div>
+                </div>
+                  <!-- Follow developerWorks -->
+                <div class="dw-footer-columns">
+                    <div class="dw-footer-col-1-1 dw-footer-col-1-1-cn">
+                    	<h2>关注 developerWorks 中国网站：</h2>
+						<ul class="ibm-link-list">
+							<!--<li><a id="dw-foot-1-0" class="ibm-twitter-link" href="http://www.twitter.com/dwchina">Twitter</a></li>-->
+						    <li><a id="dw-foot-1-0" class="dwcn-sina-link"
+						        href="http://weibo.com/ibmdw/">新浪微博</a></li>
+						</ul>
+                    </div>
+                    <div class="dw-footer-close">
+						<ul>
+							<li><div class="dw-footer-close-follow-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10"/></a></div></li>
+						</ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="ibm-footer-module-dw">
+	<div class="dw-footer-columns">
+		<div class="dw-footer-col-6-1">
+			<ul>
+				<!--<li><a href="http://www.ibm.com/developerworks/aboutdw/">About</a></li>-->
+				<li><a href="https://www.ibm.com/developerworks/secure/feedback.jsp?domain=dwchina">帮助</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/author/">联系编辑</a></li>
+				<li><a href="https://www.ibm.com/developerworks/secure/myideas2.jsp?domain=dwchina&start=true">提交内容</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/sitemap/">网站导航</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-2">
+			<ul>
+				<li><a href="http://www.ibm.com/developerworks/cn/rss/">订阅源</a></li>
+				<li><a href="http://www.ibm.com/vrm/newsletter/10104?S_TACT=105AGX52&S_CMP=dwcntop">在线浏览每周时事通讯</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-3">
+			<ul>
+				<li><a href="https://www.ibm.com/developerworks/community/report?lang=zh">报告滥用</a></li>
+				<li><a href="https://www.ibm.com/developerworks/community/terms?lang=zh">使用条款</a></li>
+				<li><a href="https://www.ibm.com/developerworks/cn/community/terms/thirdparty/">第三方提示</a></li>
+				<li><a href="http://www.ibm.com/privacy/cn/zh/">隐私条约</a></li>
+				<li><a href="http://www.ibm.com/ibm/accessibility/cn/">浏览辅助</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-4">
+			<ul>
+			<li><a href="http://www.ibm.com/developerworks/cn/academic/">IBM 教育学院教育培养计划</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/gep/">IBM 创业企业全球扶持计划</a></li>
+				<li><a href="http://www.ibm.com/partnerworld/isv/">ISV 资源 (英语)</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-5">
+		</div>
+		<div class="dw-footer-col-6-6">
+			<img src="//dw1.s81c.com/developerworks/i/mf/dwn-ibm-logo-v16.png" alt="IBM®" width="100" height="46"/>
+			<img class="dw-preload" src="//dw1.s81c.com/developerworks/i/mf/arrow-down-active.gif" alt="" width="1" height="1"/>
+		</div>
+	</div>
+	<!-- Language selector no-script -->
+	<noscript>
+	<div id="dw-footer-selectlang">
+		<h2><a name="SELECTLANG">选择语言：</a></h2>
+		<ul>
+			<li><a href="http://www.ibm.com/developerworks/">English</a></li>
+			<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+			<li><a href="http://www.ibm.com/developerworks/jp/">日本語</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ru/">Русский</a></li>
+			<li><a href="http://www.ibm.com/developerworks/br/">Português (Brasil)</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ssa/">Español</a></li>
+			<li><a href="http://www.ibm.com/developerworks/vn/">Việt</a></li>
+		</ul>
+	</div>
+	</noscript>
+</div><!-- FOOTER_END -->
+
+ <!-- END_IBM-TOP -->
+</div>
+ 
+ <!-- SCRIPTS_INCLUDE_BEGIN -->
+<!-- JQuery start -->
+<script type="text/javascript" language="JavaScript" src="//dw1.s81c.com/developerworks/js/jquery/cluetip98/jquery.hoverIntent.minified.js"></script>
+<script type="text/javascript" language="JavaScript" src="//dw1.s81c.com/developerworks/js/jquery/cluetip98/jquery.cluetip.js"></script>
+<!-- xM Masthead/Footer -->
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/jquery.tools.min.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/jquery.jscroll.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/dw_v16.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/flash-detect.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/dwsi.js" type="text/javascript">//</script>
+<script type="text/javascript" language="JavaScript" src="/developerworks/js/dw-mf/showcomments.js">//</script>
+<script language="JavaScript" type="text/javascript">
+	// <![CDATA[
+ jQuery('threadShow').showComments('95%',5,'nCmts','icomments');
+// ]]>
+</script>
+<script type="text/javascript" language="JavaScript">
+	jQuery.noConflict();     
+	// Put all your code in your document ready area
+	jQuery(document).ready(function(jQuery) {
+	// Do jQuery stuff using jQuery 
+	jQuery('a.dwauthor').cluetip({
+	local: true,
+	showTitle: false,
+	positionBy: 'bottomTop',
+	sticky: true,	
+	mouseOutClose: true,
+	closeText: '<img src="//dw1.s81c.com/developerworks/js/jquery/cluetip98/i/x.gif" alt="Close" />',
+	arrows: false,
+	dropShadow: true,
+	cluetipClass: 'dwbasic'
+	});   	
+	
+	rBHash = {};
+	rBHash['viperLang'] = 'zh';
+	rBHash['urlLang'] = 'cn';
+
+	// si
+	initSI();
+	});
+</script>
+<!-- JQuery end -->
+<!-- Overlay js -->
+<script language="JavaScript" src="//dw1.s81c.com/common/js/overlay.js" type="text/javascript"></script><!-- BEGIN: Use this section to set page specific variables for the Unica Page Tag -->
+<script language="JavaScript">var NTPT_PGEXTRA="ibmSkillLevel=1&ibmAdoptPhase=667&ibmRole=710&ibmCmaId=20821&ibmContentAreas=linux";</script>
+<!--END --><!-- SCRIPTS_INCLUDE_END -->
+
+<div id="ibm-metrics">
+<script src="//dw1.s81c.com/common/stats/stats.js" type="text/javascript">//</script>
+</div>
+
+</body>
+</html>

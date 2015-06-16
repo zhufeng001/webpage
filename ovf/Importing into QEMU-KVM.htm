@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+<title>Importing into QEMU-KVM</title>
+
+<link rel="STYLESHEET" type="text/css" href="styles.css" media="all">
+
+<style type="text/css">
+TABLE		{table-layout:fixed; border-collapse:collapse; width:80%;
+		 margin: 1em auto}
+COL.LEFT	{width:20%}
+COL.RIGHT	{width:60%}
+TD		{padding:0.5em 1em; vertical-align:top;}
+TD.LEFT		{font-family:"DejaVu Sans Mono",Courier,monospace}
+</style>
+
+</head>
+
+<body>
+
+<div align="right">13th January 2014</div>
+
+<div class="BREADCRUMB"><b><i><a href="index.html">One Step to GNUstep</a> &mdash;&gt; Importing into QEMU-KVM</i></b></div>
+
+<h1>Importing into QEMU-KVM</h1>
+
+<p><a href="http://www.linux-kvm.org/page/Main_Page" title="QEMU-KVM Main Page"><b>QEMU-KVM</b></a> is a kernel-based virtualisation system for Linux, which you can invoke from the command line. If you prefer a graphical front-end, you could try out <a href="http://virt-manager.org/">virt-manager</a> (the author has tried this briefly but did not find it helpful &mdash; your experience might be different) or <a href="http://sourceforge.net/projects/aqemu/">AQEMU</a> (the author has not tried this).</p>
+
+<p>QEMU-KVM requires hardware virtualisation extensions and a 64-bit processor.</p>
+
+<p>Unlike other virtualisers, QEMU-KVM does not require any 'guest additions' or 'guest tools'. It runs a standard, unmodified Linux system in the guest VM.</p>
+
+<p>If your Linux distribution does not include QEMU-KVM, you can obtain it from <a href="http://www.linux-kvm.org/page/Downloads"> the QEMU-KVM Downloads</a> page. You will need the <span class="PACK">qemu-kvm</span> package; possibly also the host system kernel module contained in the <span class="PACK">kvm-kmod</span> package as well, though this is included as part of all modern Linux kernels.</p>
+
+<h2>Installing the Virtual Machine in QEMU-KVM</h2>
+
+<p>QEMU-KVM supports various Virtual Machine formats, including VMware's VMDK format and QEMU's own qcow2 format.</p>
+
+<p>The OVF that you have downloaded includes a <code>.vmdk</code> file, but this is compressed in a way that QEMU does not understand. You therefore need to convert it to a format that QEMU supports.</p>
+
+<p>The best way to do this is by using the <code>qemu-img</code> program, which is usually part of a package called <span class="PACK">qemu-kvm</span> or <span class="PACK">qemu-tools.</span> <code>qemu-img</code> can decode the <code>.vmdk</code> component of the OVF Virtual Machine, for example:</p>
+
+<pre>qemu-img convert \
+    -f vmdk \
+    -O qcow2 \
+    OVF-0.9.6/GNUstep-VM.i686-0.9.6-disk1.vmdk \
+    KVM-0.9.6/GNUstep-VM.i686-0.9.6.qcow</pre>
+
+<p>The converted VM image, GNUstep-VM.i686-0.9.6.qcow, will be approximately 2GB in size.</p>
+
+<p>An alternative approach would be to use VMware's <i>OVF Tool</i> program, in the same way as if you were importing the VM into <a href="vmimport.html#ovftool">VMware Player,</a> to produce an uncompressed .vmdk that QEMU-KVM can handle.</p>
+
+<h2>Running QEMU-KVM</h2>
+
+<p>Unlike most other virtualisers, QEMU-KVM does not have a graphical user interface.</p>
+
+<p>You configure QEMU-KVM when starting it, by setting options as arguments on the command line; you can modify many of these options at run-time by using the <a href="vmtricks.html#monitor"><i>Monitor</i></a> interface. A typical start-up command, using the qcow2 image we created earlier, could be:</p>
+
+<pre>qemu-kvm \
+    -m 256 \
+    -cpu kvm32 \
+    -soundhw ac97 \
+    -vga std \
+    -k en-gb \
+    -virtfs local,id=fsdev0,path=/home/Richard,security_model=mapped,mount_tag=hostshare \
+    -cdrom /dev/sr0 \
+    -usb \
+  /mnt/bigfile1/VMs/KVM-0.9.6/GNUstep-VM.i686-0.9.6.qcow
+</pre>
+
+<p>The meaning of these options is:</p>
+
+<table summary="">
+<col class="LEFT">
+<col class="RIGHT">
+
+<tr><td class="LEFT">-m 256</td><td>Memory (in megabytes) to be assigned to the Virtual Machine. 512 MB would be better.</td></tr>
+<tr><td class="LEFT">-cpu kvm32</td><td>CPU type to be emulated by the Virtual Machine. This VM will run programs in a 32-bit environment, even if the physical hardware is 64-bit.</td></tr>
+<tr><td class="LEFT">-soundhw ac97</td><td>Enables audio and emulates an AC97 adaptor.</td></tr>
+<tr><td class="LEFT">-vga std</td><td>Virtual display is to emulate a standard VGA card. This seems to work better than the default setting of 'cirrus'.</td></tr>
+<tr><td class="LEFT">-k en-gb</td><td>Language is to be English (Great Britain). Change this if you live elsewhere!</td></tr>
+<tr><td class="LEFT">-virtfs &hellip;</td><td>Defines a Shared Folder as a <i>virtual file system</i>. The 'path' is the path, in the host file system, to the directory node you want to nominate as the Shared Folder &mdash; change this to the folder you want to use instead of <code>/home/Richard</code>! The mount_tag, 'hostshare', is the device name to be used in <code>mount</code> calls when opening the shared folder on the guest.</td></tr>
+<tr><td class="LEFT">-cdrom /dev/sr0</td><td>Specifies a virtual CD-ROM device for the guest, which is to be device <code>/dev/sr0.</code></td></tr>
+<tr><td class="LEFT">-usb</td><td>Enables the USB driver. We have not defined any USB devices in the command-line arguments, so no actual USB devices will be assigned to the guest VM initially, but they can be assigned at run-time by the Monitor command <code>usb_add</code>.</td></tr>
+
+</table>
+
+<p>It is best to set up this command in a shell script &mdash; that is, a text file named (for example) <code>qemu-kvm.sh</code>. This file must have permissions that make it executable by the user running qemu-kvm. The script must begin with a line such as:</p>
+
+<pre>#!/bin/sh</pre>
+
+<p>before the above command. You can, if you wish, put the whole command on one line and omit the backslashes.</p>
+
+<p>Then, to start QEMU-KVM, simply run the <code>qemu-kvm.sh</code> file.</p>
+
+<p>For further information on QEMU-KVM invocation and command-line arguments, see <code>man qemu-kvm.</code> The full user manual on QEMU-KVM is normally included in the package along with the software so, after installing this, you should find it in a location such as:</p>
+
+<pre>/usr/share/doc/packages/kvm/qemu-kvm.html</pre>
+
+<p>or you can find it online at:</p>
+
+<pre>http://qemu.weilnetz.de/qemu-doc.html</pre>
+
+</body>
+
+</html>

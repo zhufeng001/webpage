@@ -1,0 +1,562 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Gluster 部署上的 unknown error 107 问题 - hanphy的专栏 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="今天拿了两台旧机器（PentiumD）想搭一个分布式文件系统来玩玩，看看和HDFS对比有哪些使用上的不同。安装应该是很容易：操作系统Fedora17 32位，留了大片的磁盘空间不做分区（51GBout of 73GB）。然后用yum安装；然后发现需要将glusterd 这个daemon启动……好了，到了peer probe。几个钟都卡在unknown error" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/hanphy/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="http://blog.csdn.net/hanphy">hanphy的专栏</a></h1>
+            <h2></h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="http://blog.csdn.net/hanphy?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="http://blog.csdn.net/hanphy?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="http://blog.csdn.net/hanphy/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "hanphy";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/hanphy";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/9819385" target="_blank">
+<font color=red>《这些年，我们读过的技术经典图书》主题有奖征文</font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2013-08-06/2816471" target="_blank"><font color=blue>专访李铁军：从医生到金山首席安全专家的转变 
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+
+<a href="http://blog.csdn.net/adali/article/details/9813651"target="_blank">
+<font color=blue>独一无二的职位：开源社区经理 
+ </font></a>
+
+
+
+
+</div>
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Original"></span>
+    <h3>
+        <span class="link_title"><a href="/hanphy/article/details/8901604">
+        Gluster 部署上的 unknown error 107 问题
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/hanphy/article/category/688291">零碎札记</a> 
+        </span>
+    <span class="link_postdate">2013-05-08 18:15</span>
+    <span class="link_view" title="阅读次数">140人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('Gluster 部署上的 unknown error 107 问题','8901604');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(8901604,2);return false;" title="举报">举报</a></span>
+    
+</div>
+<div class="tag2box"><a href='http://blog.csdn.net/tag/details.html?tag=gluster' target=_blank>gluster</a><a href='http://blog.csdn.net/tag/details.html?tag=open%20source' target=_blank>open source</a><a href='http://blog.csdn.net/tag/details.html?tag=%e8%b0%83%e8%af%95' target=_blank>调试</a></div>
+
+
+    
+<div id="article_content" class="article_content">
+
+<p style="margin-bottom:0.2in"><span style="color:#000000"><span style="font-family:WenQuanYi Zen Hei"><span style="font-size:12px; font-size:10pt"><span lang="zh-CN"><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">今天拿了两台旧机器（</span></span></span></span></span><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">PentiumD</span></span><span style="font-family:WenQuanYi Zen Hei"><span style="font-size:12px; font-size:10pt"><span lang="zh-CN"><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">）想搭一个分布式文件系统来玩玩，看看和</span></span></span></span></span><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">HDFS</span></span><span style="font-family:WenQuanYi Zen Hei"><span style="font-size:12px; font-size:10pt"><span lang="zh-CN"><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">对比有哪些使用上的不同。</span></span></span></span></span></span></p>
+<p style="margin-top:0.04in; margin-bottom:0.04in; border:none; padding:0in"><span style="color:#000000"><span style="font-family:WenQuanYi Zen Hei"><span style="font-size:12px; font-size:10pt"><span lang="zh-CN"><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">安装应该是很容易：操作系统</span></span></span></span></span><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">Fedora17
+ 32</span></span><span style="font-family:WenQuanYi Zen Hei"><span style="font-size:12px; font-size:10pt"><span lang="zh-CN"><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">位，留了大片的磁盘空间不做分区（</span></span></span></span></span><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">51GBout
+ of 73GB</span></span><span style="font-family:WenQuanYi Zen Hei"><span style="font-size:12px; font-size:10pt"><span lang="zh-CN"><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">）。</span></span></span></span></span></span></p>
+<p style="margin-top:0.04in; margin-bottom:0.04in; border:none; padding:0in"><br>
+然后用yum安装；</p>
+<p style="margin-top:0.04in; margin-bottom:0.04in; border:none; padding:0in">然后发现需要将glusterd 这个daemon启动……</p>
+<p style="margin-top:0.04in; margin-bottom:0.04in; border:none; padding:0in"><span style="color:#000000"><span style="font-family:WenQuanYi Zen Hei"><span style="font-size:12px; font-size:10pt"><span lang="zh-CN"><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">好了，到了</span></span></span></span></span><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">peer
+ probe</span></span><span style="font-family:WenQuanYi Zen Hei"><span style="font-size:12px; font-size:10pt"><span lang="zh-CN"><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">。几个钟都卡在</span></span></span></span></span><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">unknown
+ error 107</span></span><span style="font-family:WenQuanYi Zen Hei"><span style="font-size:12px; font-size:10pt"><span lang="zh-CN"><span style="font-family:Arial,Helvetica,sans-serif"><span style="font-size:12px; font-size:9pt">上。</span></span></span></span></span></span></p>
+<p style="margin-bottom:0in"><br>
+</p>
+<pre class="western" style="margin-top:0.04in; margin-bottom:0.04in"><span style="color:#000000">[root@gluster0 sbin]# ./gluster peer probe gluster1</span>
+<span style="color:#000000">Probe unsuccessful</span>
+<span style="color:#000000">Probe returned with unknown errno 107</span></pre>
+<p style="margin-bottom:0in">* 两台机器分别在/etc/hosts上命名为 gluster0和&nbsp;gluster1</p>
+<p style="margin-bottom:0in"><br>
+</p>
+<p style="margin-bottom:0in">查了netstat，端口24007已经打开。没有理由的。没有用DNS但已经都在/etc/hosts文件上做了登记……</p>
+<p style="margin-bottom:0in"><br>
+</p>
+<p style="margin-bottom:0in">日志曰：</p>
+<p style="margin-bottom:0in"></p>
+<pre name="code" class="html">[2013-05-08 17:34:32.369306] I [glusterd-handler.c:685:glusterd_handle_cli_probe] 0-glusterd: Received CLI probe req gluster1 24007
+[2013-05-08 17:34:32.371086] I [glusterd-handler.c:428:glusterd_friend_find] 0-glusterd: Unable to find hostname: gluster1
+[2013-05-08 17:34:32.371129] I [glusterd-handler.c:2245:glusterd_probe_begin] 0-glusterd: Unable to find peerinfo for host: gluster1 (24007)
+[2013-05-08 17:34:32.371776] I [rpc-clnt.c:968:rpc_clnt_connection_init] 0-management: setting frame-timeout to 600
+[2013-05-08 17:34:32.380750] I [glusterd-handler.c:2227:glusterd_friend_add] 0-management: connect returned 0
+[2013-05-08 17:34:32.380917] E [socket.c:1715:socket_connect_finish] 0-management: connection to  failed (No route to host)
+[2013-05-08 17:34:32.381070] I [glusterd-handler.c:2423:glusterd_xfer_cli_probe_resp] 0-glusterd: Responded to CLI, ret: 0
+</pre><br>
+<p>重点是：</p>
+<p></p>
+<pre name="code" class="html">0-glusterd: Unable to find hostname: gluster1</pre><br>
+<p></p>
+<p style="margin-bottom:0in">-------------------</p>
+<p style="margin-bottom:0in">靠，上代码。编译，调试——用gdb 挂上glusterd进程。</p>
+<p style="margin-bottom:0in">看</p>
+<p style="margin-bottom:0in"></p>
+<pre name="code" class="cpp">int
+glusterd_friend_find_by_hostname (const char *hoststr,
+                                  glusterd_peerinfo_t  **peerinfo)
+{
+        int                     ret = -1;
+        glusterd_conf_t         *priv = NULL;
+        glusterd_peerinfo_t     *entry = NULL;
+        struct addrinfo         *addr = NULL;
+        struct addrinfo         *p = NULL;
+        char                    *host = NULL;
+        struct sockaddr_in6     *s6 = NULL;
+        struct sockaddr_in      *s4 = NULL;
+        struct in_addr          *in_addr = NULL;
+        char                    hname[1024] = {0,};
+        xlator_t                *this  = NULL;
+
+
+        this = THIS;
+        GF_ASSERT (hoststr);
+        GF_ASSERT (peerinfo);
+
+        *peerinfo = NULL;
+        priv    = this-&gt;private;
+
+        GF_ASSERT (priv);
+
+        list_for_each_entry (entry, &amp;priv-&gt;peers, uuid_list) {
+                if (!strncasecmp (entry-&gt;hostname, hoststr,
+                                  1024)) {
+
+                        gf_log (this-&gt;name, GF_LOG_DEBUG,
+                                 &quot;Friend %s found.. state: %d&quot;, hoststr,
+                                  entry-&gt;state.state);
+                        *peerinfo = entry;
+                        return 0;
+                }
+        }
+
+        ret = getaddrinfo (hoststr, NULL, NULL, &amp;addr);
+        if (ret != 0) {
+                gf_log (this-&gt;name, GF_LOG_ERROR,
+                        &quot;error in getaddrinfo: %s\n&quot;,
+                        gai_strerror(ret));
+                goto out;
+        }
+
+        for (p = addr; p != NULL; p = p-&gt;ai_next) {
+                switch (p-&gt;ai_family) {
+                        case AF_INET:
+                                s4 = (struct sockaddr_in *) p-&gt;ai_addr;
+                                in_addr = &amp;s4-&gt;sin_addr;
+                                break;
+                        case AF_INET6:
+                                s6 = (struct sockaddr_in6 *) p-&gt;ai_addr;
+                                in_addr =(struct in_addr *) &amp;s6-&gt;sin6_addr;
+                                break;
+                       default: ret = -1;
+                                goto out;
+                }
+                host = inet_ntoa(*in_addr);
+
+                ret = getnameinfo (p-&gt;ai_addr, p-&gt;ai_addrlen, hname,
+                                   1024, NULL, 0, 0);
+                if (ret)
+                        goto out;
+
+                list_for_each_entry (entry, &amp;priv-&gt;peers, uuid_list) {
+                        if (!strncasecmp (entry-&gt;hostname, host,
+                            1024) || !strncasecmp (entry-&gt;hostname,hname,
+                            1024)) {
+                                gf_log (this-&gt;name, GF_LOG_DEBUG,
+                                        &quot;Friend %s found.. state: %d&quot;,
+                                        hoststr, entry-&gt;state.state);
+                                *peerinfo = entry;
+                                freeaddrinfo (addr);
+                                return 0;
+                        }
+                }
+        }
+
+out:
+        gf_log (this-&gt;name, GF_LOG_DEBUG, &quot;Unable to find friend: %s&quot;, hoststr);
+        if (addr)
+                freeaddrinfo (addr);
+        return -1;
+}
+</pre><br>
+跟了一下，发现奇怪问题：entry这个局部指针变量是在哪里赋&#20540;？
+<p></p>
+<p style="margin-bottom:0in">entry为NULL，第一次的list_for_each_entry() 循环，可是一次都没有进去。</p>
+<p style="margin-bottom:0in">而过了 &nbsp;</p>
+<pre name="code" class="cpp">ret = getaddrinfo (hoststr, NULL, NULL, &amp;addr);</pre>
+<p></p>
+<p style="margin-bottom:0in">entry就莫名其妙有了&#20540;，但这个&#20540;是有问题的。</p>
+<p style="margin-bottom:0in"><img src="http://img.blog.csdn.net/20130508181003266" alt=""><br>
+</p>
+<p style="margin-bottom:0in"><br>
+</p>
+<p style="margin-bottom:0in">猜测，可能漏了为entry赋&#20540;，而entry应该赋&#20540;为传入的peerinfo变量的头元素；有无内存溢出？</p>
+<p style="margin-bottom:0in">为了验证猜测，看看这个循环的原型：</p>
+<p style="margin-bottom:0in">google了一下：</p>
+<p style="margin-bottom:0in">http://lxr.free-electrons.com/source/include/linux/list.h#L418<br>
+</p>
+<p style="margin-bottom:0in"><pre name="code" class="cpp">/**
+ * list_for_each_entry  -       iterate over list of given type
+ * @pos:        the type * to use as a loop cursor.
+ * @head:       the head for your list.
+ * @member:     the name of the list_struct within the struct.
+ */
+#define list_for_each_entry(pos, head, member)                          \
+        for (pos = list_entry((head)-&gt;next, typeof(*pos), member);      \
+             &amp;pos-&gt;member != (head);    \
+             pos = list_entry(pos-&gt;member.next, typeof(*pos), member))</pre><br>
+原来只是一个宏定义，本质是对成员做一个for循环。</p>
+<p style="margin-bottom:0in"><br>
+</p>
+<p style="margin-bottom:0in"><br>
+</p>
+<p style="margin-bottom:0in"><br>
+</p>
+
+</div>
+
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.100.34-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/hanphy/article/details/6262562">程序启动的Splash screen与跳转</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/hanphy/article/details/8904946">HADOOP之旅——部署集群</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen">
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "117306";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<script type="text/javascript">
+    //new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '8901604';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/hanphy" target="_blank">
+    <img src="http://avatar.csdn.net/B/E/F/1_hanphy.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/hanphy" class="user_name" target="_blank">hanphy</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>4428次</span></li>
+    <li>积分：<span>189分</span></li>
+    <li>排名：<span>千里之外</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>13篇</span></li>
+    <li>转载：<span>0篇</span></li>
+    <li>译文：<span>0篇</span></li>
+    <li>评论：<span>9条</span></li>
+</ul>
+</ul>
+</div>
+
+<div class="panel">
+<ul class="panel_body" style="padding:0;">
+<script type="text/javascript" src="http://cbjs.baidu.com/js/m.js"></script> 
+<script type="text/javascript"> 
+BAIDU_CLB_preloadSlots("724643","117306"); 
+</script>
+<script type="text/javascript">BAIDU_CLB_fillSlot("724643");</script> 
+</ul>
+</div>
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/hanphy/article/category/798580">Android学习</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/hanphy/article/category/688291">零碎札记</a><span>(5)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/hanphy/article/category/370137">飞信协议接口</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/hanphy/article/category/1066418">Agile</a><span>(0)</span>
+</li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/hanphy/article/month/2013/05">2013年05月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/hanphy/article/month/2011/03">2011年03月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/hanphy/article/month/2010/12">2010年12月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/hanphy/article/month/2010/11">2010年11月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/hanphy/article/month/2010/09">2010年09月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/hanphy/article/month/2010/05">2010年05月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/hanphy/article/month/2008/04">2008年04月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/hanphy/article/month/2008/03">2008年03月</a><span>(3)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/hanphy/article/details/6261602" title="Hello to Android">Hello to Android</a><span>(1183)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/2290433" title="微软STL，hash_map 的效率问题">微软STL，hash_map 的效率问题</a><span>(624)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/2217001" title="飞信协议-邀请与通话">飞信协议-邀请与通话</a><span>(603)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/5577473" title="使用 sed 修改配置文件">使用 sed 修改配置文件</a><span>(452)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/6262562" title="程序启动的Splash screen与跳转">程序启动的Splash screen与跳转</a><span>(218)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/2163037" title="IM还能怎么玩？">IM还能怎么玩？</a><span>(163)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/2161536" title="不积硅步，无以至千里">不积硅步，无以至千里</a><span>(159)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/8901604" title="Gluster 部署上的 unknown error 107 问题">Gluster 部署上的 unknown error 107 问题</a><span>(140)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/5607117" title="An example of using STL multimap">An example of using STL multimap</a><span>(69)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/6048575" title="SSH 隧道的建立">SSH 隧道的建立</a><span>(62)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/hanphy/article/details/2217001" title="飞信协议-邀请与通话">飞信协议-邀请与通话</a><span>(8)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/6261602" title="Hello to Android">Hello to Android</a><span>(1)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/2161536" title="不积硅步，无以至千里">不积硅步，无以至千里</a><span>(0)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/8901604" title="Gluster 部署上的 unknown error 107 问题">Gluster 部署上的 unknown error 107 问题</a><span>(0)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/6262562" title="程序启动的Splash screen与跳转">程序启动的Splash screen与跳转</a><span>(0)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/6048575" title="SSH 隧道的建立">SSH 隧道的建立</a><span>(0)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/6029306" title="Linux上NFS 配置">Linux上NFS 配置</a><span>(0)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/5891013" title="数据库事物隔离级别 (藏)">数据库事物隔离级别 (藏)</a><span>(0)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/5607117" title="An example of using STL multimap">An example of using STL multimap</a><span>(0)</span>
+</li>
+<li>
+<a href="/hanphy/article/details/5577473" title="使用 sed 修改配置文件">使用 sed 修改配置文件</a><span>(0)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/hanphy/article/details/6261602#comments">Hello to Android</a>
+    <p style="margin:0px;"><a href="/LittleBearwmx" class="user_name">LittleBearwmx</a>:
+恩 本不能怪社会，唉，这问题纠结我半天了，谢了。
+    </p>
+    </li>
+    <li>
+    <a href="/hanphy/article/details/2217001#comments">飞信协议-邀请与通话</a>
+    <p style="margin:0px;"><a href="/chengloveli" class="user_name">chengloveli</a>:
+我的qq是410422505,希望能加我为好友，谢谢！
+    </p>
+    </li>
+    <li>
+    <a href="/hanphy/article/details/2217001#comments">飞信协议-邀请与通话</a>
+    <p style="margin:0px;"><a href="/chengloveli" class="user_name">chengloveli</a>:
+我的qq是410422505,希望能加我为好友，谢谢！
+    </p>
+    </li>
+    <li>
+    <a href="/hanphy/article/details/2217001#comments">飞信协议-邀请与通话</a>
+    <p style="margin:0px;"><a href="/chengloveli" class="user_name">chengloveli</a>:
+我的qq是410422505,希望能加我为好友，谢谢！
+    </p>
+    </li>
+    <li>
+    <a href="/hanphy/article/details/2217001#comments">飞信协议-邀请与通话</a>
+    <p style="margin:0px;"><a href="/chengloveli" class="user_name">chengloveli</a>:
+我的qq是410422505,希望能加我为好友，谢谢！
+    </p>
+    </li>
+    <li>
+    <a href="/hanphy/article/details/2217001#comments">飞信协议-邀请与通话</a>
+    <p style="margin:0px;"><a href="/chengloveli" class="user_name">chengloveli</a>:
+我的qq是410422505，希望能加我为好友。
+    </p>
+    </li>
+    <li>
+    <a href="/hanphy/article/details/2217001#comments">飞信协议-邀请与通话</a>
+    <p style="margin:0px;"><a href="/chengloveli" class="user_name">chengloveli</a>:
+我的qq是410422505，希望能加我为好友。
+    </p>
+    </li>
+    <li>
+    <a href="/hanphy/article/details/2217001#comments">飞信协议-邀请与通话</a>
+    <p style="margin:0px;"><a href="/chengloveli" class="user_name">chengloveli</a>:
+大哥，我现在也在研究飞信，能指点一下吗？
+    </p>
+    </li>
+    <li>
+    <a href="/hanphy/article/details/2217001#comments">飞信协议-邀请与通话</a>
+    <p style="margin:0px;"><a href="/chengloveli" class="user_name">chengloveli</a>:
+大哥，我现在也在研究飞信，能指点一下吗？
+    </p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=183884"></script>
+
+<script type="text/javascript">
+document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date()/120000).toString(36) + '="></'+'script>');
+</script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js?v=1"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+
+<script type="text/javascript" src="http://zz.csdn.net/js/count.js"></script>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,748 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+
+<title>Linux 内核中的 Device Mapper 机制 - 技术文档 - 系统管理 Linux时代 - 开源、自由、共享 - 中国最大的Linux技术社区</title>
+<meta name="keywords" content="Linux 内核中的 Device Mapper 机制 - 技术文档 - 系统管理 Linux时代 - 开源、自由、共享 - 中国最大的Linux技术社区">
+<meta name="description" content="Linux 内核中的 Device Mapper 机制 - 技术文档 - 系统管理  系统管理 Linux 技术文档">
+
+<link href="/css/all.css" rel="stylesheet" type="text/css" />
+
+<style type="text/css">
+
+<!--
+
+.STYLE1 {color: #FF0000}
+
+.STYLE2 {font-size: 14px}
+
+-->
+
+</style>
+
+</head>
+
+
+
+<body>
+
+<table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+
+  <tr>
+
+    <td height="27">	<table border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse" width="100%">
+	<tr><FORM name="login" action="http://linux.chinaunix.net/bbs/logging.php?action=login"  method=post>
+	<td><script language="javascript" src="http://linux.chinaunix.net/bbs/loginbox.php"></script></td>
+	</form>
+	<td align="right">
+	·<a href="http://www.chinaunix.net" class="list1">ChinaUnix首页</a>
+
+	·<a href="http://bbs.chinaunix.net" class="list1">论坛</a>
+	·<a href="http://blog.chinaunix.net" class="list1">博客</a>&nbsp;
+	</td>
+	</tr>
+	</table></td>
+
+  </tr>
+
+  <tr>
+
+    <td height="1" bgcolor="#CCCCCC"></td>
+
+  </tr>
+
+  <tr>
+
+    <td><table width="100%" border="0" cellpadding="0" cellspacing="0">
+
+      <tr>
+
+        <td height="84"><img src="/images/logo.jpg" /></td>
+
+        <td align="right" ><IFRAME SRC="http://count.chinaunix.net/iframe.php?id=54" width="750" height="80" frameborder="0"  scrolling="no"></IFRAME>
+</td>
+
+      </tr>
+
+    </table></td>
+
+  </tr>
+
+  <tr>
+
+    <td><table width="100%" border="0" cellspacing="0" cellpadding="0">
+
+      <tr>
+
+        <td width="3"><img src="/images/bgtop1.jpg" width="3" height="26" /></td>
+
+        <td width="944" background="/images/bgtop2.gif" class="whitetop">
+<a href="http://linux.chinaunix.net/" target="_blank">Linux首页</a> |
+<a href="http://linux.chinaunix.net/news/">Linux新闻</a> |
+<a target="_blank" href="http://linux.chinaunix.net/bbs" style=color:red><b>Linux论坛</b></a> |
+<a href="http://linux.chinaunix.net/techdoc/">Linux文档</a> |
+<a target="_blank" href="http://download.chinaunix.net/disc/linux/">Linux下载</a> |
+<a target="_blank" href="http://blog.chinaunix.net/techart.php?frmid=6">Linux博客</a> |
+<a target="_blank" href="http://search.chinaunix.net/">Linux搜索</a> |
+<a target="_blank" href="http://linux.chinaunix.net/bbs/index.php?gid=68">开源项目孵化平台</a>
+ |
+<a target="_blank" href="http://linux.chinaunix.net/ebook/"  style=color:red>《开源时代》</a></td>
+
+        <td width="3" align="right"><img src="/images/bgtop3.jpg" width="3" height="26" /></td>
+
+      </tr>
+
+    </table></td>
+
+  </tr>
+
+</table>
+
+<table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+
+<tr>
+
+    <td valign="bottom" class="BlkLightblue">
+<a target="_blank" href="http://linux.chinaunix.net/techdoc/beginner/">
+		新手入门</a> | <span lang="zh-cn">
+		<a target="_blank" href="http://linux.chinaunix.net/techdoc/install/">
+		安装启动</a> | </span>
+		<a target="_blank" href="http://linux.chinaunix.net/techdoc/system/">
+		管理员指南</a> | <a target="_blank" href="http://man.chinaunix.net/">开发手册</a> 
+		| <a target="_blank" href="http://linux.chinaunix.net/techdoc/desktop/">
+		桌面应用</a> |
+		<a target="_blank" href="http://linux.chinaunix.net/techdoc/develop/">
+		程序开发</a> |
+		<a target="_blank" href="http://linux.chinaunix.net/techdoc/database/">
+		数据库</a> | <span lang="zh-cn">
+		<a target="_blank" href="http://linux.chinaunix.net/techdoc/net/">网络技术</a>|
+<a target="_blank" href="http://linux.chinaunix.net/topics/2007-01-25/15/index.shtml">
+CentOS</a></span> |
+<a target="_blank" href="http://linux.chinaunix.net/search2.php?key=fedora&id=0">
+Fedora</a> <span lang="zh-cn">| </span>
+<a target="_blank" href="http://linux.chinaunix.net/search2.php?key=mysql&id=0">
+MySQL</a>
+
+<span lang="zh-cn">| </span>
+<a target="_blank" href="http://linux.chinaunix.net/search2.php?key=apache&id=0">
+Apache</a>
+
+<span lang="zh-cn">| </span>
+<a target="_blank" href="http://linux.chinaunix.net/search2.php?key=ubuntu&id=0">
+<font color="#FF0000">Ubuntu</font></a>
+
+<span lang="zh-cn">| </span>
+<a target="_blank" href="http://linux.chinaunix.net/topics/2008-07-10/18/index.shtml">
+<font color="#FF0000">Gentoo</font></a>| </span>
+<b>
+<a target="_blank" href="http://linux.chinaunix.net/topics/2008-07-30/19/index.shtml">
+<font color="#FF0000">OSCON08</font></a></b>
+</td>
+
+</tr>
+<tr><td>
+
+</td></tr>
+  <tr>
+
+    <td height="30" valign="bottom">&nbsp;&nbsp;<a href="http://linux.chinaunix.net">Linux时代</a> &gt;&gt;  <a href="http://linux.chinaunix.net/techdoc/" class='list1'>技术文档</a> >> <a href="http://linux.chinaunix.net/techdoc/system/" class='list1'>系统管理</a></td>
+
+  </tr>
+
+  <tr>
+
+    <td height="1" bgcolor="#CCCCCC"></td>
+
+  </tr>
+
+  <tr>
+
+    <td height="8"></td>
+
+  </tr>
+
+</table><table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+
+  <tr>
+
+    <td valign="top" class="BLKtext"><table width="660" border="0" align="center" cellpadding="0" cellspacing="0">
+
+      <tr>
+
+        <td height="8">&nbsp;</td>
+
+      </tr>
+
+      <tr>
+
+        <td height="30" class="Ftext1">Linux 内核中的 Device Mapper 机制</td>
+
+      </tr>
+
+      <tr>
+
+        <td><table width="80%" border="0" align="center" cellpadding="0" cellspacing="0">
+
+          <tr>
+
+            <td height="1" bgcolor="#CCCCCC"></td>
+
+          </tr>
+
+        </table></td>
+
+      </tr>
+
+      <tr>
+
+        <td height="40" align="center">来源: 
+ ChinaUnix博客 　日期：
+2006.09.19 13:26　(共有<span class="STYLE1" id ="postcount"></span>条评论)  <a href="http://linux.chinaunix.net/bbs/thread-940627-1-1.html" target="_blank">我要评论</a></td>
+
+      </tr>
+
+      <tr>
+
+        <td>&nbsp;</td>
+
+      </tr>
+
+      <tr>
+
+        <td class="F14">
+<br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<a href="http://www.ibm.com/developerworks/cn/" target="_blank">developerWorks 中国</a><br />
+&nbsp;&nbsp;&gt;&nbsp;&nbsp;<br />
+<a href="http://www.ibm.com/developerworks/cn/linux/" target="_blank">Linux</a><br />
+&nbsp;&nbsp;&gt;<br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+Linux 内核中的 Device Mapper 机制<br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www-128.ibm.com/developerworks/cn/i/dw.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www-128.ibm.com/developerworks/cn/i/dw.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+文档选项<br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http:////www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http:////www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http:////www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http:////www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+未显示需要 JavaScript<br />
+的文档选项<br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/v14/icons/em.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/v14/icons/em.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+[url=javascript:document.email.submit();]<b>将此页作为电子邮件发送</b>[/url]<br />
+最新推荐<br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/v14/icons/fw_bold.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/v14/icons/fw_bold.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<a href="http://www-128.ibm.com/developerworks/cn/kickstart/" target="_blank">Java 应用开发源动力 － 下载免费软件，快速启动开发</a><br />
+级别: 初级<br />
+<a href="http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/index.html#author" target="_blank">尹 洋</a><br />
+, 在读博士生<br />
+2006 年&nbsp;&nbsp;6 月&nbsp;&nbsp;29 日<br />
+本<br />
+文结合具体代码对 Linux 内核中的 device mapper 映射机制进行了介绍。Device mapper 是 Linux 2.6<br />
+内核中提供的一种从逻辑设备到物理设备的映射框架机制，在该机制下，用户可以很方便的根据自己的需要制定实现存储资源的管理策略，当前比较流行的<br />
+Linux 下的逻辑卷管理器如 LVM2（Linux Volume Manager 2 version)、EVMS(Enterprise<br />
+Volume Management System)、dmraid(Device Mapper Raid<br />
+Tool)等都是基于该机制实现的。理解该机制是进一步分析、理解这些卷管理器的实现及设计的基础。通过本文也可以进一步理解 Linux 系统块一级<br />
+IO的设计和实现。<br />
+Device Mapper 是 Linux2.6 内核中支持逻辑卷管理的通用设备映射机制，它为实现用于存储资源管理的块设备驱动提供了一个高度模块化的内核架构，如图 1。<br />
+ <br />
+<b>图1 Device Mapper的内核体系架构</b><br />
+ <br />
+<img src="http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/images/image002.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/images/image002.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+ <br />
+ <br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <br />
+在内核中它通过一个一个模块化的 target driver 插件实现对 IO 请求的过滤或者重新定向等工作，当前已经实现的 target<br />
+driver 插件包括软 raid、软加密、逻辑卷条带、多路径、镜像、快照等，图中<br />
+linear、mirror、snapshot、multipath 表示的就是这些 target driver。Device mapper<br />
+进一步体现了在 Linux<br />
+内核设计中策略和机制分离的原则，将所有与策略相关的工作放到用户空间完成，内核中主要提供完成这些策略所需要的机制。Device mapper<br />
+用户空间相关部分主要负责配置具体的策略和控制逻辑，比如逻辑设备和哪些物理设备建立映射，怎么建立这些映射关系等等，而具体过滤和重定向 IO<br />
+请求的工作由内核中相关代码完成。因此整个 device mapper 机制由两部分组成--内核空间的 device mapper<br />
+驱动、用户空间的device mapper 库以及它提供的 dmsetup 工具。在下文中，我们分内核和用户空间两部分进行介绍。<br />
+内核部分<br />
+&nbsp; &nbsp; &nbsp; &nbsp; <br />
+Device<br />
+mapper 的内核相关代码已经作为 Linux 2.6 内核发布版的一部分集成到内核源码中了，相关代码在内核源码的 driver/md/<br />
+目录中，其代码文件可以划分为实现 device mapper 内核中基本架构的文件和实现具体映射工作的 target driver<br />
+插件文件两部分。文章下面的分析结果主要是基于上述源码文件得到的。<br />
+<b>重要概念</b><br />
+Device mapper 在内核中作为一个块设备驱动被注册的，它包含三个重要的对象概念，mapped<br />
+device、映射表、target device。Mapped device<br />
+是一个逻辑抽象，可以理解成为内核向外提供的逻辑设备，它通过映射表描述的映射关系和 target device 建立映射。从 Mapped<br />
+device 到一个 target device 的映射表由一个多元组表示，该多元组由表示 mapped device<br />
+逻辑的起始地址、范围、和表示在 target device 所在物理设备的地址偏移量以及target<br />
+类型等变量组成（这些地址和偏移量都是以磁盘的扇区为单位的，即 512 个字节大小）。Target device 表示的是 mapped<br />
+device 所映射的物理空间段，对 mapped device 所表示的逻辑设备来说，就是该逻辑设备映射到的一个物理设备。Device<br />
+mapper 中这三个对象和 target driver<br />
+插件一起构成了一个可迭代的设备树。在该树型结构中的顶层根节点是最终作为逻辑设备向外提供的 mapped device，叶子节点是 target<br />
+device 所表示的底层物理设备。最小的设备树由单个 mapped device 和 target device 组成。每个 target<br />
+device 都是被mapped device 独占的，只能被一个 mapped device 使用。一个 mapped device<br />
+可以映射到一个或者多个 target device 上，而一个 mapped device 又可以作为它上层 mapped device的<br />
+target device 被使用，该层次在理论上可以在 device mapper 架构下无限迭代下去。<br />
+<b>图2 Device mapper 内核中各对象的层次关系</b><br />
+<img src="http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/images/image004.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/images/image004.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+在图2 中我们可以看到 mapped device1 通过映射表和 a、b、c 三个 target device 建立了映射关系，而<br />
+target device a 又是通过 mapped device 2 演化过来，mapped device 2 通过映射表和 target<br />
+device d 建立映射关系。<br />
+&nbsp; &nbsp; &nbsp; &nbsp; <br />
+我们进一步看一下上述三个对象在代码中的具体实现，dm.c 文件定义的<br />
+mapped_device 结构用于表示 mapped device，它主要包括该 mapped device<br />
+相关的锁，注册的请求队列和一些内存池以及指向它所对应映射表的指针等域。Mapped device 对应的映射表是由 dm_table.c<br />
+文件中定义的 dm_table 结构表示的，该结构中包含一个 dm_target结构数组，dm_target 结构具体描述了<br />
+mapped_device 到它某个 target device 的映射关系。而在 dm_table 结构中将这些 dm_target 按照<br />
+B 树的方式组织起来方便 IO 请求映射时的查找操作。Dm_target 结构具体记录该结构对应 target device 所映射的<br />
+mapped device 逻辑区域的开始地址和范围，同时还包含指向具体 target device 相关操作的 target_type<br />
+结构的指针。Target_type 结构主要包含了 target device 对应的 target driver<br />
+插件的名字、定义的构建和删除该类型target device的方法、该类target<br />
+device对应的IO请求重映射和结束IO的方法等。而表示具体的target<br />
+device的域是dm_target中的private域，该指针指向mapped device所映射的具体target<br />
+device对应的结构。表示target device的具体结构由于不同的target<br />
+类型而不同，比如最简单的线性映射target类型对应target<br />
+device的结构是dm-linear.c文件中定义的linear_c结构。其定义如下：<br />
+struct linear_c {<br />
+&nbsp; &nbsp; &nbsp; &nbsp; struct dm_dev *dev;<br />
+&nbsp; &nbsp; &nbsp; &nbsp; sector_t start;<br />
+};<br />
+该target device的定义相当简单，就只包括了表示对应物理设备的dm_dev结构指针和在该物理设备中以扇区为单位的偏移地址start。上述几个数据结构关系如图3所示：<br />
+<b>图3&nbsp;&nbsp;device mapper中几个重要数据结构的关系</b><br />
+<img src="http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/images/image006.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/images/image006.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<b>内核中建立过程</b><br />
+在下面我们结合具体的代码简要介绍下在内核中创建一个mapped device的过程：<br />
+1、 根据内核向用户空间提供的ioctl 接口传来的参数，用dm-ioctl.c文件中的dev_create函数创建相应的mapped<br />
+device结构。这个过程很简单，主要是向内核申请必要的内存资源，包括mapped<br />
+device和为进行IO操作预申请的内存池，通过内核提供的blk_queue_make_request函数注册该mapped<br />
+device对应的请求队列dm_request。并将该mapped device作为磁盘块设备注册到内核中。<br />
+2、&nbsp; &nbsp; &nbsp; &nbsp; 调用dm_hash_insert将创建好的mapped device插入到device mapper中的一个全局hash表中，该表中保存了内核中当前创建的所有mapped device。<br />
+3、 用户空间命令通过ioctl调用table_load函数，该函数根据用户空间传来的参数构建指定mapped<br />
+device的映射表和所映射的target<br />
+device。该函数先构建相应的dm_table、dm_target结构，再调用dm-table.c中的dm_table_add_target函<br />
+数根据用户传入的参数初始化这些结构，并且根据参数所指定的target类型，调用相应的target类型的构建函数ctr在内存中构建target<br />
+device对应的结构，然后再根据所建立的dm_target结构更新dm_table中维护的B树。上述过程完毕后，再将建立好的dm_table添<br />
+加到mapped device的全局hash表对应的hash_cell结构中。<br />
+4、 最后通过ioctl调用do_resume函数建立mapped<br />
+device和映射表之间的绑定关系，事实上该过程就是通过dm_swap_table函数将当前dm_table结构指针值赋予<br />
+mapped_device相应的map域中，然后再修改mapped_device表示当前状态的域。<br />
+通过上述的4个主要步骤，device mapper在内核中就建立一个可以提供给用户使用的mapped device逻辑块设备。<br />
+<b>IO流</b><br />
+Device mapper本质功能就是根据映射关系和target driver描述的IO处理规则，将IO请求从逻辑设备mapped<br />
+device转发相应的target device上。Device<br />
+mapper处理所有从内核中块一级IO子系统的generic_make_request和submit_bio接口[两个接口具体的描述可以查看<br />
+<a href="http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/index.html#resources" target="_blank">参考文献</a><br />
+[1]<br />
+和[2]，这两本书对内核中的块IO层有比较详尽的讲解。] 中定向到mapped device的所有块读写IO请求。IO请求在device<br />
+mapper的设备树中通过请求转发从上到下地进行处理。当一个bio请求在设备树中的mapped<br />
+deivce向下层转发时，一个或者多个bio的克隆被创建并发送给下层target<br />
+device。然后相同的过程在设备树的每一个层次上重复，只要设备树足够大理论上这种转发过程可以无限进行下去。在设备树上某个层次中，target<br />
+driver结束某个bio请求后，将表示结束该bio请求的事件上报给它上层的mapped<br />
+device，该过程在各个层次上进行直到该事件最终上传到根mapped device的为止，然后device mapper结束根mapped<br />
+device上原始bio请求，结束整个IO请求过程。<br />
+&nbsp; &nbsp; &nbsp; &nbsp; <br />
+Bio在device<br />
+mapper的设备树进行逐层的转发时，最终转发到一个或多个叶子target节点终止。因为一个bio请求不可以跨多个target<br />
+device(亦即物理空间段)， 因此在每一个层次上，device mapper根据用户预先告知的mapped device<br />
+的target映射信息克隆一个或者多个bio，将bio进行拆分后转发到对应的target device上。这些克隆的bio先交给mapped<br />
+device上对应的target driver上进行处理，根据target<br />
+driver中定义的IO处理规则进行IO请求的过滤等处理，然后再提交给target<br />
+device完成。上述过程在dm.c文件中的dm_request函数中完成。Target driver可以对这些bio做如下处理：<br />
+１、&nbsp; &nbsp; &nbsp; &nbsp; 将这些bio在本驱动内部排队等待以后进行处理；<br />
+２、&nbsp; &nbsp; &nbsp; &nbsp; 将bio重新定向到一个或多个target device上或者每个target device上的不同扇区；<br />
+３、&nbsp; &nbsp; &nbsp; &nbsp; 向device mapper返回error 状态。<br />
+IO请求就按照上文中描述的过程在图2中所示的设备树中逐层进行处理，直到IO请求结束。<br />
+<b>小结</b><br />
+&nbsp; &nbsp; &nbsp; &nbsp; <br />
+Device<br />
+mapper在内核中向外提供了一个从逻辑设备到物理设备的映射架构，只要用户在用户空间制定好映射策略，按照自己的需要编写处理具体IO请求的<br />
+target driver插件，就可以很方便的实现一个类似LVM的逻辑卷管理器。Device<br />
+mapper以ioctl的方式向外提供接口，用户通过用户空间的device mapper库，向device<br />
+mapper的字符设备发送ioctl命令，完成向内的通信。它还通过ioctl提供向往的事件通知机制，允许target<br />
+driver将IO相关的某些事件传送到用户空间。<br />
+<img src="http://www.ibm.com/i/v14/rules/blue_rule.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/v14/rules/blue_rule.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/v14/icons/u_bold.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/v14/icons/u_bold.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<a href="http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/index.html#main" target="_blank"><b>回页首</b></a><br />
+用户空间部分<br />
+Device mapper在用户空间相对简单，主要包括device mapper库和dmsetup工具。Device<br />
+mapper库就是对ioctl、用户空间创建删除device<br />
+mapper逻辑设备所需必要操作的封装，dmsetup是一个提供给用户直接可用的创建删除device<br />
+mapper设备的命令行工具。因为它们的功能和流程相对简单，在本文中对它们的细节就不介绍了，用户空间主要负责如下工作：<br />
+1、&nbsp; &nbsp; &nbsp; &nbsp; 发现每个mapped device相关的target device；<br />
+2、&nbsp; &nbsp; &nbsp; &nbsp; 根据配置信息创建映射表；<br />
+3、&nbsp; &nbsp; &nbsp; &nbsp; 将用户空间构建好的映射表传入内核，让内核构建该mapped device对应的dm_table结构；<br />
+4、&nbsp; &nbsp; &nbsp; &nbsp; 保存当前的映射信息，以便未来重新构建。<br />
+以下我们主要通过实例来说明dmsetup的使用，同时进一步说明device mapper这种映射机制。用户空间中最主要的工作就是构建并保存映射表，下面给出一些映射表的例子：<br />
+1)<br />
+&nbsp; &nbsp; &nbsp; &nbsp; <br />
+0 &nbsp; &nbsp; &nbsp; &nbsp; 1024 &nbsp; &nbsp; &nbsp; &nbsp; linear&nbsp;&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; /dev/sda 204<br />
+1024 &nbsp; &nbsp; &nbsp; &nbsp; 512 &nbsp; &nbsp; &nbsp; &nbsp; linear &nbsp; &nbsp; &nbsp; &nbsp; /dev/sdb&nbsp;&nbsp;766<br />
+1536&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 128&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; linear &nbsp; &nbsp; &nbsp; &nbsp; /dev/sdc&nbsp;&nbsp;0&nbsp; &nbsp; &nbsp; &nbsp; <br />
+2)&nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; 2048&nbsp; &nbsp; &nbsp; &nbsp; striped&nbsp; &nbsp; &nbsp; &nbsp; 2&nbsp; &nbsp; &nbsp; &nbsp; 64&nbsp; &nbsp; &nbsp; &nbsp; /dev/sda&nbsp; &nbsp; &nbsp; &nbsp; 1024&nbsp; &nbsp; &nbsp; &nbsp; /dev/sdb&nbsp; &nbsp; &nbsp; &nbsp; 0<br />
+3)&nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; 4711&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; mirror&nbsp; &nbsp; &nbsp; &nbsp; core&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 2&nbsp; &nbsp; &nbsp; &nbsp; 64&nbsp; &nbsp; &nbsp; &nbsp; nosync&nbsp; &nbsp; &nbsp; &nbsp; 2&nbsp; &nbsp; &nbsp; &nbsp; /dev/sda&nbsp; &nbsp; &nbsp; &nbsp; 2048&nbsp; &nbsp; &nbsp; &nbsp; /dev/sdb 1024<br />
+例子1中将逻辑设备0~1023扇区、1024~1535扇区以及1536~1663三个地址范围分别以线形映射的方式映射到/dev/sda设备第204号扇区、/dev/sdb设备第766号扇区和/dev/sdc设备的第0号扇区开始的区域。<br />
+例子2中将逻辑设备从0号扇区开始的，长度为2048个扇区的段以条带的方式映射的到/dev/sda设备的第1024号扇区以及/dev/sdb<br />
+设备的第0号扇区开始的区域。同时告诉内核这个条带类型的target<br />
+driver存在2个条带设备与逻辑设备做映射，并且条带的大小是64个扇区，使得驱动可以该值来拆分跨设备的IO请求。<br />
+例子3中将逻辑设备从0号扇区开始的，长度为4711个扇区的段以镜像的方式映射到/dev/sda设备的第2048个扇区以及/dev/sdb设备的第1024号扇区开始的区域。<br />
+映射表确定后，创建、删除逻辑设备的操作就相对简单，通过dmsetup如下命令就可以完成相应的操作。<br />
+dmsetup create &nbsp; &nbsp; &nbsp; &nbsp; 设备名&nbsp;&nbsp;映射表文件&nbsp; &nbsp; &nbsp; &nbsp; /* 根据指定的映射表创建一个逻辑设备 */<br />
+dmsetup reload&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 设备名&nbsp; &nbsp; &nbsp; &nbsp; 映射表文件&nbsp;&nbsp;/*&nbsp; &nbsp; &nbsp; &nbsp; 为指定设备从磁盘中读取映射文件，重新构建映射关系&nbsp; &nbsp; &nbsp; &nbsp; */<br />
+dmsetup remove&nbsp; &nbsp; &nbsp; &nbsp; 设备名&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; /* 删除指定的逻辑设备 */<br />
+<b>图4 根据例子1中映射表在内核中建立的逻辑设备</b><br />
+<img src="http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/images/image008.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/images/image008.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+当用户空间根据映射表下达创建逻辑设备命令后，device<br />
+mapper在内核中就根据传入的参数和映射关系建立逻辑地址到物理地址的映射关系。根据映射表例子1中的映射关系建立的设备如图4所示，图中的下半部分<br />
+就抽象地描绘出了按照该映射表在内核中建立的逻辑地址到物理地址的映射关系。<br />
+Device<br />
+mapper的用户空间部分对开发者要实现自己的存储管理工具来说是可选的，事实上，很多我们常见的逻辑卷管理器，比如LVM2、dmraid等工具都利<br />
+用device mapper的提供的device<br />
+mapper用户空间库，根据自己的管理需求建立独立的一套管理工具，而并没有使用它提供的dmsetup工具，甚至IBM的开源项目企业级的逻辑卷管理<br />
+系统-EVMS，在实现中都没有采用device mapper的用户空间库，完全根据内核中的ioctl定义实现了一套自己的函数库。<br />
+<img src="http://www.ibm.com/i/v14/rules/blue_rule.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/v14/rules/blue_rule.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/v14/icons/u_bold.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/v14/icons/u_bold.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<a href="http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/index.html#main" target="_blank"><b>回页首</b></a><br />
+Target Driver<br />
+Device mapper提供了一个统一的架构，通过target driver<br />
+插件的方式允许用户根据实际的需要指定自己的IO处理规则，因此target driver充分体现了device<br />
+mapper的灵活性。在上文中我们已经不止一次的提到过target driver，也描述过target<br />
+driver的功能，在这里我们结合最简单的linear target driver具体介绍target driver的实现。<br />
+Target driver主要定义对IO请求的处理规则，在device mapper中对target driver的操作已定义好了统一的接口，在实现中该接口由我们上文提到的target_type结构中定义，它定义了以下target driver的方法：<br />
+１、&nbsp; &nbsp; &nbsp; &nbsp; 构建target device 的方法；<br />
+２、&nbsp; &nbsp; &nbsp; &nbsp; 删除target device 的方法；<br />
+３、&nbsp; &nbsp; &nbsp; &nbsp; Target的映射IO请求的方法；<br />
+４、&nbsp; &nbsp; &nbsp; &nbsp; Target结束IO请求的方法；<br />
+５、&nbsp; &nbsp; &nbsp; &nbsp; 暂停target device读写的方法；<br />
+６、&nbsp; &nbsp; &nbsp; &nbsp; 恢复target device读写的访问；<br />
+７、&nbsp; &nbsp; &nbsp; &nbsp; 获取当前target device状态的访问；<br />
+８、&nbsp; &nbsp; &nbsp; &nbsp; Target 处理用户消息的方法；<br />
+用户可以根据具体需求选择性地实现上述方法，但一般最少要实现前3种方法，否则在device mapper下不能够正常的工作。linear<br />
+target<br />
+driver就只实现了前3种方法和方法7，它完成逻辑地址空间到物理地址空间的线性映射，可以将多个物理设备以线性连接的方式组成一个逻辑设备，就如图<br />
+4中描述的那样，通过linear target<br />
+driver将/dev/sda、/dev/sdb、/dev/sdc的三段连续空间组成了一个大的逻辑块设备。Linear<br />
+target的实现很简单，它的创建和删除方法主要完成申请和释放描述linear target<br />
+device所用结构的内存资源；IO映射处理方法的实现更是简单，如下代码所示：<br />
+static int linear_map(struct dm_target *ti, struct bio *bio,<br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; union map_info *map_context)<br />
+{<br />
+&nbsp; &nbsp; &nbsp; &nbsp; struct linear_c *lc = (struct linear_c *) ti-&gt;private;<br />
+&nbsp; &nbsp; &nbsp; &nbsp; bio-&gt;bi_bdev = lc-&gt;dev-&gt;bdev;<br />
+&nbsp; &nbsp; &nbsp; &nbsp; bio-&gt;bi_sector = lc-&gt;start + (bio-&gt;bi_sector - ti-&gt;begin);<br />
+&nbsp; &nbsp; &nbsp; &nbsp; return 1;<br />
+}<br />
+该映射方法就是将发送给逻辑设备mapped device的bio请求，根据映射关系以线性的方式重新定向到linear target<br />
+device所表示物理设备的相应位置，如代码所示具体实现方法就是修改bio的bi_bdev设备指针为target<br />
+device对应的设备指针，并根据target device的起始地址和该bio请求在mapped<br />
+device设备上的偏移值改变IO请求开始的扇区号bi_sector，从而完成IO请求的重定向。其他target<br />
+driver的实现也都大同小异，按照device<br />
+mapper所定义的接口规范，结合自己需要的功能进行实现即可，这里就不一一介绍了，有兴趣的读者可以看内核中具体的target driver代码。<br />
+<img src="http://www.ibm.com/i/v14/rules/blue_rule.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/v14/rules/blue_rule.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/v14/icons/u_bold.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/v14/icons/u_bold.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<a href="http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/index.html#main" target="_blank"><b>回页首</b></a><br />
+总结<br />
+Device<br />
+Mapper是Linux操作系统中块设备一级提供的一种主要映射机制，现在已被多数Linux下的逻辑卷管理器所采用。在该机制下，实现用户自定义的存<br />
+储资源管理策略变得极其方便。理解device mapper所提供的映射机制，也是进一步理解Linux下一些常见逻辑卷管理器实现的基础。<br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <br />
+<img src="http://www.ibm.com/i/v14/rules/blue_rule.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/v14/rules/blue_rule.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/v14/icons/u_bold.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/v14/icons/u_bold.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<a href="http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/index.html#main" target="_blank"><b>回页首</b></a><br />
+参考资料 <br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <li>Daniel P. Bovet, Marco Cesati. Understanding the Linux Kernel, 3rd Edition. O'Reilly, 2005<li>Jonathan Corbet, Alessandro Rubini, Greg Kroah-Hartman. Linux Device Driver, 3rd Edition. O'Reilly, 2005<li>Linux-2.6.15内核源代码<li>device-mapper.1.02.05代码<li><br />
+<a href="http://sourceware.org/dm/" target="_blank">http://sourceware.org/dm/</a><br />
+<li>Heinz Mauelshagen dmraid - device-mapper RAID tool. Proceedings of the Linux Symposium 2005<li>E.Goggin, A.Kergon, C.Varoqui, &amp;D.Olien. Linux Multipathing. Proceedings of the Linux Symposium 2005<br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <br />
+<img src="http://www.ibm.com/i/v14/rules/blue_rule.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/v14/rules/blue_rule.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/v14/icons/u_bold.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/v14/icons/u_bold.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<a href="http://www-128.ibm.com/developerworks/cn/linux/l-devmapper/index.html#main" target="_blank"><b>回页首</b></a><br />
+关于作者<br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+<img src="http://www.ibm.com/i/c.gif" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://www.ibm.com/i/c.gif');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+尹洋，中科院计算所国家高性能计算机工程技术研究中心的在读博士生，主要从事服务部署和存储资源管理以及Linux块设备一级的开发和研究工作。<br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <br />
+<br />
+<b>本文来自ChinaUnix博客，如果查看原文请点：</b><a href="http://blog.chinaunix.net/u/16651/showart_173463.html" target="_blank">http://blog.chinaunix.net/u/16651/showart_173463.html</a> 
+</td>
+
+      </tr>
+
+
+      <tr>
+
+        <td height="20" align="right"> 　 <a href="http://linux.chinaunix.net/bbs/thread-940627-1-1.html"  target="_blank">发表评论</a>
+
+  <a href="http://linux.chinaunix.net/bbs/thread-940627-1-1.html"  target="_blank">查看评论</a>(共有<span class="STYLE1" id ="postcount2"></span>条评论)
+<a href="http://linux.chinaunix.net/bbs/forum-2-1.html" target="_blank">我要提问</a>
+</td>
+
+      </tr>
+      <tr>
+
+        <td>&nbsp;</td>
+
+      </tr>
+
+      
+
+    </table>
+
+
+</td>
+
+    <td width="8">&nbsp;</td>
+
+    <td width="245" valign="top" bgcolor="#FFF9EB">
+<center><br>
+<form action="/search2.php" method="GET">
+<input type="text" name="key" size="15"><input type=hidden name="id" value=0 ><input type="submit" value="搜索">
+</form>
+<br>
+</center>
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+
+      <tr>
+
+        <td height="27" background="/images/bg245.jpg" class="F13"><table width="100%"><tr><td class="F13">最新资讯</td><td align="right"><a href="/news" target="_blank">更多>></a>&nbsp;</td></tr></table></td>
+
+      </tr>
+
+      <tr>
+
+        <td valign="top" bgcolor="#FFFFFF" class="BLKtext" ><table width="97%" border="0" align="center" cellpadding="0" cellspacing="0">
+
+          <tr>
+
+            <td height="5"></td>
+
+          </tr>
+
+          <tr>
+
+            <td>· <a href='/news/2010/12/10/1175491.shtml' title='谷歌劝说诺基亚采用Android操作系统' target='_blank'>谷歌劝说诺基亚采用Android操作..</a><br />
+· <a href='/news/2010/12/10/1175493.shtml' title='Apache 基金会确认退出 JCP 执行委员会' target='_blank'>Apache 基金会确认退出 JCP 执..</a><br />
+· <a href='/news/2010/12/07/1175306.shtml' title='Chrome 10 新功能探秘：新增GPU混合加速功能' target='_blank'>Chrome 10 新功能探秘：新增GP..</a><br />
+· <a href='/news/2010/12/07/1175307.shtml' title='金山宣布开源其安全软件' target='_blank'>金山宣布开源其安全软件</a><br />
+· <a href='/news/2010/12/07/1175309.shtml' title='女黑客在开源会议上抱受骚扰' target='_blank'>女黑客在开源会议上抱受骚扰</a><br />
+· <a href='/news/2010/12/07/1175310.shtml' title='21款值得关注的Linux游戏' target='_blank'>21款值得关注的Linux游戏</a><br />
+· <a href='/news/2010/12/07/1175311.shtml' title='马化腾：腾讯半年后彻底转型，开放和分享' target='_blank'>马化腾：腾讯半年后彻底转型，..</a><br />
+· <a href='/news/2010/12/07/1175305.shtml' title='[多图] Chrome OS 预发布版本多图赏析' target='_blank'>[多图] Chrome OS 预发布版本多..</a><br />
+· <a href='/news/2010/12/01/1175001.shtml' title='Lubuntu 11.04 默认应用抢先一览' target='_blank'>Lubuntu 11.04 默认应用抢先一览</a><br />
+· <a href='/news/2010/12/01/1175002.shtml' title='Red Hat宣布收购云计算软件提供商Makara' target='_blank'>Red Hat宣布收购云计算软件提供..</a><br />
+</td>
+
+          </tr>
+
+          <tr>
+
+            <td height="5"></td>
+
+          </tr>
+
+        </table></td>
+
+      </tr>
+
+      <tr>
+
+        <td height="10" bgcolor="#FFFFFF"></td>
+
+      </tr>
+
+      <tr></table>
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+
+      <tr>
+
+        <td height="27" background="/images/bg245.jpg" class="F13"><table width="100%"><tr><td class="F13">论坛热点</td><td align="right"><a href="/bbs" target="_blank">更多>></a>&nbsp;</td></tr></table></td>
+
+      </tr>
+
+      <tr>
+
+        <td valign="top" bgcolor="#FFFFFF" class="BLKtext" ><table width="97%" border="0" align="center" cellpadding="0" cellspacing="0">
+
+          <tr>
+
+            <td height="5"></td>
+
+          </tr>
+
+          <tr>
+
+            <td>· <a href='http://bbs.chinaunix.net/thread-3687970-1-1.html' title='do_execve时候用户栈中参数的位置问题' target='_blank'>do_execve时候用户栈中参数的..</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687969-1-1.html' title='swapinfo -atm 问题' target='_blank'>swapinfo -atm 问题</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687968-1-1.html' title='Linux 的优点简述' target='_blank'>Linux 的优点简述</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687967-1-1.html' title='VM虚拟机上得Red Hat Linux上搭建的ftp服务器，windows登陆不进去，但一个局域网其他' target='_blank'>VM虚拟机上得Red Hat Linux上..</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687965-1-1.html' title='我看成了上海男人喜欢女人毛多还是毛少' target='_blank'>我看成了上海男人喜欢女人毛..</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687964-1-1.html' title='校车展览，看了你就知道' target='_blank'>校车展览，看了你就知道</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687963-1-1.html' title='在遇到他之前，唯一需要做的，就是让自己足够优秀。在遇到他之前，请把最好的年华留给' target='_blank'>在遇到他之前，唯一需要做的..</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687962-1-1.html' title='GRUB的疑问' target='_blank'>GRUB的疑问</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687961-1-1.html' title='从来没有人真正付足书价——所付的只是印刷费' target='_blank'>从来没有人真正付足书价——..</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687960-1-1.html' title='云存储 vs 网盘' target='_blank'>云存储 vs 网盘</a><br />
+</td>
+
+          </tr>
+
+          <tr>
+
+            <td height="5"></td>
+
+          </tr>
+
+        </table></td>
+
+      </tr>
+
+      <tr>
+
+        <td height="10" bgcolor="#FFFFFF"></td>
+
+      </tr>
+
+      <tr></table>
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+
+      <tr>
+
+        <td height="27" background="/images/bg245.jpg" class="F13"><table width="100%"><tr><td class="F13">文档更新</td><td align="right"><a href="/techdoc" target="_blank">更多>></a>&nbsp;</td></tr></table></td>
+
+      </tr>
+
+      <tr>
+
+        <td valign="top" bgcolor="#FFFFFF" class="BLKtext" ><table width="97%" border="0" align="center" cellpadding="0" cellspacing="0">
+
+          <tr>
+
+            <td height="5"></td>
+
+          </tr>
+
+          <tr>
+
+            <td>· <a href='/techdoc/develop/2012/03/16/3686893.shtml' title='orcale queue' target='_blank'>orcale queue</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686868.shtml' title='谁可以推荐几本经典的操作系统的书（英文版）' target='_blank'>谁可以推荐几本经典的操作系统的..</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686867.shtml' title='【北京】某物联网公司招云计算应用高级开发工程师' target='_blank'>【北京】某物联网公司招云计算应..</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686866.shtml' title='【北京】某物联网公司招云计算应用高级开发工程师' target='_blank'>【北京】某物联网公司招云计算应..</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686865.shtml' title='谁能推荐几本关于操作系统的书' target='_blank'>谁能推荐几本关于操作系统的书</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686864.shtml' title='如何添加网络接口eth1' target='_blank'>如何添加网络接口eth1</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686863.shtml' title='葡萄牙语入门教材的选取与经验分享' target='_blank'>葡萄牙语入门教材的选取与经验分享</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686862.shtml' title='葡萄牙语就业前景分析' target='_blank'>葡萄牙语就业前景分析</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686861.shtml' title='葡萄牙语学习经验交流' target='_blank'>葡萄牙语学习经验交流</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686860.shtml' title='Щ' target='_blank'>Щ</a><br />
+</td>
+
+          </tr>
+
+   
+        </table></td>
+
+      </tr>
+
+
+      <tr></table>
+</td>
+
+  </tr>
+
+</table>
+<script src="/js/threadcount.php?tid=940627"></script>
+<table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+
+  <tr>
+
+    <td>&nbsp;</td>
+
+  </tr>
+
+</table>
+
+<table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+
+  <tr>
+
+    <td height="2" bgcolor="#308CF6"></td>
+
+  </tr>
+
+  <tr>
+
+    <td height="30" align="center"><a href="http://www.chinaunix.net/about/index.shtml" target="_blank">关于我们</a> | <a href="http://www.chinaunix.net/about/connect.html" target="_blank">联系方式</a> | <a href="http://www.chinaunix.net/about/service.html" target="_blank">广告合作</a> | <a href="http://www.wintalent.cn:8031/wt5/sequelmedia/web/index" target="_blank">诚聘英才</a> | <a href="http://www.chinaunix.net/about/channel.html" target="_blank">网站地图</a> | <a href="http://www.chinaunix.net/about/friend.html" target="_blank">友情链接</a> | <a href="http://linux.chinaunix.net/bbs/register.php" target="_blank">免费注册</a></td>
+
+  </tr>
+
+  <tr>
+
+    <td height="2" bgcolor="#308CF6"></td>
+
+  </tr>
+
+  <tr>
+
+    <td align="center"><p>Copyright &copy; 2001-2009 ChinaUnix.net All Rights Reserved</p>
+
+        <p>感谢所有关心和支持过ChinaUnix的朋友们<br />
+	<p>
+ <a href="http://www.it168.com/images/icp.jpg" target="_blank">京ICP证:060528号</a></p></td>
+
+  </tr>
+
+</table>
+
+<!-- 统计 START -->
+<script src="http://stat.it168.com/pv.js" type="text/javascript"></script>
+<script>
+function sendPV(){
+    var pvTrack = new PvTrack();
+    pvTrack.type = 10; // 频道类别ID
+    pvTrack.channel = 22; // 频道ID
+   
+    pvTrack.pageType = 0;
+    pvTrack.track();
+}
+window.setTimeout("sendPV()", 0);
+</script>
+<script language="javascript" src="http://bbs.chinaunix.net/googlepv/pv.js" type="text/javascript"></script>
+<!-- 统计 .END -->
+<div style='display:none'>
+<script type="text/javascript"> 
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F0ee5e8cdc4d43389b3d1bfd76e83216b' type='text/javascript'%3E%3C/script%3E"));
+</script>
+</div>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-11982772-4");
+pageTracker._trackPageview();
+} catch(err) {}
+</script>
+<script type='text/javascript' src='http://168.it168.com/js/601.js'></script>
+
+
+
+</body>
+
+</html>

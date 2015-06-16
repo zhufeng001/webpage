@@ -1,0 +1,276 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Converting OVA images to KVM</title>
+    <meta name="description" content="Converting an Open Virtual Appliance OVA-File to use in KVM">
+    <meta name="author" content="micha" >
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+    <link href="/assets/themes/twitter/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/twitter/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    <!-- Le fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+  </head>
+
+  <body>
+
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="brand" href="/">OpenTox</a>
+          <ul class="nav">
+            
+            
+            
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+      <div class="content">
+        
+<div class="page-header">
+  <h1>Converting OVA images to KVM <small>Supporting tagline</small></h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    <p>The Open Virtualization Format (OVF) is an open standard for packaging and distributing virtual appliances for the use in virtual machines.
+An OVA file is a one file alternative to pack a multi file OVF directory.
+This is a short example how to convert OVA for the use in a proxmox 2.0 KVM environment. The OVA file was exported from the Virtualbox software, where we had build a debian based virtual machine.</p>
+
+<h2>Extract the OVA Archive</h2>
+
+<p>OVA files are TAR archives with the OVF directory inside. <br />
+To extract the archive do</p>
+
+<pre><code>tar -xvf Virtual_Appliance_Debian.ova
+=&gt; 
+Virtual_Appliance_Debian.ovf
+Virtual_Appliance_Debian-disk.vmdk
+</code></pre>
+
+<p>You get Virtual_Appliance_Debian-disk.vmdk which is a virtual machine disk file. The VMDK file format was developed for the use in VMWare or Virtualbox. It is an open format.</p>
+
+<h2>Converting VMDK to RAW and from RAW to qcow2</h2>
+
+<p>With the free available software Virtualbox it is possible to convert VMDK disk files to RAW image format.</p>
+
+<pre><code>VBoxManage clonehd --format RAW Virtual_Appliance_Debian-disk.vmdk Virtual_Appliance_Debian-disk.raw
+=&gt; Virtual_Appliance_Debian-disk.raw
+</code></pre>
+
+<p>Convert the RAW image file to qemu format:</p>
+
+<pre><code>qemu-img convert -f raw Virtual_Appliance_Debian-disk.raw -O qcow2  Virtual_Appliance_Debian-disk.qcow2
+=&gt; Virtual_Appliance_Debian-disk.qcow2
+</code></pre>
+
+<p><br /></p>
+
+<h2>Use qcow2 files in Proxmox 2.0</h2>
+
+<p>The use of an existing qcow2 file in proxmox 2.0 is very easy. Just create a new virtual machine and replace the disk file with the qcow2 file.</p>
+
+<ul>
+<li>create a new KVM virtual machine via the proxmox webinterface.
+
+<ul>
+<li>Click <strong>Create VM</strong>.</li>
+<li><strong>General</strong>: select Node, VM ID and Name.</li>
+<li><strong>OS</strong>: Select the operating system type of your virtual machine.</li>
+<li><strong>CD/DVD</strong>: Do not use any media.</li>
+<li><strong>Hard Disk</strong>: Select existing lvm storage for <strong>storage</strong> and choose same or better bigger disk size as the original VM disk size.</li>
+<li><strong>other Tabs</strong>: as needed for the new virtual machine.</li>
+<li><strong>Confirm</strong>: Click <strong>Finish</strong></li>
+</ul>
+</li>
+</ul>
+
+
+<p>Proxmox has created a new disk file for the virtual machine. Do not start the new VM. Replace the proxmox generated qcow2 file with our Virtual_Appliance_Debian-disk.qcow2</p>
+
+<pre><code>mv Virtual_Appliance_Debian-disk.qcow2 /var/lib/vz/images/105/vm-105-disk-1.qcow2
+</code></pre>
+
+<p>Start the virtual machine via the proxmox webinterface.</p>
+
+<h2>Insertion: About Unzipping 7zip files</h2>
+
+<p>Sometimes we use 7zip compressed files for easier transportation of disk images. <br />
+Install 7zip if not already installed:</p>
+
+<pre><code>sudo apt-get install p7zip
+</code></pre>
+
+<p>Unzip the 7zip file:</p>
+
+<pre><code>7z x Virtual_Appliance_Debian.ova.7z
+</code></pre>
+
+<p><br /></p>
+
+<h2>see also</h2>
+
+<p>external information sources:
+* Convert Virtualbox vdi to KVM qcow: <a href="http://blog.bodhizazen.net/linux/convert-virtualbox-vdi-to-kvm-qcow/">http://blog.bodhizazen.net/linux/convert-virtualbox-vdi-to-kvm-qcow/</a>
+* Migration of servers to Proxmox VE: <a href="http://pve.proxmox.com/wiki/Migration_of_servers_to_Proxmox_VE#VMware_to_Proxmox_VE_.28KVM.29">http://pve.proxmox.com/wiki/Migration_of_servers_to_Proxmox_VE#VMware_to_Proxmox_VE_.28KVM.29</a>
+* qcow image format: <a href="http://people.gnome.org/~markmc/qcow-image-format.html">http://people.gnome.org/~markmc/qcow-image-format.html</a></p>
+
+    <hr>
+    <div class="pagination">
+      <ul>
+      
+        <li class="prev"><a href="/installation/2012/07/30/how-to-run-4store-without-internet-connection" title="How to run 4store without internet connection">&larr; Previous</a></li>
+      
+        <li><a href="/archive.html">Archive</a></li>
+      
+        <li class="next"><a href="/development/2012/08/07/opentox-development-in-tmux" title="Opentox development in tmux">Next &rarr;</a></li>
+      
+      </ul>
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    
+    var disqus_shortname = 'opentox'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <h4>Published</h4>
+    <div class="date"><span>02 August 2012</span></div>
+
+  
+    <h4>Tags</h4>
+    <ul class="tag_box">
+    
+    
+
+
+  
+     
+    	<li><a href="/tags.html#Linux-ref">Linux <span>8</span></a></li>
+     
+    	<li><a href="/tags.html#Ubuntu-ref">Ubuntu <span>8</span></a></li>
+     
+    	<li><a href="/tags.html#Debian-ref">Debian <span>8</span></a></li>
+     
+    	<li><a href="/tags.html#OVA-ref">OVA <span>1</span></a></li>
+     
+    	<li><a href="/tags.html#Virtual Appliance-ref">Virtual Appliance <span>1</span></a></li>
+    
+  
+
+
+
+    </ul>
+    
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; in silico toxicology gmbh 2014 
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://twitter.github.com/bootstrap/" target="_blank">Twitter Bootstrap</a>
+        </p>
+      </footer>
+
+    </div> <!-- /container -->
+
+    
+
+
+  <script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-123-12']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+
+
+  </body>
+</html>
+

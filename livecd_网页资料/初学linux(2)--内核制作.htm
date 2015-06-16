@@ -1,0 +1,1270 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+        <meta http-equiv="content-type" content="text/html; charset=gbk">
+		<title>初学linux(2)--内核制作 - 303129231's Blog - EDN China电子设计技术</title>
+		<META NAME="keywords" CONTENT='初学linux(2)--内核制作,303129231's Blog'>
+	<META NAME="description" CONTENT='************************华丽的分割--X86***********************第一步：清除原有配置的中间文件makedistclean（其他类似命令就不说了）第二步：内核的配置，首先谈谈要用到的词语：makemenuconfig（其他的配置方式就不说了）makefileKconfigKconfig是每一个子目录里面都有的文件当执行makemenuconfig的时...'>
+	<link rel="canonical" href="http://bbs.ednchina.com/BLOG_ARTICLE_2140790.HTM"/><meta name="robots" content="all" > 
+		<meta name="author" content="EDN China 电子设计技术互动社区" > 
+		<meta name="copyright" content="Copyright 2011 eMedia Asia Ltd. bbs.ednchina.com. All Rights Reserved." > 
+		<script type="text/javascript" src="/scripts/FancyZoom.js"></script>
+        <script type="text/javascript" src="/scripts/FancyZoomHTML.js"></script>
+		<link href="/style/main.css" rel="stylesheet" type="text/css">
+		<script type="text/javascript" src='/scripts/BannerCommandLib.js'></script>
+		<script type="text/javascript" src='/scripts/other.js'></script>
+		<script type="text/javascript" src="/scripts/prototype.js"></script>
+		
+		<script type="text/javascript">
+		  function login(url) {
+		   var frm = document.createElement("FORM");
+		   frm.action = "http://www.ednchina.com/login.do";
+		   frm.method = "POST";
+		   document.body.appendChild(frm);
+		   
+		   var fw = document.createElement("INPUT");
+		   fw.type = "text";
+		   fw.name = "fromWhere";
+		   fw.value = url;
+		   fw.style.display = "none";
+		   frm.appendChild(fw);
+		   
+		   var forumType = document.createElement("INPUT");
+		   forumType.type = "text";
+		   forumType.name = "type";
+		   forumType.value = "FORUM";
+		   forumType.style.display = "none";
+		   frm.appendChild(forumType);  
+		    
+		   frm.submit();
+		  }
+		</script>
+		<script type="text/javascript">
+var googletag = googletag || {};
+googletag.cmd = googletag.cmd || [];
+(function() {
+	var gads = document.createElement('script');
+	gads.async = true;
+	gads.type = 'text/javascript';
+	var useSSL = 'https:' == document.location.protocol;
+	gads.src = (useSSL ? 'https:' : 'http:') + 
+	'//www.googletagservices.com/tag/js/gpt.js';
+	var node = document.getElementsByTagName('script')[0];
+	node.parentNode.insertBefore(gads, node);
+})();
+</script>
+</head>
+	<body onload="setupZoom()">
+	<div id="wrapper">
+	<script language="javascript" src="/scripts/other.js"></script>
+<!--[if !IE]> begining of header <![Endif]-->
+<div id="header_banner">
+	<div class="headerr">
+		<div class="headerr_banner_top">
+			<form method="post" name="double_optin_form" action="http://www.ednchina.com/login.do">
+				<input type="hidden" name="ACTION_TYPE" value="LOGIN_INIT_DOUBLE_OPTIN">
+			</form>
+			<span><img src="http://image.ednchina.com/home.gif">&nbsp;<a href="http://www.ednchina.com/">首页</a> | </span>
+			<span><a href="http://www.ednchina.com/login.do">登录</a>&nbsp;|&nbsp;</span><span><a href="http://www.ednchina.com/register.do">现在注册</a>&nbsp;|&nbsp;</span>
+				<span><a href="http://www.ednchina.com/subscribeNewsLetters.do" rel="nofollow">订阅电子快讯</a>&nbsp;</span></div>
+	</div>
+</div>
+<div id="header" style="height: 80px; width: 980px;"> 
+	<div style="float: left;"><br>
+		<a href="http://www.ednchina.com/"><img src="http://bbs.ednchina.com/images/EDN_logo.jpg" alt="EDN China 电子设计技术互动社区网站"></a>
+	</div>
+	<div style="padding: 10px 0px; float: right; width: 690px; height: 55px;">
+	<!--display Top Leader Border banner -->
+<div id="bannerPos_top_banner" name="bannerPos_top_banner"></div></div>
+</div>
+<div style="clear:both"></div>
+<!--[if !IE]> end of header <![Endif]--><!--[if !IE]> begining of Navigation <![Endif]-->
+ <!--[if !IE]> begining of Navigation <![Endif]-->
+ 
+
+ 
+  <script type="text/javascript" src="http://www.ednchina.com/script/scroll_news.js"></script>
+  <div class="navFrame">
+    <div class="navBoxA">
+      <div class="navMenuA">
+            <span style="padding:0" class="subnavT" onmouseover="shows('subnav');" onmouseout="hides('subnav');"></span>
+            <div class="navLine" style="padding:0pt"><img src="/images/navLine.jpg" /></div>
+            <span><a title="新闻" href="http://www.ednchina.com/NEWS_TYPE_INDEX_NEWS.HTM">新闻</a></span>
+            <div class="navLine"><img src="/images/navLine.jpg" /></div>
+            <span><a title="技术文章" href="http://www.ednchina.com/NEWS_TYPE_INDEX_DC.HTM">技术文章</a></span>
+            <div class="navLine"><img src="/images/navLine.jpg" /></div>
+            <span><a title="下载" href="http://www.ednchina.com/STATIC/SITE/DOWNLOAD.HTM">下载</a></span>
+            <div class="navLine"><img src="/images/navLine.jpg" /></div>
+            <span><a title="视频" href="http://www.ednchina.com/STATIC/SITE/VIDEO_index.html ">视频</a></span>
+            <div class="navLine"><img src="/images/navLine.jpg" /></div>
+   <span><a title="专题" href="http://www.ednchina.com/STATIC/SITE/SPECIAL.HTM">专题</a></span>
+            <div class="navLine"><img src="/images/navLine.jpg" /></div>
+        </div>
+        <div class="navMenuB">
+        	<div class="navMenuR">
+            <span><img src="/images/n_icon1.gif" align="absmiddle"/><a href="http://bbs.ednchina.com/">论坛</a></span>
+			<span><img src="/images/n_icon2.gif" align="absmiddle"/><a href="http://bbs.ednchina.com/BLOG.HTM">博客</a></span>
+			<span><img src="/images/n_icon4.gif" align="absmiddle"/><a href="http://group.ednchina.com">小组</a></span>
+			<span><img src="/images/n_icon3.gif" align="absmiddle"/><a href="http://weibo.ednchina.com/">微博</a></span>			
+			<span><img src="/images/n_icon5.gif" align="absmiddle"/><a href="http://webcast.ednchina.com/">在线研讨会</a></span>
+            </div>
+            <div class="navMenuRr"><img src="/images/nav_right.jpg" /></div>
+        </div>
+    </div>
+    <div class="nSubMenu">
+        <div id="subnav" class="subnav">
+			<span class="subnav_top" onmouseover="shows('subnav');" onmouseout="hides('subnav');"></span><span class="subnav_main" onmouseover="shows('subnav');" onmouseout="hides('subnav');">
+				<a title="模拟技术,放大器,运放与功放,转换器,传感器,EMC/EMI/ESD,模拟开关,接口器件,调谐器,时钟/PLL" href="http://www.ednchina.com/CAT_11_Analog.HTM">&bull; 模拟设计</a>
+				<a title="电源技术，AC-DC/DC-DC转换，显示驱动，数字电源，电源模块--架构，功率器件，电池充放电控制，便携设备电源，照明驱动，基准电路，热插拔和功率分配，线性稳压，监控电路，太阳能/光伏" href="http://www.ednchina.com/CAT_28_Power.HTM">&bull; 电源技术</a>
+				<a title="嵌入式系统,嵌入式,单片机,MCU,操作系统,IO,存储器,ARM,UI,网络,开发工具,操作系统,中间件,应用软件,参考设计" href="http://www.ednchina.com/CAT_29_Embedded-System.HTM">&bull; 嵌入式系统</a>
+				<a title="示波器，数据采集，通用测试仪器，半导体芯片测试，虚拟仪器，射频--微波--无线测试，通信测试，机器视觉与检测，电路板测试，系统测试，高速串行测试" href="http://www.ednchina.com/CAT_17_Test-and-Measurement.HTM">&bull; 测试与测量</a>
+				<a title="通信与网络，WiFi/WiMAX，宽带接入，RF射频微波，网络传输与交换，以太网，TriplePlay，UWB/蓝牙/无线USB/Zigbee，地面/卫星广播，光通信，IPTV/VOIP，NGN下一代网络" href="http://www.ednchina.com/CAT_27_Communication.HTM">&bull; 通信</a>
+				<a title="EDA工具，IC设计与设计服务，PCB设计，IP核，系统级设计，仿真与验证，硬件/软件协同设计" href="http://www.ednchina.com/CAT_19_EDA(Tools-and-Software).HTM">&bull; EDA工具与服务</a>
+				<a title="可编程器件，FPGA，PLD，可编程模拟器件，开发工具，PLC可编程控制器" href="http://www.ednchina.com/CAT_18_PLD.HTM">&bull; 可编程器件</a>
+				<a title="微处理器,CPU/GPU,多媒体处理器,DSP应用" href="http://www.ednchina.com/CAT_15_CPU-DSP.HTM">&bull; 微处理器与DSP</a>
+				<a title="消费电子设计，便携设备，手机设计，数字电视，音频处理，家庭网络，智能白电，电子玩具，家居智能控制系统，个人电脑及外围设备，视频/图形处理" href="http://www.ednchina.com/CAT_16_Consumer-Electronics.HTM">&bull; 消费电子设计</a>
+				<a title="汽车电子,传感器,动力控制,车身控制,安全控制,节能控制,信息娱乐系统,人机界面,总线技术,汽车照明" href="http://www.ednchina.com/CAT_13_Automobile-Eletronics.HTM">&bull; 汽车电子</a>
+				<a title="医疗电子，个人健康保健设备，视频诊断与监控，手术仪器" href="http://www.ednchina.com/CAT_14_Medical-Eletronics.HTM">&bull; 医疗电子</a>
+				<a title="工业电子,安防监控,工业仪表,网络与总线,电机驱动,检测与传感,人机界面,运动控制,机器视觉" href="http://www.ednchina.com/CAT_20_Industrial-Electronics.HTM">&bull; 工业电子</a>
+			</span>
+        </div>
+    </div>
+</div>
+  <!--[if !IE]> end of Navigation <![Endif]-->
+<!--[if !IE]> end of Navigation <![Endif]-->
+
+<!--[if !IE]> begining of searchbox <![Endif]-->
+<script language="javascript" src="/scripts/dropdownjs.js"></script>
+<script language="javascript" src="/scripts/other.js"></script>
+<script src="/scripts/prototype.js"></script>
+
+<div class="navBoxB">
+	<style type="text/css">
+<!--
+.STYLExp2001 {color: #FF0000}
+-->
+</style>
+<div class="navTip">
+<div style="margin-left:5px;margin-top:5px;">
+
+<style type="text/css">
+
+#Marquee{ height:20px; overflow:hidden;}
+#Marquee div{ border:0px solid #DDD3FE; height:25px;}
+</style>
+
+
+
+
+    <div id="Marquee">
+    
+   <div style="width: 360px; height: 20px">&bull;<a title=" R&S引领信号电平精确控制的创新技术与功率测量标准" href="http://webcast.ednchina.com/lobbyPage/444250.HTM?partnerref=EDN_rota"target=_blank style="text-decoration:none;">R&S引领信号电平精确控制的创新技术与功率测量标准</a></div>
+
+<div style="width: 360px; height: 20px">&bull;<a title="示波器技术发展新趋势与复杂电路多域调试的实现" href="http://webcast.ednchina.com/lobbyPage/440108.HTM?partnerref=EDN_rota"target=_blank style="text-decoration:none;"><span class="STYLExp2001">[研讨会]</span>示波器技术发展新趋势与复杂电路多域调试的实现</a></div>
+
+    <div style="width: 360px; height: 20px">&bull;<a title="电源：电信/服务器 AC/DC 电源：双路控制器：模拟" href="http://www.ednchina.com/STATIC/SITE/timicrosite.htm?SOURCE=EDN_HP#ACDC" target=_blank style="text-decoration:none;">电源：电信/服务器 AC/DC 电源：双路控制器：模拟</a></div>
+	
+    <div style="width: 360px; height: 20px">&bull;<a title="Telecom Tower：远端射频单元 (RRU)" href="http://www.ednchina.com/STATIC/SITE/timicrosite.htm?SOURCE=EDN_HP#RRU" target=_blank style="text-decoration:none;">Telecom Tower：远端射频单元 (RRU)</a></div>
+
+    <div style="width: 360px; height: 20px">&bull;<a title="可移植软件如何实现IntelAtom系统间移植
+" href="http://www.ednchina.com/WHITEPAPER_1000000700.HTM?source=EDN_rota" target=_blank style="text-decoration:none;">可移植软件如何实现IntelAtom系统间移植</a></div>
+
+    <div style="width: 360px; height: 20px">&bull;<a title="《模拟对话》杂志第45卷第1期" href="http://www.ednchina.com/WHITEPAPER_1000000680.HTM?source=EDN_rota" target=_blank style="text-decoration:none;">《模拟对话》杂志第45卷第1期</a></div>
+    <div style="width: 360px; height: 20px">&bull;<a title="互联移动，成就未来：恩智浦2012汽车电子技术交流日火热报名" href="http://www.ednchina.com/STATIC/SITE/NXP_registration.html" target=_blank style="text-decoration:none; color: #F00;">互联移动成就未来：恩智浦2012汽车电子技术交流日火热报名</a></div>
+	
+    <div style="width: 360px; height: 20px">&bull;<a title="ADI公司解决方案通报 第11卷第7期" href="http://www.ednchina.com/WHITEPAPER_1000000661.HTM?source=EDN_rota"target=_blank style="text-decoration:none;">&nbsp;ADI公司解决方案通报 第11卷第7期</a></div>
+	
+	<div style="width: 360px; height: 20px">&bull;<a title="MCU视频：TI Hercules安全微控制器（五）" href="http://www.ednchina.com/video/VIDEO_TI_934.HTM?source=EDN_rota"target=_blank style="text-decoration:none;">&nbsp;MCU视频：TI Hercules安全微控制器（五）</a></div>
+	
+<div style="width: 360px; height: 20px">&bull;<a title="电源设计小贴士39：同步整流带来的不仅仅是高效率
+" href="http://www.ednchina.com/video/VIDEO_TI_932.HTM?source=EDN_rota"target=_blank style="text-decoration:none;">&nbsp;电源设计小贴士39：同步整流带来的不仅仅是高效率</a></div>
+
+<div style="width: 360px; height: 20px">&bull;<a title="[研讨会]飞思卡尔关于医疗用微控制器产品的解决方案" href="http://webcast.ednchina.com/lobbyPage/412329.HTM?partnerref=EDN_rota"target=_blank style="text-decoration:none;"><span class="STYLExp2001">[研讨会]</span>飞思卡尔关于医疗用微控制器产品的解决方案</a></div>
+
+
+<div style="width: 360px; height: 20px">&bull;<a title="Intel_Atom_webcast0314" href="http://www.ednchina.com/redirectProxy.do?AdName=Intel_Atom_webcast0314&CompanyName=Intel&jumpto=http://ad.doubleclick.net/click;h=v2|3F0E|0|0|%2a|b;254724343;0-0;0;78502306;31-1|1;47128867|47145045|1;;%3fhttp://intelstudios.edgesuite.net/111207_ct/index.htm?dfaid=1&crtvid=%ecid!;" target=_blank style="text-decoration:none;color:red;">技术解密：如何利用凌动&trade;处理器打造智能系统</a></div>
+
+    </div>
+<script>
+var Mar = document.getElementById("Marquee");
+
+var child_div0=Mar.getElementsByTagName("div")[0];
+//alert(child_div0);
+var picH = 20;//移动高度
+var scrollstep=3;//移动步幅,越大越快
+var scrolltime=40;//移动频度(毫秒)越大越慢
+var stoptime=3000;//间断时间(毫秒)
+var tmpH = 0;
+
+
+//Mar.innerHTML =Mar.innerHTML+ Mar.innerHTML;
+
+	function start(){
+		var i=Math.floor(Math.random() * ( 11 + 1));
+		  var child_div=Mar.getElementsByTagName("div")[i];
+		  
+		     if(tmpH < picH){
+				 tmpH += scrollstep;
+				 Mar.scrollTop = tmpH;
+				 setTimeout(start,scrolltime);
+			 }else
+			   {
+		         tmpH = 0;
+				child_div0.innerHTML=child_div.innerHTML;				
+				Mar.scrollTop = 0;
+			setTimeout(start,stoptime);
+			   }
+	
+}
+onload=function(){setTimeout(start,stoptime)};
+</script>
+
+ </div>
+
+
+
+</div>
+
+<div class="navSearch">
+		<table width="100%" border="0" cellspacing="0" cellpadding="0">
+		<form  name="searchBoxForm" action="http://www.ednchina.com/search/quickSearchRedirect.do" method="post">
+			<tr>
+				<td>
+				<input name="keyword" type="text" id="keyword" class="navSinp" value="尝试E源搜索，享受专业体验"  
+					onclick="if(document.getElementById('keyword').value=='尝试E源搜索，享受专业体验'){ document.getElementById('keyword').value= ' '; } if(document.getElementById('keyword').style.color == 'gray'){  document.getElementById('keyword').style.color = 'black';  }">
+				</td>
+				<td><a href="javascript:searchValidate();"><img src="/images/n_search.jpg" align="absmiddle"></a></td>
+			</tr>
+		</form>
+		</table>
+	</div>
+	<div class="navSword"><a href="http://bbs.ednchina.com/advanced-search!default.jspa">高级搜索</a></div>
+</div>
+<!--[if !IE]> end of searchbox <![Endif]-->
+<!--[if !IE]> start of middle banner & static file <![Endif]-->
+<div id="mytd2_top"></div>
+<div id="mytd2"><!--display Top Leader Border banner -->
+<div id="bannerPos_leader_top" name="bannerPos_leader_top"></div><div id="mytd1" >
+	<style type="text/css"> 
+.box_240{height:76px; position:relative; overflow:hidden;width:220px; float:right;border:0px solid #ccc;padding-left:5px;}
+.box_240 ul{width:220px; list-style-type:none; display:block; margin-left:5px;padding:0 0 0 5px; }
+.box_240 ul li{width:200px; height:20px;overflow:hidden; display:block;margin:0px;background:url(/images/bullet.gif) no-repeat left 8px; padding:0 0 0 10px;}
+.box_240 a{ line-height:21px; text-decoration:none;}
+.box_240 a:hover{text-decoration:none;}
+
+</style>
+
+<div  class="box_240">
+<div id="rollText">
+
+<ul>
+<li><a target="_blank" href="http://www.ednchina.com/MAGAZINE/201204.html" title="EDN电子杂志2012年第04期">[杂志] EDN电子杂志2012年第04期</a></li>
+<li><a target="_blank" href="http://www.ednchina.com/ART_8800505007_16_20037_OT_da0b4787.HTM" title="错失良机:日本电子业大败局">[商情] 错失良机:日本电子业大败局</a></li>
+<li><a href="http://www.ednchina.com/ART_8800505091_29_35572_OT_d4ba2cab.HTM" title="2011年全球半导体供应商排行榜Top25">[商情] 2011年全球半导体供应商Top25</a></li>
+<li><a target="_blank" href="http://www.ednchina.com/ART_8800505004_29_35573_NT_0314d655.HTM" title="尔必达尴尬退场：竞购方仅看重与苹果业务联系">[新闻] 尔必达尴尬退场:仅看苹果业务</a></li>
+<li><a href="http://www.ednchina.com/ART_8800503842_19_19988_OT_7bfedacb.HTM" title="第17届IIC-China，EDNChina现场视图文播报！">EDNChina现场视图文播报IIC-China</a></li>
+<li><a target="_blank" href="http://www.ednchina.com/ART_8800503789_27_20031_OT_46987c3e.HTM" title="12月数字杂志专题《中国IC设计特刊》">TD-LTE遭遇2012瓶颈 自毁还是重生</a></li>
+<li><a target="_blank" href="http://webcast.ednchina.com/lobbyPage/408142.HTM?partnerref=EDN_rota" title="LTE终端射频测量
+">LTE终端射频测量</a></li>
+
+</ul>
+</div></div>
+<!--<script type="text/javascript">
+// <![CDATA[
+var textDiv = document.getElementById("rollText");
+var textList = textDiv.getElementsByTagName("a");
+if(textList.length > 3){
+var textDat = textDiv.innerHTML;
+var br = textDat.toLowerCase().indexOf("<br",textDat.toLowerCase().indexOf("<br")+4);
+//var textUp2 = textDat.substr(0,br);
+textDiv.innerHTML = textDat+textDat+textDat.substr(0,br);
+textDiv.style.cssText = "position:absolute; top:0";
+var textDatH = textDiv.offsetHeight;MaxRoll();
+}
+var minTime,maxTime,divTop,newTop=0;
+function MinRoll(){
+newTop++;
+if(newTop<=divTop+60){
+textDiv.style.top = "-" + newTop + "px";
+}else{
+clearInterval(minTime);
+maxTime = setTimeout(MaxRoll,5000);
+}
+}
+function MaxRoll(){
+divTop = Math.abs(parseInt(textDiv.style.top));
+if(divTop>=0 && divTop<textDatH-60){
+minTime = setInterval(MinRoll,1);
+}else{
+textDiv.style.top = 0;divTop = 0;newTop=0;MaxRoll();
+}
+}
+// ]]>
+
+</script>--></div>
+	<div style="clear:both"></div>
+</div>
+<div id="mytd2_bottom"></div>
+<script language="javascript">
+<!--
+function trim(stringToTrim){
+	return stringToTrim.replace(/^\s+|\s+$/g,"");
+}
+
+function StringLength(str){
+	return str.replace(/[^\x00-\xff]/g,"**").length
+}
+
+function searchValidate(){
+	if(trim(document.searchBoxForm.keyword.value)==""){
+		alert("对不起！你没有输入任何关键词。");
+		return ;
+	}else{
+		if(StringLength(trim(document.searchBoxForm.keyword.value))>100){
+			alert("请把输入的关键字限制在50个中文字内。 谢谢！");
+			return ;
+		}else{
+			document.searchBoxForm.submit();
+		}
+	}
+}
+//-->
+</script>
+<div class="pagetitle">
+					<a href='http://bbs.ednchina.com/'>EDN China 电子设计技术互动社区</a>><a href='http://bbs.ednchina.com/BLOG.HTM'>博客  </a>><a href='http://bbs.ednchina.com/BLOG_303129231_539070.HTM'>303129231博客  </a>>初学linux(2)--内核制作</div>			
+						<div class="section_description">
+									</div>							
+							<div id="container">
+				<!--[if !IE]> begining of left column <![Endif]-->
+				<div class="left_col">	
+					<div style="margin-bottom: 20px;"><!--display Middle Leader Border banner -->
+<div id="bannerPos_text_ad" name="bannerPos_text_ad"></div></div>
+					<meta NAME="navName" CONTENT="网友博客">
+<script src="/scripts/prototype.js"></script>
+<script>
+	function vote(pollForm,option,pollId,objectId)
+	{
+		var action = "/ajaxVote.jspa";
+		var pars ="pollId="+pollId+"&option="+option+"&objectId="+objectId;		
+		var myAjax = new Ajax.Request(action,{method: 'post', parameters: pars, onComplete: updatePage} );
+	}
+	function updatePage(xmlHttp) 
+	{
+		if (xmlHttp.readyState == 4) 
+		{
+	  		if (xmlHttp.status == 200) 
+	  		{	
+	  			var xmlobj = xmlHttp.responseXML;
+	  			var status = xmlobj.getElementsByTagName("result")[0].getElementsByTagName("status")[0].firstChild.data;
+				var objectType= xmlobj.getElementsByTagName("result")[0].getElementsByTagName("objectType")[0].firstChild.data;
+				var objectId = xmlobj.getElementsByTagName("result")[0].getElementsByTagName("objectId")[0].firstChild.data;
+				var optionCount = xmlobj.getElementsByTagName("result")[0].getElementsByTagName("count")[0].getElementsByTagName("optionCount")[0].firstChild.data;
+				var totalCount = xmlobj.getElementsByTagName("result")[0].getElementsByTagName("count")[0].getElementsByTagName("totalCount")[0].firstChild.data;
+				var totalCountId=document.getElementById("totalCount");
+				if(status == "alreadyVoted")
+				{
+					alert('您已经进行了投票。');
+					return;
+				}
+				else if(status =="succVoted")
+				{
+					alert('您的投票已记录，谢谢您的参与');
+				}
+				else if(status=="postOwner")
+				{
+					alert('您不能对自己发表的帖子进行投票');
+					return;
+				}
+				else if(status=="blogOwner")
+				{
+					alert('您不能对自己发表的文章进行投票');
+					return;
+				}
+				else 
+				{
+					alert('系统发生错误。请联系系统管理员。');
+					return;
+				}
+				if(totalCountId != null){
+					totalCountId.innerHTML = totalCount;
+				}
+				if(objectType==400 || objectType==33)
+				{			
+					for(var i=0;i<optionCount;i++)
+					{
+						var count = xmlobj.getElementsByTagName("result")[0].getElementsByTagName("count")[0].getElementsByTagName("voteCount"+i)[0].firstChild.data;
+						document.getElementById(objectId+"_"+i).innerHTML = count;
+					}
+				}else if(objectType==31){
+					var count = xmlobj.getElementsByTagName("result")[0].getElementsByTagName("count")[0].getElementsByTagName("voteCount0")[0].firstChild.data;
+					document.getElementById("cnt").innerHTML = count;
+				}
+			}
+  		}
+	}	
+</script><script type="text/javascript">
+    function forwardDownloadPage(entryID, attachmentId, downloadTimes, icon, fileName, subject,userPoint) {    	   		
+        var downloadForm = document.getElementById("downloadForm");
+        if('true'=='true') { 
+		    window.location = "http://www.ednchina.com/login.do?fromWhere=http%3A%2F%2Fbbs.ednchina.com%2FBLOG_ARTICLE_2140790.HTM";
+			return false;
+		} else {
+			downloadForm.entryID.value = entryID;
+			downloadForm.attachmentId.value = attachmentId;
+			downloadForm.downloadTimes.value = downloadTimes;
+			downloadForm.icon.value = icon;
+			downloadForm.fileName.value = fileName;
+			downloadForm.subject.value = subject;
+			downloadForm.userPoint.value = userPoint;
+			downloadForm.submit();
+		}
+       
+        return false;
+    }
+</script>
+
+<form action="blogDownloadPage.jsp" 
+    method="post" name="downloadForm" id="downloadForm">
+    <input type="hidden" name="entryID" />
+    <input type="hidden" name="attachmentId" />
+    <input type="hidden" name="downloadTimes" />
+    <input type="hidden" name="icon" />
+    <input type="hidden" name="fileName" />
+    <input type="hidden" name="subject" />
+    <input type="hidden" name="userPoint" />
+</form>
+
+ <!--[if !IE]> beginning of blog article <![Endif]-->
+ 	<!--[if !IE]> Beginning of personal profile <![Endif]-->   
+<div class="infosection">
+     <div class="infoheader">个人档案</div>
+     <div class="infobg">
+     <div class="smallbox">
+     <table width="100%" border="0" cellspacing="0" cellpadding="0">
+  		<tr>
+		    <td width="15%" rowspan="6" valign="top">
+		     <a href="/images/attachments/blog/trs-001.gif" ><img src="/images/attachments/blog/trs-001.gif"  width="80" align="top" alt="" /></a>  </td>
+		    <td valign="top" colspan='2'><strong>呢称：</strong><a href="http://group.ednchina.com/PERSONAL_INFO_539070.HTM" onclick="javascript:trackJumpTo('blogname_539070_2140790');">303129231</a>&nbsp;&nbsp;&nbsp;&nbsp;
+		    
+			文章(<strong>3</strong>)&nbsp;&nbsp;&nbsp;&nbsp;
+			访问(<strong>904</strong>)&nbsp;&nbsp;&nbsp;&nbsp;
+			评论(<strong>0</strong>)&nbsp;&nbsp;&nbsp;&nbsp;
+			投票(<strong>0</strong>)&nbsp;&nbsp;&nbsp;&nbsp;
+			订阅本博&nbsp;&nbsp;<a href="http://bbs.ednchina.com/rss/rssblog.jspa?blogID=539070" title="RSS" onclick="javascript:trackJumpTo('blogRSS_539070_2140790');"><img src="/images/rss.gif" alt="RSS" style="margin-bottom:-3px"></a>
+			</td>
+    	</tr>
+ 		<tr>
+		    <td valign="top" colspan='2'><div style="display: block; width: 540px; overflow: hidden; word-wrap: break-word;"><strong>介绍：</strong>
+		    303129231
+</div>
+		   </td>
+      </tr>
+      
+  	      <tr><td valign="top"><strong>全部博文：</strong><br/>
+  	      2011年&nbsp;&nbsp;-&nbsp;&nbsp;
+				 <a style="text-decoration: underline;" href="/blog_index.jspa?entry_month=2011-10&blog_id=539070">10月</a>
+				  <a style="text-decoration: underline;" href="/blog_index.jspa?entry_month=2011-09&blog_id=539070">9月</a>
+				  <br>
+	        </td>
+	        <td valign="bottom" align="right">
+                <a style="text-decoration: underline;" href="/blog_index.jspa?blog_id=539070&viewall=true" onclick="javascript:trackJumpTo('checkallblogart_539070_2140790');">查看全部博文</a>
+            </td>		   
+	   		</tr>
+			<tr>
+	    <td valign="top" colspan='2'>
+	    	<a href="#" onclick="javascript:trackJumpTo('watchblog_539070_2140790');doScript('watch_blog.jspa?blog_id=539070');" rel="nofollow"><img src="/images/but_care_professional.gif" align="absmiddle"></a>
+	       	
+		   	&nbsp;&nbsp;&nbsp;&nbsp;<a href="javascript:NewWin('/pmpost!default.jspa?to=303129231','500','400');trackJumpTo('blogsendmessage_539070_2140790');" rel="nofollow"><img src="/images/btn_msg.gif" align="absmiddle"></a>
+			&nbsp;&nbsp;&nbsp;&nbsp;<a href="javascript:NewWin('/friend!directAdd.jspa?friendID=539070','510','400');trackJumpTo('blogaddfriend_539070_2140790');" rel="nofollow"><img src="/images/btn_add_friend.gif" align="absmiddle"></a>	    
+	   		
+	   		&nbsp;&nbsp;&nbsp;&nbsp;<a style="text-decoration: underline;" href="http://bbs.ednchina.com/BLOG_303129231_539070.HTM">博客首页</a>
+	   </td>
+	</tr>  
+	</table>
+	</div>     
+	</div>
+</div>       
+<!--[if !IE]> End of personal profile <![Endif]--><div style="width: 100%; text-align: center;"><br>
+  		<table width="100%" border="0" cellspacing="0" cellpadding="0">
+   		<tr>
+      		<td width="30%" align="left"></td>
+      		<td align="right">
+      		</tr>
+  		</table>
+	</div>
+   <div class="discuss2">
+    <div class="articlecontent_blog">
+	         	 <div class="title_blog">
+		         	 <span class="title">
+		         	    <strong>初学linux(2)--内核制作</strong>&nbsp; 
+		         	 	<span style="color:#333; font-size:12px; letter-spacing:1px;">[嵌入式]</span>
+	         	 	</span>
+	         	 	<span class="time">发布时间：2011-09-25 20:59:23</span>
+	         	 	<span style="float: right; text-align: right;">&nbsp; 
+	      			</span>  
+	         	 </div>
+				<!--???????? ????-->
+				<!--???????? ?á??--> 
+	         	 
+				<div class="fn_blog">************************ 华丽的分割--X86 ***********************<br><br>第一步：清除原有配置的中间文件 make distclean（其他类似命令就不说了 ）<br><br>第二步：内核的配置，首先谈谈要用到的词语：<br>make menuconfig（其他的配置方式就不说了）<br>makefile<br>Kconfig<br><br>Kconfig 是每一个子目录里面都有的文件 当执行 make menuconfig的时候，我们修改每一项为Y或者M 其实都是在修改每一级的Kconfig 。<br>修改完后保存 会生成一个.config文件 这个文件记录了我们需要编译的模块<br><br>顺便说下Kconfig的工作原理 当然 是很肤浅的一点理解 ：makefile应该是 obj-CONFIG_XXXXX = yourcode.o 这么写的, 这个CONFIG_XXXXX就是用Kconfig配置成y或者m的,。如果你在Makefile里面写成这样：obj-y = yourcode.o 那么不管你Kconfig如何配置 那么肯定都是会编译进内核的<br><br>第三步：编译<br>我们执行make bzimage编译命令&nbsp; 会在arch/X86/boot下生成bzimage<br>Makefile会读.config文件的内容 决定什么模块要编译 什么模块不要编译 并一级级递归下去<br>这样编译就完了 不过还少说了一个名词：Kbuild&nbsp; 说道Kbuild就得细细说是Makefile了<br>2.6版本的Makefile分为5部分：<br><br>Makefile &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;顶层Makefile<br>&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;<br>.config&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;内核配置文件<br><br>arch/$(ARCH)/Makefile&nbsp;&nbsp; &nbsp;&nbs                                                                                                                                                                                                                                                                                                                 常见的Makefile&nbsp; 他的名字应该叫做Makefile 当然 也可能会叫做Kbuild&nbsp; 如果两个同时出现的话 会执行Kbuild 不过有点特殊的是 在源码根目录下面 Kbuild和Makefile是同时存在的&nbsp; 但这并不代表Makefile是没作用的 我是这么理解的 Kbuild就是一个脚本 make的时候会调用他 他和前面说的 Kbuild Makefile应该不是一回事<br><br>第四步：编译内核模块<br>make modules&nbsp; 编译配置为M的模块<br>我就有疑问了 为什么要先配置为M 然后再make modules&nbsp; 直接配置为Y不是就OK了？<br>&nbsp;&nbsp; &nbsp;仔细想了半天 还是不解 厚着脸在群里问了一下 一位大哥说 啥？你自己好好看看书吧 于是我知道了我这个问题肯定很低级 于是我突然间想明白了 <br>&nbsp;&nbsp; &nbsp;先举一个例子&nbsp; 在pc上写一个helloworld的内核模块 写个makefile编译 然后insmod lsmod 发现这个模块就被加载到内核了 如果你有10个 20个模块呢 这样一个一个就太麻烦了 所以在配置的时候 把这些需要动态装载的模块配置为M 然后总体编译 也就是make modules&nbsp; 然后你想加载那个模块 你就insmod哪个就OK了<br><br>第五步：安装内核模块<br>make modules_install 把编译好的内核模块从源码处拷贝到lib/modules下&nbsp; 这个目录下存放着所有内核模块（驱动）文件 就是ko文件 例如：我电脑上cd/lib/modules/2.6.32-21-generic/kernel/drivers/usb/atm 里面就有一些ko文件 <br><br>第六步：制作init ramdisk&nbsp;&nbsp; 制作根文件系统<br>makinitrd initrd-2.6.29 2.6.29 &nbsp;&nbsp;&nbsp; &nbsp;/lib/modules下的版本号<br><br>第七步：拷贝bzimage到系统根目录boot下 并改名为vmlinuz-版本号<br>&nbsp;&nbsp; &nbsp;拷贝initrd到根boot下<br>&nbsp;&nbsp; &nbsp;修改etc/grub.conf 或者 /etc/lilo.config&nbsp; 这是根据系统采用哪种引导方式<br>&nbsp;&nbsp; &nbsp;<br>第七步也是最后一步 有必要说说这个boot目录<br>他里面有这三个核心文件 System.map、vmlinuz、initrd-2.4.7-10.img<br>vmlinuz是可引导的、压缩的内核镜像。<br>initrd-2.4.7-10.img&nbsp;&nbsp; &nbsp;根文件系统<br>System.map&nbsp;&nbsp; &nbsp;内核符号表的一部分&nbsp; 完整的内核符号表是 /proc/ksyms&nbsp; System.map 这两个文件<br>linux在进行程序设计时，会命名一些变量名或函数名之类的符号。Linux内核不使用符号名，而是通过变量或函数的地址来识别变量或函数名。比如不是使用size_t BytesRead这样的符号，而是像c0343f20这样引用这个变量。&nbsp; 内核符号表就是把这两个东西对应起来的一张表 System.map就是这张表不可缺少的一部分 这么理解就行了 虽然不专业<br><br>***************** 华丽的分割--arm *******************************<br><br>第一步：清除&nbsp; 和x86一样<br>第二步：配置<br>make menuconfig ARCH=arm&nbsp; &nbsp;<br>第三步：编译<br>make uImage ARCH=arm CROSS_COMPILE=arm-linux-<br><br>&nbsp;&nbsp; &nbsp;ARCH&nbsp; CROSS_COMPILE 都是Makefile传递给Kbuild的参数&nbsp; 可以像上面那样写 也可以直接在Makefile里面改ARCH的值 这样make menuconfig的时候就不用添加后面的参数了<br>第四步：制作根文件系统<br>&nbsp;&nbsp; &nbsp;具体还没研究<br>第五步：编译内核模块&nbsp;&nbsp; make modules ARCH=arm CROSS_COMPILE=arm-linux-&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;和X86一样<br>第六步：安装内核模块&nbsp;&nbsp; make modules_install INSTALL_MOD_PATH=/???/roots&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;拷贝模块到根文件系统<br><br>接下来还要busybooks&nbsp; 还要制作ramdisk&nbsp; <span style="font-weight: bold;">过几天再说吧 现在不想看了</span>！！！！！！！<br><br><br><br><br>&nbsp; <br><br><br><br>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 </div>
+    </div> 
+      <!-- begin blog attach -->
+	<table width="100%" border="0" cellspacing="0" cellpadding="0">
+	<tr></tr>
+	<!-- end 11 -->
+	</table>
+    <!--end blog attach   -->
+     
+     </div>
+     <div style="clear: both;"></div>
+     <div>
+             <strong>标签：&nbsp;&nbsp; </strong>
+    	     </div>
+     <div style="display: block;"> 
+	 <table style="width:95%;line-height:20px;" cellspacing="0" cellpadding="0">
+		<tr>
+			<td align="center" width="180" rowspan="2" valign="top">
+                <form name="voteForm2140790" action="/ajaxVote.jspa">
+	<input	type="hidden" name="pollId" value="56">
+ 	<input	type="hidden" name="objectId" value="2140790">
+  	<input type="hidden" name="option" value="">
+   <div style="margin-bottom:20px;">有[ <strong><span id="totalCount">0</span></strong> ]名读者喜欢此文
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		<a href="javascript:void(null)"  onclick="javascript:vote(document.voteForm2140790,0,56,2140790);trackJumpTo('BlogARTILike_539070_2140790');" rel="nofollow"><img src="/images/but_i_like.gif" align="middle"></a>
+	</div>
+	</form>
+</td>
+			<td>
+                阅读(<strong>282</strong>)&nbsp;&nbsp;
+                <a href="save_comment!default.jspa?entry_id=2140790&isblogowner=false" rel="nofollow">评论</a>(<strong>0</strong>)&nbsp;&nbsp;
+				[最后更新：2011-09-25 20:58:41]
+			</td>
+		</tr>
+		<tr>
+			<td valign="top">
+			    <!-- favorite -->
+   				<a href="http://www.ednchina.com/login.do?fromWhere=http://bbs.ednchina.com/BLOG_ARTICLE_2140790.HTM" onclick="javascript:trackJumpTo('BlogARTfavor_539070_2140790');" rel="nofollow">收藏</a>&nbsp;&nbsp;I&nbsp;&nbsp;
+				<!-- print -->
+				<a href="view_comments!print.jspa?entry_id=2140790" rel="nofollow">打印</a>&nbsp;&nbsp;I&nbsp;&nbsp;
+				<!-- recomment my group -->
+				<a href="javascript:login('http://group.ednchina.com/group/recommendRes.do?method=init&title=%B3%F5%D1%A7linux%282%29--%C4%DA%BA%CB%D6%C6%D7%F7&type=BLOG&resourceUrl=http%3A%2F%2Fbbs.ednchina.com%2FBLOG_ARTICLE_2140790.HTM');" rel="nofollow">
+			    推荐到我的小组</a>&nbsp;&nbsp;I&nbsp;&nbsp;
+              <!-- share to my blog -->
+		  <span OnMouseOver="player('loginS');" onMouseOut="clocer('loginS');" style="cursor:hand;">
+			  		<a href="http://www.ednchina.com/login.do?fromWhere=http://bbs.ednchina.com/BLOG_ARTICLE_2140790.HTM">
+			   	转发到我的博客</a>
+			  	</span>(0)
+			  
+			  <div class="tipsBox">
+					<div id="loginS" class="tipsInfo" OnMouseOver="player('loginS');" onMouseOut="clocer('loginS');">
+						对不起，您还没有登录，请先<a href="http://www.ednchina.com/login.do?fromWhere=http://bbs.ednchina.com/BLOG_ARTICLE_2140790.HTM">登录</a>或<a href="http://www.ednchina.com/register.do">注册</a></div>
+				</div>
+			  </td>
+		</tr>
+	</table>
+	</div>          
+    <div style="float: left; margin-bottom: 10px;" align="right">
+        <div class="page_top">
+        <a linkindex="89" href="BLOG_ARTICLE_2144469.HTM" title="初学usb（1）-usb基础知识" class="top_txt1">初学usb（1）-usb基础知识</a>
+        </div>
+        <div class="page_next">
+        <a linkindex="90" href="BLOG_ARTICLE_2140783.HTM" title="初学linux(1)--文件系统和内核关系" class="top_txt2">初学linux(1)--文件系统和内核关系</a>
+        </div>
+	</div>
+	<br><br>
+<div class="blogbox" style="width: 320px; margin-bottom: 20px; margin-right: 16px; height:155px;">
+	<!-- threads list start -->
+	<table width="100%" border="0" cellpadding="0" cellspacing="0">
+	<tbody>
+	<tr> 
+		<th width="160" align="left">博主的精彩博文</th>
+	    <th width="160" align="right" colspan="3"><a  href="/blog_index.jspa?blog_id=539070&viewall=true" target="_blank" >更多>></a> </th>
+	</tr>	
+    <tr>                                   
+    <td style="margin-left:5px;" colspan=4>
+	<ul style="list-style-type: none; padding-left: 0px;">
+	<li><img src="/images/Ico_dot.JPG">
+	<a id="jive-thread-6" href="BLOG_ARTICLE_2144469.HTM"  target="_blank">初学usb（1）-usb基础知识</a>
+	  </li>
+    <li><img src="/images/Ico_dot.JPG">
+	<a id="jive-thread-6" href="BLOG_ARTICLE_2140790.HTM"  target="_blank">初学linux(2)--内核制作</a>
+	  </li>
+    <li><img src="/images/Ico_dot.JPG">
+	<a id="jive-thread-6" href="BLOG_ARTICLE_2140783.HTM"  target="_blank">初学linux(1)--文件系统和内核关系</a>
+	  </li>
+    </ul></td>
+   </tr>   
+	<tr>
+	  <td align=right colspan=4>
+
+      </td>
+   </tr>                   
+</tbody>
+
+</table>
+</div>
+<div class="blogbox" style="width: 320px; margin-bottom: 20px;height:155px;">
+	<!-- threads list start -->
+	<table width="100%" cellspacing="0" cellpadding="0" border="0">
+	<tbody>
+	<tr> 
+		<th width="290" align="left">随机精彩文章</th>
+	    <th width="10" align="center"></th>
+		<th width="10" align="center"></th>
+		<th width="10" align="right"></th>
+	</tr>	
+    <tr>                                   
+    <td style="margin-left: 5px;" colspan="4">
+	<ul style="list-style-type: none; padding-left: 0px;">
+	    <li><img src="images/Ico_dot.JPG"><a id="jive-thread-6" href="http://bbs.ednchina.com/BLOG_ARTICLE_3000808.HTM" target="_blank">	Eagle 6.0 新功能</a></li><li><img src="images/Ico_dot.JPG"><a id="jive-thread-6" href="http://bbs.ednchina.com/BLOG_ARTICLE_3000929.HTM" target="_blank">	SONY NEX 5N 相机遥控器红外码分析</a></li><li><img src="images/Ico_dot.JPG"><a id="jive-thread-6" href="http://bbs.ednchina.com/BLOG_ARTICLE_3000963.HTM" target="_blank">	“Vds-id”门级电压步步高</a></li><li><img src="images/Ico_dot.JPG"><a id="jive-thread-6" href="http://bbs.ednchina.com/BLOG_ARTICLE_3000679.HTM" target="_blank">	用PQMagic调整硬盘分区时错误的处理</a></li><li><img src="images/Ico_dot.JPG"><a id="jive-thread-6" href="http://bbs.ednchina.com/BLOG_ARTICLE_3001122.HTM" target="_blank">	下一代纳米级IC卓越的性价比测量解决方案(二)</a></li></ul></td>
+   </tr>   
+</tbody>
+
+</table>
+</div>
+<div id="commentList" style="float: left; width: 654px; _width: 652px; margin-bottom: 20px; border: 1px solid rgb(204, 204, 204); padding: 0px 3px;">		  
+	  	<div class="comment_title" style="margin-bottom:0px;padding:8px 3px; word-break:break-all;word-wrap:break-word;"><strong>有 [ 0 ] 名读者发表评论 - 初学linux(2)--内核制作</strong></div>
+		  <div class="commentlist" style="float: left; margin-top: 0px; padding: 0px; width: 654px;_width: 652px; border-bottom-color: rgb(255, 255, 255);">
+		  	<table border="0" cellpadding="0" cellspacing="3" width="100%">
+		  		<tbody>		  		
+	 		<tr><td colspan="3">&nbsp;</td></tr>
+	  		</tbody>
+     			</table>
+     		</div>
+</div>		
+<div id="commentList" style="float: left; width: 654px;_width: 652px; margin-bottom: 20px; border: 1px solid rgb(204, 204, 204); padding: 0px 3px;">
+	<div class="comment_title" style="margin-bottom:0px;padding:8px 5px; word-break:break-all;word-wrap:break-word;" ><strong>我来评论 - 初学linux(2)--内核制作</strong></div>
+	<div class="commentlist" style="float: left; margin-top: 0px; padding: 0px; width: 654px;_width: 652px; border-bottom-color: rgb(255, 255, 255);">
+	<FORM METHOD=POST ACTION="save_comment.jspa" name="comment_form" onsubmit="return checkthisPost(this);">
+	<INPUT TYPE="hidden" name="blog_id" value="539070">
+	<INPUT TYPE="hidden" name="entry_id" value="2140790">
+	<INPUT TYPE="hidden" name="quick_comment" value="true">
+	<table border="0" cellpadding="0" cellspacing="0" width="100%"> 		
+ 		<tr>
+ 			<td height=30><strong>您的昵称：</strong></td>
+			<td><span style="margin-left:4px;">北京市的游客</span>
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+				(您将以游客身份发表，请<a target="_top" href="javascript:login('bbs.ednchina.com/BLOG_ARTICLE_2140790.HTM');" rel="nofollow">登录 | </a>&nbsp;<a href="http://www.ednchina.com/register.do" rel="nofollow">注册</a>)</td>
+			</tr>
+		<tr>	        
+	        <td colspan="2"><div id="errormessage"></div></td>
+        </tr>
+		<tr>		
+	        <td width="80" height="120" style="vertical-align:top" valign="top"><B>您的评论：</B></td>
+          	<td>
+          		<table border="0" cellpadding="0" cellspacing="0" width="100%">
+			  		<tr>
+			  			<td>
+							  <div id="jive-post-bodybox">
+					          	 
+								 	<TEXTAREA NAME="body" cols="60" rows="7" id="body01"></TEXTAREA>
+   							  </div>
+  						</td>						
+					</tr>
+				</table>				
+          	</td>
+        </tr>
+        <tr>
+		  	<td  nowrap class="maintext">&nbsp;</td>
+            <td  nowrap class="maintext">
+             <div id="contentMsg" class="msgBox">
+              你还可以输入<span>1000</span>字</div>
+             <script>setInterval("inputCounter('body01','contentMsg','false',1000)",1000);</script>
+            </td>
+		</tr>
+        <tr> 
+        	<td style="width:60px"><b>验证码：</b></td>
+          	<td  align="left"><input name="checkCode" style="margin-left:4px;" size="8" maxlength="75" tabindex="4" id="checkCode" value="" type="text">
+          	<img src="/servlet/randomImgCodeServlet" class="imageRandom" width="70" border="1" height="20" style="vertical-align:middle;cursor: pointer;" onclick="javascript:this.src='/servlet/randomImgCodeServlet?'+(new Date().getTime());">
+          	<input type="image" src="/images/MAIN_BTN_SUBMIT.gif" >
+          	</td>
+          	</tr>
+        <tr>       
+	        <th>&nbsp;</th>         
+	        <td>&nbsp;</td>
+        </tr>
+	</table>
+	</from>
+	</div>
+</div>
+<!--pop-->
+<form name="" id="" action="" method="get"></form>
+<form name="" id="" action="" method="get"></form>
+	<div id="popbox1" class="popbox">
+		<form name="forwardEntryForm" id="forwardEntryForm" action="" method="post">
+		<input TYPE="hidden" name="originalityEntryId" value="2140790">
+		<div class="poptitle"><a href="javascript:void(0);" class="closebtn" onclick="closePop('popbox1');">关闭</a></div>
+		<dl class="popcontent">
+			<dt>转发到我的博客</dt>
+			<dd class="BlogT">评论&nbsp;<a href="BLOG_303129231_539070.HTM">@303129231's Blog</a>&nbsp;的“初学linux(2)--内核制作”</dd>
+			<dd class="Bcont">************************华丽的分割--X86***********************第一步：清除原有配置的中间文件makedistclean（其他类似命令就不说了）第二步：内核的配置，首先谈谈要用到的词语：makemenuconfig（其他的配置方式就不说了）makefileKconfigKconfig是每一个子目录里面都有的文件当执行makemenuconfig的时</dd>
+			<dd><textarea name="entryContent" id="entryContent" class="Btext" cols="" rows=""></textarea></dd>
+			<td>
+				<div id="contentMsgQ1" class="msgBox">
+				  你还可以输入<span>20000</span>字</div>
+			 <script>setInterval("inputCounter('entryContent','contentMsgQ1','false',20000)",1000);</script>
+			</td>
+			<dd><input name="alsoComment" type="checkbox" value="Y">同时评论给&nbsp;<strong>303129231</strong></dd>
+			<dd class="Bsub">
+				<input onclick="javascript:validEntryForm();return false;" type=image src="/images/blog_SUB.gif" name="imageField">&nbsp;&nbsp;&nbsp;&nbsp;
+				<input onclick="javascript:freset(document.forwardEntryForm);closePop('popbox1');return false;" type=image src="/images/blog_RET.gif" name="imageField2">
+			</dd>
+		</dl>
+		</form>
+	</div>
+	<div id="popbox2" class="popbox">
+		<form name="quickReplyForm" id="quickReplyForm" action="quote_comment.jspa" method="post">
+			<input TYPE="hidden" name="blog_id" value="539070">
+			<input TYPE="hidden" name="entry_id" value="2140790">
+			<input TYPE="hidden" name="action" value="quickReply">
+			<input TYPE="hidden" name="originalityCommentId" id="originalityCommentId" value="">
+			<input TYPE="hidden" name="commenterName" id="commenterName" value="">
+			<input TYPE="hidden" name="commenterId" id="commenterId" value="">
+			<div class="poptitle"><a href="javascript:void(0);" class="closebtn" onclick="closePop('popbox2');">关闭</a></div>
+			<dl class="popcontent">
+				<dt>快速回复</dt>
+				<dd><textarea name="replyContent" id="quickReplyContent" class="Btext" cols="" rows=""></textarea></dd>
+				<dd  nowrap class="maintext">&nbsp;</dd>
+	            <td>
+          			<div id="contentMsgQ2" class="msgBox">
+		              你还可以输入<span>1000</span>字</div>
+	             <script>setInterval("inputCounter('quickReplyContent','contentMsgQ2','false',1000)",1000);</script>
+          		</td>
+				<dd class="Bsub">
+					<input onclick="javascript:validCommentForm(document.quickReplyForm);return false;" type=image src="/images/blog_com.gif" name="imageField">&nbsp;&nbsp;&nbsp;&nbsp;
+					<input onclick="javascript:freset(document.quickReplyForm);closePop('popbox2');return false;" type=image src="/images/blog_RET.gif" name="imageField2">
+				</dd>
+			</dl>
+		</form>
+	</div>
+	
+	<div id="popbox3" class="popbox">
+		<form name="quoteReplyForm" id="quoteReplyForm" action="quote_comment.jspa" method="post">
+			<input TYPE="hidden" name="blog_id" value="539070">
+			<input TYPE="hidden" name="entry_id" value="2140790">
+			<input TYPE="hidden" name="action" value="quoteReply">
+			<input TYPE="hidden" name="originalityCommentId" id="originalityCommentId" value="">
+			<input TYPE="hidden" name="commenterName" id="commenterName" value="">
+			<input TYPE="hidden" name="commenterId" id="commenterId" value="">
+			<div class="poptitle"><a href="javascript:void(0);" class="closebtn" onclick="closePop('popbox3');">关闭</a></div>
+			<dl class="popcontent">
+				<dt>引用回复</dt>
+				<dd class="BlogT">引用评论&nbsp;<a id="originalityCommenter" href=""></a></dd>
+				<dd class="Bcont"><div id="originalityComment"></div></dd>
+				<dd><textarea name="replyContent" id="quoteReplyContent" class="Btext" cols="" rows=""></textarea></dd>
+			  	<dd  nowrap class="maintext">&nbsp;</dd>
+	           <td>
+          			<div id="contentMsgQ3" class="msgBox">
+		              你还可以输入<span>1000</span>字</div>
+	             <script>setInterval("inputCounter('quoteReplyContent','contentMsgQ3','false',1000)",1000);</script>
+          		</td>			
+				<dd class="Bsub">
+					<input onclick="javascript:validCommentForm(document.quoteReplyForm);return false;" type=image src="/images/blog_com.gif" name="imageField">&nbsp;&nbsp;&nbsp;&nbsp;
+					<input onclick="javascript:freset(document.quoteReplyForm);closePop('popbox3');return false;" type=image src="/images/blog_RET.gif" name="imageField2">
+				</dd>
+			</dl>
+		</form>
+	</div>
+<script src="/scripts/common.js"></script>
+<script type="text/javascript">
+//entry
+function checkEntryIsForward(){
+	var url = "forward_entry!checkEntryIsForward.jspa";
+	var pars = "ajax=yes&entryId=2140790&t=" + new Date().getTime();
+	var myAjax = new Ajax.Request(url,{method: 'post', parameters: pars, onComplete: checkForwardResponse});
+}
+	
+function checkForwardResponse(xmlHttp) {
+	if (xmlHttp.readyState == 4) {
+		if (xmlHttp.status == 200) {
+			var xmlobj = xmlHttp.responseXML;
+			var successFlag = xmlobj.getElementsByTagName("result")[0].getElementsByTagName("flag")[0].firstChild.data;
+			if(successFlag == "false") {
+		        alert(xmlobj.getElementsByTagName("result")[0].getElementsByTagName("error")[0].firstChild.data);
+	        } else if(successFlag == "true") {
+	        	openPop('popbox1');
+	        }
+		} 
+	}
+}
+
+function validEntryForm() {
+	
+	var content = document.getElementById("entryContent").value;
+	if(content==null || Trim(content)=="") {
+		alert('请输入文章详述（不能为空或空格）');
+		return false;
+	}
+	
+	var url = "forward_entry!checkContent.jspa";
+	var pars = "ajax=yes&content=" + encodeURIComponent(encodeURIComponent(content)) + "&t=" + new Date().getTime();
+	var myAjax = new Ajax.Request(url,{method: 'post', parameters: pars, onComplete: checkEntryResponse});
+}
+
+function checkEntryResponse(xmlHttp) {
+	if (xmlHttp.readyState == 4) {
+		if (xmlHttp.status == 200) {
+			var xmlobj = xmlHttp.responseXML;
+			var successFlag = xmlobj.getElementsByTagName("result")[0].getElementsByTagName("flag")[0].firstChild.data;
+			if(successFlag == "false") {
+	        	alert(xmlobj.getElementsByTagName("result")[0].getElementsByTagName("error")[0].firstChild.data);
+			} else if(successFlag == "true") {
+		        document.forwardEntryForm.action = "forward_entry.jspa";
+		    	document.forwardEntryForm.submit();
+			}
+		}
+	}
+}
+//entry end
+
+//comment
+function handleCommentData(formObj, commentId, content, commenterId, nickname){
+	
+	formObj.originalityCommentId.value = commentId;
+	formObj.commenterName.value = nickname;
+	formObj.commenterId.value = commenterId;
+
+	if(formObj.id=="quoteReplyForm"){
+		var linkObj = document.getElementById("originalityCommenter");
+		linkObj.href = "http://www.ednchina.com/viewBlogInfo.do?userId=" + commenterId;
+		linkObj.innerHTML = "@" + nickname;
+		
+		var commentObj = document.getElementById("originalityComment");
+		commentObj.innerHTML = content;
+	}
+}
+
+function validCommentForm(formObj) {
+	var content = formObj.replyContent.value;
+	
+	if(content==null || Trim(content)=="") {
+		alert('请输入评论内容（不能为空或空格）');
+		return false;
+	}
+
+	var checkCommentResponse = showResponse.bind(Prototype.emptyFunction, formObj);
+	var url = "quote_comment!checkContent.jspa";
+	var pars = "ajax=yes&content=" + encodeURIComponent(encodeURIComponent(content)) + "&t=" + new Date().getTime();
+	var myAjax = new Ajax.Request(url,{method: 'post', parameters: pars, onComplete: checkCommentResponse});
+}
+
+function showResponse(formObj, xmlHttp){
+	if (xmlHttp.readyState == 4) {
+		if (xmlHttp.status == 200) {
+			var xmlobj = xmlHttp.responseXML;
+			var successFlag = xmlobj.getElementsByTagName("result")[0].getElementsByTagName("flag")[0].firstChild.data;
+			if(successFlag == "false") {
+	        	alert(xmlobj.getElementsByTagName("result")[0].getElementsByTagName("error")[0].firstChild.data);
+			} else if(successFlag == "true") {
+				formObj.submit();
+			}
+		}
+	}
+}
+//comment end
+</script>
+<!--pop-->    
+    
+<script type="text/javascript">
+function testJump(website){
+	var str = '/images/blank.gif?jumpto='+website+'-'+ new Date().getTime();
+	document.getElementById(website+'IMG').src=str;
+}
+
+function checkthisPost(frm){
+	if(frm.body01.value==""){
+		document.getElementById("errormessage").innerHTML = '<P style="margin-left:80px;color: red;">请输入评论内容（不能为空或空格）</P>';
+		//alert('请输入评论内容（不能为空或空格）');
+		return false;
+	}else if(frm.body01.value.length>1000){
+		document.getElementById("errormessage").innerHTML = '<P style="margin-left:80px;color: red;">评论长度不能超过1000个字符</P>';
+		//alert('评论长度不能超过{0}个字符');
+		return false;
+	}else{
+		document.getElementById("errormessage").innerHTML = '';
+		return true;
+	}
+}
+</script>   
+    <!--[if !IE]> end of blog article <![Endif]-->  
+<script type="text/javascript" src="/scripts/share_sns.js"></script>
+<script type="text/javascript">
+/** add onmouseout event **/
+document.onmouseout=function(event){	 
+	if(event==null) event = window.event;
+	var aimObj = document.getElementById("gssharesnspop");
+	var fromObj = event.fromElement;
+	var toObj = event.toElement;
+	if(!getParentNodes(toObj,aimObj) && getParentNodes(fromObj,aimObj)){
+		closeshare();
+	}
+}
+</script>
+<!-- onclick="javascript:closeshare()" -->
+<div style="height: auto!important; position: fixed!important;*position: absolute; z-index: 100000000!important; top: 150px!important; right: 0px!important;*right:0px; overflow: hidden; width: 26px;" id="gssharesnspop">
+<table cellpadding="0" cellspacing="0">
+	<tbody style="background: none repeat scroll 0% 0% transparent;">
+		<tr>
+			<td style="background: none repeat scroll 0% 0% transparent;">
+				<img src="/images/r.gif" style="cursor: pointer;"  onmouseover="javascript:openshare()" onclick="javascript:closeshare();"/>
+			</td>
+			<td>
+			<!-- start div -->
+			<div>
+			<!-- start  share_div_01  -->
+			<div class="share_div_01">
+			
+			<div style="width: 100%; background: none repeat scroll 0% 0% rgb(242, 242, 242); border-bottom: 1px solid rgb(229, 229, 229); line-height: 200%; padding-left: 5px; font-size: 12px;">
+			<table width="100%">
+				<tbody>
+					<tr class="gs_sharetitle">
+						<td style="text-align: left; line-height: 25px; font-size: 14px; font-weight: bold; color: rgb(0, 0, 0);" align="left">
+							分享到...</td>
+						<td style="text-align: right;" align="right">
+							<img src="/images/img_exit.gif" style="opacity: 0.5; margin: 0pt 10px; cursor: pointer;" onclick="javascript:closeshare();" border="0">
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			</div>
+			<!-- start share_div_02 -->
+			<div class="share_div_02" style="width: 100%;">
+				<a href="#" onclick="gsshare_sendto('qzone');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_qzone">QQ空间</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('douban');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_douban">豆瓣</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('msn');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_msn">MSN</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('tsina');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_tsina">新浪微博</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('t163');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_t163">网易微博</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('tqq');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_tqq">腾讯微博</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('xiaoyou');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_xiaoyou">腾讯朋友</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('renren');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_renren">人人网</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('kaixin001');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_kaixin001">开心网</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('taobao');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_taobao">淘江湖</span>
+				</a>
+
+				<a href="#" onclick="gsshare_sendto('tsohu');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_tsohu">搜狐微博</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('buzz');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_buzz">Google buzz</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('sohu');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_sohu">白社会</span>
+				</a>		
+				<a href="#" onclick="gsshare_sendto('myspacecn');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_myspacecn">Myspace</span>
+				</a>		
+				<a href="#" onclick="gsshare_sendto('tieba');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_tieba">百度贴吧</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('baidu');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_baidu">百度收藏</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('hi');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_hi">百度空间</span>
+				</a>
+				<a href="#" onclick="gsshare_sendto('tianya');return false;" class="gssharetitle">
+					<span class="gsshareico gsshareico_tianya">天涯社区</span>
+				</a>
+			<div style="clear: both;"></div>
+			</div>
+			<!-- end share_div_02 -->
+			
+			</div>
+			<!-- end  share_div_01  -->
+			</div>
+			<!-- end div -->
+			</td>
+		</tr>
+	</tbody>
+</table>
+</div></div>    
+			 	<!--[if !IE]> end of left column <![Endif]-->    
+    				
+				<!--[if !IE]> begining of right column <![Endif]-->
+				<div class="right_col">
+						
+		<div class="right-item">
+
+	<div class="rightitem-heading">精彩推荐</div>
+
+	<div class="rightitem-content">
+<!-- <p><a href="http://bbs.ednchina.com/BLOG_lihailin560_276842.HTM" target="blank">博客：lihailin560's Blog </a></p>
+<p style="color: rgb(100, 100, 100); font-size: 13px;">老杳，中国科技大学博士，曾就职于联想集团、普天集团及信息产业部从事IPTV、智能手机及集成电路等业务。</p> -->
+<ul>
+<li><a href="http://bbs.ednchina.com/FORUM_LIST_10108_14_0.HTM" style="color: rgb(100, 100, 100); font-size: 13px;">[测试测量]</a>&nbsp;<a href="http://bbs.ednchina.com/BLOG_ARTICLE_3003158.HTM" title="揭开测试测量的小秘密——每周一考 【第2周】"><font color="#FF0000">揭开小秘密——第2周问题及第1周答案</font> </a></li>
+
+<li><a href="http://www.ednchina.com/event/blogcontest/index.html" style="color: rgb(100, 100, 100); font-size: 13px;">[博客大赛]</a>&nbsp;<a href="http://bbs.ednchina.com/BLOG_ARTICLE_3003247.HTM" title="RISC DSP in FPGA：开方运算">DSP in FPGA：开方运算</a></li>
+
+<li><a href="http://www.ednchina.com/event/blogcontest/index.html" style="color: rgb(100, 100, 100); font-size: 13px;">[博客大赛]</a>&nbsp;<a href="http://bbs.ednchina.com/BLOG_ARTICLE_3003230.HTM" title="【原创】三段式状态机的思维陷阱 ">【原创】三段式状态机的思维陷阱</a></li>
+</ul>
+	</div>
+
+
+	</div><!--[if !IE]> Banner_300部分开始 <![Endif]-->
+<div class="banner_300">	
+<center>
+	<div id="bannerPos_top_large_rectangle" name="bannerPos_top_large_rectangle"></div></center>
+</div><!--[if !IE]> Banner_300部分结束 <![Endif]-->
+
+<!--[if !IE]> 博客文选开始 <![Endif]-->
+<div class="section_300">
+		<div class="section_heading">最新网络博文</div>
+	<div class="section_content">
+		<table width="100%" border="0">
+		<tr>
+		    <td width="7%" align="left" valign="top"><img src="/images/icon_arrange_normal.gif" width="13" height="12" style="padding-top:4px;"></td>
+		    <td><a href="BLOG_ARTICLE_3003314.HTM" title="【博客大赛】直接型FIR的FPGA设计（四）">【博客大赛】直接型FIR的FPGA设计（...</a></td>
+	 	 </tr>		
+		<tr>
+		    <td width="7%" align="left" valign="top"><img src="/images/icon_arrange_normal.gif" width="13" height="12" style="padding-top:4px;"></td>
+		    <td><a href="BLOG_ARTICLE_3003313.HTM" title="【博客大赛】直接型FIR的FPGA设计（三）">【博客大赛】直接型FIR的FPGA设计（...</a></td>
+	 	 </tr>		
+		<tr>
+		    <td width="7%" align="left" valign="top"><img src="/images/icon_arrange_normal.gif" width="13" height="12" style="padding-top:4px;"></td>
+		    <td><a href="BLOG_ARTICLE_3003312.HTM" title="国外优秀教材CMOS射频集成电路设计">国外优秀教材CMOS射频集成电路设计</a></td>
+	 	 </tr>		
+		<tr>
+		    <td width="7%" align="left" valign="top"><img src="/images/icon_arrange_normal_none.gif" width="13" height="12" style="padding-top:4px;"></td>
+		    <td><a href="BLOG_ARTICLE_3003310.HTM" title="【转】揭开测试测量的小秘密">【转】揭开测试测量的小秘密</a></td>
+	 	 </tr>		
+		<tr>
+		    <td width="7%" align="left" valign="top"><img src="/images/icon_arrange_normal_none.gif" width="13" height="12" style="padding-top:4px;"></td>
+		    <td><a href="BLOG_ARTICLE_3003308.HTM" title="【转】ADI模拟技术训练营-西安站讲义（超详尽版，不能不看）">【转】ADI模拟技术训练营-西安站讲义...</a></td>
+	 	 </tr>		
+		<tr>
+		  <td valign="top" align="left">&nbsp;</td>
+		  <td align="right"><a href="BLOG.HTM">更多博文&gt;&gt;</a></td>
+		  </tr>		
+		</table>
+	</div>
+</div>
+<!--[if !IE]> 博客文选结束 <![Endif]-->
+<!--[if !IE]> Banner_300部分开始 <![Endif]-->
+<div class="banner_300">	
+<center>
+	<div id="bannerPos_large_rectangle" name="bannerPos_large_rectangle"></div></center>
+</div><!--[if !IE]> Banner_300部分结束 <![Endif]-->
+<!--[if !IE]> 热门标签部分开始 <![Endif]-->
+<div class="section_300">
+	<div class="section_heading">热门标签</div>
+	<div class="section_content" style="line-height:25px; padding:5px;">
+		<a href="/TAGS/BLOG/pcb.HTM"><span class="TagStyleC">pcb</span></a>&nbsp;&nbsp;   
+		<a href="/TAGS/BLOG/fpga.HTM"><span class="TagStyleB">fpga</span></a>&nbsp;&nbsp;   
+		<a href="/TAGS/BLOG/%C4%A3%C4%E2%BC%BC%CA%F5.HTM"><span class="TagStyleF">模拟技术</span></a>&nbsp;&nbsp;   
+		<a href="/TAGS/BLOG/%CE%DE%CF%DF.HTM"><span class="TagStyleE">无线</span></a>&nbsp;&nbsp;   
+		<a href="/TAGS/BLOG/dsp.HTM"><span class="TagStyleD">dsp</span></a>&nbsp;&nbsp;   
+		<div class="more"><a href="/Blog_TAGS.HTM" target="_new">更多标签&gt;&gt;</a></div>
+    </div>		
+</div>
+
+<!--[if !IE]> 热门标签部分结束 <![Endif]--><!--[if !IE]> Banner_300部分开始 <![Endif]--> 
+<div class="banner_300">	
+<center>
+	<div id="bannerPos_bottom_large_rectangle" name="bannerPos_bottom_large_rectangle"></div></center>
+</div><!--[if !IE]> Banner_300部分结束 <![Endif]-->
+<!--[if !IE]> 静态页面部分开始 <![Endif]-->
+	 <style type="text/css">
+<!--
+.STYLE1 {color: #FF0000}
+-->
+</style>
+<script type="text/javascript" src="http://www.ednchina.com/STATIC/CSS/EDN_FR_live.js"></script>
+	 	<div class="right-item">
+		<div class="rightitem-heading">下载中心</div>
+
+	    <div class="rightitem-content">
+		<ul>
+		
+		<li><a href="http://www.ednchina.com/WHITEPAPER_1000000700.HTM?source=EDN_ROS" title="通过开发可移植的软件防患未然" target="_blank"> &nbsp;通过开发可移植的软件防患未然</a></li>
+	     <li><a href="http://www.ednchina.com/WHITEPAPER_1000000620.HTM?source=EDN_ROS" title="创新高效通用网络安全设备" target="_blank">&nbsp;创新高效通用网络安全设备</a> </li>
+	     <li><a href="http://www.ednchina.com/WHITEPAPER_1000000680.HTM?source=EDN_ROS" title="《模拟对话》杂志第45卷第1期" target="_blank">&nbsp;《模拟对话》杂志第45卷第1期</a>     </li>
+<li><a href="http://www.ednchina.com/WHITEPAPER_1000000661.HTM?source=EDN_ROS" title="ADI公司解决方案通报 第11卷第7期" target="_blank">&nbsp;ADI公司解决方案通报 第11卷第7期 </a>     </li>
+ <li><a href="http://www.ednchina.com/WHITEPAPER_1000000600.HTM?source=EDN_ROS" title="《模拟对话》杂志第44卷第四期 " target="_blank">&nbsp;《模拟对话》杂志第44卷第四期</a>     </li>
+	    </ul>
+  </div>
+
+	</div>
+	
+	
+	 	<div class="right-item">
+		<div class="rightitem-heading">热点视频</div>
+
+	    <div class="rightitem-content">
+		<ul>
+		
+		<li><a href="http://www.ednchina.com/video/VIDEO_TI_930.HTM?source=EDN_ROS" title="DSP视频：OMAP——高性能低功耗移动计算平台 " target="_blank"> &nbsp;DSP视频：OMAP——高性能低功耗移动计算平台</a></li>
+<li><a href="http://www.ednchina.com/video/VIDEO_TI_931.HTM?source=EDN_ROS" title="MCU视频：TI Hercules安全微控制器（四）" target="_blank">&nbsp;MCU视频：TI Hercules安全微控制器（四） </a>     </li>
+<li><a href="http://www.ednchina.com/video/VIDEO_TI_932.HTM?source=EDN_ROS" title="电源设计小贴士39：同步整流带来不仅仅是高效率 " target="_blank">&nbsp;电源设计小贴士39：同步整流带来不仅仅是高效率</a>     </li>
+<li><a href="http://www.ednchina.com/video/VIDEO_TI_933.HTM?source=EDN_ROS" title="DSP视频：超声波扫描转换演示OMAP3530 EVM " target="_blank">&nbsp;DSP视频：超声波扫描转换演示OMAP3530 EVM</a>     </li>
+<li><a href="http://www.ednchina.com/video/VIDEO_TI_934.HTM?source=EDN_ROS" title="MCU视频：TI Hercules安全微控制器（五）  " target="_blank">&nbsp;MCU视频：TI Hercules安全微控制器（五） </a>     </li>
+	    </ul>
+  </div>
+
+	</div>
+	
+	 
+	 	<div class="right-item">
+
+	<div class="rightitem-heading">2012我的工程师社区&nbsp;&nbsp;&nbsp;4月</div>
+
+	<div class="rightitem-content">
+  
+<!--   <div style="margin-bottom: 5px;"><a target="_blank" title="Analog Devices(美国模拟器件公司)" href="/adlink.aspx?did=1517&amp;page=http%3a%2f%2fwww.ednchina.com"></a><p><a target="_blank" title="Analog Devices(美国模拟器件公司)" href="/adlink.aspx?did=1517&amp;page=http%3a%2f%2fwww.ednchina.com"></a><a href="http://www.ednchina.com/adlink.aspx?did=1517&amp;page=http://bbs.ednchina.com/adi/"><img src="http://pagesadmin.ednchina.com/images/article/8f6f336f-461f-407c-aba6-229388dfff38/adi%20logo%20black.jpg" style="margin-right: 5px; height: 34px; width: 66px;" align="left" border="0"></a><a href="http://www.ednchina.com/adlink.aspx?did=1517&amp;page=http://bbs.ednchina.com/adi/" class="comlink"><b>ADI论坛：答疑解惑，申请样品</b></a><br>训练有素的ADI技术团队坐镇解答网友提问，免费申请ADI样片和工程师手册，数量有限！<a href="http://www.ednchina.com/adlink.aspx?did=1517&amp;page=http://bbs.ednchina.com/FORUM_POST_33_147064.HTM" style="color: rgb(33, 107, 138);"><br>参与ADI隔离产品活动，赢取ADUM开发板和隔离产品样片</a><a href="http://www.ednchina.com/adlink.aspx?did=1517&amp;page=http://bbs.ednchina.com/FORUM_POST_33_169916.HTM" style="color: rgb(33, 107, 138);"><br>ADI实验室电路（CFTL）有奖转发活动</a><a href="http://www.ednchina.com/adlink.aspx?did=1517&amp;page=http://bbs.ednchina.com/FORUM_POST_33_178555.HTM" style="color: rgb(33, 107, 138);"><br>分享ADI新产品，抢先体验最新放大器样片</a><a href="http://www.ednchina.com/adlink.aspx?did=1517&amp;page=http://bbs.ednchina.com/FORUM_POST_33_169907.HTM" style="color: rgb(33, 107, 138);"><br>专家坐堂---把脉心电图(ECG)解决方案</a></p> -->
+  
+<!-- <div style="margin-bottom: 5px;"><p><a href="http://www.ednchina.com/adlink.aspx?did=2353&amp;page=http://comm.ednchina.com/Company/ONSemi/" class="comlink"><b>安森美LED驱动器和高能效设计中心</b></a><br>学习安森美LED与能效设计相关诀窍、技巧及技术，下载资料、视频和研讨会学习，每月赢取惊喜礼品。</p><p><a href="http://comm.ednchina.com/Company/ONSemi/realinfo/index.aspx" style="color: rgb(204, 102, 0);">安森美半导体知识问答第三期（能源效率）启动：8月3日-9月15日，参与赢中秋礼品。</a></p></div> -->
+		
+		
+<!-- 	<div style="margin-bottom: 5px;"><p><a href="http://www.ednchina.com/adlink.aspx?did=2422&amp;page=http://www.ednchina.com/Topic/CEDesignTips/CEDesignTips.aspx"><img src="http://pagesadmin.ednchina.com/images/article/391ca5cc-a3a7-4d73-9d65-1540ccf9e894/cedesigntips_lattice.jpg" style="margin-right: 5px; height: 34px; width: 66px;" align="left" border="0"></a><a href="http://www.ednchina.com/adlink.aspx?did=2422&amp;page=http://www.ednchina.com/Topic/CEDesignTips/CEDesignTips.aspx" class="comlink"><b>消费电子设计技巧</b></a><br>汇集消费电子设计方面的各种窍门和思路，提供了多种参考方案和技术要点及PLD消费应用。</p></div>	 -->
+
+<ul>
+ <li>  <a href="http://bbs.ednchina.com/FORUM_LIST_10107_33_0.HTM" title="热门活动" style="color: rgb(204, 102, 0);">[热门活动]</a>&nbsp;
+<a href="http://bbs.ednchina.com/FORUM_POST_19_510735_0.HTM" target="_blank">我形我show，展示我的手艺！—EDNC电子DIY作品有奖秀</a></li>
+
+  <li>   <a href="http://bbs.ednchina.com/FORUM_LIST_10112_7_0.HTM"  target="_blank"  title="每周一考" style="color: rgb(204, 102, 0);">[每周一考]</a>&nbsp;<a href="http://bbs.ednchina.com/BLOG_ARTICLE_3003158.HTM" target="_blank"> 揭开测试测量的小秘密——每周一考【第2周】</a></li> 
+
+<li> <a href="http://group.ednchina.com/GROUP_GRO_14593_460.HTM" target="_blank" title="高校联盟" style="color: rgb(204, 102, 0);">[高校联盟]</a>&nbsp;
+ <a href="http://group.ednchina.com/GROUP_GRO_14612_3000000781.HTM" target="_blank">武汉理工大学校友联盟</a></li>
+ 
+  <li>  <a href="http://www.ednchina.com/event/blogcontest/index.html" target="_blank" title="ADI社区" style="color: rgb(204, 102, 0);">[博客大赛]</a>&nbsp; <a href="http://bbs.ednchina.com/FORUM_POST_15_510699_0.HTM" target="_blank">【博客大赛第一季】赛况播报传送门！
+</a></li>
+  
+  <li>   <a href="http://bbs.ednchina.com/FORUM_LIST_10112_7_0.HTM" target="_blank" title="信息反馈" style="color: rgb(204, 102, 0);">[信息反馈]</a>&nbsp;  <a href="http://bbs.ednchina.com/FORUM_POST_7_510606_0.HTM " target="_blank">【公告】 论坛版块快速通道 全面上线！ </a></li>
+                                        
+  <li>     <a href="http://bbs.ednchina.com/FORUM_LIST_10112_7_0.HTM" target="_blank" title="EDNChina 站务" style="color: rgb(204, 102, 0);">[EDNChina微博]</a>&nbsp; <a href="http://bbs.ednchina.com/FORUM_POST_19_509673_0.HTM" target="_blank">     留下你的微博地址，与EDNChina互粉！ </a></li>
+  </ul>
+
+
+	</div>
+		</div>
+
+<!--[if !IE]> 静态页面部分结束 <![Endif]-->
+
+<!--[if !IE]> 静态页面部分开始 <![Endif]-->
+<style type="text/css">
+<!--
+.STYLE1 {color: #990000;text-decoration:none }
+
+
+-->
+</style>
+<br>
+		<div class="right-item">
+
+	<div class="rightitem-heading">EDN官方QQ群&nbsp;&nbsp;&nbsp;<a href="http://bbs.ednchina.com/FORUM_POST_21_506937_0.HTM" target="_blank" class="STYLE1"font onMouseOver="this.style.color='#990000'">更多QQ群</a></div>
+
+	<div class="rightitem-content">
+  <ul>
+          <li>菜农Cortex-M0技术交流 12047788</li>
+							<li>EDN-哈尔滨 75642591</li>
+							<li>EDN-上海 15156661</li>
+							<li>EDN-广州 57660943</li>
+							<li>EDN-桂林 48813559</li>
+
+							<li>EDN-武汉 25150805</li>
+							<li>EDN-模拟电路 2837145</li>
+							<li>EDN-USB 16070601</li>
+														<li>EDN-通讯 30548292</li>
+							<li>EDN-综合 57490949</li>
+</ul>
+<p>促进EDN网友交流合作，方便EDN网友学习沟通</p>
+
+	</div>
+		</div>
+
+<!--[if !IE]> 静态页面部分结束 <![Endif]-->
+
+<!--[if !IE]> 新建网友博客部分开始 <![Endif]-->
+<!--[if !IE]> 新建网友博客部分结束 <![Endif]-->
+</div>
+				<!--[if !IE]> end of right column<![Endif]-->
+			</div>
+			
+			<!--[if !IE]> end of main <![Endif]-->
+				<div class="return">
+	<div style=" clear:both; height:10px"></div>
+	<div style="padding-top:0px;" class="return">
+		<a href="http://bbs.ednchina.com/BLOG.HTM">返回博客首页</a>
+		</div>
+<div class="banner_728"><!--display Middle Skyscraper banner -->
+<br>
+<div id="bannerPos_leader_bottom" name="bannerPos_leader_bottom"></div></div>
+<!--[if !IE]> begining of footer <![Endif]-->
+<!--[if !IE]> end of footer <![Endif]-->
+<script src="http://www.ednchina.com/STATIC/CSS/Today_webinar_tips.js" type="text/javascript"></script>
+<div style="text-align: center; line-height: 20px; color: rgb(0, 0, 0); border-top: 1px solid rgb(153, 153, 153); width: 980px; margin-left: auto; margin-right: auto; clear: both; margin-bottom: 20px;" id="CompanyInfo">
+
+<div style="margin-top: 20px;"><a href="http://www.ednchina.com/STATIC/SITE/ABOUTUS.HTM">About EDN China</a> - <a href="http://www.ednchina.com/STATIC/SITE/EDPLAN.HTM ">编辑部</a> - <a href="http://www.ednchina.com/STATIC/SITE/ADVERT.HTM ">广告部</a> - <a href=" http://www.ednchina.com/STATIC/SITE/CIRCULATION.HTM ">发行部</a> - <a href="http://bbs.ednchina.com/FORUM_LIST_10112_7_0.HTM">读者往来</a> - <a href="http://www.ednchina.com/STATIC/SITE/PRIVACY.HTM">Privacy Policy</a> - <a href="http://www.ednchina.com/STATIC/SITE/SITEMAP.HTM">网站导航</a> - <a href="http://www.ednchina.com/STATIC/SITE/USELINX.HTM">电子网站大全</a> - <a href="http://www.ednchina.com/STATIC/SITE/HELP.HTM">帮助</a></div>
+
+
+</div><div style="text-align: center; line-height: 20px; color: rgb(0, 0, 0);  width: 980px; margin-left: auto; margin-right: auto; clear: both; margin-bottom: 20px;" id="CompanyInfo">
+
+<div style="width: 600px; margin-left: auto; margin-right: auto; padding-right: 30px;">
+
+<div style="float: left; text-align: right;"><img src="http://www.ednchina.com/IMAGES/EDN_logo.jpg" style="width: 100px; margin-top: 5px; margin-left: 70px;" title="EDNlogo"></div>
+
+<div><nobr><span style="color: rgb(0, 0, 0);"> 2012</span>  EDN China<span style="color: rgb(0, 0, 0);"> -- Use of this website is subject to its terms of use.</span></nobr></div>
+
+<div><a href="http://www.miibeian.gov.cn/" target="_blank">经营许可编号：京公安备110102000546 京ICP备09028740号-20</a></div>
+
+<div style="text-align: center; margin-left: auto; margin-right: auto;">
+
+<div><a href="http://www.edn.com/">EDN.com</a> | <a href="http://www.ednasia.com/">EDN Asia</a> | <a href="http://www.ednjapan.com/">EDN Japan</a> | <a href="http://www.edn-europe.com/">EDN Europe</a> | <a href="http://www.electronicsnews.com.au/">EDN Australia</a></div>
+
+</div>
+
+</div>
+</div><!--[if !IE]> begining of copyright <![Endif]-->
+<script type="text/javascript">
+	var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+	document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+	</script>
+	<script type="text/javascript">
+	var pageTracker = _gat._getTracker("UA-4727096-3");
+	pageTracker._trackPageview();
+	</script>
+</div>
+<!--[if !IE]> end of copyright <![Endif]--></div>
+<script language='JavaScript' type='text/javascript'>
+googletag.cmd.push(function() {
+googletag.defineSlot('/4073/EDNCOL/EMB/Blog_EMB',[690,55],'bannerPos_top_banner').addService(googletag.pubads()).setTargeting('enpos','top_banner');
+googletag.defineSlot('/4073/EDNCOL/EMB/Blog_EMB',[728,90],'bannerPos_leader_top').addService(googletag.pubads()).setTargeting('enpos','leader_top');
+googletag.defineSlot('/4073/EDNCOL/EMB/Blog_EMB',[468,60],'bannerPos_text_ad').addService(googletag.pubads()).setTargeting('enpos','text_ad');
+googletag.defineSlot('/4073/EDNCOL/EMB/Blog_EMB',[300,100],'bannerPos_top_large_rectangle').addService(googletag.pubads()).setTargeting('enpos','top_large_rectangle');
+googletag.defineSlot('/4073/EDNCOL/EMB/Blog_EMB',[300,250],'bannerPos_large_rectangle').addService(googletag.pubads()).setTargeting('enpos','large_rectangle');
+googletag.defineSlot('/4073/EDNCOL/EMB/Blog_EMB',[300,250],'bannerPos_bottom_large_rectangle').addService(googletag.pubads()).setTargeting('enpos','bottom_large_rectangle');
+googletag.defineSlot('/4073/EDNCOL/EMB/Blog_EMB',[728,90],'bannerPos_leader_bottom').addService(googletag.pubads()).setTargeting('enpos','leader_bottom');
+googletag.pubads().enableSingleRequest();
+googletag.pubads().collapseEmptyDivs();
+googletag.enableServices();
+});
+googletag.cmd.push(function() {
+googletag.display('bannerPos_top_banner');
+googletag.display('bannerPos_leader_top');
+googletag.display('bannerPos_text_ad');
+googletag.display('bannerPos_top_large_rectangle');
+googletag.display('bannerPos_large_rectangle');
+googletag.display('bannerPos_bottom_large_rectangle');
+googletag.display('bannerPos_leader_bottom');
+});
+</script>
+</body>
+</html>

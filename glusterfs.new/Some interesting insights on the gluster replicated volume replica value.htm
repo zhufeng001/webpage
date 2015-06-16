@@ -1,0 +1,786 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<meta name="description" content="Blog O&#8217; Matty - Blog O&#8217; Matty" />
+<meta name="keywords" content="" />
+<link rel="stylesheet" type="text/css" href="http://prefetch.net/blog/wp-content/themes/Corpvox/style.css" />
+<link rel="alternate" type="application/rss+xml" title="RSS 2.0" href="http://prefetch.net/blog/index.php/feed/" />
+<link rel="alternate" type="text/xml" title="RSS .92" href="http://prefetch.net/blog/index.php/feed/rss/" />
+<link rel="alternate" type="application/atom+xml" title="Atom 0.3" href="http://prefetch.net/blog/index.php/feed/atom/" />
+<link rel="pingback" href="http://prefetch.net/blog/xmlrpc.php" />
+<title>Some interesting insights on the gluster replicated volume replica value</title>
+
+<script type="text/javascript">
+	window.google_analytics_uacct = "UA-8686725-1";
+</script>
+				
+	<script type="text/javascript">//<![CDATA[
+	// Google Analytics for WordPress by Yoast v4.2.2 | http://yoast.com/wordpress/google-analytics/
+	var _gaq = _gaq || [];
+	_gaq.push(['_setAccount','UA-8686725-1']);
+	_gaq.push(['_trackPageview'],['_trackPageLoadTime']);
+	(function() {
+		var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+		ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+		var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	})();
+	//]]></script>
+<link rel="alternate" type="application/rss+xml" title="Blog O&#039; Matty &raquo; Some interesting insights on the gluster replicated volume replica value Comments Feed" href="http://prefetch.net/blog/index.php/2011/11/27/some-interesting-insights-on-the-gluster-replicated-volume-replica-value/feed/" />
+<script type='text/javascript' src='http://prefetch.net/blog/wp-includes/js/jquery/jquery.js?ver=1.8.3'></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://prefetch.net/blog/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://prefetch.net/blog/wp-includes/wlwmanifest.xml" /> 
+<link rel='prev' title='Centos 6 Linux VMs running inside vSphere 4.1 appear to dynamically discover new LUNs' href='http://prefetch.net/blog/index.php/2011/11/27/centos-6-linux-vms-running-inside-vsphere-4-1-appear-to-dynamically-discover-new-luns/' />
+<link rel='next' title='Removing a gluster volume doesn&#8217;t remove the volume&#8217;s contents' href='http://prefetch.net/blog/index.php/2011/11/27/removing-a-gluster-volume-doesnt-remove-the-volumes-contents/' />
+
+<link rel='canonical' href='http://prefetch.net/blog/index.php/2011/11/27/some-interesting-insights-on-the-gluster-replicated-volume-replica-value/' />
+<link rel='shortlink' href='http://prefetch.net/blog/?p=5077' />
+</head>
+
+<body>
+
+<div id="wrap">
+<div id="wrap_in">
+
+	<div id="top" class="wrap">
+		<div class="col-left">
+			<h1><a href="http://prefetch.net/blog">Blog O&#8217; Matty</a></h1>
+		</div>
+		<div class="col-right wrap">
+			<a href="http://prefetch.net/blog/index.php/feed/"><img src="http://prefetch.net/blog/wp-content/themes/Corpvox/img/img_rss.gif" width="116" height="46" alt="RSS Feed" /></a>
+		</div>
+	</div>
+	
+	<div id="menu">
+		<ul>
+						<li class="page_item current_page_item first"><a href="http://prefetch.net">Home</a></li>
+			<li class="page_item current_page_item second"><a href="http://prefetch.net/blog/">Blog Home</a></li>
+			<li class="page_item current_page_item third"><a href="http://prefetch.net/articles/">Articles</a></li>
+			<li class="page_item current_page_item fourth"><a href="http://prefetch.net/code/index.html">Code</a></li>
+			<li class="page_item current_page_item fourth"><a href="http://prefetch.net/presentations/">Presentations</a></li>
+					</ul>
+	</div>
+
+	<div id="content_wrap" class="wrap">
+		<div id="content" class="col-left">
+			
+						<div class="ads" style="margin:auto; float:right;"><script type="text/javascript">google_ad_client = "pub-7936479357517829";google_ad_slot = "4417303880";google_ad_width = 550;google_ad_height = 60;</script><script ty pe="text/javascript"src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script></div>			
+			<div class="post">
+			<h2>Some interesting insights on the gluster replicated volume replica value</h2>
+
+			<p><a href="http://prefetch.net/blog/index.php/2011/11/13/creating-clustered-file-systems-with-glusterfs-on-centos-and-fedora-linux-servers/" >While playing around with gluster</a>, I had an interesting finding about the way gluster handles replicated volumes. The gluster volume I am using for testing is a replicated volume with a replica factor of 2 (the replica factor determines how many copies of your data will be made). I wanted to add a third replica to my volume, and thought it would be as simple as using the &#8220;add-brick&#8221; option:</p>
+<p>$ <strong>gluster volume add-brick glustervol01 centos-cluster03.prefetch.net:/gluster/vol01</strong><br />
+Incorrect number of bricks supplied 1 for type REPLICATE with count 2</p>
+<p>Hmmmm &#8212; no go. At first I thought this was no big deal, I figured there was an option or setting I needed to change to increase my replica count. I couldn&#8217;t find an option in the <a href="http://gluster.com/community/documentation/index.php/Main_Page" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://gluster.com']);">official documentation</a>, and after <a href="http://comments.gmane.org/gmane.comp.file-systems.gluster.user/5134" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://comments.gmane.org']);">reading through a number of mailing list postings</a> I came across a horrific finding. From what I have been able to gather so far you cannot add a third replica to a volume that was created with a replica count of 2. Erf!</p>
+<p>Being somewhat curious, I was wondering if I could work around this limitation by creating a volume with a replica value higher than the number of bricks that were specified on the command line. This would allow me to grow the number of replicated bricks as needed, giving me some buffer room down the road. Well &#8212; this doesn&#8217;t work either:</p>
+<p>$ <strong>gluster volume create glustervol01 replica 3 transport tcp \<br />
+  fedora-cluster01.homefetch.net:/gluster/vol01 \<br />
+  fedora-cluster02.homefetch.net:/gluster/vol01</strong><br />
+number of bricks is not a multiple of replica count<br />
+Usage: volume create <NEW-VOLNAME> [stripe <COUNT>] [replica <COUNT>] [transport <tcp|rdma|tcp,rdma>] <NEW-BRICK> &#8230;</p>
+<p>So this leaves me with the following options to change my volume lay out:</p>
+<p>1. Replace a brick with the &#8220;replace-brick&#8221; option.</p>
+<p>2. Remove a brick with the &#8220;remove-brick&#8221; option and then add a new brick with the &#8220;add-brick&#8221; option.</p>
+<p>3. Destroy my volume and re-create it with a replica factor of 3.</p>
+<p>4. Add replica count bricks with the &#8220;add-brick&#8221; option.</p>
+<p>So you may be asking why don&#8217;t you do #4 and add two more bricks to the volume to make gluster happy? There are two reasons:</p>
+<p>1. I only have one node to add at this time (hardware doesn&#8217;t grow on trees).</p>
+<p>2. Adding two more bricks with &#8220;add-brick&#8221; would create a distributed replicated volume. This doesn&#8217;t increase the replica factor for my data, it adds two more replicated bricks to the volume (<a href="http://prefetch.net/blog/index.php/2011/11/30/another-interesting-finding-about-gluster-replicas/" >see this post for additional detail</a>). </p>
+<p>As with <strong><em>ALL</em></strong> storage-related solutions, you need to do your homework prior to deploying gluster. Make sure you take into account how things will need to look down the road, and design your gluster solution around this vision (and make sure you have a good backup and recovery solution in place in case you need to make drastic changes). Also make sure to test out your vision to ensure it works as you expect it to. I&#8217;m a huge fan of beating the heck out of technology in a lab and learning as much as I can in a non-production environment. I don&#8217;t like getting bitten once something goes live and my users depend on it.</p>
+<p>If someone is aware of a way to add a third replica to a volume please leave me a comment (as well as a link to documentation that talks about it) and I&#8217;ll update the blog entry. I&#8217;ve searched and searched and searched and have yet to come up with anything. If there truly is no way to expand the number of replicas in a volume I would consider this a serious limitation of gluster. With <a href="http://www.amazon.com/gp/product/B004QMA882/ref=as_li_ss_tl?ie=UTF8&#038;tag=matty-20&#038;linkCode=as2&#038;camp=217145&#038;creative=399373&#038;creativeASIN=B004QMA882" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.amazon.com']);">disk sizes growing like mad</a>, I could definitely see it being useful to expand the replica factor for an existing volume. It won&#8217;t be too long before you can install a <a href="http://www.itgrunts.com/2011/03/08/samsung-does-hdd-breakthrough-10tb-hard-drives-to-be-here-soon/" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.itgrunts.com']);">10TB disk drive in your PC</a>, and when those are $80 a pop a replica value of three doesn&#8217;t seem that unrealistic (<a href="http://dtrace.org/blogs/ahl/2009/07/21/triple-parity-raid-z/" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://dtrace.org']);">just ask Adam Leventhal</a>). </p>
+<div id="related-posts">
+<div id="related-posts-MRP_all" class="related-posts-type">
+<h2>Related Posts</h2>
+<ul>
+<li><a href="http://prefetch.net/blog/index.php/2011/11/30/another-interesting-finding-about-gluster-replicas/" >Another interesting finding about gluster replicas</a></li>
+<li><a href="http://prefetch.net/blog/index.php/2011/11/27/centos-6-linux-vms-running-inside-vsphere-4-1-appear-to-dynamically-discover-new-luns/" >Centos 6 Linux VMs running inside vSphere 4.1 appear to dynamically discover new LUNs</a></li>
+<li><a href="http://prefetch.net/blog/index.php/2011/11/13/creating-clustered-file-systems-with-glusterfs-on-centos-and-fedora-linux-servers/" >Creating clustered file systems with glusterfs on CentOS and Fedora Linux servers</a></li>
+<li><a href="http://prefetch.net/blog/index.php/2011/11/16/forcing-glusterfs-to-heal-bricks-that-are-inconsistent/" >Forcing glusterfs to heal bricks that are inconsistent</a></li>
+<li><a href="http://prefetch.net/blog/index.php/2011/11/27/installing-gluster-on-a-centos-machine-via-rpmbuild/" >Installing gluster on a CentOS machine via rpmbuild</a></li>
+<li><a href="http://prefetch.net/blog/index.php/2012/07/12/scalable-storage-for-qemukvm/" >Scalable storage for QEMU/KVM</a></li>
+<li><a href="http://prefetch.net/blog/index.php/2012/02/06/slides-from-my-introduction-to-gluster-presentation/" >Slides from my introduction to gluster presentation</a></li>
+<li><a href="http://prefetch.net/blog/index.php/2012/02/05/which-file-system-should-i-use-with-gluster/" >Which file system should I use with Gluster?</a></li>
+</ul></div>
+</div><div class="postmeta"><p>matty on November 27, 2011 | Filed Under <a href="http://prefetch.net/blog/index.php/category/linux-gluster/" title="View all posts in Linux Gluster" rel="category tag">Linux Gluster</a>, <a href="http://prefetch.net/blog/index.php/category/linux-storage/" title="View all posts in Linux Storage" rel="category tag">Linux Storage</a></p></div>
+			</div>
+
+                        <div class="ads" style="margin:auto; float:right;"><script type="text/javascript">google_ad_client = "pub-7936479357517829";google_ad_slot = "4417303880";google_ad_width = 550;google_ad_height = 60;</script><script ty pe="text/javascript"src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script></div>
+			
+<!-- You can start editing here. -->
+
+
+<h2 id="comments">7 Comments</h2>
+
+
+
+<div class="comments_wrap" id="comment-830916">
+<div class="left">
+<img src="http://www.gravatar.com/avatar.php?gravatar_id=584d2377b56fadbd152f73ca27982f0c&amp;rating=X&amp;size=35" alt="" />
+</div>
+<div class="right">
+<h4><b>adrian K</b>&nbsp; on November 27th, 2011 </h4>
+<p>I&#8217;m of the opinion that Gluster isn&#8217;t quite ready yet. We had an awful time with it taking an entire box down on large transfers. </p>
+<p>The workaround of turning caching off helped some, but only reduced it from a daily occurrence to weekly. </p>
+<p>Hoping RedHat&#8217;s acquisition does some very good things for what&#8217;s a very promising product</p>
+</div>
+</div>
+
+
+
+	
+	
+<div class="comments_wrap" id="comment-830917">
+<div class="left">
+<img src="http://www.gravatar.com/avatar.php?gravatar_id=58e91aa0ec5dd4d09c3c5ffef5bbede8&amp;rating=X&amp;size=35" alt="" />
+</div>
+<div class="right">
+<h4><b><a href="http://prefetch.net"   rel='external nofollow' class='url'>matty</a></b>&nbsp; on November 27th, 2011 </h4>
+<p>@adrian &#8212; I&#8217;m of the same opinion. Great product, but it needs some help. Specifically, the documentation needs to be revamped to explain things in more detail. I&#8217;ve been figuring things out via trial and error since the documentation doesn&#8217;t cover a number of things I personally think it should. It will be interesting to see what Redhat does with the project.</p>
+</div>
+</div>
+
+
+
+	
+	
+<div class="comments_wrap" id="comment-830933">
+<div class="left">
+<img src="http://www.gravatar.com/avatar.php?gravatar_id=d41d8cd98f00b204e9800998ecf8427e&amp;rating=X&amp;size=35" alt="" />
+</div>
+<div class="right">
+<h4><b><a href="http://prefetch.net/blog/index.php/2011/11/30/another-interesting-discovery-about-the-gluster-replica-value/"   rel='external nofollow' class='url'>Another interesting discovery about the gluster replica value</a></b>&nbsp; on November 30th, 2011 </h4>
+<p>[...] a previous post I talked about my problems getting gluster to expand the number of replicas in a volume. While experimenting with the gluster utilities &#8220;add-brick&#8221; option I wanted to see if [...]</p>
+</div>
+</div>
+
+
+
+	
+	
+<div class="comments_wrap" id="comment-830936">
+<div class="left">
+<img src="http://www.gravatar.com/avatar.php?gravatar_id=6dcb70af324a8b0835e3a8280ced4d90&amp;rating=X&amp;size=35" alt="" />
+</div>
+<div class="right">
+<h4><b><a href="http://www.gluster.org/" onclick="javascript:_gaq.push(['_trackEvent','outbound-commentauthor','http://www.gluster.org']);"  rel='external nofollow' class='url'>John Mark</a></b>&nbsp; on November 30th, 2011 </h4>
+<p>Hi there,</p>
+<p>I would love to recruit you to help with the continued development of GlusterFS. We are now seeking input on roadmap and project development. As such, we&#8217;d love to have knowledgeable people step up to be a guiding force on the project. Feel free to stop by the IRC channel sometime: #gluster on irc.freenode.net</p>
+<p>Thanks,<br />
+John Mark<br />
+Gluster Community Guy</p>
+</div>
+</div>
+
+
+
+	
+	
+<div class="comments_wrap" id="comment-830971">
+<div class="left">
+<img src="http://www.gravatar.com/avatar.php?gravatar_id=a63ad4af76a3ec8d71b7aa218b122297&amp;rating=X&amp;size=35" alt="" />
+</div>
+<div class="right">
+<h4><b><a href="http://nwgo.braindog.org" onclick="javascript:_gaq.push(['_trackEvent','outbound-commentauthor','http://nwgo.braindog.org']);"  rel='external nofollow' class='url'>django</a></b>&nbsp; on December 6th, 2011 </h4>
+<p>Well, I think this is what you want (generated by hand &#8211; local read for each node):<br />
+&gt;&gt;&gt;&gt;<br />
+volume server1<br />
+    type protocol/client<br />
+    option transport-type tcp<br />
+    option remote-host a.b.c.d<br />
+    option transport.socket.nodelay on<br />
+    option remote-port 6996<br />
+    option remote-subvolume brick1<br />
+end-volume</p>
+<p>volume server2<br />
+    type protocol/client<br />
+    option transport-type tcp<br />
+    option remote-host a.b.c.e<br />
+    option transport.socket.nodelay on<br />
+    option remote-port 6996<br />
+    option remote-subvolume brick1<br />
+end-volume</p>
+<p>volume server3<br />
+    type protocol/client<br />
+    option transport-type tcp<br />
+    option remote-host a.b.c.f<br />
+    option transport.socket.nodelay on<br />
+    option remote-port 6996<br />
+    option remote-subvolume brick1<br />
+end-volume</p>
+<p>volume mirror-0<br />
+    type cluster/replicate<br />
+    option read-subvolume server1<br />
+    subvolumes server1 server2 server3<br />
+end-volume</p>
+<p>volume iocache<br />
+    type performance/io-cache<br />
+    option cache-size `echo $(( $(grep &#8216;MemTotal&#8217; /proc/meminfo | sed &#8216;s/[^0-9]//g&#8217;) / 5120 ))`MB<br />
+    option cache-timeout 1<br />
+    subvolumes mirror-0<br />
+end-volume</p>
+<p>volume quickread<br />
+    type performance/quick-read<br />
+    option cache-timeout 1<br />
+    option max-file-size 64kB<br />
+    subvolumes iocache<br />
+end-volume</p>
+<p>volume writebehind<br />
+    type performance/write-behind<br />
+    option cache-size 4MB<br />
+    subvolumes quickread<br />
+end-volume</p>
+<p>volume statprefetch<br />
+    type performance/stat-prefetch<br />
+    subvolumes writebehind<br />
+end-volume</p>
+<p>&lt;&lt;&lt;&gt;&gt;&gt;<br />
+volume posix1<br />
+  type storage/posix<br />
+  option directory /data<br />
+end-volume</p>
+<p>volume locks1<br />
+    type features/locks<br />
+    subvolumes posix1<br />
+end-volume</p>
+<p>volume brick1<br />
+    type performance/io-threads<br />
+    option thread-count 32<br />
+    subvolumes locks1<br />
+end-volume</p>
+<p>volume server-tcp<br />
+    type protocol/server<br />
+    option transport-type tcp<br />
+    option auth.addr.brick1.allow *<br />
+    option transport.socket.listen-port 6996<br />
+    option transport.socket.nodelay on<br />
+    subvolumes brick1<br />
+end-volume<br />
+&lt;&lt;&lt;&lt;</p>
+</div>
+</div>
+
+
+
+	
+	
+<div class="comments_wrap" id="comment-831107">
+<div class="left">
+<img src="http://www.gravatar.com/avatar.php?gravatar_id=bc35631e36381a945b1059dd819130fc&amp;rating=X&amp;size=35" alt="" />
+</div>
+<div class="right">
+<h4><b>pfaff</b>&nbsp; on December 29th, 2011 </h4>
+<p>I have a similar situation today which lead me to this discussion.</p>
+<p>In my case I want to convert from a distributed volume to a distributed replicated volume.</p>
+<p>As you indicated in your option #3, my thought at this time is that the way to go about this is to delete the existing replicated volume &#8211; data will still exist as was on the volume member bricks &#8211; and then create a new d-r volume, and finally trigger a self heal.  I&#8217;ve done this and it appears to be working exactly as expected.</p>
+<p>If this is &#8220;The Way&#8221; then in your case you would do something similar; delete the d-r-2 volume and create a d-r-3 volume and heal.</p>
+<p>I don&#8217;t know if this is the only way or the best way to achieve the end result but I don&#8217;t know of any alternative yet.</p>
+<p>I hope this helps.</p>
+</div>
+</div>
+
+
+
+	
+	
+<div class="comments_wrap" id="comment-831638">
+<div class="left">
+<img src="http://www.gravatar.com/avatar.php?gravatar_id=cc4a002d6ff9d64778b1f6a64a127c6a&amp;rating=X&amp;size=35" alt="" />
+</div>
+<div class="right">
+<h4><b>suwalski</b>&nbsp; on April 22nd, 2013 </h4>
+<p>Thank you Matty for putting this together. It was a great starting point to help find a solution to this problem.</p>
+<p>Looks like this issue has gotten resolved in gluster 3.3. As of 3.3, the gluster add-brick command is as follows:</p>
+<p>volume add-brick  [ ]  &#8230; &#8211; add brick to volume </p>
+<p>The replica count can be increased or decreased as bricks are added and removed. It does appear to work.</p>
+</div>
+</div>
+
+
+
+	
+	
+
+ 
+
+
+
+<h2 class="lc">Leave a Comment</h2>
+
+
+
+
+
+<form action="http://prefetch.net/blog/wp-comments-post.php" method="post" id="commentform">
+<div>
+
+
+<label for="author">Username (required) :<br />
+<input type="text" name="author" id="author" value="" size="27" tabindex="1" /></label> 
+
+
+
+<label for="email">Email (required) :<br />
+<input type="text" name="email" id="email" value="" size="27" tabindex="2" /></label> 
+
+
+
+<label for="url">Web Site :<br />
+<input type="text" name="url" id="url" value="" size="27" tabindex="3" /></label> 
+
+
+
+<!--<p><small><strong>XHTML:</strong> You can use these tags: &lt;a href=&quot;&quot; title=&quot;&quot;&gt; &lt;abbr title=&quot;&quot;&gt; &lt;acronym title=&quot;&quot;&gt; &lt;b&gt; &lt;blockquote cite=&quot;&quot;&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=&quot;&quot;&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=&quot;&quot;&gt; &lt;strike&gt; &lt;strong&gt; </small></p>-->
+
+
+<label for="comment">Comment :<br /></label> 
+<textarea name="comment" id="comment" cols="50" rows="8" tabindex="4"></textarea>
+
+
+
+<input name="submit" type="submit" id="submit" tabindex="5" value="Submit" />
+
+
+
+<input type="hidden" name="comment_post_ID" value="5077" />
+
+<p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="ec14529df5" /></p></div>
+</form>
+
+
+
+
+			
+						
+						
+		</div>
+		<div id="sidebar" class="col-right">
+			<div id="recommended-books" class="block widget 07ee8230b8c8c4a6de013d3b6f66c46a"><h3>Recommended Books</h3><div class="amzshcs" id="amzshcs-07ee8230b8c8c4a6de013d3b6f66c46a"><div class="amzshcs-item" id="amzshcs-item-c13e2eafb266b24383e7e388f6571247"> <a href="http://www.amazon.com/Mastering-VMware-vSphere-Computer-Tech/dp/0470481382%3FSubscriptionId%3DAKIAIDKCHBMTXNBMQIKA%26tag%3Dmatty-20%26linkCode%3Dxm2%26camp%3D2025%26creative%3D165953%26creativeASIN%3D0470481382"><img src="http://ecx.images-amazon.com/images/I/51P7qPvYJBL._SL110_.jpg" height="110" width="85" alt="Image of Mastering VMware vSphere 4 (Computer/Tech)" title="Mastering VMware vSphere 4 (Computer/Tech)" /></a> </div><div class="amzshcs-item" id="amzshcs-item-e50ff6a2f1f6eb04cb7269b8108898d6"> <a href="http://www.amazon.com/Certified-Engineer-Linux-Study-Certification/dp/0072264543%3FSubscriptionId%3DAKIAIDKCHBMTXNBMQIKA%26tag%3Dmatty-20%26linkCode%3Dxm2%26camp%3D2025%26creative%3D165953%26creativeASIN%3D0072264543"><img src="http://ecx.images-amazon.com/images/I/51nRVJrRAIL._SL110_.jpg" height="110" width="88" alt="Image of RHCE Red Hat Certified Engineer Linux Study Guide (Exam RH302) (Certification Press)" title="RHCE Red Hat Certified Engineer Linux Study Guide (Exam RH302) (Certification Press)" /></a> </div><div class="amzshcs-item" id="amzshcs-item-c147e34aed1ff86ea135c5ea3aed33c9"> <a href="http://www.amazon.com/UNIX-Filesystems-Evolution-Design-Implementation/dp/0471164836%3FSubscriptionId%3DAKIAIDKCHBMTXNBMQIKA%26tag%3Dmatty-20%26linkCode%3Dxm2%26camp%3D2025%26creative%3D165953%26creativeASIN%3D0471164836"><img src="http://ecx.images-amazon.com/images/I/511L2NK6ZNL._SL110_.jpg" height="110" width="86" alt="Image of UNIX Filesystems: Evolution, Design, and Implementation" title="UNIX Filesystems: Evolution, Design, and Implementation" /></a> </div><div class="amzshcs-item" id="amzshcs-item-8a8dd70875794aa9af43db786cb32267"> <a href="http://www.amazon.com/Solaris-Internals-OpenSolaris-Kernel-Architecture/dp/0131482092%3FSubscriptionId%3DAKIAIDKCHBMTXNBMQIKA%26tag%3Dmatty-20%26linkCode%3Dxm2%26camp%3D2025%26creative%3D165953%26creativeASIN%3D0131482092"><img src="http://ecx.images-amazon.com/images/I/51jmGGXvfgL._SL110_.jpg" height="110" width="83" alt="Image of Solaris Internals: Solaris 10 and OpenSolaris Kernel Architecture (2nd Edition)" title="Solaris Internals: Solaris 10 and OpenSolaris Kernel Architecture (2nd Edition)" /></a> </div><div class="amzshcs-item" id="amzshcs-item-b19f110827ea8961a088c83a59593f9f"> <a href="http://www.amazon.com/Learning-Python-3rd-Mark-Lutz/dp/0596513984%3FSubscriptionId%3DAKIAIDKCHBMTXNBMQIKA%26tag%3Dmatty-20%26linkCode%3Dxm2%26camp%3D2025%26creative%3D165953%26creativeASIN%3D0596513984"><img src="http://ecx.images-amazon.com/images/I/41OTurhZsLL._SL110_.jpg" height="110" width="84" alt="Image of Learning Python, 3rd Edition" title="Learning Python, 3rd Edition" /></a> </div><div class="amzshcs-item" id="amzshcs-item-f5743a53585ff6a61b5d779b9c3ba604"> <a href="http://www.amazon.com/Running-Xen-Hands-Guide-Virtualization/dp/0132349663%3FSubscriptionId%3DAKIAIDKCHBMTXNBMQIKA%26tag%3Dmatty-20%26linkCode%3Dxm2%26camp%3D2025%26creative%3D165953%26creativeASIN%3D0132349663"><img src="http://ecx.images-amazon.com/images/I/51gB9qQj%2BqL._SL110_.jpg" height="110" width="83" alt="Image of Running Xen: A Hands-On Guide to the Art of Virtualization" title="Running Xen: A Hands-On Guide to the Art of Virtualization" /></a> </div><div class="amzshcs-item" id="amzshcs-item-ade363b658ab3ad08e1cf0b2acd08918"> <a href="http://www.amazon.com/Self-Service-Linux-Mastering-Problem-Determination/dp/013147751X%3FSubscriptionId%3DAKIAIDKCHBMTXNBMQIKA%26tag%3Dmatty-20%26linkCode%3Dxm2%26camp%3D2025%26creative%3D165953%26creativeASIN%3D013147751X"><img src="http://ecx.images-amazon.com/images/I/519ST2KTZNL._SL110_.jpg" height="110" width="83" alt="Image of Self-Service Linux®: Mastering the Art of Problem Determination" title="Self-Service Linux®: Mastering the Art of Problem Determination" /></a> </div><div class="amzshcs-item" id="amzshcs-item-3522e6297075000d04ac4970e9d1ceef"> <a href="http://www.amazon.com/NFS-Illustrated-Brent-Callaghan/dp/0201325705%3FSubscriptionId%3DAKIAIDKCHBMTXNBMQIKA%26tag%3Dmatty-20%26linkCode%3Dxm2%26camp%3D2025%26creative%3D165953%26creativeASIN%3D0201325705"><img src="http://ecx.images-amazon.com/images/I/512A02BCYSL._SL110_.jpg" height="110" width="88" alt="Image of NFS Illustrated" title="NFS Illustrated" /></a> </div></div></div><div id="search-3" class="block widget widget_search"><h3>Search</h3><form role="search" method="get" id="searchform" action="http://prefetch.net/blog/" >
+	<div><label class="screen-reader-text" for="s">Search for:</label>
+	<input type="text" value="" name="s" id="s" />
+	<input type="submit" id="searchsubmit" value="Search" />
+	</div>
+	</form></div><div id="linkcat-183" class="block widget widget_links"><h3>Blogroll</h3>
+	<ul class='xoxo blogroll'>
+<li><a href="http://dtrace.org/blogs/ahl/" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://dtrace.org/blogs/ahl/']);">Adam Leventhal</a></li>
+<li><a href="http://cuddletech.com/blog" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://cuddletech.com/blog']);">Ben Rockwood</a></li>
+<li><a href="http://dtrace.org/blogs/brendan/" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://dtrace.org/blogs/brendan/']);">Brendan Gregg</a></li>
+<li><a href="http://utcc.utoronto.ca/~cks/space/blog/" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://utcc.utoronto.ca/~cks/space/blog/']);">Chris Siebenmann</a></li>
+<li><a href="http://hell.jedicoder.net/" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://hell.jedicoder.net/']);">Derek Crudgington</a></li>
+<li><a href="http://blog.aiama.com/" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://blog.aiama.com/']);">Gerardo López-Fernández</a></li>
+<li><a href="http://www.undeadly.org" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.undeadly.org']);">OpenBSD Journal</a></li>
+<li><a href="http://planet.centos.org/" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://planet.centos.org/']);">Planet CentOS</a></li>
+<li><a href="http://www.planetsolaris.org" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.planetsolaris.org']);">Planet Solaris</a></li>
+<li><a href="http://www.sysadminblogs.com/planet" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.sysadminblogs.com/planet']);">Planet SysAdmin</a></li>
+<li><a href="http://solaristroubleshooting.blogspot.com" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://solaristroubleshooting.blogspot.com']);">Scott Cromar</a></li>
+<li><a href="http://blogs.sun.com/scottdickson" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://blogs.sun.com/scottdickson']);">Scott Dickson</a></li>
+
+	</ul>
+</div>
+<div id="categories-460585411" class="block widget widget_categories"><h3>Categories</h3>		<ul>
+	<li class="cat-item cat-item-257"><a href="http://prefetch.net/blog/index.php/category/aix-debugging/" title="View all posts filed under AIX Debugging">AIX Debugging</a> (1)
+</li>
+	<li class="cat-item cat-item-256"><a href="http://prefetch.net/blog/index.php/category/aix-package-management/" title="View all posts filed under AIX Package Management">AIX Package Management</a> (2)
+</li>
+	<li class="cat-item cat-item-31"><a href="http://prefetch.net/blog/index.php/category/apache/" title="View all posts filed under Apache">Apache</a> (29)
+</li>
+	<li class="cat-item cat-item-35"><a href="http://prefetch.net/blog/index.php/category/apple/" title="View all posts filed under Apple">Apple</a> (27)
+</li>
+	<li class="cat-item cat-item-73"><a href="http://prefetch.net/blog/index.php/category/articles-presentation-certifications/" title="View all posts filed under Articles, Presentations and Certifications">Articles, Presentations and Certifications</a> (43)
+</li>
+	<li class="cat-item cat-item-250"><a href="http://prefetch.net/blog/index.php/category/book-reviews/" title="View all posts filed under Book Reviews">Book Reviews</a> (1)
+</li>
+	<li class="cat-item cat-item-207"><a href="http://prefetch.net/blog/index.php/category/brocade/" title="View all posts filed under Brocade">Brocade</a> (8)
+</li>
+	<li class="cat-item cat-item-232"><a href="http://prefetch.net/blog/index.php/category/cfengine/" title="View all posts filed under cfengine">cfengine</a> (5)
+</li>
+	<li class="cat-item cat-item-205"><a href="http://prefetch.net/blog/index.php/category/debian-linux/" title="View all posts filed under Debian Linux">Debian Linux</a> (1)
+</li>
+	<li class="cat-item cat-item-221"><a href="http://prefetch.net/blog/index.php/category/djbdns/" title="View all posts filed under Djbdns">Djbdns</a> (1)
+</li>
+	<li class="cat-item cat-item-79"><a href="http://prefetch.net/blog/index.php/category/dns/" title="View all posts filed under DNS &amp; BIND">DNS &amp; BIND</a> (15)
+</li>
+	<li class="cat-item cat-item-208"><a href="http://prefetch.net/blog/index.php/category/emulex/" title="View all posts filed under Emulex">Emulex</a> (3)
+</li>
+	<li class="cat-item cat-item-167"><a href="http://prefetch.net/blog/index.php/category/firefox/" title="View all posts filed under Firefox">Firefox</a> (3)
+</li>
+	<li class="cat-item cat-item-243"><a href="http://prefetch.net/blog/index.php/category/food-and-beverages/" title="View all posts filed under Food and Beverages">Food and Beverages</a> (1)
+</li>
+	<li class="cat-item cat-item-162"><a href="http://prefetch.net/blog/index.php/category/freebsd-misc/" title="View all posts filed under FreeBSD Misc">FreeBSD Misc</a> (2)
+</li>
+	<li class="cat-item cat-item-160"><a href="http://prefetch.net/blog/index.php/category/freebsd-networking/" title="View all posts filed under FreeBSD Networking">FreeBSD Networking</a> (1)
+</li>
+	<li class="cat-item cat-item-164"><a href="http://prefetch.net/blog/index.php/category/freebsd-utilities/" title="View all posts filed under FreeBSD Utilities">FreeBSD Utilities</a> (2)
+</li>
+	<li class="cat-item cat-item-240"><a href="http://prefetch.net/blog/index.php/category/freenas/" title="View all posts filed under FreeNAS">FreeNAS</a> (1)
+</li>
+	<li class="cat-item cat-item-197"><a href="http://prefetch.net/blog/index.php/category/gadgets/" title="View all posts filed under Gadgets">Gadgets</a> (2)
+</li>
+	<li class="cat-item cat-item-227"><a href="http://prefetch.net/blog/index.php/category/games/" title="View all posts filed under Games">Games</a> (1)
+</li>
+	<li class="cat-item cat-item-248"><a href="http://prefetch.net/blog/index.php/category/gardening/" title="View all posts filed under Gardening">Gardening</a> (1)
+</li>
+	<li class="cat-item cat-item-155"><a href="http://prefetch.net/blog/index.php/category/gnome/" title="View all posts filed under Gnome">Gnome</a> (4)
+</li>
+	<li class="cat-item cat-item-94"><a href="http://prefetch.net/blog/index.php/category/gnupg/" title="View all posts filed under GNU Privacy Guard">GNU Privacy Guard</a> (4)
+</li>
+	<li class="cat-item cat-item-112"><a href="http://prefetch.net/blog/index.php/category/hardware/" title="View all posts filed under Hardware">Hardware</a> (13)
+</li>
+	<li class="cat-item cat-item-229"><a href="http://prefetch.net/blog/index.php/category/health-foods/" title="View all posts filed under Health Foods">Health Foods</a> (2)
+</li>
+	<li class="cat-item cat-item-234"><a href="http://prefetch.net/blog/index.php/category/home-security/" title="View all posts filed under Home Security">Home Security</a> (1)
+</li>
+	<li class="cat-item cat-item-120"><a href="http://prefetch.net/blog/index.php/category/http/" title="View all posts filed under HTTP">HTTP</a> (4)
+</li>
+	<li class="cat-item cat-item-255"><a href="http://prefetch.net/blog/index.php/category/illumos/" title="View all posts filed under Illumos">Illumos</a> (1)
+</li>
+	<li class="cat-item cat-item-45"><a href="http://prefetch.net/blog/index.php/category/investing/" title="View all posts filed under Investing">Investing</a> (2)
+</li>
+	<li class="cat-item cat-item-213"><a href="http://prefetch.net/blog/index.php/category/isc-dhcp/" title="View all posts filed under ISC DHCP">ISC DHCP</a> (3)
+</li>
+	<li class="cat-item cat-item-37"><a href="http://prefetch.net/blog/index.php/category/java/" title="View all posts filed under Java">Java</a> (12)
+</li>
+	<li class="cat-item cat-item-218"><a href="http://prefetch.net/blog/index.php/category/libvirt/" title="View all posts filed under Libvirt">Libvirt</a> (1)
+</li>
+	<li class="cat-item cat-item-32"><a href="http://prefetch.net/blog/index.php/category/links/" title="View all posts filed under Links">Links</a> (15)
+</li>
+	<li class="cat-item cat-item-245"><a href="http://prefetch.net/blog/index.php/category/linux-authentication/" title="View all posts filed under Linux Authentication">Linux Authentication</a> (1)
+</li>
+	<li class="cat-item cat-item-169"><a href="http://prefetch.net/blog/index.php/category/linux-debugging/" title="View all posts filed under Linux Debugging">Linux Debugging</a> (14)
+</li>
+	<li class="cat-item cat-item-249"><a href="http://prefetch.net/blog/index.php/category/linux-gluster/" title="View all posts filed under Linux Gluster">Linux Gluster</a> (8)
+</li>
+	<li class="cat-item cat-item-173"><a href="http://prefetch.net/blog/index.php/category/linux-installation/" title="View all posts filed under Linux Installation">Linux Installation</a> (4)
+</li>
+	<li class="cat-item cat-item-210"><a href="http://prefetch.net/blog/index.php/category/linux-iscsi/" title="View all posts filed under Linux iSCSI">Linux iSCSI</a> (2)
+</li>
+	<li class="cat-item cat-item-25"><a href="http://prefetch.net/blog/index.php/category/linux-kernel/" title="View all posts filed under Linux Kernel">Linux Kernel</a> (18)
+</li>
+	<li class="cat-item cat-item-214"><a href="http://prefetch.net/blog/index.php/category/linux-kickstart/" title="View all posts filed under Linux Kickstart">Linux Kickstart</a> (2)
+</li>
+	<li class="cat-item cat-item-217"><a href="http://prefetch.net/blog/index.php/category/kvm/" title="View all posts filed under Linux KVM">Linux KVM</a> (10)
+</li>
+	<li class="cat-item cat-item-42"><a href="http://prefetch.net/blog/index.php/category/linux-lvm/" title="View all posts filed under Linux LVM">Linux LVM</a> (3)
+</li>
+	<li class="cat-item cat-item-219"><a href="http://prefetch.net/blog/index.php/category/linux-lxc-containers/" title="View all posts filed under Linux LXC Containers">Linux LXC Containers</a> (1)
+</li>
+	<li class="cat-item cat-item-163"><a href="http://prefetch.net/blog/index.php/category/linux-misc/" title="View all posts filed under Linux Misc">Linux Misc</a> (11)
+</li>
+	<li class="cat-item cat-item-21"><a href="http://prefetch.net/blog/index.php/category/linux-network-utilities/" title="View all posts filed under Linux Networking">Linux Networking</a> (24)
+</li>
+	<li class="cat-item cat-item-237"><a href="http://prefetch.net/blog/index.php/category/linux-nfs/" title="View all posts filed under Linux NFS">Linux NFS</a> (4)
+</li>
+	<li class="cat-item cat-item-52"><a href="http://prefetch.net/blog/index.php/category/linux-package-management/" title="View all posts filed under Linux Package Management">Linux Package Management</a> (26)
+</li>
+	<li class="cat-item cat-item-179"><a href="http://prefetch.net/blog/index.php/category/linux-performance/" title="View all posts filed under Linux performance">Linux performance</a> (5)
+</li>
+	<li class="cat-item cat-item-51"><a href="http://prefetch.net/blog/index.php/category/linux-recovery/" title="View all posts filed under Linux Recovery">Linux Recovery</a> (4)
+</li>
+	<li class="cat-item cat-item-247"><a href="http://prefetch.net/blog/index.php/category/linux-resource-controls/" title="View all posts filed under Linux Resource Controls">Linux Resource Controls</a> (1)
+</li>
+	<li class="cat-item cat-item-171"><a href="http://prefetch.net/blog/index.php/category/linux-security/" title="View all posts filed under Linux Security">Linux Security</a> (19)
+</li>
+	<li class="cat-item cat-item-236"><a href="http://prefetch.net/blog/index.php/category/linux-selinux/" title="View all posts filed under Linux SELinux">Linux SELinux</a> (2)
+</li>
+	<li class="cat-item cat-item-244"><a href="http://prefetch.net/blog/index.php/category/linux-spacewalk/" title="View all posts filed under Linux Spacewalk">Linux Spacewalk</a> (1)
+</li>
+	<li class="cat-item cat-item-146"><a href="http://prefetch.net/blog/index.php/category/linux-storage/" title="View all posts filed under Linux Storage">Linux Storage</a> (41)
+</li>
+	<li class="cat-item cat-item-18"><a href="http://prefetch.net/blog/index.php/category/linux-utilities/" title="View all posts filed under Linux Utilities">Linux Utilities</a> (112)
+</li>
+	<li class="cat-item cat-item-172"><a href="http://prefetch.net/blog/index.php/category/linux-virtualization/" title="View all posts filed under Linux Virtualization">Linux Virtualization</a> (2)
+</li>
+	<li class="cat-item cat-item-223"><a href="http://prefetch.net/blog/index.php/category/linux-x-windows/" title="View all posts filed under Linux X Windows">Linux X Windows</a> (3)
+</li>
+	<li class="cat-item cat-item-251"><a href="http://prefetch.net/blog/index.php/category/logging/" title="View all posts filed under Logging">Logging</a> (1)
+</li>
+	<li class="cat-item cat-item-241"><a href="http://prefetch.net/blog/index.php/category/microsoft-dns/" title="View all posts filed under Microsoft DNS">Microsoft DNS</a> (1)
+</li>
+	<li class="cat-item cat-item-158"><a href="http://prefetch.net/blog/index.php/category/monitoring/" title="View all posts filed under Monitoring">Monitoring</a> (5)
+</li>
+	<li class="cat-item cat-item-58"><a href="http://prefetch.net/blog/index.php/category/music/" title="View all posts filed under Music">Music</a> (40)
+</li>
+	<li class="cat-item cat-item-136"><a href="http://prefetch.net/blog/index.php/category/mysql/" title="View all posts filed under MySQL">MySQL</a> (8)
+</li>
+	<li class="cat-item cat-item-206"><a href="http://prefetch.net/blog/index.php/category/net-snmp/" title="View all posts filed under net-snmp">net-snmp</a> (4)
+</li>
+	<li class="cat-item cat-item-157"><a href="http://prefetch.net/blog/index.php/category/networking/" title="View all posts filed under Networking">Networking</a> (4)
+</li>
+	<li class="cat-item cat-item-50"><a href="http://prefetch.net/blog/index.php/category/nfsv3/" title="View all posts filed under NFSv3">NFSv3</a> (5)
+</li>
+	<li class="cat-item cat-item-96"><a href="http://prefetch.net/blog/index.php/category/openbsd-kernel/" title="View all posts filed under OpenBSD Kernel">OpenBSD Kernel</a> (7)
+</li>
+	<li class="cat-item cat-item-166"><a href="http://prefetch.net/blog/index.php/category/openbsd-misc/" title="View all posts filed under OpenBSD Misc">OpenBSD Misc</a> (1)
+</li>
+	<li class="cat-item cat-item-95"><a href="http://prefetch.net/blog/index.php/category/openbsd-networking/" title="View all posts filed under OpenBSD Networking">OpenBSD Networking</a> (2)
+</li>
+	<li class="cat-item cat-item-92"><a href="http://prefetch.net/blog/index.php/category/openbsd-ports/" title="View all posts filed under OpenBSD Ports">OpenBSD Ports</a> (3)
+</li>
+	<li class="cat-item cat-item-82"><a href="http://prefetch.net/blog/index.php/category/openbsd-security/" title="View all posts filed under OpenBSD Security">OpenBSD Security</a> (7)
+</li>
+	<li class="cat-item cat-item-148"><a href="http://prefetch.net/blog/index.php/category/openbsd-utilities/" title="View all posts filed under OpenBSD Utilities">OpenBSD Utilities</a> (7)
+</li>
+	<li class="cat-item cat-item-239"><a href="http://prefetch.net/blog/index.php/category/openfiler/" title="View all posts filed under OpenFiler">OpenFiler</a> (1)
+</li>
+	<li class="cat-item cat-item-83"><a href="http://prefetch.net/blog/index.php/category/openldap/" title="View all posts filed under OpenLDAP">OpenLDAP</a> (4)
+</li>
+	<li class="cat-item cat-item-71"><a href="http://prefetch.net/blog/index.php/category/openssh/" title="View all posts filed under OpenSSH">OpenSSH</a> (15)
+</li>
+	<li class="cat-item cat-item-86"><a href="http://prefetch.net/blog/index.php/category/openssl/" title="View all posts filed under OpenSSL">OpenSSL</a> (8)
+</li>
+	<li class="cat-item cat-item-209"><a href="http://prefetch.net/blog/index.php/category/oracle/" title="View all posts filed under Oracle">Oracle</a> (3)
+</li>
+	<li class="cat-item cat-item-203"><a href="http://prefetch.net/blog/index.php/category/os-x/" title="View all posts filed under OS X">OS X</a> (2)
+</li>
+	<li class="cat-item cat-item-5"><a href="http://prefetch.net/blog/index.php/category/perl/" title="View all posts filed under Perl">Perl</a> (11)
+</li>
+	<li class="cat-item cat-item-222"><a href="http://prefetch.net/blog/index.php/category/pets/" title="View all posts filed under pets">pets</a> (1)
+</li>
+	<li class="cat-item cat-item-252"><a href="http://prefetch.net/blog/index.php/category/php/" title="View all posts filed under PHP">PHP</a> (1)
+</li>
+	<li class="cat-item cat-item-145"><a href="http://prefetch.net/blog/index.php/category/postfix/" title="View all posts filed under Postfix">Postfix</a> (2)
+</li>
+	<li class="cat-item cat-item-98"><a href="http://prefetch.net/blog/index.php/category/procmail/" title="View all posts filed under Procmail">Procmail</a> (1)
+</li>
+	<li class="cat-item cat-item-216"><a href="http://prefetch.net/blog/index.php/category/puppet/" title="View all posts filed under Puppet">Puppet</a> (2)
+</li>
+	<li class="cat-item cat-item-212"><a href="http://prefetch.net/blog/index.php/category/python/" title="View all posts filed under Python">Python</a> (7)
+</li>
+	<li class="cat-item cat-item-211"><a href="http://prefetch.net/blog/index.php/category/qlogic/" title="View all posts filed under QLogic">QLogic</a> (1)
+</li>
+	<li class="cat-item cat-item-132"><a href="http://prefetch.net/blog/index.php/category/rants/" title="View all posts filed under Rants">Rants</a> (27)
+</li>
+	<li class="cat-item cat-item-215"><a href="http://prefetch.net/blog/index.php/category/ruby/" title="View all posts filed under Ruby">Ruby</a> (1)
+</li>
+	<li class="cat-item cat-item-175"><a href="http://prefetch.net/blog/index.php/category/samba/" title="View all posts filed under Samba">Samba</a> (2)
+</li>
+	<li class="cat-item cat-item-224"><a href="http://prefetch.net/blog/index.php/category/secure-shell/" title="View all posts filed under Secure Shell">Secure Shell</a> (2)
+</li>
+	<li class="cat-item cat-item-109"><a href="http://prefetch.net/blog/index.php/category/security/" title="View all posts filed under Security">Security</a> (9)
+</li>
+	<li class="cat-item cat-item-91"><a href="http://prefetch.net/blog/index.php/category/sendmail/" title="View all posts filed under Sendmail">Sendmail</a> (3)
+</li>
+	<li class="cat-item cat-item-153"><a href="http://prefetch.net/blog/index.php/category/service-providers/" title="View all posts filed under Service providers">Service providers</a> (9)
+</li>
+	<li class="cat-item cat-item-204"><a href="http://prefetch.net/blog/index.php/category/shell/" title="View all posts filed under Shell">Shell</a> (10)
+</li>
+	<li class="cat-item cat-item-235"><a href="http://prefetch.net/blog/index.php/category/smart-phones/" title="View all posts filed under Smart Phones">Smart Phones</a> (2)
+</li>
+	<li class="cat-item cat-item-72"><a href="http://prefetch.net/blog/index.php/category/smartmontools/" title="View all posts filed under Smartmontools">Smartmontools</a> (7)
+</li>
+	<li class="cat-item cat-item-133"><a href="http://prefetch.net/blog/index.php/category/snort/" title="View all posts filed under Snort">Snort</a> (1)
+</li>
+	<li class="cat-item cat-item-154"><a href="http://prefetch.net/blog/index.php/category/software/" title="View all posts filed under Software">Software</a> (18)
+</li>
+	<li class="cat-item cat-item-180"><a href="http://prefetch.net/blog/index.php/category/solaris-cluster/" title="View all posts filed under Solaris Cluster">Solaris Cluster</a> (7)
+</li>
+	<li class="cat-item cat-item-124"><a href="http://prefetch.net/blog/index.php/category/solaris-debugging/" title="View all posts filed under Solaris Debugging">Solaris Debugging</a> (19)
+</li>
+	<li class="cat-item cat-item-44"><a href="http://prefetch.net/blog/index.php/category/solaris-dtrace/" title="View all posts filed under Solaris DTrace">Solaris DTrace</a> (33)
+</li>
+	<li class="cat-item cat-item-27"><a href="http://prefetch.net/blog/index.php/category/fault-management/" title="View all posts filed under Solaris Fault Management">Solaris Fault Management</a> (7)
+</li>
+	<li class="cat-item cat-item-195"><a href="http://prefetch.net/blog/index.php/category/solaris-install/" title="View all posts filed under Solaris Install">Solaris Install</a> (3)
+</li>
+	<li class="cat-item cat-item-165"><a href="http://prefetch.net/blog/index.php/category/solaris-kernel/" title="View all posts filed under Solaris Kernel">Solaris Kernel</a> (7)
+</li>
+	<li class="cat-item cat-item-246"><a href="http://prefetch.net/blog/index.php/category/solaris-kvm/" title="View all posts filed under Solaris KVM">Solaris KVM</a> (1)
+</li>
+	<li class="cat-item cat-item-68"><a href="http://prefetch.net/blog/index.php/category/solaris-linker/" title="View all posts filed under Solaris Linker">Solaris Linker</a> (6)
+</li>
+	<li class="cat-item cat-item-177"><a href="http://prefetch.net/blog/index.php/category/solaris-live-upgrade/" title="View all posts filed under Solaris Live Upgrade">Solaris Live Upgrade</a> (2)
+</li>
+	<li class="cat-item cat-item-48"><a href="http://prefetch.net/blog/index.php/category/solaris-misc/" title="View all posts filed under Solaris Misc">Solaris Misc</a> (22)
+</li>
+	<li class="cat-item cat-item-74"><a href="http://prefetch.net/blog/index.php/category/solaris-networking/" title="View all posts filed under Solaris Networking">Solaris Networking</a> (27)
+</li>
+	<li class="cat-item cat-item-150"><a href="http://prefetch.net/blog/index.php/category/solaris-nfs/" title="View all posts filed under Solaris NFS">Solaris NFS</a> (4)
+</li>
+	<li class="cat-item cat-item-225"><a href="http://prefetch.net/blog/index.php/category/solaris-package-management/" title="View all posts filed under Solaris Package Management">Solaris Package Management</a> (1)
+</li>
+	<li class="cat-item cat-item-2"><a href="http://prefetch.net/blog/index.php/category/solaris-patching/" title="View all posts filed under Solaris Patching">Solaris Patching</a> (20)
+</li>
+	<li class="cat-item cat-item-230"><a href="http://prefetch.net/blog/index.php/category/solaris-performance-tuning/" title="View all posts filed under Solaris Performance Tuning">Solaris Performance Tuning</a> (2)
+</li>
+	<li class="cat-item cat-item-129"><a href="http://prefetch.net/blog/index.php/category/solaris-recovery/" title="View all posts filed under Solaris Recovery">Solaris Recovery</a> (2)
+</li>
+	<li class="cat-item cat-item-152"><a href="http://prefetch.net/blog/index.php/category/solaris-resource-management/" title="View all posts filed under Solaris Resource Management">Solaris Resource Management</a> (2)
+</li>
+	<li class="cat-item cat-item-13"><a href="http://prefetch.net/blog/index.php/category/solaris-security/" title="View all posts filed under Solaris Security">Solaris Security</a> (13)
+</li>
+	<li class="cat-item cat-item-182"><a href="http://prefetch.net/blog/index.php/category/solaris-shell/" title="View all posts filed under Solaris Shell">Solaris Shell</a> (1)
+</li>
+	<li class="cat-item cat-item-110"><a href="http://prefetch.net/blog/index.php/category/solaris-smf/" title="View all posts filed under Solaris SMF">Solaris SMF</a> (9)
+</li>
+	<li class="cat-item cat-item-57"><a href="http://prefetch.net/blog/index.php/category/solaris-storage/" title="View all posts filed under Solaris Storage">Solaris Storage</a> (41)
+</li>
+	<li class="cat-item cat-item-19"><a href="http://prefetch.net/blog/index.php/category/solaris-utilities/" title="View all posts filed under Solaris Utilities">Solaris Utilities</a> (67)
+</li>
+	<li class="cat-item cat-item-54"><a href="http://prefetch.net/blog/index.php/category/solaris-volume-manager/" title="View all posts filed under Solaris Volume Manager">Solaris Volume Manager</a> (7)
+</li>
+	<li class="cat-item cat-item-75"><a href="http://prefetch.net/blog/index.php/category/solaris-xen/" title="View all posts filed under Solaris Xen">Solaris Xen</a> (3)
+</li>
+	<li class="cat-item cat-item-64"><a href="http://prefetch.net/blog/index.php/category/solaris-zfs/" title="View all posts filed under Solaris ZFS">Solaris ZFS</a> (32)
+</li>
+	<li class="cat-item cat-item-115"><a href="http://prefetch.net/blog/index.php/category/solaris-zones/" title="View all posts filed under Solaris Zones">Solaris Zones</a> (18)
+</li>
+	<li class="cat-item cat-item-238"><a href="http://prefetch.net/blog/index.php/category/storage/" title="View all posts filed under Storage">Storage</a> (2)
+</li>
+	<li class="cat-item cat-item-131"><a href="http://prefetch.net/blog/index.php/category/storage-area-networking/" title="View all posts filed under Storage Area Networking">Storage Area Networking</a> (9)
+</li>
+	<li class="cat-item cat-item-174"><a href="http://prefetch.net/blog/index.php/category/sun-directory-server/" title="View all posts filed under Sun Directory Server">Sun Directory Server</a> (3)
+</li>
+	<li class="cat-item cat-item-185"><a href="http://prefetch.net/blog/index.php/category/sun-servers/" title="View all posts filed under Sun Servers">Sun Servers</a> (3)
+</li>
+	<li class="cat-item cat-item-176"><a href="http://prefetch.net/blog/index.php/category/sun-web-server/" title="View all posts filed under Sun Web Server">Sun Web Server</a> (1)
+</li>
+	<li class="cat-item cat-item-253"><a href="http://prefetch.net/blog/index.php/category/syslog/" title="View all posts filed under Syslog">Syslog</a> (2)
+</li>
+	<li class="cat-item cat-item-228"><a href="http://prefetch.net/blog/index.php/category/syslog-ng/" title="View all posts filed under syslog-ng">syslog-ng</a> (2)
+</li>
+	<li class="cat-item cat-item-242"><a href="http://prefetch.net/blog/index.php/category/truecrypt/" title="View all posts filed under Truecrypt">Truecrypt</a> (1)
+</li>
+	<li class="cat-item cat-item-1"><a href="http://prefetch.net/blog/index.php/category/uncategorized/" title="View all posts filed under Uncategorized">Uncategorized</a> (33)
+</li>
+	<li class="cat-item cat-item-161"><a href="http://prefetch.net/blog/index.php/category/unix/" title="View all posts filed under UNIX">UNIX</a> (3)
+</li>
+	<li class="cat-item cat-item-23"><a href="http://prefetch.net/blog/index.php/category/unix-shell/" title="View all posts filed under UNIX Shell">UNIX Shell</a> (33)
+</li>
+	<li class="cat-item cat-item-178"><a href="http://prefetch.net/blog/index.php/category/vertias-cluster-server/" title="View all posts filed under Veritas Cluster Server">Veritas Cluster Server</a> (1)
+</li>
+	<li class="cat-item cat-item-93"><a href="http://prefetch.net/blog/index.php/category/veritas-file-system/" title="View all posts filed under Veritas File System">Veritas File System</a> (6)
+</li>
+	<li class="cat-item cat-item-184"><a href="http://prefetch.net/blog/index.php/category/veritas-netbackup/" title="View all posts filed under Veritas Netbackup">Veritas Netbackup</a> (3)
+</li>
+	<li class="cat-item cat-item-38"><a href="http://prefetch.net/blog/index.php/category/veritas-volume-manager/" title="View all posts filed under Veritas Volume Manager">Veritas Volume Manager</a> (19)
+</li>
+	<li class="cat-item cat-item-226"><a href="http://prefetch.net/blog/index.php/category/virtualbox/" title="View all posts filed under VirtualBox">VirtualBox</a> (1)
+</li>
+	<li class="cat-item cat-item-7"><a href="http://prefetch.net/blog/index.php/category/vmware-esx-server/" title="View all posts filed under VMWare ESX Server">VMWare ESX Server</a> (13)
+</li>
+	<li class="cat-item cat-item-202"><a href="http://prefetch.net/blog/index.php/category/web-development/" title="View all posts filed under Web development">Web development</a> (4)
+</li>
+	<li class="cat-item cat-item-220"><a href="http://prefetch.net/blog/index.php/category/web-utilities/" title="View all posts filed under Web Utilities">Web Utilities</a> (1)
+</li>
+	<li class="cat-item cat-item-231"><a href="http://prefetch.net/blog/index.php/category/windows-server/" title="View all posts filed under Windows Server">Windows Server</a> (4)
+</li>
+	<li class="cat-item cat-item-116"><a href="http://prefetch.net/blog/index.php/category/wireless/" title="View all posts filed under Wireless">Wireless</a> (2)
+</li>
+	<li class="cat-item cat-item-127"><a href="http://prefetch.net/blog/index.php/category/wordpress/" title="View all posts filed under Wordpress">Wordpress</a> (7)
+</li>
+		</ul>
+</div><div id="archives-2" class="block widget widget_archive"><h3>Archives</h3>		<ul>
+			<li><a href='http://prefetch.net/blog/index.php/2012/12/' title='December 2012'>December 2012</a>&nbsp;(1)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2012/08/' title='August 2012'>August 2012</a>&nbsp;(3)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2012/07/' title='July 2012'>July 2012</a>&nbsp;(7)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2012/06/' title='June 2012'>June 2012</a>&nbsp;(1)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2012/05/' title='May 2012'>May 2012</a>&nbsp;(1)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2012/02/' title='February 2012'>February 2012</a>&nbsp;(14)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2012/01/' title='January 2012'>January 2012</a>&nbsp;(15)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2011/12/' title='December 2011'>December 2011</a>&nbsp;(1)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2011/11/' title='November 2011'>November 2011</a>&nbsp;(25)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2011/10/' title='October 2011'>October 2011</a>&nbsp;(10)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2011/09/' title='September 2011'>September 2011</a>&nbsp;(3)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2011/08/' title='August 2011'>August 2011</a>&nbsp;(5)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2011/07/' title='July 2011'>July 2011</a>&nbsp;(6)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2011/06/' title='June 2011'>June 2011</a>&nbsp;(3)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2011/05/' title='May 2011'>May 2011</a>&nbsp;(5)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2011/04/' title='April 2011'>April 2011</a>&nbsp;(4)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2011/03/' title='March 2011'>March 2011</a>&nbsp;(8)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2011/02/' title='February 2011'>February 2011</a>&nbsp;(3)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2011/01/' title='January 2011'>January 2011</a>&nbsp;(9)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2010/12/' title='December 2010'>December 2010</a>&nbsp;(5)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2010/11/' title='November 2010'>November 2010</a>&nbsp;(7)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2010/10/' title='October 2010'>October 2010</a>&nbsp;(6)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2010/09/' title='September 2010'>September 2010</a>&nbsp;(3)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2010/08/' title='August 2010'>August 2010</a>&nbsp;(5)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2010/07/' title='July 2010'>July 2010</a>&nbsp;(14)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2010/06/' title='June 2010'>June 2010</a>&nbsp;(4)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2010/05/' title='May 2010'>May 2010</a>&nbsp;(7)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2010/04/' title='April 2010'>April 2010</a>&nbsp;(6)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2010/03/' title='March 2010'>March 2010</a>&nbsp;(8)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2010/02/' title='February 2010'>February 2010</a>&nbsp;(2)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2010/01/' title='January 2010'>January 2010</a>&nbsp;(5)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2009/12/' title='December 2009'>December 2009</a>&nbsp;(13)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2009/11/' title='November 2009'>November 2009</a>&nbsp;(11)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2009/10/' title='October 2009'>October 2009</a>&nbsp;(7)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2009/09/' title='September 2009'>September 2009</a>&nbsp;(10)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2009/08/' title='August 2009'>August 2009</a>&nbsp;(17)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2009/07/' title='July 2009'>July 2009</a>&nbsp;(28)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2009/06/' title='June 2009'>June 2009</a>&nbsp;(29)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2009/05/' title='May 2009'>May 2009</a>&nbsp;(25)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2009/04/' title='April 2009'>April 2009</a>&nbsp;(34)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2009/03/' title='March 2009'>March 2009</a>&nbsp;(24)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2009/02/' title='February 2009'>February 2009</a>&nbsp;(14)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2009/01/' title='January 2009'>January 2009</a>&nbsp;(5)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2008/12/' title='December 2008'>December 2008</a>&nbsp;(7)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2008/11/' title='November 2008'>November 2008</a>&nbsp;(2)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2008/10/' title='October 2008'>October 2008</a>&nbsp;(3)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2008/09/' title='September 2008'>September 2008</a>&nbsp;(2)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2008/07/' title='July 2008'>July 2008</a>&nbsp;(7)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2008/06/' title='June 2008'>June 2008</a>&nbsp;(2)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2008/05/' title='May 2008'>May 2008</a>&nbsp;(1)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2008/04/' title='April 2008'>April 2008</a>&nbsp;(4)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2008/03/' title='March 2008'>March 2008</a>&nbsp;(5)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2008/02/' title='February 2008'>February 2008</a>&nbsp;(12)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2008/01/' title='January 2008'>January 2008</a>&nbsp;(5)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2007/12/' title='December 2007'>December 2007</a>&nbsp;(5)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2007/11/' title='November 2007'>November 2007</a>&nbsp;(15)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2007/10/' title='October 2007'>October 2007</a>&nbsp;(16)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2007/09/' title='September 2007'>September 2007</a>&nbsp;(6)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2007/08/' title='August 2007'>August 2007</a>&nbsp;(4)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2007/07/' title='July 2007'>July 2007</a>&nbsp;(8)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2007/06/' title='June 2007'>June 2007</a>&nbsp;(20)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2007/05/' title='May 2007'>May 2007</a>&nbsp;(13)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2007/04/' title='April 2007'>April 2007</a>&nbsp;(14)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2007/03/' title='March 2007'>March 2007</a>&nbsp;(13)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2007/02/' title='February 2007'>February 2007</a>&nbsp;(13)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2007/01/' title='January 2007'>January 2007</a>&nbsp;(34)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2006/12/' title='December 2006'>December 2006</a>&nbsp;(27)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2006/11/' title='November 2006'>November 2006</a>&nbsp;(24)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2006/10/' title='October 2006'>October 2006</a>&nbsp;(17)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2006/09/' title='September 2006'>September 2006</a>&nbsp;(23)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2006/08/' title='August 2006'>August 2006</a>&nbsp;(18)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2006/07/' title='July 2006'>July 2006</a>&nbsp;(31)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2006/06/' title='June 2006'>June 2006</a>&nbsp;(23)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2006/05/' title='May 2006'>May 2006</a>&nbsp;(19)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2006/04/' title='April 2006'>April 2006</a>&nbsp;(30)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2006/03/' title='March 2006'>March 2006</a>&nbsp;(25)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2006/02/' title='February 2006'>February 2006</a>&nbsp;(28)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2006/01/' title='January 2006'>January 2006</a>&nbsp;(25)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2005/12/' title='December 2005'>December 2005</a>&nbsp;(23)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2005/11/' title='November 2005'>November 2005</a>&nbsp;(30)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2005/10/' title='October 2005'>October 2005</a>&nbsp;(54)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2005/09/' title='September 2005'>September 2005</a>&nbsp;(49)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2005/08/' title='August 2005'>August 2005</a>&nbsp;(10)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2005/07/' title='July 2005'>July 2005</a>&nbsp;(7)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2005/06/' title='June 2005'>June 2005</a>&nbsp;(5)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2005/05/' title='May 2005'>May 2005</a>&nbsp;(10)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2005/04/' title='April 2005'>April 2005</a>&nbsp;(6)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2005/03/' title='March 2005'>March 2005</a>&nbsp;(6)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2005/02/' title='February 2005'>February 2005</a>&nbsp;(13)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2005/01/' title='January 2005'>January 2005</a>&nbsp;(15)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2004/12/' title='December 2004'>December 2004</a>&nbsp;(3)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2004/11/' title='November 2004'>November 2004</a>&nbsp;(4)</li>
+	<li><a href='http://prefetch.net/blog/index.php/2004/10/' title='October 2004'>October 2004</a>&nbsp;(2)</li>
+		</ul>
+</div>			<div class="search">
+				<form method="get" id="searchform" action="http://prefetch.net/blog/">
+					<input name="s" id="s" type="text" class="field" value="" onfocus="if (this.value == '') {this.value = '';}" onblur="if (this.value == '') {this.value = '';}" />
+					<input name="submit" type="image" src="http://prefetch.net/blog/wp-content/themes/Corpvox/img/img_search.gif" class="sb" />
+				</form>
+			</div>
+		</div>
+	</div>
+	<div id="footer">
+                <p>The content on prefetch.net is copyrighted to Blog O' Matty and may not be reproduced on other websites.</p> 
+                <p>All information is provided AS IS, and WITHOUT ANY WARRANTY; without even the implied</p>
+                <p>warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.</p>
+                <p>The author will not be held liable for any problems that result from the information provided here.</p>
+                <p Use all of the information on this site at your own risk!!!</p>
+                <p>Copyright Blog O' Matty |  <a href="/privacy.txt">Privacy Policy</a> | <a href="http://www.dailyblogtips.com/wordpress-themes/">Corpvox WordPress Theme</a></p>
+	</div>
+
+</div>	
+</div>
+	</body>
+</html>

@@ -1,0 +1,132 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>21.3. Supplying the Selection</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-ManagingSelections.html" title="Chapter 21. Managing Selections"><link rel="prev" href="sec-RetrievingTheSelection.html" title="21.2. Retrieving the Selection"><link rel="next" href="ch-DragAndDrop.html" title="Chapter 22. Drag-and-drop (DND)"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">21.3. Supplying the Selection</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-RetrievingTheSelection.html">Prev</a> </td><th width="60%" align="center">Chapter 21. Managing Selections</th><td width="20%" align="right"> <a accesskey="n" href="ch-DragAndDrop.html">Next</a></td></tr></table><hr></div><div class="sect1" title="21.3. Supplying the Selection"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-SupplyingTheSelection"></a>21.3. Supplying the Selection</h2></div></div></div><p>Supplying the selection is a bit more complicated. You must
+register handlers that will be called when your selection is requested. For
+each selection-target pair you will handle, you make a call to:</p><pre class="programlisting">
+  widget.selection_add_target(<strong class="parameter"><code>selection</code></strong>, <strong class="parameter"><code>target</code></strong>, <strong class="parameter"><code>info</code></strong>)
+</pre><p><em class="parameter"><code>widget</code></em>, <em class="parameter"><code>selection</code></em>,
+and <em class="parameter"><code>target</code></em> identify the requests this handler will
+manage.  When a request for a selection is received, the "selection_get"
+signal will be called. <em class="parameter"><code>info</code></em> is an integer that can be
+used as an enumerator to identify the specific target within the
+callback.</p><p>The callback has the signature:</p><pre class="programlisting">
+  def selection_get(widget, selection_data, info, time):
+</pre><p>The <code class="classname">gtk.SelectionData</code> is the same as above,
+but this time, we're responsible for filling in the fields
+<em class="parameter"><code>type</code></em>, <em class="parameter"><code>format</code></em> and
+<em class="parameter"><code>data</code></em>. (The <em class="parameter"><code>format</code></em> field is
+actually important here - the X server uses it to figure out whether the
+<em class="parameter"><code>data</code></em> needs to be byte-swapped or not. Usually it will
+be 8 - i.e. a character - or 32 - i.e. a integer.) This is done by calling
+the method:</p><pre class="programlisting">
+  selection_data.set(<strong class="parameter"><code>type</code></strong>, <strong class="parameter"><code>format</code></strong>, <strong class="parameter"><code>data</code></strong>)
+</pre><p>This PyGTK method can only handle string data so the
+<em class="parameter"><code>data</code></em> must be loaded into a Python string but
+<em class="parameter"><code>format</code></em> will be whatever the appropriate size is
+(e.g. 32 for atoms and integers, 8 for strings). The Python
+<code class="classname">struct</code> or <code class="classname">StringIO</code> modules can
+be used to convert non-string data to string data. For example, you can
+convert a list of integers to a string and set the
+<em class="parameter"><code>selection_data</code></em> by:</p><pre class="programlisting">
+  ilist = [1, 2, 3, 4, 5]
+
+  data = apply(struct.pack, ['%di'%len(ilist)] + ilist)
+
+  selection_data.set("INTEGER", 32, data)
+</pre><p>The following method sets the selection data from the given
+string:</p><pre class="programlisting">
+  selection_data.set_text(<strong class="parameter"><code>str</code></strong>, <strong class="parameter"><code>len</code></strong>)
+</pre><p>When prompted by the user, you claim ownership of the selection
+by calling:</p><pre class="programlisting">
+  result = widget.selection_owner_set(<strong class="parameter"><code>selection</code></strong>, <strong class="parameter"><code>time</code></strong>=0L)
+</pre><p><em class="parameter"><code>result</code></em> will be <code class="literal">TRUE</code> if
+program successfully claimed the <em class="parameter"><code>selection</code></em>. If
+another application claims ownership of the
+<em class="parameter"><code>selection</code></em>, you will receive a
+"selection_clear_event".</p><p>As an example of supplying the selection, the <a class="ulink" href="examples/setselection.py" target="_top"><span class="command"><strong>setselection.py</strong></span></a>
+program adds selection functionality to a toggle button enclosed in a
+<code class="classname">gtk.EventBox</code>. (The
+<code class="classname">gtk.Eventbox</code> is needed because the selection must be
+associated with a <code class="classname">gtk.gdk.Window</code> and a
+<code class="classname">gtk.Button</code> is a "windowless" object in GTK+ 2.0.)
+When the toggle button is depressed, the program claims the primary
+selection. The only target supported (aside from certain targets like
+"TARGETS" supplied by GTK+ itself), is the "STRING" target. When this target
+is requested, a string representation of the time is returned.  <a class="xref" href="sec-SupplyingTheSelection.html#setselectionfig" title="Figure 21.2. Set Selection Example">Figure 21.2, “Set Selection Example”</a> illustrates the program display when the program
+has taken the primary selection ownership:</p><div class="figure"><a name="setselectionfig"></a><p class="title"><b>Figure 21.2. Set Selection Example</b></p><div class="figure-contents"><div class="mediaobject" align="center"><img src="figures/setselection.png" align="middle" alt="Set Selection Example"></div></div></div><br class="figure-break"><p>The <a class="ulink" href="examples/setselection.py" target="_top"><span class="command"><strong>setselection.py</strong></span></a>
+source code is:</p><pre class="programlisting">
+    1	#!/usr/bin/env python
+    2	
+    3	# example setselection.py
+    4	
+    5	import pygtk
+    6	pygtk.require('2.0')
+    7	import gtk
+    8	import time
+    9	
+   10	class SetSelectionExample:
+   11	    # Callback when the user toggles the selection
+   12	    def selection_toggled(self, widget, window):
+   13	        if widget.get_active():
+   14	            self.have_selection = window.selection_owner_set("PRIMARY")
+   15	            # if claiming the selection failed, we return the button to
+   16	            # the out state
+   17	            if not self.have_selection:
+   18	                widget.set_active(False)
+   19	        else:
+   20	            if self.have_selection:
+   21	                # Not possible to release the selection in PyGTK
+   22	                # just mark that we don't have it
+   23	                self.have_selection = False
+   24	        return
+   25	
+   26	    # Called when another application claims the selection
+   27	    def selection_clear(self, widget, event):
+   28	        self.have_selection = False
+   29	        widget.set_active(False)
+   30	        return True
+   31	
+   32	    # Supplies the current time as the selection.
+   33	    def selection_handle(self, widget, selection_data, info, time_stamp):
+   34	        current_time = time.time()
+   35	        timestr = time.asctime(time.localtime(current_time))
+   36	
+   37	        # When we return a single string, it should not be null terminated.
+   38	        # That will be done for us
+   39	        selection_data.set_text(timestr, len(timestr))
+   40	        return
+   41	
+   42	    def __init__(self):
+   43	        self.have_selection = False
+   44	        # Create the toplevel window
+   45	        window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+   46	        window.set_title("Set Selection")
+   47	        window.set_border_width(10)
+   48	        window.connect("destroy", lambda w: gtk.main_quit())
+   49	        self.window = window
+   50	        # Create an eventbox to hold the button since it no longer has
+   51	        # a GdkWindow
+   52	        eventbox = gtk.EventBox()
+   53	        eventbox.show()
+   54	        window.add(eventbox)
+   55	        
+   56	        # Create a toggle button to act as the selection
+   57	        selection_button = gtk.ToggleButton("Claim Selection")
+   58	        eventbox.add(selection_button)
+   59	
+   60	        selection_button.connect("toggled", self.selection_toggled, eventbox)
+   61	        eventbox.connect_object("selection_clear_event", self.selection_clear,
+   62	                                selection_button)
+   63	
+   64	        eventbox.selection_add_target("PRIMARY", "STRING", 1)
+   65	        eventbox.selection_add_target("PRIMARY", "COMPOUND_TEXT", 1)
+   66	        eventbox.connect("selection_get", self.selection_handle)
+   67	        selection_button.show()
+   68	        window.show()
+   69	
+   70	def main():
+   71	    gtk.main()
+   72	    return 0
+   73	
+   74	if __name__ == "__main__":
+   75	    SetSelectionExample()
+   76	    main()
+</pre></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-RetrievingTheSelection.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-ManagingSelections.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch-DragAndDrop.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">21.2. Retrieving the Selection </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 22. Drag-and-drop (DND)</td></tr></table></div></body></html>

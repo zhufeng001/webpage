@@ -1,0 +1,716 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head profile="http://gmpg.org/xfn/11">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+
+	<title>fio配合cgroup测试存储设备IOPS分配 | Erlang非业余研究</title>
+	<link rel="alternate" type="application/rss+xml" title="RSS 2.0 - all posts" href="http://blog.yufeng.info/feed" />
+	<link rel="alternate" type="application/rss+xml" title="RSS 2.0 - all comments" href="http://blog.yufeng.info/comments/feed" />
+	<link rel="pingback" href="http://blog.yufeng.info/xmlrpc.php" />
+
+	<!-- style START -->
+	<!-- default style -->
+	<style type="text/css" media="screen">@import url( http://blog.yufeng.info/wp-content/themes/inove/style.css );</style>
+	<!-- for translations -->
+		<!--[if IE]>
+		<link rel="stylesheet" href="http://blog.yufeng.info/wp-content/themes/inove/ie.css" type="text/css" media="screen" />
+	<![endif]-->
+	<!-- style END -->
+
+	<!-- script START -->
+	<script type="text/javascript" src="http://blog.yufeng.info/wp-content/themes/inove/js/base.js"></script>
+	<script type="text/javascript" src="http://blog.yufeng.info/wp-content/themes/inove/js/menu.js"></script>
+	<!-- script END -->
+
+	
+			<script type="text/javascript">//<![CDATA[
+			// Google Analytics for WordPress by Yoast v4.2.8 | http://yoast.com/wordpress/google-analytics/
+			var _gaq = _gaq || [];
+			_gaq.push(['_setAccount', 'UA-6788139-3']);
+				</script><script src="http://blog.yufeng.info/wp-content/plugins/google-analytics-for-wordpress/custom_se_async.js" type="text/javascript"></script>
+<script type="text/javascript">			_gaq.push(['_trackPageview']);
+			(function () {
+				var ga = document.createElement('script');
+				ga.type = 'text/javascript';
+				ga.async = true;
+				ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+				var s = document.getElementsByTagName('script')[0];
+				s.parentNode.insertBefore(ga, s);
+			})();
+			//]]></script>
+			<link rel="alternate" type="application/rss+xml" title="Erlang非业余研究 &raquo; fio配合cgroup测试存储设备IOPS分配 Comments Feed" href="http://blog.yufeng.info/archives/2001/feed" />
+<link rel='stylesheet' id='jetpack-widgets-css'  href='http://blog.yufeng.info/wp-content/plugins/jetpack/modules/widgets/widgets.css?ver=20121003' type='text/css' media='all' />
+<link rel='stylesheet' id='wp-syntax-css-css'  href='http://blog.yufeng.info/wp-content/themes/inove/wp-syntax.css?ver=3.5' type='text/css' media='all' />
+<script type='text/javascript' src='http://blog.yufeng.info/wp-includes/js/jquery/jquery.js?ver=1.8.3'></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://blog.yufeng.info/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://blog.yufeng.info/wp-includes/wlwmanifest.xml" /> 
+<link rel='prev' title='Flash存储设备在淘宝的应用实践(2011年iDevOps系统技术沙龙）' href='http://blog.yufeng.info/archives/1997' />
+<link rel='next' title='给你的Linux系统上点stress' href='http://blog.yufeng.info/archives/2023' />
+<meta name="generator" content="WordPress 3.5" />
+<link rel='shortlink' href='http://wp.me/p1sdcD-wh' />
+
+<!-- All in One SEO Pack 1.6.15.3 by Michael Torbert of Semper Fi Web Design[326,406] -->
+<meta name="keywords" content="cgroup,fio,linux,工具介绍,调优" />
+<link rel="canonical" href="http://blog.yufeng.info/archives/2001" />
+<!-- /all in one seo pack -->
+
+<script type='text/javascript'>
+var g_hanaFlash = false;
+try {
+  var fo = new ActiveXObject('ShockwaveFlash.ShockwaveFlash');
+  if(fo) g_hanaFlash = true;
+}catch(e){
+  if(navigator.mimeTypes ['application/x-shockwave-flash'] != undefined) g_hanaFlash = true;
+}
+function hanaTrackEvents(arg1,arg2,arg3,arg4) { if ( typeof( pageTracker ) !=='undefined') { pageTracker._trackEvent(arg1, arg2, arg3, arg4);} else if ( typeof(_gaq) !=='undefined'){  _gaq.push(['_trackEvent', arg1, arg2, arg3, arg4]);}}
+function hana_check_mobile_device(){ if(navigator.userAgent.match(/iPhone/i) || navigator.userAgent.match(/iPod/i) || navigator.userAgent.match(/iPad/i)  || navigator.userAgent.match(/Android/i)) { return true; }else return false; }
+</script>
+
+<!-- Jetpack Open Graph Tags -->
+<meta property="og:type" content="article" />
+<meta property="og:title" content="fio配合cgroup测试存储设备IOPS分配" />
+<meta property="og:url" content="http://blog.yufeng.info/archives/2001" />
+<meta property="og:description" content="原创文章，转载请注明： 转载自Erlang非业余研究 本文链接地址: fio配合cgroup测试存储设备IOPS分配 随着包括存储设备在内服务器的能力越来越高，特别是用上了PCIe存储卡后，IOPS能力通常有10几万，马上过剩。在这种情况下，一台服务器可以干很多事情，在上面跑很多服务。那么如何保证系统的服务质量是个很重要的事情了。 我们在下来的的项目中倾向于用cgroup来做资源的隔离和限制..." />
+<meta property="og:site_name" content="Erlang非业余研究" />
+<meta property="og:image" content="http://blog.yufeng.info/wp-content/uploads/2011/12/Screenshot-at-2011-12-28-162303.png" />
+	<style type="text/css">.recentcomments a{display:inline !important;padding:0 !important;margin:0 !important;}</style>
+<meta id="syntaxhighlighteranchor" name="syntaxhighlighter-version" content="3.1.3" />
+<!-- wp thread comment 1.4.9.4.002 -->
+<style type="text/css" media="screen">
+
+.editComment, .editableComment, .textComment{
+	display: inline;
+}
+.comment-childs{
+	border: 1px solid #999;
+	margin: 5px 2px 2px 4px;
+	padding: 4px 2px 2px 4px;
+	background-color: white;
+}
+.chalt{
+	background-color: #E2E2E2;
+}
+#newcomment{
+	border:1px dashed #777;width:90%;
+}
+#newcommentsubmit{
+	color:red;
+}
+.adminreplycomment{
+	border:1px dashed #777;
+	width:99%;
+	margin:4px;
+	padding:4px;
+}
+.mvccls{
+	color: #999;
+}
+			
+</style>
+</head>
+
+
+<body>
+<!-- wrap START -->
+<div id="wrap">
+
+<!-- container START -->
+<div id="container"  >
+
+<!-- header START -->
+<div id="header">
+
+	<!-- banner START -->
+			<div class="banner">
+			捐赠：<a href="https://me.alipay.com/mryufeng">支持我研究</a> 		</div>
+		<!-- banner END -->
+
+	<div id="caption">
+		<h1 id="title"><a href="http://blog.yufeng.info/">Erlang非业余研究</a></h1>
+		<div id="tagline">Erlang系统深度探索和应用</div>
+	</div>
+
+	<div class="fixed"></div>
+</div>
+<!-- header END -->
+
+<!-- navigation START -->
+<div id="navigation">
+	<!-- menus START -->
+	<ul id="menus">
+		<li class="page_item"><a class="home" title="Home" href="http://blog.yufeng.info/">Home</a></li>
+		<li class="page_item page-item-591"><a href="http://blog.yufeng.info/job">推荐工作机会</a></li>
+<li class="page_item page-item-122"><a href="http://blog.yufeng.info/ppt">资料下载</a></li>
+<li class="page_item page-item-65"><a href="http://blog.yufeng.info/%e7%95%99%e8%a8%80%e6%9d%bf">留言板</a></li>
+<li class="page_item page-item-2"><a href="http://blog.yufeng.info/about">关于我</a></li>
+		<li><a class="lastmenu" href="javascript:void(0);"></a></li>
+	</ul>
+	<!-- menus END -->
+
+	<!-- searchbox START -->
+	<div id="searchbox">
+					<form action="http://www.google.com/cse" method="get">
+				<div class="content">
+					<input type="text" class="textfield" name="q" size="24" />
+					<input type="submit" class="button" name="sa" value="" />
+					<input type="hidden" name="cx" value="011994216034381653247:b54vq7hrjse" />
+					<input type="hidden" name="ie" value="UTF-8" />
+				</div>
+			</form>
+			</div>
+<script type="text/javascript">
+//<![CDATA[
+	var searchbox = MGJS.$("searchbox");
+	var searchtxt = MGJS.getElementsByClassName("textfield", "input", searchbox)[0];
+	var searchbtn = MGJS.getElementsByClassName("button", "input", searchbox)[0];
+	var tiptext = "Type text to search here...";
+	if(searchtxt.value == "" || searchtxt.value == tiptext) {
+		searchtxt.className += " searchtip";
+		searchtxt.value = tiptext;
+	}
+	searchtxt.onfocus = function(e) {
+		if(searchtxt.value == tiptext) {
+			searchtxt.value = "";
+			searchtxt.className = searchtxt.className.replace(" searchtip", "");
+		}
+	}
+	searchtxt.onblur = function(e) {
+		if(searchtxt.value == "") {
+			searchtxt.className += " searchtip";
+			searchtxt.value = tiptext;
+		}
+	}
+	searchbtn.onclick = function(e) {
+		if(searchtxt.value == "" || searchtxt.value == tiptext) {
+			return false;
+		}
+	}
+//]]>
+</script>
+	<!-- searchbox END -->
+
+	<div class="fixed"></div>
+</div>
+<!-- navigation END -->
+
+<!-- content START -->
+<div id="content">
+
+	<!-- main START -->
+	<div id="main">
+
+
+	<div id="postpath">
+		<a title="Go to homepage" href="http://blog.yufeng.info/">Home</a>
+		 &gt; <a href="http://blog.yufeng.info/archives/category/linux_kb" title="View all posts in Linux" rel="category tag">Linux</a>, <a href="http://blog.yufeng.info/archives/category/tools" title="View all posts in 工具介绍" rel="category tag">工具介绍</a>, <a href="http://blog.yufeng.info/archives/category/%e8%b0%83%e4%bc%98" title="View all posts in 调优" rel="category tag">调优</a>		 &gt; fio配合cgroup测试存储设备IOPS分配	</div>
+
+	<div class="post" id="post-2001">
+		<h2>fio配合cgroup测试存储设备IOPS分配</h2>
+		<div class="info">
+			<span class="date">December 28th, 2011</span>
+			<span class="author"><a href="http://blog.yufeng.info/archives/author/admin" title="Posts by Yu Feng" rel="author">Yu Feng</a></span>										<span class="addcomment"><a href="#respond">Leave a comment</a></span>
+				<span class="comments"><a href="#comments">Go to comments</a></span>
+						<div class="fixed"></div>
+		</div>
+		<div class="content">
+			<div style="margin-top: 15px; font-style: italic">
+<p><strong>原创文章，转载请注明：</strong> 转载自<a href="http://blog.yufeng.info/" >Erlang非业余研究</a></p>
+<p><strong>本文链接地址:</strong> <a href="http://blog.yufeng.info/archives/2001" >fio配合cgroup测试存储设备IOPS分配</a></p>
+</div>
+<p>随着包括存储设备在内服务器的能力越来越高，特别是用上了PCIe存储卡后，IOPS能力通常有10几万，马上过剩。在这种情况下，一台服务器可以干很多事情，在上面跑很多服务。那么如何保证系统的服务质量是个很重要的事情了。</p>
+<p>我们在下来的的项目中倾向于用cgroup来做资源的隔离和限制，原因是cgroup的开销很小，而且很易用。cgroup 可以参考<a href="http://docs.redhat.com/docs/en-US/Red_Hat_Enterprise_Linux/6/pdf/Resource_Management_Guide/Red_Hat_Enterprise_Linux-6-Resource_Management_Guide-en-US.pdf" onclick="javascript:_gaq.push(['_trackEvent','download','http://docs.redhat.com/docs/en-US/Red_Hat_Enterprise_Linux/6/pdf/Resource_Management_Guide/Red_Hat_Enterprise_Linux-6-Resource_Management_Guide-en-US.pdf']);">这里</a></p>
+<p>我们特别关心cgroup的blkio子模块，他有2种限制模式:<br />
+1. throttle，限制每个进程能使用的IOPS或者吞吐量。<br />
+2. weight，现在每个进程能使用的IOPS的能力的比例，必须通过CFQ调度器来实现。<br />
+文档和具体的参数可以看上面提到的cgroup文档。</p>
+<p><span id="more-2001"></span><br />
+要使用blkio的weight限制需要注意几个事情：<br />
+1. 必须走directio, 如果buffered io因为最终写IO的进程不是发起IO的进程，结果会有很大的偏差。<br />
+2. 调度器必须是CFQ。<br />
+3. 测试工具必须支持cgroup的相关限制。<br />
+4. 最好是随机的IO。</p>
+<p>新版本的支持cgroup的fio可以在这里下载 git clone git://git.kernel.dk/fio.git， 更多参看<a href="http://blog.yufeng.info/archives/tag/fio" >这里</a>。</p>
+<p>man fio下可以看看cgroup相关的文档:</p>
+<blockquote><p>       cgroup=str<br />
+              Add  job to this control group. If it doesn&#8217;t exist, it will be created.  The system must have a mounted cgroup blkio mount<br />
+              point for this to work. If your system doesn&#8217;t have it mounted, you can do so with:</p>
+<p>              # mount -t cgroup -o blkio none /cgroup</p>
+<p>       cgroup_weight=int<br />
+              Set the weight of the cgroup to this value. See the documentation that comes with the kernel, allowed  values  are  in  the<br />
+              range of 100..1000.</p>
+<p>       cgroup_nodelete=bool<br />
+              Normally  fio  will  delete  the  cgroups  it has created after the job completion.  To override this behavior and to leave<br />
+              cgroups around after the job completion, set cgroup_nodelete=1. This can be useful if one wants to inspect  various  cgroup<br />
+              files after job completion. Default: false
+</p></blockquote>
+<p>这里只是粗粗演示下如何用fio按照比例来限制进程使用的IO, 我们来构造下场景：</p>
+<p>我们在创建2个1g大小的文件，进行随机的混合读写，一个给500的比例，一个给100的比例，总的比例是1000。那么理论上可以看到A进程可以得到多于B进程5倍的IO能力。</p>
+<p>操作如下：</p>
+<pre class="brush: bash; title: ; notranslate" title="">
+$ cat test.fio
+[global]
+bs=4k
+ioengine=libaio
+iodepth=32
+direct=1
+rw=randrw
+rwmixread=90
+time_based
+runtime=180
+cgroup_nodelete=1
+
+[test1]
+filename=test1.dat
+size=1G
+cgroup_weight=500
+cgroup=test1
+
+[test2]
+filename=test2.dat
+size=1G
+cgroup_weight=100
+cgroup=test2
+
+$ cat /sys/block/sda/queue/scheduler 
+noop deadline [cfq] 
+
+$ sudo fio test.fio
+test1: (g=0): rw=randrw, bs=4K-4K/4K-4K, ioengine=libaio, iodepth=32
+test2: (g=0): rw=randrw, bs=4K-4K/4K-4K, ioengine=libaio, iodepth=32
+fio 2.0
+Starting 2 processes
+Jobs: 2 (f=2): [mm] [5.5% done] [618K/90K /s] [151 /22  iops] [eta 02m:51s]
+...
+</pre>
+<p>我们从另外一个终端可以看到IO能力的分配情况：</p>
+<pre class="brush: bash; title: ; notranslate" title="">
+$ sudo lssubsys -am
+cpuset
+net_cls
+perf_event
+cpu /sys/fs/cgroup/cpu
+cpuacct /sys/fs/cgroup/cpuacct
+memory /sys/fs/cgroup/memory
+devices /sys/fs/cgroup/devices
+freezer /sys/fs/cgroup/freezer
+blkio /sys/fs/cgroup/blkio
+$ pgrep -x fio
+3837
+3839
+3840
+$ cat /sys/fs/cgroup/blkio/test1/tasks
+3839
+$ cat /sys/fs/cgroup/blkio/test2/tasks
+3840
+$ sudo iotop
+</pre>
+<p><a href="http://blog.yufeng.info/wp-content/uploads/2011/12/Screenshot-at-2011-12-28-162303.png" ><img src="http://blog.yufeng.info/wp-content/uploads/2011/12/Screenshot-at-2011-12-28-162303.png" alt="" title="IO分配比例截图" width="658" height="99" class="alignnone size-full wp-image-2004" /></a></p>
+<p>差不多是5:1的比例，符合预期。</p>
+<p>我们在使用的时候会担心kernel的稳定性，所以用fio能够大压力，长时间的来测试cgroup模块的可靠性，收集数据作为应用的参考。</p>
+<p>祝玩得开心！</p>
+<div style="margin-top: 0; margin-bottom: 15px; color: #888888; font-size: 80%; font-style: italic">
+<p>Post Footer automatically generated by <a href="http://easwy.com/blog/wordpress/wp-posturl/" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://easwy.com']);" style="color: #8888FF; text-decoration: underline;">wp-posturl plugin</a> for wordpress.</p>
+</div>
+<div class='yarpp-related yarpp-related-none'>
+<p>No related posts.</p>
+</div>
+			<div class="fixed"></div>
+		</div>
+		<div class="under">
+			<span class="categories">Categories: </span><span><a href="http://blog.yufeng.info/archives/category/linux_kb" title="View all posts in Linux" rel="category tag">Linux</a>, <a href="http://blog.yufeng.info/archives/category/tools" title="View all posts in 工具介绍" rel="category tag">工具介绍</a>, <a href="http://blog.yufeng.info/archives/category/%e8%b0%83%e4%bc%98" title="View all posts in 调优" rel="category tag">调优</a></span>			<span class="tags">Tags: </span><span><a href="http://blog.yufeng.info/archives/tag/cgroup" rel="tag">cgroup</a>, <a href="http://blog.yufeng.info/archives/tag/fio" rel="tag">fio</a></span>		</div>
+	</div>
+
+	<!-- related posts START -->
+		<!-- related posts END -->
+
+	<script type="text/javascript" src="http://blog.yufeng.info/wp-content/themes/inove/js/comment.js"></script>
+
+
+
+<div id="comments">
+
+<div id="cmtswitcher">
+			<a id="commenttab" class="curtab" href="javascript:void(0);" onclick="MGJS.switchTab('thecomments,commentnavi', 'thetrackbacks', 'commenttab', 'curtab', 'trackbacktab', 'tab');">Comments (0)</a>
+		<a id="trackbacktab" class="tab" href="javascript:void(0);" onclick="MGJS.switchTab('thetrackbacks', 'thecomments,commentnavi', 'trackbacktab', 'curtab', 'commenttab', 'tab');">Trackbacks (1)</a>
+				<span class="addcomment"><a href="#respond">Leave a comment</a></span>
+				<span class="addtrackback"><a href="http://blog.yufeng.info/archives/2001/trackback">Trackback</a></span>
+		<div class="fixed"></div>
+</div>
+
+<div id="commentlist">
+	<!-- comments START -->
+	<ol id="thecomments">
+			<li class="messagebox">
+			No comments yet.		</li>
+		</ol>
+	<!-- comments END -->
+
+
+	<!-- trackbacks START -->
+			<ol id="thetrackbacks">
+												<li class="trackback">
+						<div class="date">
+							May 17th, 2012 at 19:02							 | <a href="#comment-4919">#1</a>
+						</div>
+						<div class="act">
+													</div>
+						<div class="fixed"></div>
+						<div class="title">
+							<a href="http://web.366days.cn/wordpress/?p=2258">
+								fio配合cgroup测试存储设备IOPS分配 | 探索&#8212;不思							</a>
+						</div>
+					</li>
+				
+					</ol>
+		<div class="fixed"></div>
+	<!-- trackbacks END -->
+</div>
+
+</div>
+
+	<form action="http://blog.yufeng.info/wp-comments-post.php" method="post" id="commentform">
+	<div id="respond">
+
+					
+			<div id="author_info">
+				<div class="row">
+					<input type="text" name="author" id="author" class="textfield" value="" size="24" tabindex="1" />
+					<label for="author" class="small">Name (required)</label>
+				</div>
+				<div class="row">
+					<input type="text" name="email" id="email" class="textfield" value="" size="24" tabindex="2" />
+					<label for="email" class="small">E-Mail (will not be published) (required)</label>
+				</div>
+				<div class="row">
+					<input type="text" name="url" id="url" class="textfield" value="" size="24" tabindex="3" />
+					<label for="url" class="small">Website</label>
+				</div>
+			</div>
+
+			
+		
+		<!-- comment input -->
+		<div class="row">
+			<textarea name="comment" id="comment" tabindex="4" rows="8" cols="50"></textarea>
+		</div>
+
+		<!-- comment submit and rss -->
+		<div id="submitbox">
+			<a class="feed" href="http://blog.yufeng.info/comments/feed">Subscribe to comments feed</a>
+			<div class="submitbutton">
+				<input name="submit" type="submit" id="submit" class="button" tabindex="5" value="Submit Comment" />
+			</div>
+						<input type="hidden" name="comment_post_ID" value="2001" />
+			<div class="fixed"></div>
+		</div>
+
+	</div>
+	<p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="5eb68c3c00" /></p><p class="comment-subscription-form"><input type="checkbox" name="subscribe_comments" id="subscribe_comments" value="subscribe" style="width: auto; -moz-appearance: checkbox; -webkit-appearance: checkbox;" /> <label class="subscribe-label" id="subscribe-label" for="subscribe_comments" style="display: inline;">Notify me of follow-up comments by email.</label></p><p class="comment-subscription-form"><input type="checkbox" name="subscribe_blog" id="subscribe_blog" value="subscribe" style="width: auto; -moz-appearance: checkbox; -webkit-appearance: checkbox;" /> <label class="subscribe-label" id="subscribe-blog-label" for="subscribe_blog" style="display: inline;">Notify me of new posts by email.</label></p><p><input type="hidden" id="comment_reply_ID" name="comment_reply_ID" value="0" /><input type="hidden" id="comment_reply_dp" name="comment_reply_dp" value="0" /></p><div id="cancel_reply" style="display:none;"><a href="javascript:void(0)" onclick="movecfm(null,0,1,null);" style="color:red;">Click to cancel reply</a></div><script type="text/javascript">
+/* <![CDATA[ */
+var commentformid = "commentform";
+var USERINFO = false;
+var atreply = "none";
+/* ]]> */
+</script>
+<script type="text/javascript" src="http://blog.yufeng.info/wp-content/plugins/wordpress-thread-comment/wp-thread-comment.js.php?jsver=common"></script>
+	</form>
+
+			<script type="text/javascript">MGJS.loadCommentShortcut();</script>
+	
+
+	<div id="postnavi">
+		<span class="prev"><a href="http://blog.yufeng.info/archives/2023" rel="next">给你的Linux系统上点stress</a></span>
+		<span class="next"><a href="http://blog.yufeng.info/archives/1997" rel="prev">Flash存储设备在淘宝的应用实践(2011年iDevOps系统技术沙龙）</a></span>
+		<div class="fixed"></div>
+	</div>
+
+
+	</div>
+	<!-- main END -->
+
+	
+<!-- sidebar START -->
+<div id="sidebar">
+
+<!-- sidebar north START -->
+<div id="northsidebar" class="sidebar">
+
+	<!-- feeds -->
+	<div class="widget widget_feeds">
+		<div class="content">
+			<div id="subscribe">
+				<a rel="external nofollow" id="feedrss" title="Subscribe to this blog..." href="http://blog.yufeng.info/feed"><abbr title="Really Simple Syndication">RSS</abbr></a>
+									<ul id="feed_readers">
+						<li id="google_reader"><a rel="external nofollow" class="reader" title="Subscribe with Google" href="http://fusion.google.com/add?feedurl=http://blog.yufeng.info/feed"><span>Google</span></a></li>
+						<li id="youdao_reader"><a rel="external nofollow" class="reader" title="Subscribe with Youdao" href="http://reader.youdao.com/#url=http://blog.yufeng.info/feed"><span>Youdao</span></a></li>
+						<li id="xianguo_reader"><a rel="external nofollow" class="reader" title="Subscribe with Xian Guo" href="http://www.xianguo.com/subscribe.php?url=http://blog.yufeng.info/feed"><span>Xian Guo</span></a></li>
+						<li id="zhuaxia_reader"><a rel="external nofollow" class="reader" title="Subscribe with Zhua Xia" href="http://www.zhuaxia.com/add_channel.php?url=http://blog.yufeng.info/feed"><span>Zhua Xia</span></a></li>
+						<li id="yahoo_reader"><a rel="external nofollow" class="reader" title="Subscribe with My Yahoo!"	href="http://add.my.yahoo.com/rss?url=http://blog.yufeng.info/feed"><span>My Yahoo!</span></a></li>
+						<li id="newsgator_reader"><a rel="external nofollow" class="reader" title="Subscribe with newsgator"	href="http://www.newsgator.com/ngs/subscriber/subfext.aspx?url=http://blog.yufeng.info/feed"><span>newsgator</span></a></li>
+						<li id="bloglines_reader"><a rel="external nofollow" class="reader" title="Subscribe with Bloglines"	href="http://www.bloglines.com/sub/http://blog.yufeng.info/feed"><span>Bloglines</span></a></li>
+						<li id="inezha_reader"><a rel="external nofollow" class="reader" title="Subscribe with iNezha"	href="http://inezha.com/add?url=http://blog.yufeng.info/feed"><span>iNezha</span></a></li>
+					</ul>
+							</div>
+							<a id="followme" title="Follow me!" href="http://twitter.com/eric33yu/">Twitter</a>
+						<div class="fixed"></div>
+		</div>
+	</div>
+
+	<!-- showcase -->
+	
+<div id="paypal_donations-3" class="widget widget_paypal_donations"><h3>Support My Erlang Research</h3>
+<!-- Begin PayPal Donations by http://wpstorm.net/ -->
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post"><div class="paypal-donations"><input type="hidden" name="cmd" value="_donations" /><input type="hidden" name="business" value="mryufeng@gmail.com" /><input type="hidden" name="item_name" value="Support my Erlang research" /><input type="hidden" name="item_number" value="yufeng" /><input type="hidden" name="amount" value="10" /><input type="hidden" name="currency_code" value="USD" /><input type="image" src="https://www.paypal.com/en_US/i/btn/btn_donate_LG.gif" name="submit" alt="PayPal - The safer, easier way to pay online." /><img alt="" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" /></div></form>
+<!-- End PayPal Donations -->
+</div><div id="text-3" class="widget widget_text"><h3>广告时间</h3>			<div class="textwidget"><p>Erlang调优指南编写中, <a href="https://spreadsheets.google.com/viewform?formkey=dGVFRGdHWFhZem9pM3oxeVZzekdoaEE6MA" onclick="javascript:_gaq.push(['_trackEvent','outbound-widget','http://spreadsheets.google.com']);">请留下宝贵意见</a></p>
+<p>淘宝核心系统数据库组招募高手！</p>
+</div>
+		</div><div id="text-4" class="widget widget_text"><h3>工作机会</h3>			<div class="textwidget"><p>招聘信息：<a href="http://blog.yufeng.info/job" >猛点这里获得工作机会</a>  </p>
+</div>
+		</div>		<div id="recent-posts-3" class="widget widget_recent_entries">		<h3>Recent Posts</h3>		<ul>
+					<li>
+				<a href="http://blog.yufeng.info/archives/2369" title="聊聊做技术的心态">聊聊做技术的心态</a>
+						</li>
+					<li>
+				<a href="http://blog.yufeng.info/archives/2349" title="低成本和高性能MySQL云数据的架构探索">低成本和高性能MySQL云数据的架构探索</a>
+						</li>
+					<li>
+				<a href="http://blog.yufeng.info/archives/2328" title="BufferedIO和DirectIO混用导致的脏页回写问题">BufferedIO和DirectIO混用导致的脏页回写问题</a>
+						</li>
+					<li>
+				<a href="http://blog.yufeng.info/archives/2311" title="ulimit -t 引起的kill血案">ulimit -t 引起的kill血案</a>
+						</li>
+					<li>
+				<a href="http://blog.yufeng.info/archives/2293" title="Linux IO协议栈框图">Linux IO协议栈框图</a>
+						</li>
+				</ul>
+		</div><div id="recent-comments-3" class="widget widget_recent_comments"><h3>Recent Comments</h3><ul id="recentcomments"><li class="recentcomments"><a href="http://yufeng.info"   rel='external nofollow' class='url'>Yu Feng</a> on <a href="http://blog.yufeng.info/archives/452/comment-page-1#comment-6032">Erlang虚拟机内存使用问题以及监控</a></li><li class="recentcomments"><a href="http://weibo.com/shicq" onclick="javascript:_gaq.push(['_trackEvent','outbound-commentauthor','http://weibo.com']);"  rel='external nofollow' class='url'>施昌权</a> on <a href="http://blog.yufeng.info/archives/452/comment-page-1#comment-6030">Erlang虚拟机内存使用问题以及监控</a></li><li class="recentcomments"><a href="http://www.cppblog.com/qinqing1984" onclick="javascript:_gaq.push(['_trackEvent','outbound-commentauthor','http://www.cppblog.com']);"  rel='external nofollow' class='url'>春秋十二月</a> on <a href="http://blog.yufeng.info/archives/2369/comment-page-1#comment-6019">聊聊做技术的心态</a></li></ul></div></div>
+<!-- sidebar north END -->
+
+<div id="centersidebar">
+
+	<!-- sidebar east START -->
+	<div id="eastsidebar" class="sidebar">
+	
+		<!-- categories -->
+		<div class="widget widget_categories">
+			<h3>Categories</h3>
+			<ul>
+					<li class="cat-item cat-item-3"><a href="http://blog.yufeng.info/archives/category/erlang" title="探索erlang的方方面面">Erlang探索</a>
+</li>
+	<li class="cat-item cat-item-240"><a href="http://blog.yufeng.info/archives/category/linux_kb" title="View all posts filed under Linux">Linux</a>
+</li>
+	<li class="cat-item cat-item-481"><a href="http://blog.yufeng.info/archives/category/%e4%ba%86%e8%a7%a3%e7%b3%bb%e5%88%97" title="View all posts filed under 了解系列">了解系列</a>
+</li>
+	<li class="cat-item cat-item-480"><a href="http://blog.yufeng.info/archives/category/%e4%bd%93%e7%b3%bb%e7%bb%93%e6%9e%84" title="View all posts filed under 体系结构">体系结构</a>
+</li>
+	<li class="cat-item cat-item-152"><a href="http://blog.yufeng.info/archives/category/tools" title="View all posts filed under 工具介绍">工具介绍</a>
+</li>
+	<li class="cat-item cat-item-374"><a href="http://blog.yufeng.info/archives/category/database" title="MySQL和其他KV数据库">数据库</a>
+</li>
+	<li class="cat-item cat-item-4"><a href="http://blog.yufeng.info/archives/category/misc" title="无法分类 乱七八糟的东西">杂七杂八</a>
+</li>
+	<li class="cat-item cat-item-290"><a href="http://blog.yufeng.info/archives/category/%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90" title="View all posts filed under 源码分析">源码分析</a>
+</li>
+	<li class="cat-item cat-item-46"><a href="http://blog.yufeng.info/archives/category/life" title="情感交流">生活</a>
+</li>
+	<li class="cat-item cat-item-1"><a href="http://blog.yufeng.info/archives/category/network" title="网络编程和工具">网络编程</a>
+</li>
+	<li class="cat-item cat-item-311"><a href="http://blog.yufeng.info/archives/category/%e8%b0%83%e4%bc%98" title="View all posts filed under 调优">调优</a>
+</li>
+			</ul>
+		</div>
+
+		</div>
+	<!-- sidebar east END -->
+
+	<!-- sidebar west START -->
+	<div id="westsidebar" class="sidebar">
+	
+		<!-- blogroll -->
+		<div class="widget widget_links">
+			<h3>Blogroll</h3>
+			<ul>
+				<li><a href="http://www.bookandman.com/?from=yufeng" target="_blank" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.bookandman.com/?from=yufeng']);">book and man</a></li>
+<li><a href="http://blog.neveray.info/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://blog.neveray.info/?from=yufeng']);">emacs帝</a></li>
+<li><a href="http://www.erlangchina.net/?from=yufeng" target="_blank" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.erlangchina.net/?from=yufeng']);">Erlang中国</a></li>
+<li><a href="http://dinglin.javaeye.com/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://dinglin.javaeye.com/?from=yufeng']);">MySQL专家丁奇</a></li>
+<li><a href="http://blog.zhouzhe.info/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://blog.zhouzhe.info/?from=yufeng']);">squid帝</a></li>
+<li><a href="http://blog.coly.li/?from=yufeng" title="文件系统专家" target="_blank" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://blog.coly.li/?from=yufeng']);">伯松的blog</a></li>
+<li><a href="http://gaoyusong.sinaapp.com/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://gaoyusong.sinaapp.com/?from=yufeng']);">剑川个人博客</a></li>
+<li><a href="http://www.imagerabit.com/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.imagerabit.com/?from=yufeng']);">小天后的图像处理博客</a></li>
+<li><a href="http://www.qingliangcn.com/?from=yufeng" target="_blank" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.qingliangcn.com/?from=yufeng']);">庆亮的博客</a></li>
+<li><a href="http://www.penglixun.com/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.penglixun.com/?from=yufeng']);">彭爷MySQL研究博客</a></li>
+<li><a href="http://mryufeng.javaeye.com?from=yufeng" title="javaeye上的" target="_blank" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://mryufeng.javaeye.com?from=yufeng']);">我的旧非业余研究</a></li>
+<li><a href="http://donghao.org/?from=yufeng" title="内核和文件系统" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://donghao.org/?from=yufeng']);">斯巴达第二季</a></li>
+<li><a href="http://www.nosqlnotes.net/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.nosqlnotes.net/?from=yufeng']);">日照分布式存储</a></li>
+<li><a href="http://blog.lifeibo.com/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://blog.lifeibo.com/?from=yufeng']);">李子非主流程序员</a></li>
+<li><a href="http://ybbct.iteye.com/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://ybbct.iteye.com/?from=yufeng']);">武藏个人博客</a></li>
+<li><a href="http://nil-zhang.iteye.com/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://nil-zhang.iteye.com/?from=yufeng']);">淘宝千石的博客</a></li>
+<li><a href="http://mysql.taobao.org" title="维护淘宝的MySQL分支" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://mysql.taobao.org']);">淘宝数据库组</a></li>
+<li><a href="http://rdc.taobao.com/blog/cs/?from=yufeng" title="基础 极致 分享" target="_blank" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://rdc.taobao.com/blog/cs/?from=yufeng']);">淘宝核心系统博客</a></li>
+<li><a href="http://abloz.com?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://abloz.com?from=yufeng']);">瀚海星空</a></li>
+<li><a href="http://wqtn22.iteye.com/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://wqtn22.iteye.com/?from=yufeng']);">皓庭Erlang开发博客</a></li>
+<li><a href="http://i.mtime.com/844165" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://i.mtime.com/844165']);">祁奚个人博客</a></li>
+<li><a href="http://www.wangchi.info/?from=yufeng" title="音乐 电子 composer" target="_blank" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.wangchi.info/?from=yufeng']);">老婆的交互式音乐</a></li>
+<li><a href="http://zhuzhaoyuan.com/?from=yufeng" target="_blank" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://zhuzhaoyuan.com/?from=yufeng']);">老朱(nginx专家)</a></li>
+<li><a href="http://www.orczhou.com/" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.orczhou.com/']);">苏普的MySQL故事博客</a></li>
+<li><a href="http://www.hoterran.info/?from=yufeng" title="Erlang开发" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.hoterran.info/?from=yufeng']);">运维和开发-hoterran</a></li>
+<li><a href="http://www.alibabatech.org/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.alibabatech.org/?from=yufeng']);">阿里巴巴技术协会</a></li>
+<li><a href="http://www.pagefault.info/?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://www.pagefault.info/?from=yufeng']);">雕梁nginx和内核</a></li>
+<li><a href="http://blog.csdn.net/wudongxu?from=yufeng" target="" onclick="javascript:_gaq.push(['_trackEvent','outbound-blogroll','http://blog.csdn.net/wudongxu?from=yufeng']);">项仲个人博客</a></li>
+			</ul>
+		</div>
+
+		</div>
+	<!-- sidebar west END -->
+	<div class="fixed"></div>
+</div>
+
+<!-- sidebar south START -->
+<div id="southsidebar" class="sidebar">
+
+	<!-- archives -->
+	<div class="widget">
+		<h3>Archives</h3>
+					<ul>
+					<li><a href='http://blog.yufeng.info/archives/date/2012/12' title='December 2012'>December 2012</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2012/10' title='October 2012'>October 2012</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2012/09' title='September 2012'>September 2012</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2012/08' title='August 2012'>August 2012</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2012/07' title='July 2012'>July 2012</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2012/06' title='June 2012'>June 2012</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2012/05' title='May 2012'>May 2012</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2012/04' title='April 2012'>April 2012</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2012/03' title='March 2012'>March 2012</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2012/02' title='February 2012'>February 2012</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2012/01' title='January 2012'>January 2012</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2011/12' title='December 2011'>December 2011</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2011/11' title='November 2011'>November 2011</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2011/10' title='October 2011'>October 2011</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2011/09' title='September 2011'>September 2011</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2011/07' title='July 2011'>July 2011</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2011/06' title='June 2011'>June 2011</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2011/05' title='May 2011'>May 2011</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2011/04' title='April 2011'>April 2011</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2011/03' title='March 2011'>March 2011</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2011/02' title='February 2011'>February 2011</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2011/01' title='January 2011'>January 2011</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2010/12' title='December 2010'>December 2010</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2010/11' title='November 2010'>November 2010</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2010/10' title='October 2010'>October 2010</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2010/09' title='September 2010'>September 2010</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2010/08' title='August 2010'>August 2010</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2010/07' title='July 2010'>July 2010</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2010/06' title='June 2010'>June 2010</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2010/05' title='May 2010'>May 2010</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2010/04' title='April 2010'>April 2010</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2010/03' title='March 2010'>March 2010</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2010/02' title='February 2010'>February 2010</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2010/01' title='January 2010'>January 2010</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2009/11' title='November 2009'>November 2009</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2009/10' title='October 2009'>October 2009</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2009/09' title='September 2009'>September 2009</a></li>
+	<li><a href='http://blog.yufeng.info/archives/date/2009/08' title='August 2009'>August 2009</a></li>
+			</ul>
+			</div>
+
+	<!-- meta -->
+	<div class="widget">
+		<h3>Meta</h3>
+		<ul>
+						<li><a href="http://blog.yufeng.info/wp-login.php">Log in</a></li>
+		</ul>
+	</div>
+
+</div>
+<!-- sidebar south END -->
+
+</div>
+<!-- sidebar END -->
+	<div class="fixed"></div>
+</div>
+<!-- content END -->
+
+<!-- footer START -->
+<div id="footer">
+	<a id="gotop" href="#" onclick="MGJS.goTop();return false;">Top</a>
+	<a id="powered" href="http://wordpress.org/">WordPress</a>
+	<div id="copyright">
+		Copyright &copy; 2009-2012 Erlang非业余研究	</div>
+	<div id="themeinfo">
+		Theme by <a href="http://www.neoease.com/">NeoEase</a>. Valid <a href="http://validator.w3.org/check?uri=referer">XHTML 1.1</a> and <a href="http://jigsaw.w3.org/css-validator/check/referer?profile=css3">CSS 3</a>.	</div>
+</div>
+<!-- footer END -->
+
+</div>
+<!-- container END -->
+</div>
+<!-- wrap END -->
+
+	<div style="display:none">
+	</div>
+<script type='text/javascript' src='http://blog.yufeng.info/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/shCore.js?ver=2.1.364'></script>
+<script type='text/javascript' src='http://blog.yufeng.info/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/shBrushBash.js?ver=2.1.364'></script>
+<script type='text/javascript'>
+	(function(){
+		var corecss = document.createElement('link');
+		var themecss = document.createElement('link');
+		var corecssurl = "http://blog.yufeng.info/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/styles/shCore.css?ver=2.1.364";
+		if ( corecss.setAttribute ) {
+				corecss.setAttribute( "rel", "stylesheet" );
+				corecss.setAttribute( "type", "text/css" );
+				corecss.setAttribute( "href", corecssurl );
+		} else {
+				corecss.rel = "stylesheet";
+				corecss.href = corecssurl;
+		}
+		document.getElementsByTagName("head")[0].insertBefore( corecss, document.getElementById("syntaxhighlighteranchor") );
+		var themecssurl = "http://blog.yufeng.info/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/styles/shThemeDefault.css?ver=2.1.364";
+		if ( themecss.setAttribute ) {
+				themecss.setAttribute( "rel", "stylesheet" );
+				themecss.setAttribute( "type", "text/css" );
+				themecss.setAttribute( "href", themecssurl );
+		} else {
+				themecss.rel = "stylesheet";
+				themecss.href = themecssurl;
+		}
+		//document.getElementById("syntaxhighlighteranchor").appendChild(themecss);
+		document.getElementsByTagName("head")[0].insertBefore( themecss, document.getElementById("syntaxhighlighteranchor") );
+	})();
+	SyntaxHighlighter.config.clipboardSwf = 'http://blog.yufeng.info/wp-content/plugins/syntaxhighlighter/syntaxhighlighter2/scripts/clipboard.swf';
+	SyntaxHighlighter.config.strings.expandSource = 'show source';
+	SyntaxHighlighter.config.strings.viewSource = 'view source';
+	SyntaxHighlighter.config.strings.copyToClipboard = 'copy to clipboard';
+	SyntaxHighlighter.config.strings.copyToClipboardConfirmation = 'The code is in your clipboard now';
+	SyntaxHighlighter.config.strings.print = 'print';
+	SyntaxHighlighter.config.strings.help = '?';
+	SyntaxHighlighter.config.strings.alert = 'SyntaxHighlighter\n\n';
+	SyntaxHighlighter.config.strings.noBrush = 'Can\'t find brush for: ';
+	SyntaxHighlighter.config.strings.brushNotHtmlScript = 'Brush wasn\'t configured for html-script option: ';
+	SyntaxHighlighter.defaults['gutter'] = false;
+	SyntaxHighlighter.defaults['pad-line-numbers'] = true;
+	SyntaxHighlighter.defaults['smart-tabs'] = false;
+	SyntaxHighlighter.all();
+</script>
+<script type='text/javascript' src='http://s0.wp.com/wp-content/js/devicepx-jetpack.js?ver=201301'></script>
+<script type='text/javascript' src='http://s.gravatar.com/js/gprofiles.js?ver=2013Janaa'></script>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var WPGroHo = {"my_hash":""};
+/* ]]> */
+</script>
+<script type='text/javascript' src='http://blog.yufeng.info/wp-content/plugins/jetpack/modules/wpgroho.js?ver=3.5'></script>
+
+	<script src="http://stats.wordpress.com/e-201301.js" type="text/javascript"></script>
+	<script type="text/javascript">
+	st_go({v:'ext',j:'1:2.0.4',blog:'21500275',post:'2001',tz:'8'});
+	var load_cmc = function(){linktracker_init(21500275,2001,2);};
+	if ( typeof addLoadEvent != 'undefined' ) addLoadEvent(load_cmc);
+	else load_cmc();
+	</script>
+</body>
+</html>
+

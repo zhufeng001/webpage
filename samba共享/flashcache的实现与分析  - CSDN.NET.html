@@ -1,0 +1,447 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>flashcache的实现与分析 - kidd_3的专栏 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="最近，由于项目需要，在做关于flashcache的一些工作，主要涉及模块组织、元数据管理及数据分布、读写流程分析、数据在磁盘和cache(SSD)之间的调度、缺点及可优化方向等一些方面的分析研究。也想，抽空写一下心得，整理一下最近工作的思路，以弥补自己不善于表达的恶习。特别是，要深入下去的话，会涉及到整个Linux系统栈的各个层次，从文件系统、磁盘缓存、通用块层、驱动层，以及DM的工作流程（细节）" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/light_blue/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/kidd_3/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/nobg_code.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="/kidd_3">kidd_3的专栏</a></h1>
+            <h2></h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="/kidd_3?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="/kidd_3?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="/kidd_3/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "kidd_3";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/kidd_3";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://events.csdn.net/DR2013/roadshow/index.html" target="_blank">
+<font color=red>【免费】全新海外营销策论分享 
+   </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://bbs.csdn.net/topics/390422723" target="_blank"><font color=blue>CSDN社区4月技术大分享活动火爆开始
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8699892" target="_blank"><font color=blue>写“书评”赢下载分！ 
+
+
+</font></a>
+
+<br />
+
+
+
+
+
+<a href="http://blog.csdn.net/csdnproduct/article/details/8789396"target="_blank">
+<font color=blue>公告：CSDN新版首页上线 
+
+
+ </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://e.weibo.com/csdnsupport
+"target="_blank">
+<font color=red>欢迎关注CSDN产品客服微博
+ </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2013-04-10/2814826"target="_blank">
+<font color=red>专访熊攀峰：HTML5时代 Flash仍是座宝藏
+
+ </font></a>
+
+
+
+
+
+
+</div>
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Original"></span>
+    <h3>
+        <span class="link_title"><a href="/kidd_3/article/details/6984822">
+        flashcache的实现与分析
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/kidd_3/article/category/905673">flashcache</a> 
+        </span>
+    <span class="link_postdate">2011-11-17 22:37</span>
+    <span class="link_view" title="阅读次数">1770人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(1)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('flashcache的实现与分析','6984822');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(6984822,2);return false;" title="举报">举报</a></span>
+    
+</div>
+<div class="tag2box"><a href='http://blog.csdn.net/tag/details.html?tag=%e7%a3%81%e7%9b%98' target=_blank>磁盘</a><a href='http://blog.csdn.net/tag/details.html?tag=%e5%b7%a5%e4%bd%9c' target=_blank>工作</a><a href='http://blog.csdn.net/tag/details.html?tag=callback' target=_blank>callback</a><a href='http://blog.csdn.net/tag/details.html?tag=delay' target=_blank>delay</a><a href='http://blog.csdn.net/tag/details.html?tag=%e5%ad%98%e5%82%a8' target=_blank>存储</a><a href='http://blog.csdn.net/tag/details.html?tag=cache' target=_blank>cache</a></div>
+
+
+    
+<div id="article_content" class="article_content">
+
+<p>最近，由于项目需要，在做关于flashcache的一些工作，主要涉及模块组织、元数据管理及数据分布、读写流程分析、数据在磁盘和cache(SSD)之间的调度、缺点及可优化方向等一些方面的分析研究。也想，抽空写一下心得，整理一下最近工作的思路，以弥补自己不善于表达的恶习。特别是，要深入下去的话，会涉及到整个Linux系统栈的各个层次，从文件系统、磁盘缓存、通用块层、驱动层，以及DM的工作流程（细节），也遇到了很多问题，像DM层基于split_bio如何做拆分，在拆分中的边界问题等，不可能一下子解决，也趁此机会，记录下心里的困惑。</p>
+<p>&nbsp;</p>
+<p>好了，不啰嗦了，马上开始！还是从源头讲起。。。</p>
+<p>&nbsp;flashcache，是facebook技术团队开发的新开源项目，主要目的是用SSD硬盘来缓存数据以加速MySQL的一个内核模块。可以看到，它最初是用来做数据库加速，但同时，它也被作为通用的缓存模块而设计，能够用于任何搭建在块设备上的应用程序。</p>
+<p>&nbsp;</p>
+<p><span style="color:#ff0000">工作原理</span>。基于Device Mapper，它将快速的SSD硬盘和普通的硬盘映射成一个 带缓存的逻辑块设备，作为用户操作的接口。用户直接对这个逻辑设备执行读写操作，而不直接对底层的SSD或者普通硬盘操作。如果对底层的这些块设备操作，那么会失去作为一个整体提供的缓存功能。</p>
+<p>&nbsp;</p>
+<p><span style="color:#ff0000">内核层次</span>。flashcache，它是通过在文件系统和块设备驱动层中间增加一缓存层次实现的，这里不得不提到DM层的映射机制。由于DM是作为虚拟的块设备驱动在内核中被注册的，它不是一个真实的设备驱动，不能完成bio的处理，因此，它主要是基于映射表对bio进行分解、克隆和重映射，然后，bio到达底层真实的设备驱动，启动数据传输。在Device mapper中，引入了target_driver，每个target_driver由target_type类型描述，代表了一类映射，它们分别用来具体实现块设备的映射过程。通过调用某一target_driver的map方法，来映射从上层分发下来的bio，也即是，找到正确的目标设备，并将bio转发到目标设备的请求队列，完成操作。flashcache_target就是这样一个新的target_driver（作为一个新的映射类型，target_type是必须的），以模块化的方式加入到了DM层。</p>
+<p>&nbsp;</p>
+<p><span style="color:#ff0000">逻辑架构</span>。从源代码层次分析，可以将flashcache分为这个四个模块，调度模块（也称‘读写模块’）、逻辑处理模块（也称“读写后处理模块”）、底层存储模块、以及后台清理模块，它们都是基于SSD Layout实现的，构建在SSD布局（后面会分析）之上。其中，调度模块，在代码中对应flashcache_map映射函数，它是flashcache缓存层次数据入口，所以到达逻辑设备的读写请求，最终都会经过DM层的处理，通过flashcache_map进入调度模块。称之为“调度”，主要是指，接收到数据后，它会根据bio请求的读写类型、是否命中缓存等因素，选择不同的处理分支，如flashcache_read/write或者flashcache_uncached_io，在read和write中会选择是flashcache_read_hit/miss还是flashcache_write_hit/miss。经过不同分支的读写，会调用底层存储模块来完成磁盘或cache的数据读写。逻辑处理模块，在代码中对应flashcache_io_callback，它在调度模块通过底层存储模块执行数据读写操作完成后回调执行，所以说它是“读写后处理模块”，它是采用状态机实现的，根据调度模块中的读写类型进行后续的处理，如读未命中情况下，磁盘读完成后，回调到逻辑处理模块，由它负责将从磁盘读取的数据写回到SSD，或者写未命中情况下，写SSD完成后，回调到逻辑处理模块执行元数据的更新，再有就是对调度模块中读写操作的错误进行处理。底层存储模块，主要提供了两种方式来完成真实的数据读写，一是由DM提供的dm_io函数，它最终还是通过submit_bio的方式，将由调度模块处理过的bio提交到通用块层，进行转发到真实的设备驱动，完成数据读写；另外，一种方式，kcopyd，是由内核提供的一种底层拷贝函数，主要负责脏块的写回（从SSD到磁盘），会引起元数据的更新。而后台清理模块，是针对每个set进行数据清理，它会基于两种策略对脏块做回收：（1）set内脏块超过了阈&#20540;；（2）脏块超过了设定的空闲时间，即fallow_delay，一般是15分钟，在15分钟没有被操作则会被优先回收。要注意的是，并没有单独的线程在后台做定期空闲块回收，必须由IO操作触发，如果长时间没有对某set操作，则其中的脏数据很长期保持，容易危害数据安全。</p>
+<p>&nbsp;</p>
+<p><span style="color:#ff0000">数据布局</span>（待补充）。</p>
+<p><span style="color:#ff0000">&nbsp;</span></p>
+<p><span style="color:#ff0000">源代码布局</span>。两个工作队列。结合device mapper代码，特别是dm.c可以知道，在调用flashcache_create工具创建flashcache设备时，会调用flashcache_ctl函数，执行创建工具，它会创建一工作队列_delay_clean，主要负责对整个cache设备的脏块清理，由flashcache_clean_set在特定条件下调用（见代码），通过flashcache_clean_all执行对所有sets的扫描与清理。另外一个工作队列，_kq_xxx(记不清了)，在flashcache_init中，由flashcache模块加载时执行，通过对5个job链表进行处理，执行元数据的更新与完成处理函数、读磁盘后的SSD写入、以及对等待队列的处理，主要就是负责读写后的处理工作隶属于逻辑处理模块，即“读写后处理模块”，由磁盘或SSD读写后不同情况下被调度。</p>
+<p>调度的时机可以看flashcache_map函数，处理逻辑则主要在函数flashcache_io_callback内部判断，the same block的等待队列是否为空，如果不为空，则同样会调用flashcache_do_handler，执行对等待队列的处理。</p>
+<p>&nbsp;</p>
+<p><span style="color:#ff0000">数据调度</span>。对读，接收到bio，首先，根据bio-&gt;bi_sector，即硬盘的扇区号，得到SSD上的set。其次，在set内查找是否命中，如果命中，则将硬盘的扇区号转换为SSD的扇区号，然后将此bio向SSD提交，进行读取；如果未命中，则首先向硬盘驱动提交bio，从硬盘读数据，读取完成后，由回调函数启动回写SSD操作，将bio的扇区号转换为SSD的=扇区号，然后向SSD驱动程序提交，将硬盘读取的数据写入SSD。对写，同文件系统页缓冲，并不直接写入硬盘，而是写入SSD，同时，保持一个阀&#20540;，一般为20%，在脏块数目达到此数&#20540;时，写回磁盘。</p>
+<p>&nbsp;</p>
+<p><span style="color:#ff0000">优缺点分析</span>。在另一篇文章中，已有说明。<a href="http://blog.csdn.net/kidd_3/article/details/6970573">http://blog.csdn.net/kidd_3/article/details/6970573</a></p>
+
+</div>
+
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.1.237-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/kidd_3/article/details/6970573">flashcache技术点分析</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/kidd_3/article/details/6994625">bdev文件系统</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen">
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "117306";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<script type="text/javascript">
+    //new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '6984822';
+    var commentscount = 1;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/kidd_3" target="_blank">
+    <img src="http://avatar.csdn.net/E/D/D/1_kidd_3.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/kidd_3" class="user_name" target="_blank">kidd_3</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>27039次</span></li>
+    <li>积分：<span>881分</span></li>
+    <li>排名：<span>第11667名</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>62篇</span></li>
+    <li>转载：<span>27篇</span></li>
+    <li>译文：<span>0篇</span></li>
+    <li>评论：<span>6条</span></li>
+</ul>
+</ul>
+</div>
+
+
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/kidd_3/article/category/526006">Linux</a><span>(31)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/kidd_3/article/category/850362">iscsi</a><span>(4)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/kidd_3/article/category/905673">flashcache</a><span>(11)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/kidd_3/article/category/916251">重复数据删除</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/kidd_3/article/category/935860">mysql</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/kidd_3/article/category/935899">测试工具</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/kidd_3/article/category/1075084">虚拟化</a><span>(4)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/kidd_3/article/category/1155172">GlusterFS</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/kidd_3/article/category/1164671">存储基础</a><span>(14)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/kidd_3/article/category/1164673">linux工具</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/kidd_3/article/category/1168497">杂七杂八</a><span>(0)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/kidd_3/article/category/1262340">云计算</a><span>(4)</span>
+</li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/kidd_3/article/month/2012/11">2012年11月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2012/10">2012年10月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2012/09">2012年09月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2012/08">2012年08月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2012/06">2012年06月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2012/05">2012年05月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2012/02">2012年02月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2012/01">2012年01月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2011/12">2011年12月</a><span>(9)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2011/11">2011年11月</a><span>(13)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2011/10">2011年10月</a><span>(14)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2011/08">2011年08月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2011/07">2011年07月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2010/09">2010年09月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2009/04">2009年04月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/kidd_3/article/month/2009/03">2009年03月</a><span>(1)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/kidd_3/article/details/7874794" title="vmware设置桥接上网">vmware设置桥接上网</a><span>(1991)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/6984822" title="flashcache的实现与分析">flashcache的实现与分析</a><span>(1770)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/7029267" title="黄金搭档之fio+blktrace--linux下模拟块设备访问方式">黄金搭档之fio+blktrace--linux下模拟块设备访问方式</a><span>(1098)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/6970573" title="flashcache技术点分析">flashcache技术点分析</a><span>(885)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/6882992" title="提升磁盘IO性能的几个技巧">提升磁盘IO性能的几个技巧</a><span>(853)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/6934110" title="flashcache功能分析">flashcache功能分析</a><span>(780)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/6886681" title="kthread_create和kernel_thread的区别和总结">kthread_create和kernel_thread的区别和总结</a><span>(716)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/6909097" title="linux IO子系统和文件系统读写流程">linux IO子系统和文件系统读写流程</a><span>(674)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/8095135" title="云计算及其基础架构的理解">云计算及其基础架构的理解</a><span>(561)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/6871988" title="专访Fusion-IO：有固态硬盘还要分层存储干吗?">专访Fusion-IO：有固态硬盘还要分层存储干吗?</a><span>(496)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/kidd_3/article/details/7893557" title="GlusterFS之文件系统扩展属性">GlusterFS之文件系统扩展属性</a><span>(2)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/6984822" title="flashcache的实现与分析">flashcache的实现与分析</a><span>(1)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/8155629" title="pdflush刷盘时机">pdflush刷盘时机</a><span>(1)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/6871900" title="SSD盘阵，技术成熟了吗？">SSD盘阵，技术成熟了吗？</a><span>(1)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/6912366" title="device mapper读书笔记">device mapper读书笔记</a><span>(1)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/7650041" title="loop设备">loop设备</a><span>(0)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/7650055" title="网络存储的3种形式及各自特点">网络存储的3种形式及各自特点</a><span>(0)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/7650113" title="云存储概要介绍">云存储概要介绍</a><span>(0)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/7650186" title="对虚拟化的一些理解">对虚拟化的一些理解</a><span>(0)</span>
+</li>
+<li>
+<a href="/kidd_3/article/details/7650230" title="虚拟化实现技术分析">虚拟化实现技术分析</a><span>(0)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/kidd_3/article/details/6871900#comments">SSD盘阵，技术成熟了吗？</a>
+    <p style="margin:0px;"><a href="/u010005296" class="user_name">u010005296</a>:
+特地注册了一个用户来评论。SSD盘阵具有单个存储容量小和访问速度快的优势，使用副本存储肯定是不合适的...
+    </p>
+    </li>
+    <li>
+    <a href="/kidd_3/article/details/7893557#comments">GlusterFS之文件系统扩展属性</a>
+    <p style="margin:0px;"><a href="/tgnan123" class="user_name">tgnan123</a>:
+受教了，受教了。
+    </p>
+    </li>
+    <li>
+    <a href="/kidd_3/article/details/6984822#comments">flashcache的实现与分析</a>
+    <p style="margin:0px;"><a href="/hs794502825" class="user_name">hs794502825</a>:
+好文！赞！
+    </p>
+    </li>
+    <li>
+    <a href="/kidd_3/article/details/8155629#comments">pdflush刷盘时机</a>
+    <p style="margin:0px;"><a href="/mengyafei43" class="user_name">mengyafei43</a>:
+文章就如你的身板，受的可怜
+    </p>
+    </li>
+    <li>
+    <a href="/kidd_3/article/details/7893557#comments">GlusterFS之文件系统扩展属性</a>
+    <p style="margin:0px;"><a href="/king34555" class="user_name">king34555</a>:
+好文，请教下gluster有没有什么命令可以方便的查看文件的扩展属性？
+    </p>
+    </li>
+    <li>
+    <a href="/kidd_3/article/details/6912366#comments">device mapper读书笔记</a>
+    <p style="margin:0px;"><a href="/GeorgeBrian" class="user_name">GeorgeBrian</a>:
+也在研究这块内容，谢谢喽！
+    </p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=536816"></script>
+
+<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js"></script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js?v=1"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+
+</div>
+</body>
+</html>

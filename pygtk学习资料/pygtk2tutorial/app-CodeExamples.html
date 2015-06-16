@@ -1,0 +1,120 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Appendix B. Code Examples</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="prev" href="sec-GtkAdjustment.html" title="A.22. GtkAdjustment"><link rel="next" href="pygtk-tut-changelog.html" title="Appendix C. ChangeLog"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Appendix B. Code Examples</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-GtkAdjustment.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="pygtk-tut-changelog.html">Next</a></td></tr></table><hr></div><div class="appendix" title="Appendix B. Code Examples"><div class="titlepage"><div><div><h2 class="title"><a name="app-CodeExamples"></a>Appendix B. Code Examples</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="app-CodeExamples.html#sec-scribblesimple.py">B.1. scribblesimple.py</a></span></dt></dl></div><div class="sect1" title="B.1. scribblesimple.py"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-scribblesimple.py"></a>B.1. scribblesimple.py</h2></div></div></div><pre class="programlisting">
+    1   #!/usr/bin/env python
+    2   
+    3   # example scribblesimple.py
+    4   
+    5	 # GTK - The GIMP Toolkit
+    6	 # Copyright (C) 1995-1997 Peter Mattis, Spencer Kimball and Josh MacDonald
+    7	 # Copyright (C) 2001-2002 John Finlay
+    8	 #
+    9	 # This library is free software; you can redistribute it and/or
+   10	 # modify it under the terms of the GNU Library General Public
+   11	 # License as published by the Free Software Foundation; either
+   12	 # version 2 of the License, or (at your option) any later version.
+   13	 #
+   14	 # This library is distributed in the hope that it will be useful,
+   15	 # but WITHOUT ANY WARRANTY; without even the implied warranty of
+   16	 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   17	 # Library General Public License for more details.
+   18	 #
+   19	 # You should have received a copy of the GNU Library General Public
+   20	 # License along with this library; if not, write to the
+   21	 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   22	 # Boston, MA 02111-1307, USA.
+   23	
+   24	
+   25	import gtk
+   26	
+   27	# Backing pixmap for drawing area
+   28	pixmap = None
+   29	
+   30	# Create a new backing pixmap of the appropriate size
+   31	def configure_event(widget, event):
+   32	    global pixmap
+   33	
+   34	    x, y, width, height = widget.get_allocation()
+   35	    pixmap = gtk.gdk.Pixmap(widget.window, width, height)
+   36	    pixmap.draw_rectangle(widget.get_style().white_gc,
+   37	                          True, 0, 0, width, height)
+   38	
+   39	    return True
+   40	
+   41	# Redraw the screen from the backing pixmap
+   42	def expose_event(widget, event):
+   43	    x , y, width, height = event.area
+   44	    widget.window.draw_drawable(widget.get_style().fg_gc[gtk.STATE_NORMAL],
+   45	                                pixmap, x, y, x, y, width, height)
+   46	    return False
+   47	
+   48	# Draw a rectangle on the screen
+   49	def draw_brush(widget, x, y):
+   50	    rect = (x - 5, y - 5, 10, 10)
+   51	    pixmap.draw_rectangle(widget.get_style().black_gc, True,
+   52	                          rect[0], rect[1], rect[2], rect[3])
+   53	    widget.queue_draw_area(rect[0], rect[1], rect[2], rect[3])
+   54	
+   55	def button_press_event(widget, event):
+   56	    if event.button == 1 and pixmap != None:
+   57	        draw_brush(widget, event.x, event.y)
+   58	    return True
+   59	
+   60	def motion_notify_event(widget, event):
+   61	    if event.is_hint:
+   62	        x, y, state = event.window.get_pointer()
+   63	    else:
+   64	        x = event.x
+   65	        y = event.y
+   66	        state = event.state
+   67	    
+   68	    if state &amp; gtk.gdk.BUTTON1_MASK and pixmap != None:
+   69	        draw_brush(widget, x, y)
+   70	  
+   71	    return True
+   72	
+   73	def main():
+   74	    window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+   75	    window.set_name ("Test Input")
+   76	
+   77	    vbox = gtk.VBox(False, 0)
+   78	    window.add(vbox)
+   79	    vbox.show()
+   80	
+   81	    window.connect("destroy", gtk.mainquit)
+   82	
+   83	    # Create the drawing area
+   84	    drawing_area = gtk.DrawingArea()
+   85	    drawing_area.set_size_request(200, 200)
+   86	    vbox.pack_start(drawing_area, True, True, 0)
+   87	
+   88	    drawing_area.show()
+   89	
+   90	    # Signals used to handle backing pixmap
+   91	    drawing_area.connect("expose_event", expose_event)
+   92	    drawing_area.connect("configure_event", configure_event)
+   93	
+   94	    # Event signals
+   95	    drawing_area.connect("motion_notify_event", motion_notify_event)
+   96	    drawing_area.connect("button_press_event", button_press_event)
+   97	
+   98	    drawing_area.set_events(gtk.gdk.EXPOSURE_MASK
+   99	                            | gtk.gdk.LEAVE_NOTIFY_MASK
+  100	                            | gtk.gdk.BUTTON_PRESS_MASK
+  101	                            | gtk.gdk.POINTER_MOTION_MASK
+  102	                            | gtk.gdk.POINTER_MOTION_HINT_MASK)
+  103	
+  104	    # .. And a quit button
+  105	    button = gtk.Button("Quit")
+  106	    vbox.pack_start(button, False, False, 0)
+  107	
+  108	    button.connect_object("clicked", lambda w: w.destroy(), window)
+  109	    button.show()
+  110	
+  111	    window.show()
+  112	
+  113	    gtk.main()
+  114	
+  115	    return 0
+  116	
+  117	if __name__ == "__main__":
+  118	    main()
+</pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-GtkAdjustment.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="pygtk-tut-changelog.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">A.22. GtkAdjustment </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Appendix C. ChangeLog</td></tr></table></div></body></html>

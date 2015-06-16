@@ -1,0 +1,1008 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>实现MySQL数据库数据的同步方法介绍 - 站长之家</title>
+<meta name="keywords" content="站长之家, 网通, 路由器, 共享上网">
+<meta name="description" content="做开发的时候要做MySQL的数据库同步，两台安装一样的系统，都是FreeBSD5.4，安装了Apache 2.0.55和PHP 4.4.0，MySQL的版本是4.1.15，都是目前最新的版本。">
+<meta name="verify-v1" content="hoYWa1g8lNB1GDGlt6DAjZwoptmXNyB9ut22xUUQuN8=">
+<meta property="wb:webmaster" content="6797b81cd4d21d20" />
+<link rel="alternate" type="application/rss+xml" title="站长之家RSS订阅" href="http://app.chinaz.com/?app=rss&controller=index&action=index">
+<link rel="stylesheet" href="http://img.chinaz.com/templates/chinaz/css/style.css?v=20121121">
+<link rel="stylesheet" href="http://img.chinaz.com/max-templates/passport/styles/topbar.css">
+<link rel="shortcut icon" type="image/ico" href="http://img.chinaz.com/templates/chinaz/favicon.ico">
+<script src="http://img.chinaz.com/templates/chinaz/js/script.js"></script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?aecc9715b0f5d5f7f34fba48a3c511d6";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<link href="http://img.chinaz.com/templates/chinaz/old/images/style.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript" src="http://img.chinaz.com/js/config.js"></script>
+<script type="text/javascript" src="http://img.chinaz.com/js/lib/jquery.js"></script>
+<script type="text/javascript" src="http://img.chinaz.com/js/lib/jquery.cookie.js"></script>
+<script type="text/javascript" src="http://img.chinaz.com/templates/chinaz/js/editor.js"></script>
+<script src="http://tjs.sjs.sinajs.cn/open/api/js/wb.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript">var contentid = 16989;</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/m.js"></script>
+<script type="text/javascript" src="http://assets.changyan.sohu.com/upload/plugins/plugins.count.js"></script>
+<script type="text/javascript">BAIDU_CLB_preloadSlots("518040","518037","518010","518009","518006","518001");</script>
+<script type="text/javascript" src="http://img.chinaz.com/js/fet.js"></script>
+<script type="text/javascript" src="http://img.chinaz.com/js/repos.js"></script>
+<script type="text/javascript">fet.setAlias({IMG_URL: "http://img.chinaz.com/"})</script>
+    </head>
+<body>
+<div class="container">
+<div class="toolbar">
+    <div class="clearfix toolbar-inner">
+        <div class="quicklink">
+            <ul id="chinaz_website_links" class="accesslink">
+                <li><a href="http://www.chinaz.com"><span>站长之家</span></a></li>
+                <li onmouseover="chinazTopBarMenu.create(this,'chinaz_website_menu_1');" onmouseout="chinazTopBarMenu.clear(this);">
+                    <a class="item-expand" href="http://bbs.chinaz.com" target="_blank"><span>站长论坛</span></a>
+                </li>
+                <li onmouseover="chinazTopBarMenu.create(this,'chinaz_website_menu_2');" onmouseout="chinazTopBarMenu.clear(this);">
+                    <a class="item-expand" href="http://tool.chinaz.com" target="_blank"><span>站长工具</span></a>
+                </li>
+                <li><a href="http://jy.chinaz.com" target="_blank"><span>站长交易</span></a></li>
+                <li><a href="http://down.chinaz.com" target="_blank"><span>源码下载</span></a></li>
+                <li onmouseover="chinazTopBarMenu.create(this,'chinaz_website_menu_3');" onmouseout="chinazTopBarMenu.clear(this);">
+                    <a class="item-expand" href="http://sc.chinaz.com" target="_blank"><span>站长素材</span></a>
+                </li>
+                <li><a href="http://www.cnzz.com" target="_blank"><span>免费统计</span></a></li>
+                <li><a href="http://www.313.com" target="_blank"><span>建站大师</span></a></li>
+                <li><a href="http://www.idc123.com" target="_blank"><span>主机之家</span></a></li>
+                <li style="display:none;"><a href="http://www.bbsmax.com" target="_blank"><span>BBSMAX</span></a></li>
+            </ul>
+            <div id="chinaz_website_menu_1" class="topbar-hiddencontents">
+              <a href="http://bbs.chinaz.com/Club/list-1.html" target="_blank">站长俱乐部</a>
+                <a href="http://bbs.chinaz.com/Ask/list-1.html" target="_blank">站长问答</a>
+                <a href="http://bbs.chinaz.com/Res/list-1.html" target="_blank">网站建设资源</a>
+                <a href="http://bbs.chinaz.com/forum107/list-1.html" target="_blank">站长交易赚钱</a>  
+            </div>
+            <div id="chinaz_website_menu_2" class="topbar-hiddencontents">
+                <a href="http://alexa.chinaz.com" target="_blank">ALEXA排名查询</a>
+                <a href="http://mytool.chinaz.com/baidusort.aspx" target="_blank">百度权重查询</a>
+                <a href="http://seo.chinaz.com" target="_blank">SEO概况查询</a>
+                <a href="http://link.chinaz.com" target="_blank">友情链接查询</a>
+                <a href="http://pr.chinaz.com" target="_blank">Google PR查询</a>
+                <a href="http://whois.chinaz.com" target="_blank">Whois信息查询</a>
+                <a href="http://tool.chinaz.com/beian.aspx" target="_blank">域名备案查询</a>
+            </div>
+            <div id="chinaz_website_menu_3" class="topbar-hiddencontents">
+                <a href="http://font.chinaz.com/" target="_blank">字体下载</a>
+                <a href="http://desk.chinaz.com/" target="_blank">高清壁纸</a>
+                <a href="http://desk.chinaz.com/shoujibizhi/" target="_blank">手机壁纸</a>
+                <a href="http://sc.chinaz.com/tupian/" target="_blank">高清图片</a>
+                <a href="http://sc.chinaz.com/shiliang/" target="_blank">矢量素材</a>
+                <a href="http://sc.chinaz.com/ppt/" target="_blank">PPT模板</a>
+                <a href="http://sc.chinaz.com/psd/" target="_blank">PSD素材</a>
+            </div>
+        </div>
+        <div id="chinaz_topbar"></div>
+    </div>
+</div>
+
+<div class="header">
+    <h1 class="logo"><a href="http://www.chinaz.com/" rel="home"><img src="http://img.chinaz.com/templates/chinaz/img/logo.png" alt="站长之家"></a></h1>
+    <div class="ad ad-b-head">
+        <script type="text/javascript" src="http://cbjs.baidu.com/js/m.js"></script>
+<script type="text/javascript">BAIDU_CLB_preloadSlots("518040","518037","518010","518009","518006","518001");</script>
+<!-- 广告位：A13 section_75 --><script type="text/javascript">BAIDU_CLB_fillSlot("518001");</script>
+    </div>
+    <div class="ad ad-t-head">
+        <script src="http://stats.chinaz.com/newshome/tag.js" charset="gb2312"></script> 
+    </div>
+</div>
+<div id="nav" class="nav">
+    <ul>
+        <li><a href="http://www.chinaz.com">首页</a></li>
+        <li><a href="http://www.chinaz.com/news">业界</a></li>
+        <li><a href="http://www.chinaz.com/web">建站</a></li>
+        <li><a href="http://www.chinaz.com/start">创业</a></li>
+        <li><a href="http://www.chinaz.com/manage">运营</a></li>
+        <li><a href="http://www.chinaz.com/free">资源</a></li>
+        <li><a href="http://www.chinaz.com/website">好站</a></li>
+        <li><a href="http://www.chinaz.com/meet">聚会</a></li>
+        <li><a href="http://www.chinaz.com/visit">访谈</a></li>
+        <li><a href="http://www.chinaz.com/biz">电商</a></li>
+        <li><a href="http://www.chinaz.com/game">网游</a></li>
+        <li><a href="http://www.chinaz.com/mobile">移动互联</a></li>
+        <li><a href="http://www.chinaz.com/design">设计</a></li>
+        <li><a href="http://www.chinaz.com/program">编程</a></li>
+        <li><a href="http://www.chinaz.com/server">服务器</a></li>
+    </ul>
+</div>
+
+
+
+			
+<div class="note" style="margin: 0 10px 10px 15px;">
+    <span>
+        <iframe width="210" height="24" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0" scrolling="no" border="0" src="http://widget.weibo.com/relationship/followbutton.php?language=zh_cn&width=230&height=24&uid=1736207384&style=3&btn=red&dpc=1"></iframe>
+    </span>
+    <b>站长资讯通告:</b>
+    <script type="text/javascript">
+document.write('<a href="http://top.chinaz.com/top500" target="_blank">新版中文网站排行榜TOP500榜单</a>');   
+</script>
+
+</div>
+
+<div class="weizhi">
+    <form name="search" id="search" method="GET" action="http://app.chinaz.com/?app=search&controller=index&action=search">
+<span>
+    <b>搜索:</b>
+    <input type="hidden" name="app" value="search"/>
+    <input type="hidden" name="controller" value="index"/>
+    <input type="hidden" name="action" value="search"/>
+    <input type="hidden" name="type" value="all"/>
+    <input type="input" onfocus="this.value=(this.value=='全文检索')?'':this.value" onblur="this.value=(this.value=='')?'全文检索':this.value" name="wd" value="全文检索" class="searchtxt" />
+    <input type="image" src="http://img.chinaz.com/templates/chinaz/old/images/topsearch_submit.gif" value="检索" />
+</span>
+</form>
+    <b>您的位置</b>: <a href="http://www.chinaz.com/">首页</a> &raquo; <a href="http://www.chinaz.com/program/">编程</a> &raquo; <a href="http://www.chinaz.com/program/language/">语言</a> &raquo;  正文
+</div>
+
+<div class="ad ad-b-leaderboard">
+<!--section_97-->
+<div style=" width:680px; float:left;"><!-- 广告位：A14 --><script type="text/javascript">BAIDU_CLB_fillSlot("518006");</script></div>
+<div style=" width:270px; float:right;"><!-- 广告位：A15 --><script type="text/javascript">BAIDU_CLB_fillSlot("518009");</script></div>
+
+</div>
+
+<div class="clearfix wrap layout-cols2">
+    <div class="col1">
+        <div id="news">
+            <h1 class="article-heading">实现MySQL数据库数据的同步方法介绍</h1>
+            <div class="times">
+                <span class="article-published">2007-09-27 11:22</span>
+                <span class="article-textadjust">[<span id="sfont" onclick="changeFont(this);">小</span> <span id="bfont" onclick="changeFont(this);">大</span>]</span>
+                <span class="article-source">来源: <a href=http://news.ccidnet.com target=_blank>赛迪网</a></span>                <span class="article-commentlink">评论: <a href="#changyan_area" id="changyan_count_unit"></a></span>
+                                <span class="jiathiswidget" id="ckepop">
+                    <span class="label">分享至:</span>
+                    <a class="jiathis_button_tsina"></a>
+                    <a class="jiathis_button_tqq"></a>
+                    <a class="jiathis_button_qzone"></a>
+                    <a class="jiathis_button_xiaoyou"></a>
+                    <a href="http://www.jiathis.com/share?uid=906668" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+                </span>
+            </div>
+            <div class="content cont-detail fs-small" id="ctrlfscont">
+                <p style="text-align:center;"><a href="http://mytool.chinaz.com/baidusort.aspx" target="_blank">百度权重查询</a> <a href="http://www.ciku5.com/" target="_blank">词库网</a> <a href="http://www.chaoji.com" target="_blank">网站监控</a> <a href="http://www.chaoji.com/" target="_blank">服务器监控</a> <a href="http://www.chaoji.com" target="_blank">SEO监控</a>   <a href="http://www.zhangxin.com/" target="_blank">手机游戏</a> <a href="http://www.zhangxin.com/" target="_blank">iPhone游戏</a>  </p>
+                                                            <p>做开发的时候要做MySQL的数据库同步，两台安装一样的系统，都是FreeBSD5.4，安装了Apache 2.0.55和PHP 4.4.0，MySQL的版本是4.1.15，都是目前最新的版本。</p>
+<p>1、安装配置</p>
+<p>两台服务器，分别安装好MySQL，都安装在 /usr/local/mysql 目录下（安装步骤省略，请参考相关文档），两台服务器的IP分别是192.168.0.1和192.168.0.2，我们把192.168.0.1作为Master数据库，把192.168.0.2作为slave服务器，我们采用单向同步的方式，就是Master的数据是主的数据，然后slave主动去Master哪儿同步数据回来。</p>
+<p>两台服务器的配置一样，我们把关键的配置文件拷贝一下，默认的配置文件是在 /usr/local/mysql/share/mysql目录下，分别有 my-large.cnf, my-medium.cnf, my-small.cnf等几个文家，我们只是测试，使用my-medium.cnf就行了。MySQL安装完后，默认的配置文件是指定在数据库存放目录下的，我们用的是4.1.X的，所以配置文件就应该在 /usr/local/mysql/var 目录下，于是把配置文件拷贝过去：</p>
+<p>cp /usr/local/MySQL/share/MySQL/my-medium.cnf&nbsp; /usr/local/MySQL/var/my.cnf</p>
+<p>两台服务器做相同的拷贝配置文件操作。</p>
+<p>2、配置Master服务器</p>
+<p>我们要把192.168.0.1配置为主MySQL服务器（Master），那么我们就要考虑我们需要同步那个数据库，使用那个用户同步，我们这里为了简单起见，就使用root用户进行同步，并且只需要同步数据库abc。</p>
+<p>打开配置文件：</p>
+<p>vi /usr/local/MySQL/var/my.cnf</p>
+<p>找到一下信息：</p>
+<p>
+<table style="BORDER-RIGHT: #cccccc 1px dotted; TABLE-LAYOUT: fixed; BORDER-TOP: #cccccc 1px dotted; BORDER-LEFT: #cccccc 1px dotted; BORDER-BOTTOM: #cccccc 1px dotted" cellspacing="0" cellpadding="6" width="95%" align="center" border="0">
+    <tbody>
+        <tr>
+            <td style="WORD-WRAP: break-word" bgcolor="#fdfddf"><font color="#ff0000">以下为引用的内容：</font><br /># required unique id between 1 and 2^32 - 1<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # defaults to 1 if Master-host is not set<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # but will not function as a Master if omitted<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; server-id&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 1&nbsp;&nbsp;&nbsp; //1为Master，2为salve</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>添加两行：</p>
+<p>sql-bin-update-same&nbsp;&nbsp;&nbsp;&nbsp; //同步形式</p>
+<p>binlog-do-db&nbsp;&nbsp;&nbsp;&nbsp; = abc&nbsp; //要同步的数据库</p>
+<p>重启192.168.0.1的MySQL服务器：</p>
+<p>/usr/local/MySQL/bin/MySQLadmin shutdown</p>
+<p>/usr/local/MySQL/bin/MySQLd_safe --user=MySQL &amp;</p>
+<p>3、配置Slave服务器</p>
+<p>我们的slave服务器主要是主动去Master服务器同步数据回来，我们编辑配置文件：</p>
+<p>vi /usr/local/MySQL/var/my.cnf</p>
+<p>找到下面类似的信息：</p>
+<p>
+<table style="BORDER-RIGHT: #cccccc 1px dotted; TABLE-LAYOUT: fixed; BORDER-TOP: #cccccc 1px dotted; BORDER-LEFT: #cccccc 1px dotted; BORDER-BOTTOM: #cccccc 1px dotted" cellspacing="0" cellpadding="6" width="95%" align="center" border="0">
+    <tbody>
+        <tr>
+            <td style="WORD-WRAP: break-word" bgcolor="#fdfddf"><font color="#ff0000">以下为引用的内容：</font><br /># required unique id between 1 and 2^32 - 1<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # defaults to 1 if Master-host is not set<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # but will not function as a Master if omitted<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; server-id&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 1</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>把上面的server-id修改为2，同时添加一些信息：</p>
+<p>
+<table style="BORDER-RIGHT: #cccccc 1px dotted; TABLE-LAYOUT: fixed; BORDER-TOP: #cccccc 1px dotted; BORDER-LEFT: #cccccc 1px dotted; BORDER-BOTTOM: #cccccc 1px dotted" cellspacing="0" cellpadding="6" width="95%" align="center" border="0">
+    <tbody>
+        <tr>
+            <td style="WORD-WRAP: break-word" bgcolor="#fdfddf"><font color="#ff0000">以下为引用的内容：</font><br />server-id&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //本MySQL是slave服务器<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Master-host&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 192.168.0.1&nbsp;&nbsp;&nbsp; //Master服务器的IP<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Master-user&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = root&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //连接Master服务器的用户<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Master-password&nbsp;&nbsp; = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //连接Master服务器的密码<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Master-port&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 3306&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //连接端口<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Master-connect-retry&nbsp;&nbsp;&nbsp; = 10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //重试次数<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; replicate-do-db&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = abc&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //要同步的数据库<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; log-slave-updates&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //同步的形式</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>重启192.168.0.2的MySQL服务器：</p>
+<p>/usr/local/MySQL/bin/MySQLadmin shutdown</p>
+<p>/usr/local/MySQL/bin/MySQLd_safe --user=MySQL &amp;</p>
+<p>4、测试安装 </p>
+<p>首先查看一下slave的主机日志：</p>
+<p>cat /usr/local/MySQL/var/xxxxx_err （xxx是主机名）</p>
+<p>检查是否连接正常, 看到类似这样的信息就成功了</p>
+<p>
+<table style="BORDER-RIGHT: #cccccc 1px dotted; TABLE-LAYOUT: fixed; BORDER-TOP: #cccccc 1px dotted; BORDER-LEFT: #cccccc 1px dotted; BORDER-BOTTOM: #cccccc 1px dotted" cellspacing="0" cellpadding="6" width="95%" align="center" border="0">
+    <tbody>
+        <tr>
+            <td style="WORD-WRAP: break-word" bgcolor="#fdfddf"><font color="#ff0000">以下为引用的内容：</font><br />051031 11:42:40&nbsp; MySQLd started<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 051031 11:42:41&nbsp; InnoDB: Started; log sequence number 0 43634<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /usr/local/MySQL/libexec/MySQLd: ready for connections.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Version: '4.1.15-log'&nbsp; socket: '/tmp/MySQL.sock'&nbsp; port: 3306&nbsp; Source distribution<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 051031 11:42:41 [Note] Slave SQL thread initialized, starting replication in log 'FIRST'<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; at position 0, relay log './new4-relay-bin.000001' position: 4<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 051031 11:43:21 [Note] Slave I/O thread: connected to Master <a href="mailto:'root@192.168.0.1:3306'">'root@192.168.0.1:3306'</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; replication started in log 'FIRST' at position 4</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>在Master查看信息</p>
+<p>/usr/local/MySQL/bin/MySQL -u root</p>
+<p>查看Master状态：</p>
+<p>MySQL&gt; show Master status;</p>
+<p>查看Master下MySQL进程信息：</p>
+<p>MySQL&gt; show processlist;</p>
+<p>在slave上查看信息：</p>
+<p>/usr/local/MySQL/bin/MySQL -u root</p>
+<p>查看slave状态：</p>
+<p>MySQL&gt; show slave status;</p>
+<p>查看slave下MySQL进程信息：</p>
+<p>MySQL&gt; show processlist;</p>
+<p>你再在Master的abc库里建立表结构并且插入数据，然后检查slave有没有同步这些数据，就能够检查出是否设置成功。</p>
+<p>最后，如果有兴趣的话，可以研究一下双击热备份，或者一台Master，多台slave的同步实现。</p>                                                                   		</div>
+                        <div class="share-mod clearfix">
+                <div id="favorite" class="ifavorite"><span>收藏本文</span></div>
+                <div class="bdlikebutton"></div>
+            </div>
+	    <div class="editor"><script>echoEditor('11');</script></div>
+                      <div class="otherNews fs-small">
+            <h3>相关文章列表:</h3>
+            <ul>
+                            </ul>
+          </div>
+                        <div align="center">
+                <!-- 广告位：A18 section_98 --><script type="text/javascript">BAIDU_CLB_fillSlot("518040");</script>
+            </div>
+            <div id="mood" class="articlemood">
+<div class="mood-head">
+<h3>你看到此篇文章的感受是:</h3>
+<p><a href="http://app.chinaz.com/mood.php">查看心情排行</a></p>
+</div>
+<ul class="moodlist">
+<li>
+    <a href="javascript:vote.set(1);return false;">
+        <img src="http://img.chinaz.com/apps/mood/images/1.gif" title="欠扁" />
+        <span class="caption">欠扁</span>
+    </a>
+    <label><input onclick="javascript:vote.set(1);return false;" type="radio" name="moodradio" value="1" /></label>
+</li>
+<li>
+    <a href="javascript:vote.set(2);return false;">
+        <img src="http://img.chinaz.com/apps/mood/images/3.gif" title="超赞" />
+        <span class="caption">超赞</span>
+    </a>
+    <label><input onclick="javascript:vote.set(2);return false;" type="radio" name="moodradio" value="1" /></label>
+</li>
+<li>
+    <a href="javascript:vote.set(3);return false;">
+        <img src="http://img.chinaz.com/apps/mood/images/2.gif" title="支持" />
+        <span class="caption">支持</span>
+    </a>
+    <label><input onclick="javascript:vote.set(3);return false;" type="radio" name="moodradio" value="1" /></label>
+</li>
+<li>
+    <a href="javascript:vote.set(4);return false;">
+        <img src="http://img.chinaz.com/apps/mood/images/4.gif" title="难过" />
+        <span class="caption">难过</span>
+    </a>
+    <label><input onclick="javascript:vote.set(4);return false;" type="radio" name="moodradio" value="1" /></label>
+</li>
+<li>
+    <a href="javascript:vote.set(5);return false;">
+        <img src="http://img.chinaz.com/apps/mood/images/5.gif" title="搞笑" />
+        <span class="caption">搞笑</span>
+    </a>
+    <label><input onclick="javascript:vote.set(5);return false;" type="radio" name="moodradio" value="1" /></label>
+</li>
+<li>
+    <a href="javascript:vote.set(6);return false;">
+        <img src="http://img.chinaz.com/apps/mood/images/6.gif" title="扯淡" />
+        <span class="caption">扯淡</span>
+    </a>
+    <label><input onclick="javascript:vote.set(6);return false;" type="radio" name="moodradio" value="1" /></label>
+</li>
+<li>
+    <a href="javascript:vote.set(7);return false;">
+        <img src="http://img.chinaz.com/apps/mood/images/7.gif" title="不解" />
+        <span class="caption">不解</span>
+    </a>
+    <label><input onclick="javascript:vote.set(7);return false;" type="radio" name="moodradio" value="1" /></label>
+</li>
+<li>
+    <a href="javascript:vote.set(8);return false;">
+        <img src="http://img.chinaz.com/apps/mood/images/8.gif" title="头晕" />
+        <span class="caption">头晕</span>
+    </a>
+    <label><input onclick="javascript:vote.set(8);return false;" type="radio" name="moodradio" value="1" /></label>
+</li>
+</ul>
+</div>
+<script type="text/javascript">
+var mood_img_url = IMG_URL+'apps/mood/';
+$(function(){vote.get();});
+
+var vote = {
+	time : new Date().getTime(),
+	html : '<div class="mood-head"><h3>已经有<span id="vote_total">0</span>人表态:</h3><p><a target="_blank" href="http://app.chinaz.com/mood.php">查看心情排行</a></p></div><ul class="moodchartlist">\
+\
+<li id="m1_li"><em></em><div class="mood_bar"><div class="mood_bar_in" id="m1_bar"></div></div></li>\
+\
+<li id="m2_li"><em></em><div class="mood_bar"><div class="mood_bar_in" id="m2_bar"></div></div></li>\
+\
+<li id="m3_li"><em></em><div class="mood_bar"><div class="mood_bar_in" id="m3_bar"></div></div></li>\
+\
+<li id="m4_li"><em></em><div class="mood_bar"><div class="mood_bar_in" id="m4_bar"></div></div></li>\
+\
+<li id="m5_li"><em></em><div class="mood_bar"><div class="mood_bar_in" id="m5_bar"></div></div></li>\
+\
+<li id="m6_li"><em></em><div class="mood_bar"><div class="mood_bar_in" id="m6_bar"></div></div></li>\
+\
+<li id="m7_li"><em></em><div class="mood_bar"><div class="mood_bar_in" id="m7_bar"></div></div></li>\
+\
+<li id="m8_li"><em></em><div class="mood_bar"><div class="mood_bar_in" id="m8_bar"></div></div></li>\
+\
+</ul></div>',
+	set:function(vote_id) {
+		var _this = this;
+		if(this.check()) {
+			$.getJSON(APP_URL+"?app=mood&controller=index&action=vote&contentid="+contentid+"&voteid="+vote_id+"&jsoncallback=?", function(json){
+				_this.render(json);
+				$("#mood").find(':radio').remove();
+				$.cookie("mood_time"+contentid, _this.time);
+			});
+		} else {
+			alert('请勿重复提交');
+		}
+	},
+	get:function() {
+		var _this = this;
+		$.getJSON(APP_URL+"?app=mood&controller=index&action=vote&contentid="+contentid+"&jsoncallback=?", function(json){
+			_this.render(json);
+		});
+	},
+	check:function() {
+		return (this.time - $.cookie('mood_time'+contentid)) > 1000 * 30;
+	},
+	render: function(json) {
+		var html = this.html + '<ul class="moodlist">' + $("ul:last", "#mood").html() + '</ul>';
+        document.getElementById("mood").innerHTML = html;
+        
+		//$("#mood").html(html).hide().fadeIn("slow");
+		$('#vote_total').html(json.total);
+		$.each(json.data, function(i){
+			$('#'+i+'_li em').html(json.data[i].number);
+			$('#'+i+'_bar').css({"height": json.data[i].height+'%'}); 
+		});
+	}
+};
+</script>
+
+
+            <div class="text_tag">
+            <span class="sina-share-button"><wb:share-button social="text" ralateuid="1736207384" appkey="2173988749" height="20" width="258"></wb:share-button></span>
+                        <h5 style="white-space:nowrap;">Tags：<a href="http://www.chinaz.com/tags/wangtong.shtml">网通</a> <a href="http://www.chinaz.com/tags/luyouqi.shtml">路由器</a> <a href="http://www.chinaz.com/tags/gongxiangshangwang.shtml">共享上网</a> </h5>
+                        
+
+            </div>
+<div class="box_xgimg"> 
+<script type="text/javascript">
+    var t_u = null;
+    var t_u_old = null;
+    var maxPic = 6;
+    var showPic = 0;
+
+    function switchPic(curPic){ 
+        if(curPic == maxPic){ 
+            showPic = 1;
+        }else{ 
+            showPic = showPic + 1;
+        }
+        for(i=1; i <= maxPic; i++){ 
+            if(i == showPic){ 
+                document.getElementById("picA"+i).className = "currON";
+                document.getElementById("picUL"+i).style.display = "";
+            }else{ 
+                document.getElementById("picA"+i).className = "";
+                document.getElementById("picUL"+i).style.display = "none";
+            }
+        }
+    }
+    function reSwitchPic() { 
+        clearTimeout(t_u);
+        switchPic(showPic);
+        t_u = setTimeout('reSwitchPic();', 5000);
+    }
+    function pauseSwitch() { 
+        clearTimeout(t_u);
+        t_u_old = t_u;
+    }
+    function selectSwitch(num) { 
+        showPic = num;
+        for(i=1; i <= maxPic; i++){ 
+            if(i == num){ 
+                document.getElementById("picA"+i).className = "currON";
+                document.getElementById("picUL"+i).style.display = "";
+            }else{ 
+                document.getElementById("picA"+i).className = "";
+                document.getElementById("picUL"+i).style.display = "none";
+            }
+        }
+    }
+    function goonSwitch() {
+        clearTimeout(t_u);
+        t_u = setTimeout('reSwitchPic();', 5000);
+    }   
+</script>
+<div class="title_xg">
+    <div style="float:left;padding-left:-10px;text-align:left;"><b>最新图文资讯</b></div>
+    <span style="float:right;padding-right:10px;font-size:12px;font-weight:normal;">
+        <a href="javascript://" class="currON" id="picA1" onclick="selectSwitch(1)" onmouseover="pauseSwitch()" onmouseout="goonSwitch()">1</a>
+        <a href="javascript://"  id="picA2"  onclick="selectSwitch(2)"  onmouseover="pauseSwitch()" onmouseout="goonSwitch()">2</a>
+        <a href="javascript://"  id="picA3"  onclick="selectSwitch(3)"  onmouseover="pauseSwitch()" onmouseout="goonSwitch()">3</a>
+        <a href="javascript://"  id="picA4"  onclick="selectSwitch(4)"  onmouseover="pauseSwitch()" onmouseout="goonSwitch()">4</a>
+        <a href="javascript://"  id="picA5"  onclick="selectSwitch(5)"  onmouseover="pauseSwitch()" onmouseout="goonSwitch()">5</a>
+        <a href="javascript://"  id="picA6"  onclick="selectSwitch(6)"  onmouseover="pauseSwitch()" onmouseout="goonSwitch()">6</a>
+    </span>
+</div>
+<div class="roll" id="roll" style="margin-left:0px;padding-left:0px;width:640px;overflow:hidden;">
+    <ul id="picUL1" onmouseover="pauseSwitch()" onmouseout="goonSwitch()">
+                <li>
+            <div><a href="http://www.chinaz.com/web/2013/1227/333284.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388137539721.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/web/2013/1227/333284.shtml">千人千面后流量下降，卖家该怎么</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333278.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388136151876.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333278.shtml">龚海燕梯子网狂想曲：平台颠覆传</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333276.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388135334152.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333276.shtml">周末想带妹子在城内转转不知怎么</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/news/2013/1227/333255.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388131942297.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/news/2013/1227/333255.shtml">实习生的自白：谷歌的实习生活是</a></p>
+        </li>
+            </ul>
+    <ul id="picUL2" onmouseover="pauseSwitch()" onmouseout="goonSwitch()" style="display:none;">
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333253.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388131220802.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333253.shtml">垂直媒体的亘古难题：流量窄门难</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/mobile/2013/1227/333240.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388127736701.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/mobile/2013/1227/333240.shtml">iPhone 6概念图曝光：打造史上最</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333175.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388124336401.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333175.shtml">小公司的零食管理学</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333213.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388116013309.png" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333213.shtml">问答游戏社区QuizUp获腾讯红杉22</a></p>
+        </li>
+            
+    </ul>
+    <ul id="picUL3" onmouseover="pauseSwitch()" onmouseout="goonSwitch()" style="display:none;">
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333208.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388115480440.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333208.shtml">关于团队建设你必须清楚的几点</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333190.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388113331123.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333190.shtml">风投合伙人谈O2O创业:本地化真的</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333180.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388112133791.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333180.shtml">快的打车吕传伟口述：O2O决战于</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333172.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388111386345.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333172.shtml"> 韩国最大网络教育集团Megastudy</a></p>
+        </li>
+             
+    </ul>
+    <ul id="picUL4" onmouseover="pauseSwitch()" onmouseout="goonSwitch()" style="display:none;">
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333170.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388111053546.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333170.shtml">挖财：草根群体的资产管家</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333165.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388110720864.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333165.shtml">从“选人”到“选服务”：阿姨帮</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/web/2013/1227/333160.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388110461487.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/web/2013/1227/333160.shtml">购物狂欢季来了，如何优化你的电</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333158.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388110262920.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333158.shtml">在线问答游戏社区 QuizUp 用户过</a></p>
+        </li>
+         
+    </ul>
+    <ul id="picUL5" onmouseover="pauseSwitch()" onmouseout="goonSwitch()" style="display:none;">
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333152.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388109872891.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333152.shtml">专访会唐网创始人唐亮：万亿级的</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333146.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388108579149.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333146.shtml">35岁的“老人”在硅谷还能创业成</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333144.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388108474771.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333144.shtml">创始人自述：“饿了么”凭什么值</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/biz/2013/1227/333143.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388108406171.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/biz/2013/1227/333143.shtml">坏口碑有好票房？社交时代理性和</a></p>
+        </li>
+         
+    </ul>
+    <ul id="picUL6" onmouseover="pauseSwitch()" onmouseout="goonSwitch()" style="display:none;">
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333142.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388108399931.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333142.shtml">二维码与纸巾碰撞出的O2O？线下</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333140.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388108082664.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333140.shtml">盘点2013年创业方向：在线教育、</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333137.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388107898851.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333137.shtml">点融网获北极光千万美金投资——</a></p>
+        </li>
+                <li>
+            <div><a href="http://www.chinaz.com/start/2013/1227/333129.shtml"><img src="http://upload.chinaz.com/2013/1227/thumb_121_91_1388107381216.jpg" width="121" height="91" alt="" /></a></div>    
+            <p><a  href="http://www.chinaz.com/start/2013/1227/333129.shtml">网易科技2013年终策划《夜深了》</a></p>
+        </li>
+         
+    </ul>
+    <script type="text/javascript">reSwitchPic();</script>
+</div>
+</div>   
+<div align="center" style="margin-bottom:5px;"><!-- 广告位：文章页A19广告 -->
+<!-- 广告位：评论区上方广告 -->
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "725429";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script></div>
+
+                <div id="Comment" class="pl">
+  <div class="pl_title">网友评论</div>
+ 
+</div>
+<div style="padding:0 10px;border:1px solid #DADCDD;border-top:0;background:#fff;">
+<div id="SOHUCS" sid="16989"></div>
+<script>
+  (function(){
+    var appid = 'cy2rgHwBn0Qe',
+    conf = 'prod_07a96b1f61097ccb54be14d6a47439b0';
+    var doc = document,
+    s = doc.createElement('script'),
+    h = doc.getElementsByTagName('head')[0] || doc.head || doc.documentElement;
+    s.type = 'text/javascript';
+    s.charset = 'utf-8';
+    s.src =  'http://assets.changyan.sohu.com/upload/changyan.js?conf='+ conf +'&appid=' + appid;
+    h.insertBefore(s,h.firstChild);
+    window.SCS_NO_IFRAME = true;
+  })()
+</script>
+<style>#SOHUCS .section-title-w .title-join-w {display:none}</style>
+</div>
+
+        
+</div>
+    </div>
+    <div class="col2">
+         <div class="ad right_bot">
+<!-- 广告位：A16 section_93 --><script type="text/javascript">BAIDU_CLB_fillSlot("518010");</script>
+</div>
+
+<div class="right_box right_bot article_special">
+<div class="right_title">站长之家专栏推荐</div>
+<ul class="columnistrecom">
+        <li>
+        <span class="author">
+            <img src="http://upload.chinaz.com/2014/0507/thumb_60_60_1399428163394.jpg" width="60" height="60" alt="">    
+        </span>
+        <a class="summary" href="http://www.chinaz.com/news/2014/0507/350418.shtml" target="_blank">
+            <h4>微信跟国家队说拜拜</h4>
+            <p>5月6日晚，腾讯正式宣布撤销电商业务，同时，微信单独成立...</p>
+        </a>
+    </li>
+        <li>
+        <span class="author">
+            <img src="http://upload.chinaz.com/2014/0507/thumb_60_60_1399430417531.jpg" width="60" height="60" alt="">    
+        </span>
+        <a class="summary" href="http://www.chinaz.com/visit/2014/0507/350387.shtml" target="_blank">
+            <h4>陈天桥：我沉寂的这五年</h4>
+            <p>“阔别”媒体5年之久的盛大网络创始人、董事长陈天桥近日...</p>
+        </a>
+    </li>
+    </ul> 
+    <ul class="articlelist">
+    <li><a href="http://www.chinaz.com/news/2014/0507/350374.shtml" target="_blank" style="color:">微信事业群成立 张小龙能否再造一个腾讯？</a></li>
+    <li><a href="http://www.chinaz.com/news/2014/0507/350389.shtml" target="_blank" style="color:">大众点评投资“饿了么”，又一个八千万故事</a></li>
+    <li><a href="http://www.chinaz.com/news/2014/0507/350391.shtml" target="_blank" style="color:">“宝宝们”收益破5%  银行们的机会来了？</a></li>
+    <li><a href="http://www.chinaz.com/visit/2014/0506/350304.shtml" target="_blank" style="color:">吴晓波爆料：说说马云和马化腾的先天缺陷</a></li>
+    <li><a href="http://www.chinaz.com/news/2014/0507/350398.shtml" target="_blank" style="color:">国美“逆”互联网转型线下：自宫还是新生？</a></li>
+</ul> 
+
+</div>
+
+
+
+
+<div class="ad" style="margin-bottom:10px;">
+<!-- 广告位：A17 section_94 --><script type="text/javascript">BAIDU_CLB_fillSlot("518037");</script>
+</div>
+
+<div class="right_box right_bot article_ads">
+<div class="right_title">商讯</div>
+    <div class="pbody">
+      <script src="http://images.chinaz.com/index_images/article_link.js" charset="gb2312"></script>
+    </div>
+</div>
+<div class="ad right_bot">
+    <iframe frameborder="0" scrolling="no" width="270" height="332" src="/section/305.html"></iframe>    
+</div>
+
+
+<div class="ad" style="margin-bottom:10px;  ">
+<!-- 广告位：文章右侧栏250 -->
+<div class="right_box" style="padding:8px;" >
+<script type="text/javascript">
+/*站长资讯250*250，创建于2014-4-8*/
+var cpro_id = "u1515570";
+</script>
+<script src="http://cpro.baidustatic.com/cpro/ui/c.js" type="text/javascript"></script>
+
+
+</div>
+</div>
+
+<div class="right_box right_bot article_forum">
+    <div class="right_title">论坛推荐帖子</div>
+    <ul class="forumrecomlist">
+<li><a href="http://bbs.chinaz.com/Tea/thread-7583147-1-1.html" target="_blank">百度站长推出WordPress结构化数据插件！</a></li>
+
+<li><a href="http://bbs.chinaz.com/Tea/thread-7586844-1-1.html" target="_blank">【变天了】百度快照去除URL后缀了！！！</a></li>
+
+<li><a href="http://bbs.chinaz.com/Shuiba/thread-7583099-1-1.html" target="_blank"><span style="color:red;">致—【包子最爱的水货们】。</span></a></li>
+
+<li><a href="http://bbs.chinaz.com/Tea/thread-7572622-1-1.html" target="_blank">参与阿里云调研 拿淘宝彩票 最高可赢千万大...</a></li>
+
+<li><a href="http://bbs.chinaz.com/Tea/thread-7566740-1-1.html" target="_blank">【寻找创业根据地】你理想的创业城市？</a></li>
+
+<li><a href="http://bbs.chinaz.com/Tea/thread-7565315-1-1.html" target="_blank">百度信誉V认正开放等级评价：你V几了？</a></li>
+
+<li><a href="http://bbs.chinaz.com/Tea/thread-7561659-1-1.html" target="_blank">百度站长平台推出「重要页面监控」工具</a></li>
+
+<li><a href="http://bbs.chinaz.com/Tea/thread-7563106-1-1.html" target="_blank">同IP的网站之间的友情链接有用吗？</a></li>
+
+<li><a href="http://bbs.chinaz.com/Tea/thread-7538950-1-1.html" target="_blank">网站不更新反而排名猛升，懒人受宠？</a></li>
+
+<li><a href="http://bbs.chinaz.com/Tea/thread-7537466-1-1.html" target="_blank">网站日PV没超5000 给站长“丢脸”了？</a></li>
+</ul>
+</div>
+
+
+
+
+<div class="right_box right_bot">
+
+ <div class="topicranking" id="click_top">
+        <div class="tabber">
+          <ul>
+            <li><a href="#click" class="current" >评论与声音</a></li>
+            <li><a href="#comment" >评论排行榜</a></li>
+          </ul>
+        </div>
+        <ul class="articlelist">
+         <li><a href="http://www.chinaz.com/news/2013/1227/333286.shtml" target="_blank">百度出百家，自媒体有冇活路？</a></li>
+         <li><a href="http://www.chinaz.com/news/2013/1227/333256.shtml" target="_blank">微信O2O还只是纸上谈兵</a></li>
+         <li><a href="http://www.chinaz.com/news/2013/1227/333226.shtml" target="_blank">互联网思维有哪些？</a></li>
+         <li><a href="http://www.chinaz.com/news/2013/1227/333218.shtml" target="_blank">日本当局为何禁用百度谷歌微软的输入法</a></li>
+         <li><a href="http://www.chinaz.com/news/2013/1227/333214.shtml" target="_blank">小米模式社会化网络营销：成功能否复制</a></li>
+         <li><a href="http://www.chinaz.com/news/2013/1227/333202.shtml" target="_blank">杀死比特币</a></li>
+         <li><a href="http://www.chinaz.com/news/2013/1227/333198.shtml" target="_blank">一个小编吐槽国外6大科技巨头：拜托你</a></li>
+         <li><a href="http://www.chinaz.com/news/2013/1227/333177.shtml" target="_blank">辣评2013年度十大互联网行业热词</a></li>
+         <li><a href="http://www.chinaz.com/news/2013/1227/333096.shtml" target="_blank">丁道师：2014视频网站版权大战面面观</a></li>
+         <li><a href="http://www.chinaz.com/news/2013/1227/333095.shtml" target="_blank">丁道师：关于虚拟运营商牌照的8个热点</a></li>
+         <li><a href="http://www.chinaz.com/news/2013/1227/333065.shtml" target="_blank">再议游戏纠结的版权 从罕见的游戏回炉</a></li>
+        </ul>
+        <ul class="toplist" style="display:none;">
+                    <li><a href="http://www.chinaz.com/news/2013/1224/332525.shtml" target="_blank"><em class="no1">1</em> 百度卫士春运抢票版上线 互联网进入抢</a></li>
+                    <li><a href="http://www.chinaz.com/start/2013/1224/332599.shtml" target="_blank"><em class="no2">2</em> 车易拍：如何做到一年在网上卖出10万辆</a></li>
+                    <li><a href="http://www.chinaz.com/news/2013/1225/332806.shtml" target="_blank"><em class="no3">3</em> 手机大盗校园疯狂作案40余起快递竟成销</a></li>
+                    <li><a href="http://www.chinaz.com/special/zhihu.shtml" target="_blank"><em class="no4">4</em> 知乎，一个网站和它的小时代</a></li>
+                    <li><a href="http://www.chinaz.com/web/2013/1223/332394.shtml" target="_blank"><em class="no5">5</em> 转行人士给站长和SEO人员的一些建议</a></li>
+                    <li><a href="http://www.chinaz.com/web/2013/1225/332724.shtml" target="_blank"><em class="no6">6</em> 看了“偷情网站”后的免费同城约炮平台</a></li>
+                    <li><a href="http://www.chinaz.com/web/2013/1223/332349.shtml" target="_blank"><em class="no7">7</em> 30天便可让网站排名进入首页，你相信吗</a></li>
+                    <li><a href="http://www.chinaz.com/news/2013/1223/332408.shtml" target="_blank"><em class="no8">8</em> 金山全新产品 猎豹免费WIFI之初体验</a></li>
+                    <li><a href="http://www.chinaz.com/news/2013/1225/332702.shtml" target="_blank"><em class="no9">9</em> 【幕后】刘强东归来：五大招决战马云</a></li>
+                    <li class="bw0"><a href="http://www.chinaz.com/mobile/2013/1223/332238.shtml" target="_blank"><em class="no10">10</em> 苹果憋大招：iPhone 6/iWatch齐曝光</a></li>
+                  </ul>
+      </div>
+      <script type="text/javascript">new max_tab("click_top");</script> 
+
+<style>.topicranking {margin:0}
+.topicranking .tabber li {margin-left: -1px;padding-top: 1px;}
+.topicranking .tabber li a{font-weight:bold;}
+.topicranking .tabber ul {font-size:14px;}
+.topicranking .tabber {background:#D7E7F7;}
+.topicranking .tabber a:link, .topicranking .tabber a:visited {background:none;border-width: 0 1px 0 0;}
+</style>
+    </div>
+
+
+
+<div class="right_box right_bot">
+<!-- 广告位：A-20侧栏底部广告 -->
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "725433";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+
+
+    </div>    
+</div>
+
+<script type="text/javascript" src="http://img.chinaz.com/templates/chinaz/startup/js/artDialog.min.js"></script>
+<script type="text/javascript" src="http://img.chinaz.com/templates/chinaz/startup/js/artDialog.plugins.min.js"></script>
+<link href="http://img.chinaz.com/templates/chinaz/startup/css/dialog.css" rel="stylesheet">
+<style>
+<!--
+.ifavorite a {text-decoration:none;}
+.loginform{width:300px;margin-top:15px;}
+.loginform .formrow{margin-bottom:20px;line-height:1.8;display:table;}
+.loginform .formrow .label{font-size:117%;float:left;width:70px;font-weight:normal;}
+.loginform .formrow .form-enter{float:left;}
+.loginform .formrow .form-enter input.text{width:200px;padding:4px 2px;}
+.loginform .formrow .form-tip{clear:both;margin:5px 0 0 70px;white-space:normal;}
+.loginform .formrow-captcha .form-enter input.validcode{float:left;width:65px;margin-right:10px;}
+.loginform .formrow-captcha .captcha{float:left;}
+.loginform .formrow-captcha .captcha img{display:block;border:1px solid #ddd;height:25px;}
+.loginform .formrow-option{margin-bottom:15px;}
+.loginform .formrow-option input{margin:0;vertical-align:middle;}
+.loginform .formrow-option .remember{float:left;}
+.loginform .formrow-option .invisible{margin-left:30px;float:right;}
+
+.loginform .formrow-action .button-login{float:left;margin-right:22px;background:url(http://my.chinaz.com/max-templates/passport/images/button_login.png) no-repeat;}
+.loginform .formrow-action .button-login input.button{cursor:pointer;display:block;font-size:0;width:87px;height:35px;overflow:hidden;text-indent:-9999px;border:0;background:none transparent;}
+.loginform .formrow-action .button-register{float:left;background:url(http://my.chinaz.com/max-templates/passport/images/button_register.png) no-repeat;}
+.loginform .formrow-action .button-register a.button{display:block;width:117px;height:35px;overflow:hidden;text-indent:-9999px;}
+-->
+</style>
+<script type="text/javascript" src="http://img.chinaz.com/apps/digg/js/digg.js"></script>
+<script type="text/javascript" src="http://img.chinaz.com/js/lib/jquery.lightbox.js"></script>
+<link rel="stylesheet" type="text/css" href="http://img.chinaz.com/templates/default/css/imagesbox.css" media="screen" />
+<script type="text/javascript">
+var content = '';//第一页内容缓存
+var context = '';//全文内容缓存
+var isfulltext = false;
+$(function(){
+    digg.get(contentid);
+    content = $('#ctrlfscont').html();
+    var font = $.cookie(COOKIE_PRE+'font');//根据cookie设置字体大小并初始化按钮
+    if(font){
+        $('#ctrlfssummary,#ctrlfscont').addClass(font);
+        if(font == 'fs-big'){
+            $('#bfont').addClass('cor-current');
+            $('#sfont').removeClass('cor-current');
+        }
+    }
+    $.getJSON(APP_URL+'?app=system&controller=content&action=stat&jsoncallback=?&contentid='+contentid);
+    
+    $('form[id^="vote"]').each(function(){
+        var contentid = $(this).find('>input[name="contentid"]:hidden').val();
+        var maxoptions = $(this).find('>input[name="maxoptions"]:hidden').val();
+        $(this).submit(function(){
+            var checkeds = $(this).find('input:checked').length;
+            if(checkeds == 0){
+                alert('请选择投票选项');
+                return false;
+            }
+            if(maxoptions){
+                if(checkeds > parseInt(maxoptions)){
+                    alert('最多允许选'+maxoptions+'项');
+                    return false;
+                }
+            }
+        })
+    });
+    $('#favorite').click(function(){
+		var time  = new Date().getTime();
+                var _this = $('#favorite').find('span');
+_this.html('<img src="http://img.chinaz.com/images/loading-spinner.gif" />');
+			$.getJSON('http://app.chinaz.com/?app=favorite&controller=favorite&action=add&jsoncallback=?&contentid='+contentid, function(json){
+				if(json.state){
+					_this.html('<a href="http://app.chinaz.com/?app=favorite&controller=favorite">已收藏，去看看');
+				}else{
+					if(json.error=='added'){
+					    _this.html('<a href="http://app.chinaz.com/?app=favorite&controller=favorite">已收藏，去看看');
+					}else if(json.error=='logout'){
+                                            _this.html('请先登录！');
+art.dialog({
+            width:'400px',
+            height:'200px',
+            title: '登录站长之家',
+            fixed: true,
+lock:true,
+            content: '<form id="loginform" action="http://my.chinaz.com/login.html" method="post"><input type="hidden" name="__PROCESSINPUTVIEWSTATE" value="YXV0b2xvZ2luI2ludmlzaWJsZQ==" /><div class="formgroup loginform"><div class="formrow formrow-user"><div class="label"><select id="logintype" name="logintype" tabindex="1"><option value="username" >账号</option><option value="email" >邮箱</option></select></div><div class="form-enter"><input type="text" class="text" name="username" id="username" value="" tabindex="2" /></div></div><div class="formrow formrow-password"><div class="label"><label for="password">密码</label></div><div class="form-enter"><input type="password" class="text" name="password" id="password" tabindex="3" /></div></div><div class="formrow formrow-option"><span class="remember"><input type="checkbox" id="autologin" name="autologin" value="autologin"  tabindex="5" /> <label for="autologin">记住登录状态</label></span><span class="invisible"><input type="checkbox" id="invisible" name="invisible" value="true"  tabindex="6" /> <label for="invisible">隐身登陆</label></span></div><div class="formrow formrow-action"><input type="hidden" name="returnurl" value="http://app.chinaz.com/?app=favorite&controller=favorite&action=add&jsoncallback=?&contentid=16989&returnurl=http://www.chinaz.com/program/2007/0927/16989.shtml" /><span class="button-login"><input class="button" type="submit" name="login" value="登录" tabindex="7" /></span><span class="button-register"><a class="button" href="/register.html?returnurl=http://app.chinaz.com/?app=favorite&controller=favorite&action=add&jsoncallback=?&contentid=16989&returnurl=http://www.chinaz.com/program/2007/0927/16989.shtml" tabindex="8">立即注册</a></span></div></div></form>',
+            cancelValue:'取消',
+            cancel:function(){}
+        });
+                                        }else{
+					    alert(json.error);
+					}
+				}
+			});
+    });
+if(window.location.search=='?ok') $('#favorite > span').html('<a href="http://app.chinaz.com/?app=favorite&controller=favorite" style="color:rgb(95, 162, 236);">已收藏，去看看'); else if(window.location.search=='?error') $('#favorite').html('<i class="fav"></i>收藏失败');
+});
+
+    $('#favorite').hover(function(){
+        $(this).css('background-position','-110px 0').find('span').css('color','#FFFFFF');
+        $(this).find('a').css('color','#FFFFFF');
+    },function(){$(this).css('background-position','0 0').find('span').css('color','#5fa2ec');$(this).find('a').css('color','#5fa2ec');});
+
+function fulltext(){  //单页阅读
+        if(context =='')
+        $.getJSON(APP_URL+'?app=article&controller=article&action=fulltext&jsoncallback=?&contentid='+contentid,function(data){
+            context = data.content;
+            $('#ctrlfscont').html(data.content);
+            $('#show-all-cont').html('分页阅读').parent().siblings().hide();
+            $('.bor-ccc').hide();
+            isfulltext = true;
+            holdpic();
+        });
+        else{
+            $('#ctrlfscont').html(isfulltext?content:context);
+            $('#show-all-cont').html(isfulltext?'单页阅读':'分页阅读').parent().siblings().toggle(isfulltext === true);
+            isfulltext = (isfulltext === false);
+            $('.bor-ccc').show();
+            holdpic();
+        }
+}
+function holdpic(){//控制内容区域的的图片大小并为过大的图片添加查看原图
+    var options = {
+        imageLoading:IMG_URL+'js/lib/lightBox/lightbox-ico-loading.gif',
+        imageBtnPrev:IMG_URL+'js/lib/lightBox/lightbox-btn-prev.gif',
+        imageBtnNext:IMG_URL+'js/lib/lightBox/lightbox-btn-next.gif',
+        imageBtnClose:IMG_URL+'js/lib/lightBox/lightbox-btn-close.gif',
+        imageBlank:IMG_URL+'js/lib/lightBox/lightbox-blank.gif'
+    };
+    $('#ctrlfscont').find('img').each(function(){
+        var img = this;
+        if (img.width > 600) {
+            img.style.width = "600px";
+            img.style.height = "auto";
+            //$(img).removeAttr('height');
+            var aTag = document.createElement('a');
+            aTag.href = img.src;
+            $(aTag).addClass('bPic')
+            .insertAfter(img).append(img)
+            .lightBox(options);
+        }
+    });
+}
+$(window).load(function(){
+    holdpic();
+});
+
+
+function changeFont(t){ //改变字号
+    var tosmall = (t.innerHTML=='小')?true:false;
+    if(tosmall&&$(t).hasClass('cor-current')) return;
+    $('.cor-current').removeClass('cor-current');
+    $(t).addClass('cor-current');
+    $.cookie(COOKIE_PRE+'font',tosmall?'fs-small':'fs-big',{domain:COOKIE_DOMAIN,path:COOKIE_PATH,expires:300});
+    $('#ctrlfssummary,#ctrlfscont').removeClass(tosmall?'fs-big':'fs-small').addClass(tosmall?'fs-small':'fs-big');
+}
+</script>
+
+<div id="sitemap" class="sitemap">
+    <a target="_blank" href="http://www.chinaz.com/aboutus/index.html">关于站长之家</a> - 
+    <a target="_blank" href="http://www.chinaz.com/aboutus/contact.php">联系我们(电话)</a> - 
+    <a target="_blank" href="http://www.chinaz.com/aboutus/ad.html">广告服务</a> - 
+    <a target="_blank" href="http://www.chinaz.com/aboutus/link.html">友情链接</a> - 
+    <a target="_blank" href="http://www.chinaz.com/aboutus/events.html">网站动态</a> - 
+    <a target="_blank" href="http://www.chinaz.com/aboutus/announce.html">版权声明</a> - 
+    <a target="_blank" href="http://www.chinaz.com/aboutus/join.html">人才招聘</a> - 
+    <a target="_blank" href="http://www.chinaz.com/aboutus/help.html">帮助</a>
+</div>
+<div class="footer">
+    <p>CopyRight &copy; 2002-2014 <a href="http://www.chinaz.com">站长之家</a> CHINAZ.Com, All Rights Reserved. <!--电话: 010-58695261 0592-2965133--></p>
+    <p>闽B2-20120007号 <a target="_blank" href="http://www.miitbeian.gov.cn">闽ICP备08105208号</a> 京公网安备11010502020695号 <a class="poweredby" href="http://www.cmstop.com" target="_blank"><img src="http://img.chinaz.com/templates/chinaz/img/cmstop-logo.png" alt="思拓合众"></a>
+<!--可信网站图片LOGO安装开始-->
+<script src="https://kxlogo.knet.cn/seallogo.dll?sn=e12020335020010628301467&size=3"></script>
+<!--可信网站图片LOGO安装结束--></p>
+</div>
+
+</div>
+<script src="http://my.chinaz.com/_topbar.aspx?proxy=/ajax.php" charset="utf-8"></script>
+<div style="display:none;"><script src="http://v1.cnzz.com/stat.php?id=33217&web_id=33217" charset="gb2312"></script>
+<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cdiv id='cnzz_stat_icon_1000008050'%3E%3C/div%3E%3Cscript src='" + cnzz_protocol + "w.cnzz.com/q_stat.php%3Fid%3D1000008050' type='text/javascript'%3E%3C/script%3E"));</script>
+
+</div>
+
+
+
+
+<script type="text/javascript">
+    var jiathis_config = {
+        title:"做开发的时候要做MySQL的数据库同步，两台安装一样的系统，都是FreeBSD5.4，安装了Apache 2.0.55和PHP 4.4.0，MySQL的版本是4.1.15，都是目前最新的版本。",
+        appkey:{
+            "tsina":"2173988749",
+            "tqq":"258efff116d2466da9b7513cbae7de0b"
+        },
+        ralateuid:{
+            "tsina":"1736207384"
+        },
+        data_track_clickback:true
+    };
+</script>
+<script type="text/javascript" src="http://v2.jiathis.com/code/jia.js?uid=906668" charset="utf-8"></script>
+
+<script id="bdlike_shell"></script>
+<script>
+var bdShare_config = {
+		"type":"medium",
+		"color":"red",
+		"url": document.location.href,
+		"likeText": "这篇文章很赞！",
+		"likedText": "您已顶过，谢谢！",
+		title:"做开发的时候要做MySQL的数据库同步，两台安装一样的系统，都是FreeBSD5.4，安装了Apache 2.0.55和PHP 4.4.0，MySQL的版本是4.1.15，都是目前最新的版本。",
+		"desc" : "站长之家",
+		"share" :"yes",
+		"uid":"11101",
+		"relateUid":"1736207384",
+		"key":"2173988749",
+		"searchPic":0,
+		"sign":"on"
+	};
+document.getElementById("bdlike_shell").src="http://bdimg.share.baidu.com/static/js/like_shell.js?t=" + new Date().getHours();
+</script>
+
+<style>
+.jiathiswidget{margin-left:10px;}
+#ckepop .label{margin-right:5px;}
+.text_tag #ckepop .label{float:left;}
+#ckepop .jiathis_txt{float:none !important;}
+#ckepop .jtico{display:inline-block !important;}
+#ckepop .jiathis{vertical-align:middle; float:none;margin:0;}
+.backToTop { display:none; width:18px; line-height:1.2; padding:5px 3px; background-color:#5483B0; color:#fff; font-size:12px; text-align:center; position:fixed; _position:absolute; right:10px; bottom:105px; _bottom:"auto"; cursor:pointer; opacity:.6; filter:Alpha(opacity=60); border-radius: 0px 3px 3px 0px; left: 50%; margin-left: 490px;}
+.sina-share-button span { float: none; }
+</style>
+<script>
+(function() {
+	var $backToTopTxt = "返回顶部", $backToTopEle = $('<div class="backToTop"></div>').appendTo($("body"))
+		.text($backToTopTxt).attr("title", $backToTopTxt).click(function() {
+			$("html, body").animate({ scrollTop: 0 }, 120);
+	}), $backToTopFun = function() {
+		var st = $(document).scrollTop(), winh = $(window).height();
+		(st > 0)? $backToTopEle.show(): $backToTopEle.hide();	
+		//IE6下的定位
+		if (!window.XMLHttpRequest) {
+			$backToTopEle.css("top", st + winh - 166);	
+		}
+	};
+	$(window).bind("scroll", $backToTopFun);
+	$(function() { $backToTopFun(); });
+})();
+</script>
+<script type="text/javascript" charset="utf-8" src="http://s.cnzz.net/cs.php?id=900011607"></script>
+</body>
+</html>

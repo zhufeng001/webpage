@@ -1,0 +1,860 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+<TITLE>OpenFabrics Alliance Enterprise Working Group (EWG)</TITLE>
+<BASE href="http://comments.gmane.org">
+<META http-equiv=Content-Type content="text/html; charset=utf-8">
+<link rel="SHORTCUT ICON" href="http://gmane.org/favicon.ico">
+<link rel="Up" href="/gmane.network.openfabrics.enterprise>">
+<LINK href="http://gmane.org/img/leftmenu.css" type="text/css" rel="stylesheet">
+<LINK href="http://gmane.org/img/blog.css" type="text/css" rel="stylesheet">
+<style type="text/css" media="screen">
+h1.name {
+  background-image:  url(http://gmane.org/paint-blog-id.php?group=gmane.network.openfabrics.enterprise);
+}
+</style>
+</HEAD>
+<BODY>
+<div id=banner>
+<h1 class=name>&nbsp;</h1>
+<span class=description>OpenFabrics Alliance Enterprise Working Group (EWG)</span>
+</div>
+<script src="http://gmane.org/img/jsblog.js" type="text/javascript"></script>
+
+<DIV id=content>
+<DIV class=blog>
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o1');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=David+J.+Wilder&amp;sort=date" rel=nofollow>David J. Wilder</a>
+ | </span>
+<SPAN class=day>8 Oct 2009 01:12</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<div class=face>
+<a target="_top" href="http://ftp.cs.indiana.edu/pub/faces/picons/"><img border=0 alt="Picon" src="http://cache.gmane.org//gmane/network/openfabrics/enterprise/1956-picon-001.gif"></a>
+<br><img border=0 alt="Favicon" src="http://cache.gmane.org/gmane/network/openfabrics/enterprise/1956-favicon.png">
+<br>
+</div>
+<H2 class=title>rping is not resolving ipv6 addresses</h2><div id="o1" class="hidden">David J. Wilder &lt;<a target="_top" href="http://gmane.org/get-address.php?address=dwilder%2dr%2fJw6%2brmf7HQT0dZR%2bAlfA%40public.gmane.org" rel="nofollow">dwilder@...</a>&gt;<br>
+2009-10-07 23:12:01 GMT<br>
+</div>
+<pre>
+Hi-
+
+I have been testing rping with ipv6 address on OFED 1.5. I am seeing a
+problem with ipv6 address resolution. rping is not always sending
+neighbor solicitation out the correct interface. Running tcpdumps I
+discovered that the neighbor solicitation is being sent out the first
+interface that was configured, in my case eth0 and not the ib0
+interface.
+
+This is the test I am running:
+
+Host A:
+$ ip address show ib0 | grep inet6
+    inet6 fe80::202:c903:1:1925/64 scope link
+
+$ rping -s -v -a ::0
+
+Host B:
+$ rping -c -v -a fe80::202:c903:1:1925
+
+cma event RDMA_CM_EVENT_ADDR_ERROR, error -110
+waiting for addr/route resolution state 1
+
+Using tcpdump I verified the neighbor solicitation packets went out the
+eth0 interface not ib0. If I "ifdown eth0" I see the neighbor
+solicitation go out ib0 and the rping works. BTW: Ping6 works ok;
+however, it requires that I specify the interface to use on the command
+line: $ ping6 fe80::202:c903:1:1925%ib0
+
+I am running with the fixes/workaround for these bugs also.
+</pre><a href="http://permalink.gmane.org/gmane.network.openfabrics.enterprise/1956">(Continue reading)</a><br><br>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.network.openfabrics.enterprise:1956:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.network.openfabrics.enterprise/1956">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.network.openfabrics.enterprise&amp;followup=1956" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o2');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=Roland+Dreier&amp;sort=date" rel=nofollow>Roland Dreier</a>
+ | </span>
+<SPAN class=day>8 Oct 2009 01:20</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<div class=face>
+<a target="_top" href="http://ftp.cs.indiana.edu/pub/faces/picons/"><img border=0 alt="Picon" src="http://cache.gmane.org//gmane/network/openfabrics/enterprise/1957-picon-001.gif"></a>
+<br><img border=0 alt="Favicon" src="http://cache.gmane.org/gmane/network/openfabrics/enterprise/1957-favicon.png">
+<br>
+</div>
+<H3 class=title>Re: rping is not resolving ipv6 addresses</h3><div id="o2" class="hidden">Roland Dreier &lt;<a target="_top" href="http://gmane.org/get-address.php?address=rdreier%2dFYB4Gu1CFyUAvxtiuMwx3w%40public.gmane.org" rel="nofollow">rdreier@...</a>&gt;<br>
+2009-10-07 23:20:53 GMT<br>
+</div>
+<pre>
+
+ &gt; I have been testing rping with ipv6 address on OFED 1.5. I am seeing a
+ &gt; problem with ipv6 address resolution. rping is not always sending
+ &gt; neighbor solicitation out the correct interface. Running tcpdumps I
+ &gt; discovered that the neighbor solicitation is being sent out the first
+ &gt; interface that was configured, in my case eth0 and not the ib0
+ &gt; interface.
+ &gt; 
+ &gt; This is the test I am running:
+ &gt; 
+ &gt; Host A:
+ &gt; $ ip address show ib0 | grep inet6
+ &gt;     inet6 fe80::202:c903:1:1925/64 scope link
+ &gt; 
+ &gt; $ rping -s -v -a ::0
+ &gt; 
+ &gt; Host B:
+ &gt; $ rping -c -v -a fe80::202:c903:1:1925
+ &gt; 
+ &gt; cma event RDMA_CM_EVENT_ADDR_ERROR, error -110
+ &gt; waiting for addr/route resolution state 1
+ &gt; 
+ &gt; 
+ &gt; Using tcpdump I verified the neighbor solicitation packets went out the
+ &gt; eth0 interface not ib0. If I "ifdown eth0" I see the neighbor
+ &gt; solicitation go out ib0 and the rping works. BTW: Ping6 works ok;
+ &gt; however, it requires that I specify the interface to use on the command
+ &gt; line: $ ping6 fe80::202:c903:1:1925%ib0
+
+I'm not sure how many places in the stack have to be fixed for this, but
+</pre><a href="http://permalink.gmane.org/gmane.network.openfabrics.enterprise/1957">(Continue reading)</a><br><br>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.network.openfabrics.enterprise:1957:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.network.openfabrics.enterprise/1957">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.network.openfabrics.enterprise&amp;followup=1957" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o3');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=David+J.+Wilder&amp;sort=date" rel=nofollow>David J. Wilder</a>
+ | </span>
+<SPAN class=day>9 Oct 2009 20:57</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<div class=face>
+<a target="_top" href="http://ftp.cs.indiana.edu/pub/faces/picons/"><img border=0 alt="Picon" src="http://cache.gmane.org//gmane/network/openfabrics/enterprise/1963-picon-001.gif"></a>
+<br><img border=0 alt="Favicon" src="http://cache.gmane.org/gmane/network/openfabrics/enterprise/1963-favicon.png">
+<br>
+</div>
+<H3 class=title>Re: rping is not resolving ipv6 addresses</h3><div id="o3" class="hidden">David J. Wilder &lt;<a target="_top" href="http://gmane.org/get-address.php?address=dwilder%2dr%2fJw6%2brmf7HQT0dZR%2bAlfA%40public.gmane.org" rel="nofollow">dwilder@...</a>&gt;<br>
+2009-10-09 18:57:51 GMT<br>
+</div>
+<pre>
+
+On Wed, 2009-10-07 at 16:20 -0700, Roland Dreier wrote:
+&gt; &gt; I have been testing rping with ipv6 address on OFED 1.5. I am seeing a
+&gt;  &gt; problem with ipv6 address resolution. rping is not always sending
+&gt;  &gt; neighbor solicitation out the correct interface. Running tcpdumps I
+&gt;  &gt; discovered that the neighbor solicitation is being sent out the first
+&gt;  &gt; interface that was configured, in my case eth0 and not the ib0
+&gt;  &gt; interface.
+&gt;  &gt; 
+&gt;  &gt; This is the test I am running:
+&gt;  &gt; 
+&gt;  &gt; Host A:
+&gt;  &gt; $ ip address show ib0 | grep inet6
+&gt;  &gt;     inet6 fe80::202:c903:1:1925/64 scope link
+&gt;  &gt; 
+&gt;  &gt; $ rping -s -v -a ::0
+&gt;  &gt; 
+&gt;  &gt; Host B:
+&gt;  &gt; $ rping -c -v -a fe80::202:c903:1:1925
+&gt;  &gt; 
+&gt;  &gt; cma event RDMA_CM_EVENT_ADDR_ERROR, error -110
+&gt;  &gt; waiting for addr/route resolution state 1
+&gt;  &gt; 
+&gt;  &gt; 
+&gt;  &gt; Using tcpdump I verified the neighbor solicitation packets went out the
+&gt;  &gt; eth0 interface not ib0. If I "ifdown eth0" I see the neighbor
+&gt;  &gt; solicitation go out ib0 and the rping works. BTW: Ping6 works ok;
+&gt;  &gt; however, it requires that I specify the interface to use on the command
+&gt;  &gt; line: $ ping6 fe80::202:c903:1:1925%ib0
+&gt; 
+</pre><a href="http://permalink.gmane.org/gmane.network.openfabrics.enterprise/1963">(Continue reading)</a><br><br>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.network.openfabrics.enterprise:1963:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.network.openfabrics.enterprise/1963">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.network.openfabrics.enterprise&amp;followup=1963" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o4');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=Or+Gerlitz&amp;sort=date" rel=nofollow>Or Gerlitz</a>
+ | </span>
+<SPAN class=day>9 Oct 2009 22:53</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<div class=face>
+<a target="_top" href="http://ftp.cs.indiana.edu/pub/faces/picons/"><img border=0 alt="Picon" src="http://cache.gmane.org//gmane/linux/drivers/rdma/352-picon-001.gif"></a>
+<br>
+</div>
+<H3 class=title>Re: [ewg] rping is not resolving ipv6 addresses</h3><div id="o4" class="hidden">Or Gerlitz &lt;<a target="_top" href="http://gmane.org/get-address.php?address=or.gerlitz%2dRe5JQEeQqe8AvxtiuMwx3w%40public.gmane.org" rel="nofollow">or.gerlitz@...</a>&gt;<br>
+2009-10-09 20:53:04 GMT<br>
+</div>
+<pre>
+David J. Wilder &lt;<a target="_top" href="http://gmane.org/get-address.php?address=dwilder%2dr%2fJw6%2brmf7HQT0dZR%2bAlfA%40public.gmane.org" rel="nofollow">dwilder@...</a>&gt; wrote:
+&gt; I added an option to rping to specify a source address and supply it to
+
+patch?
+
+&gt; rdma_resolve_addr(), but now it is failing rdma_resolve_route().
+&gt; $ ./rping -d  -c -v -a fe80::202:c903:1:1925 -i fe80::202:c903:1:28ed
+&gt; cma_event type RDMA_CM_EVENT_ADDR_RESOLVED cma_id 0x100213d0 (parent)
+&gt; cma_event type RDMA_CM_EVENT_ROUTE_ERROR cma_id 0x100213d0 (parent)
+&gt; cma event RDMA_CM_EVENT_ROUTE_ERROR, error -22
+
+what does the neighbour info (ip neigh show | grep 1925)  shows after
+running rping?
+can you do ipoib ping and ping6 to the fe80::202:c903:1:1925 host?
+
+Or.
+--
+To unsubscribe from this list: send the line "unsubscribe linux-rdma" in
+the body of a message to <a target="_top" href="http://gmane.org/get-address.php?address=majordomo%2du79uwXL29TY76Z2rM5mHXA%40public.gmane.org" rel="nofollow">majordomo@...</a>
+More majordomo info at  <a rel="nofollow" href="http://vger.kernel.org/majordomo-info.html" target="_top">http://vger.kernel.org/majordomo-info.html</a>
+
+</pre>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.linux.drivers.rdma:352:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.linux.drivers.rdma/352">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.linux.drivers.rdma&amp;followup=352" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o5');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=David+J.+Wilder&amp;sort=date" rel=nofollow>David J. Wilder</a>
+ | </span>
+<SPAN class=day>9 Oct 2009 23:15</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<div class=face>
+<a target="_top" href="http://ftp.cs.indiana.edu/pub/faces/picons/"><img border=0 alt="Picon" src="http://cache.gmane.org//gmane/linux/drivers/rdma/353-picon-001.gif"></a>
+<br><img border=0 alt="Favicon" src="http://cache.gmane.org/gmane/linux/drivers/rdma/353-favicon.png">
+<br>
+</div>
+<H3 class=title>Re: [ewg] rping is not resolving ipv6 addresses</h3><div id="o5" class="hidden">David J. Wilder &lt;<a target="_top" href="http://gmane.org/get-address.php?address=dwilder%2dr%2fJw6%2brmf7HQT0dZR%2bAlfA%40public.gmane.org" rel="nofollow">dwilder@...</a>&gt;<br>
+2009-10-09 21:15:01 GMT<br>
+</div>
+<pre>
+
+On Fri, 2009-10-09 at 22:53 +0200, Or Gerlitz wrote:
+&gt; David J. Wilder &lt;<a target="_top" href="http://gmane.org/get-address.php?address=dwilder%2dr%2fJw6%2brmf7HQT0dZR%2bAlfA%40public.gmane.org" rel="nofollow">dwilder@...</a>&gt; wrote:
+&gt; &gt; I added an option to rping to specify a source address and supply it to
+&gt; 
+&gt; patch?
+&gt; 
+&gt; &gt; rdma_resolve_addr(), but now it is failing rdma_resolve_route().
+&gt; &gt; $ ./rping -d  -c -v -a fe80::202:c903:1:1925 -i fe80::202:c903:1:28ed
+&gt; &gt; cma_event type RDMA_CM_EVENT_ADDR_RESOLVED cma_id 0x100213d0 (parent)
+&gt; &gt; cma_event type RDMA_CM_EVENT_ROUTE_ERROR cma_id 0x100213d0 (parent)
+&gt; &gt; cma event RDMA_CM_EVENT_ROUTE_ERROR, error -22
+&gt; 
+&gt; what does the neighbour info (ip neigh show | grep 1925)  shows after
+&gt; running rping?
+
+If I run rping without my rping change to add the source address to
+rdma_resolve_address(),  ip neigh show gives:
+ fe80::202:c903:1:1925 dev eth1  FAILED
+
+Notice that interface is incorrect, it should be ib0. tcpdump showed the
+neighbor-discovery sent out the eth0 interface.
+
+Running with my rping change to specify the local-link address of my ib0
+interface "ip neigh show" never shows any entry for
+fe80::202:c903:1:1925
+
+&gt; can you do ipoib ping and ping6 to the fe80::202:c903:1:1925 host?
+&gt; 
+&gt; Or.
+</pre><a href="http://permalink.gmane.org/gmane.linux.drivers.rdma/353">(Continue reading)</a><br><br>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.linux.drivers.rdma:353:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.linux.drivers.rdma/353">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.linux.drivers.rdma&amp;followup=353" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o6');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=Or+Gerlitz&amp;sort=date" rel=nofollow>Or Gerlitz</a>
+ | </span>
+<SPAN class=day>9 Oct 2009 23:22</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<div class=face>
+<a target="_top" href="http://ftp.cs.indiana.edu/pub/faces/picons/"><img border=0 alt="Picon" src="http://cache.gmane.org//gmane/linux/drivers/rdma/354-picon-001.gif"></a>
+<br>
+</div>
+<H3 class=title>Re: [ewg] rping is not resolving ipv6 addresses</h3><div id="o6" class="hidden">Or Gerlitz &lt;<a target="_top" href="http://gmane.org/get-address.php?address=or.gerlitz%2dRe5JQEeQqe8AvxtiuMwx3w%40public.gmane.org" rel="nofollow">or.gerlitz@...</a>&gt;<br>
+2009-10-09 21:22:10 GMT<br>
+</div>
+<pre>
+David J. Wilder &lt;<a target="_top" href="http://gmane.org/get-address.php?address=dwilder%2dr%2fJw6%2brmf7HQT0dZR%2bAlfA%40public.gmane.org" rel="nofollow">dwilder@...</a>&gt; wrote:
+
+&gt; If I run rping without my rping change to add the source address to
+&gt; rdma_resolve_address(),  ip neigh show gives:  fe80::202:c903:1:1925 dev eth1  FAILED
+&gt; Notice that interface is incorrect, it should be ib0. tcpdump showed the
+&gt; neighbor-discovery sent out the eth0 interface.
+
+yes, this is as of what Roland explained.
+
+&gt; Running with my rping change to specify the local-link address of my ib0
+&gt; interface "ip neigh show" never shows any entry for  fe80::202:c903:1:1925
+
+mmm... weird, run your rping with tcp dump in another screen and see
+if ND takes place
+
+&gt; ping6 will work but I must specify the interface to use: ping6 fe80::202:c903:1:1925%ib0
+
+after the tcpdump experiment, run ping6 and immediatly following that
+or in parallel on another window run rping
+--
+To unsubscribe from this list: send the line "unsubscribe linux-rdma" in
+the body of a message to <a target="_top" href="http://gmane.org/get-address.php?address=majordomo%2du79uwXL29TY76Z2rM5mHXA%40public.gmane.org" rel="nofollow">majordomo@...</a>
+More majordomo info at  <a rel="nofollow" href="http://vger.kernel.org/majordomo-info.html" target="_top">http://vger.kernel.org/majordomo-info.html</a>
+
+</pre>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.linux.drivers.rdma:354:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.linux.drivers.rdma/354">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.linux.drivers.rdma&amp;followup=354" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+</div>
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o7');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=Jason+Gunthorpe&amp;sort=date" rel=nofollow>Jason Gunthorpe</a>
+ | </span>
+<SPAN class=day>10 Oct 2009 00:46</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<div class=face>
+<img border=0 alt="Favicon" src="http://cache.gmane.org/gmane/linux/drivers/rdma/356-favicon.png">
+<br>
+</div>
+<H3 class=title>Re: [ewg] rping is not resolving ipv6 addresses</h3><div id="o7" class="hidden">Jason Gunthorpe &lt;<a target="_top" href="http://gmane.org/get-address.php?address=jgunthorpe%2dePGOBjL8dl3ta4EC%2f59zMFaTQe2KTcn%2f%40public.gmane.org" rel="nofollow">jgunthorpe@...</a>&gt;<br>
+2009-10-09 22:46:05 GMT<br>
+</div>
+<pre>
+On Fri, Oct 09, 2009 at 02:15:01PM -0700, David J. Wilder wrote:
+
+&gt; Yes ping6 will work but I must specify the interface to use:
+&gt; ping6 fe80::202:c903:1:1925%ib0
+&gt; 
+&gt; Here is the patch to rping to allow the source address to be specified.
+&gt; I am not sure this is the correct approach to fix this.
+
+It is not, IPv6 link local addresses must be scoped. rping is
+parsing the address with getaddrinfo, that does correctly set the
+sin6_scope_id value in the sockaddr.
+
+rdma_resolve_addr (and likely the underlying kernel component) must
+respect this when dealing with link local scope addresses.
+
+rmda_resolve_addr should fail if a link local IPv6 address is provided
+without scope, like the normal IP stack:
+
+connect(3, {sa_family=AF_INET6, sin6_port=htons(1025), inet_pton(AF_INET6,
+"fe80::202:c903:1:1925", &amp;sin6_addr), sin6_flowinfo=0, sin6_scope_id=0}, 28) = -1 EINVAL (Invalid argument)
+
+So this is two bugs in the rdma cm, rping is correct as is..
+
+Jason
+--
+To unsubscribe from this list: send the line "unsubscribe linux-rdma" in
+the body of a message to <a target="_top" href="http://gmane.org/get-address.php?address=majordomo%2du79uwXL29TY76Z2rM5mHXA%40public.gmane.org" rel="nofollow">majordomo@...</a>
+More majordomo info at  <a rel="nofollow" href="http://vger.kernel.org/majordomo-info.html" target="_top">http://vger.kernel.org/majordomo-info.html</a>
+
+</pre>
+</pre><a href="http://permalink.gmane.org/gmane.linux.drivers.rdma/356">(Continue reading)</a><br><br>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.linux.drivers.rdma:356:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.linux.drivers.rdma/356">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.linux.drivers.rdma&amp;followup=356" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o8');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=Sean+Hefty&amp;sort=date" rel=nofollow>Sean Hefty</a>
+ | </span>
+<SPAN class=day>10 Oct 2009 01:02</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<div class=face>
+<a target="_top" href="http://ftp.cs.indiana.edu/pub/faces/picons/"><img border=0 alt="Picon" src="http://cache.gmane.org//gmane/linux/drivers/rdma/357-picon-001.gif"></a>
+<br><img border=0 alt="Favicon" src="http://cache.gmane.org/gmane/linux/drivers/rdma/357-favicon.png">
+<br>
+</div>
+<H3 class=title>RE: [ewg] rping is not resolving ipv6 addresses</h3><div id="o8" class="hidden">Sean Hefty &lt;<a target="_top" href="http://gmane.org/get-address.php?address=sean.hefty%2dral2JQCrhuEAvxtiuMwx3w%40public.gmane.org" rel="nofollow">sean.hefty@...</a>&gt;<br>
+2009-10-09 23:02:47 GMT<br>
+</div>
+<pre>
+&gt;rdma_resolve_addr (and likely the underlying kernel component) must
+&gt;respect this when dealing with link local scope addresses.
+&gt;
+&gt;rmda_resolve_addr should fail if a link local IPv6 address is provided
+&gt;without scope, like the normal IP stack:
+
+The rdma cm was never fully coded or tested for ipv6 support.
+
+--
+To unsubscribe from this list: send the line "unsubscribe linux-rdma" in
+the body of a message to <a target="_top" href="http://gmane.org/get-address.php?address=majordomo%2du79uwXL29TY76Z2rM5mHXA%40public.gmane.org" rel="nofollow">majordomo@...</a>
+More majordomo info at  <a rel="nofollow" href="http://vger.kernel.org/majordomo-info.html" target="_top">http://vger.kernel.org/majordomo-info.html</a>
+
+</pre>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.linux.drivers.rdma:357:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.linux.drivers.rdma/357">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.linux.drivers.rdma&amp;followup=357" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o9');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=Or+Gerlitz&amp;sort=date" rel=nofollow>Or Gerlitz</a>
+ | </span>
+<SPAN class=day>11 Oct 2009 09:29</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<H3 class=title>Re: rping is not resolving ipv6 addresses</h3><div id="o9" class="hidden">Or Gerlitz &lt;<a target="_top" href="http://gmane.org/get-address.php?address=ogerlitz%2dhKgKHo2Ms0FWk0Htik3J%2fw%40public.gmane.org" rel="nofollow">ogerlitz@...</a>&gt;<br>
+2009-10-11 07:29:08 GMT<br>
+</div>
+<pre>
+Sean Hefty wrote:
+&gt; The rdma cm was never fully coded or tested for ipv6 support.
+
+Sean, even if not fully coded/tested, some work has been done, e.g commits 38617c64 "RDMA/addr: Add
+support for translating IPv6 addresses" and 1f5175ad "RDMA/cma: Add IPv6 support". I suggest we'll try
+to see what does it take to make this better or even fully support ipv6.
+
+Jason, can you restate what are the two problems you saw from David's reports? the 1st was related to scope in
+link-local addresses, and what's the 2nd?
+
+Or.
+--
+To unsubscribe from this list: send the line "unsubscribe linux-rdma" in
+the body of a message to <a target="_top" href="http://gmane.org/get-address.php?address=majordomo%2du79uwXL29TY76Z2rM5mHXA%40public.gmane.org" rel="nofollow">majordomo@...</a>
+More majordomo info at  <a rel="nofollow" href="http://vger.kernel.org/majordomo-info.html" target="_top">http://vger.kernel.org/majordomo-info.html</a>
+
+</pre>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.linux.drivers.rdma:360:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.linux.drivers.rdma/360">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.linux.drivers.rdma&amp;followup=360" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o10');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=Jason+Gunthorpe&amp;sort=date" rel=nofollow>Jason Gunthorpe</a>
+ | </span>
+<SPAN class=day>11 Oct 2009 21:52</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<div class=face>
+<img border=0 alt="Favicon" src="http://cache.gmane.org/gmane/linux/drivers/rdma/368-favicon.png">
+<br>
+</div>
+<H3 class=title>Re: rping is not resolving ipv6 addresses</h3><div id="o10" class="hidden">Jason Gunthorpe &lt;<a target="_top" href="http://gmane.org/get-address.php?address=jgunthorpe%2dePGOBjL8dl3ta4EC%2f59zMFaTQe2KTcn%2f%40public.gmane.org" rel="nofollow">jgunthorpe@...</a>&gt;<br>
+2009-10-11 19:52:46 GMT<br>
+</div>
+<pre>
+On Sun, Oct 11, 2009 at 09:29:08AM +0200, Or Gerlitz wrote:
+&gt; Sean Hefty wrote:
+&gt; &gt; The rdma cm was never fully coded or tested for ipv6 support.
+
+&gt; Sean, even if not fully coded/tested, some work has been done, e.g
+&gt; commits 38617c64 "RDMA/addr: Add support for translating IPv6
+&gt; addresses" and 1f5175ad "RDMA/cma: Add IPv6 support". I suggest
+&gt; we'll try to see what does it take to make this better or even fully
+&gt; support ipv6.
+
+Or is right, these are kernel bugs, if nobody is able to work on them
+then I think we all have to accept that these parts of the OFA stack
+are unfinished and unmaintained - and see if that can be delt with.
+
+&gt; Jason, can you restate what are the two problems you saw from
+&gt; David's reports? the 1st was related to scope in link-local
+&gt; addresses, and what's the 2nd?
+
+The kernel must not accept a link local address with 0 scope id
+
+When using link local addresses the kernel must bind to the interface
+index in the scope id.
+
+The scope is ignored for other addresses scopes.
+
+The rules will be more complex if a source and dest are specified, in
+that case the scopes must match.
+
+This is the same basic problem as the other issues regarding ND and
+route resolution, the RDMA CM does not follow the same procedures as
+</pre><a href="http://permalink.gmane.org/gmane.linux.drivers.rdma/368">(Continue reading)</a><br><br>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.linux.drivers.rdma:368:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.linux.drivers.rdma/368">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.linux.drivers.rdma&amp;followup=368" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+</div>
+</div>
+</div>
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o11');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=David+J.+Wilder&amp;sort=date" rel=nofollow>David J. Wilder</a>
+ | </span>
+<SPAN class=day>12 Oct 2009 19:52</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<div class=face>
+<a target="_top" href="http://ftp.cs.indiana.edu/pub/faces/picons/"><img border=0 alt="Picon" src="http://cache.gmane.org//gmane/linux/drivers/rdma/399-picon-001.gif"></a>
+<br><img border=0 alt="Favicon" src="http://cache.gmane.org/gmane/linux/drivers/rdma/399-favicon.png">
+<br>
+</div>
+<H3 class=title>Re: [ewg] rping is not resolving ipv6 addresses</h3><div id="o11" class="hidden">David J. Wilder &lt;<a target="_top" href="http://gmane.org/get-address.php?address=dwilder%2dr%2fJw6%2brmf7HQT0dZR%2bAlfA%40public.gmane.org" rel="nofollow">dwilder@...</a>&gt;<br>
+2009-10-12 17:52:59 GMT<br>
+</div>
+<pre>
+
+On Fri, 2009-10-09 at 16:46 -0600, Jason Gunthorpe wrote:
+&gt; On Fri, Oct 09, 2009 at 02:15:01PM -0700, David J. Wilder wrote:
+&gt; 
+&gt; &gt; Yes ping6 will work but I must specify the interface to use:
+&gt; &gt; ping6 fe80::202:c903:1:1925%ib0
+&gt; &gt; 
+&gt; &gt; Here is the patch to rping to allow the source address to be specified.
+&gt; &gt; I am not sure this is the correct approach to fix this.
+&gt; 
+&gt; It is not, IPv6 link local addresses must be scoped. rping is
+&gt; parsing the address with getaddrinfo, that does correctly set the
+&gt; sin6_scope_id value in the sockaddr.
+
+ping6 is scoping the address (setting sin6_scope_id) by hand. So rping
+should do the same thing.
+
+&gt; 
+&gt; rdma_resolve_addr (and likely the underlying kernel component) must
+&gt; respect this when dealing with link local scope addresses.
+&gt; 
+&gt; rmda_resolve_addr should fail if a link local IPv6 address is provided
+&gt; without scope, like the normal IP stack:
+&gt; 
+&gt; connect(3, {sa_family=AF_INET6, sin6_port=htons(1025), inet_pton(AF_INET6,
+"fe80::202:c903:1:1925", &amp;sin6_addr), sin6_flowinfo=0, sin6_scope_id=0}, 28) = -1 EINVAL (Invalid argument)
+&gt; 
+&gt; So this is two bugs in the rdma cm, rping is correct as is..
+
+It may be correct, but not functional with link-local address.
+</pre><a href="http://permalink.gmane.org/gmane.linux.drivers.rdma/399">(Continue reading)</a><br><br>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.linux.drivers.rdma:399:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.linux.drivers.rdma/399">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.linux.drivers.rdma&amp;followup=399" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o12');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=Jason+Gunthorpe&amp;sort=date" rel=nofollow>Jason Gunthorpe</a>
+ | </span>
+<SPAN class=day>12 Oct 2009 21:47</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<div class=face>
+<img border=0 alt="Favicon" src="http://cache.gmane.org/gmane/linux/drivers/rdma/407-favicon.png">
+<br>
+</div>
+<H3 class=title>Re: [ewg] rping is not resolving ipv6 addresses</h3><div id="o12" class="hidden">Jason Gunthorpe &lt;<a target="_top" href="http://gmane.org/get-address.php?address=jgunthorpe%2dePGOBjL8dl3ta4EC%2f59zMFaTQe2KTcn%2f%40public.gmane.org" rel="nofollow">jgunthorpe@...</a>&gt;<br>
+2009-10-12 19:47:58 GMT<br>
+</div>
+<pre>
+On Mon, Oct 12, 2009 at 10:52:59AM -0700, David J. Wilder wrote:
+
+&gt; &gt; It is not, IPv6 link local addresses must be scoped. rping is
+&gt; &gt; parsing the address with getaddrinfo, that does correctly set the
+&gt; &gt; sin6_scope_id value in the sockaddr.
+&gt; 
+&gt; ping6 is scoping the address (setting sin6_scope_id) by hand. So rping
+&gt; should do the same thing.
+
+getaddrinfo already sets sin6_scope_id. Newish iputils ping6 also uses
+getaddrinfo and doesn't touch the sin6_scope_id except in some
+specialized cases.
+
+&gt; &gt; So this is two bugs in the rdma cm, rping is correct as is..
+&gt; 
+&gt; It may be correct, but not functional with link-local address.
+
+Like I said, the RDMA CM kernel component has the bugs, not rping..
+
+Jason
+--
+To unsubscribe from this list: send the line "unsubscribe linux-rdma" in
+the body of a message to <a target="_top" href="http://gmane.org/get-address.php?address=majordomo%2du79uwXL29TY76Z2rM5mHXA%40public.gmane.org" rel="nofollow">majordomo@...</a>
+More majordomo info at  <a rel="nofollow" href="http://vger.kernel.org/majordomo-info.html" target="_top">http://vger.kernel.org/majordomo-info.html</a>
+
+</pre>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.linux.drivers.rdma:407:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.linux.drivers.rdma/407">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.linux.drivers.rdma&amp;followup=407" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o13');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=Aleksey+Senin&amp;sort=date" rel=nofollow>Aleksey Senin</a>
+ | </span>
+<SPAN class=day>11 Oct 2009 09:39</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<H3 class=title>Re: rping is not resolving ipv6 addresses</h3><div id="o13" class="hidden">Aleksey Senin &lt;<a target="_top" href="http://gmane.org/get-address.php?address=alekseys%2dsmomgflXvOZWk0Htik3J%2fw%40public.gmane.org" rel="nofollow">alekseys@...</a>&gt;<br>
+2009-10-11 07:39:06 GMT<br>
+</div>
+<pre>
+Hi, David.
+In order to work with link-local addresses you have to remove
+unnecessary routes from other interfaces
+or
+work with addresses different from link-local
+or
+rping should be patched in the way of ping6
+</pre>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.network.openfabrics.enterprise:1967:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.network.openfabrics.enterprise/1967">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.network.openfabrics.enterprise&amp;followup=1967" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+<div class=posting>
+<DIV class=entry>
+<DIV class=date>
+<div class=options><a rel=nofollow href="#" onclick="return toggle('o14');">headers</a></div>
+<span class=author>
+<a href="http://search.gmane.org/?author=David+J.+Wilder&amp;sort=date" rel=nofollow>David J. Wilder</a>
+ | </span>
+<SPAN class=day>12 Oct 2009 20:05</SPAN>
+</DIV>
+<DIV class=blogbody><A name=5></A>
+<div class=face>
+<a target="_top" href="http://ftp.cs.indiana.edu/pub/faces/picons/"><img border=0 alt="Picon" src="http://cache.gmane.org//gmane/network/openfabrics/enterprise/1973-picon-001.gif"></a>
+<br><img border=0 alt="Favicon" src="http://cache.gmane.org/gmane/network/openfabrics/enterprise/1973-favicon.png">
+<br>
+</div>
+<H3 class=title>Re: rping is not resolving ipv6 addresses</h3><div id="o14" class="hidden">David J. Wilder &lt;<a target="_top" href="http://gmane.org/get-address.php?address=dwilder%2dr%2fJw6%2brmf7HQT0dZR%2bAlfA%40public.gmane.org" rel="nofollow">dwilder@...</a>&gt;<br>
+2009-10-12 18:05:22 GMT<br>
+</div>
+<pre>
+
+On Sun, 2009-10-11 at 09:39 +0200, Aleksey Senin wrote:
+&gt; Hi, David.
+&gt; In order to work with link-local addresses you have to remove
+&gt; unnecessary routes from other interfaces
+&gt; or
+&gt; work with addresses different from link-local
+&gt; or
+&gt; rping should be patched in the way of ping6
+
+Thanks for this summation Aleksey. Your first two suggestions do work.
+
+ping6 is scoping the address by hand.  I can duplicate that code in
+rping. however, from the discussion I suspect it is still not going to
+work; however, possibly it will help scope the problem :)
+</pre>
+<DIV class=posted>
+<form class="spam" method="post" action="http://spam.gmane.org/gmane.network.openfabrics.enterprise:1973:unconfirmed" onsubmit="openSpamFrame(this); return false;">
+<A href="http://permalink.gmane.org/gmane.network.openfabrics.enterprise/1973">Permalink</A>
+| <a href="http://post.gmane.org/post.php?group=gmane.network.openfabrics.enterprise&amp;followup=1973" rel=nofollow>Reply</a>
+| <input class="spam" type="submit" value="Report this as spam">
+</form>
+</DIV>  
+
+</DIV>  
+</DIV>  
+
+</div>
+</div>
+</div>
+</div>
+</DIV>  
+
+</div>
+
+<div id="sidebox">
+
+<div class="sidetitle">Return</div>
+<div class="side">
+Return to <a href="http://blog.gmane.org/gmane.network.openfabrics.enterprise">gmane.network.openfabrics.enterprise</a>.
+</div>
+
+
+<div class="sidetitle">Advertisement</div>
+<div class="side" align="center">
+<a href='http://lars.ingebrigtsen.no/2013/08/twenty-years-of-september.html'><img border=0 src='http://gmane.org/img/square.png'></a></div>
+
+<div class="sidetitle">Project Web Page</div>
+<div class="side">
+   <a href="http://www.openfabrics.org/">OpenFabrics Alliance Enterprise Working Group (EWG)</a>
+</div>
+
+<div class="sidetitle">Search Archive</div>
+<div class="side">
+<div align="center">
+<br/>
+<form action="http://search.gmane.org" method="get">
+<input name="query" value="" title="search_text"/><input type="submit" title="SUBMIT" value="Search"/>
+<input type=hidden name="group" value="gmane.network.openfabrics.enterprise">
+</form>
+</div>
+</div>
+
+
+
+
+
+<div class="sidetitle">Language</div>
+<div class="side">
+   <a rel=nofollow href="http://gmane.org/language.php">Change language</a>
+</div>
+
+
+<div class="sidetitle">Options</div>
+<div class="side">
+Current view: 
+Threads only / Showing 
+ only 20 lines /
+ Not hiding cited text.<br/>
+    Change to 
+<a rel=nofollow href="/gmane.network.openfabrics.enterprise?set_blog_all=yes">All messages, </a><a rel=nofollow href="/gmane.network.openfabrics.enterprise?set_lines=100000">whole messages</a>, or 
+<a rel=nofollow href="/gmane.network.openfabrics.enterprise?set_cite=hide">hide cited text</a>.<br /><br />
+
+<a href="http://post.gmane.org/post.php?group=gmane.network.openfabrics.enterprise" rel=nofollow>Post a message</a><br/>
+<a href="nntp://news.gmane.org/gmane.network.openfabrics.enterprise">NNTP Newsgroup</a><br/>
+<a rel=nofollow href="http://news.gmane.org/find-root.php?message_id=%3c1255370723.29677.15.camel%40wilder.ibm.com%3e">Classic Gmane web interface</a><br/>
+
+<a href="http://rss.gmane.org/gmane.network.openfabrics.enterprise"><img src="http://gmane.org/img/xml.gif" alt="XML" border=0>&nbsp;RSS Feed</a><br/>
+<a href="http://dir.gmane.org/gmane.network.openfabrics.enterprise">List Information</a><br/><br/>
+<a href="http://gmane.org/faq.php">About Gmane</a><br/>
+</div>
+
+</div>
+
+    <br clear="all" />
+
+<div class="bottombox"><p class="bottomtext"><a href="http://gmane.org/">Gmane</a></p></div>
+  </body>
+</html>
+
+

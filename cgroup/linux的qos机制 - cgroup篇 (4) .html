@@ -1,0 +1,650 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>linux的qos机制 - cgroup篇 (4) - majieyue的专栏 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="下面来看各个子系统对cgroup的支持，第一篇先研究blkio子系统blkio子系统支持三种类型的QoS控制：blkio.weight， blkio.weight_device：这些是基于设备权重值的控制方式blkio.throttle.read_bps_device，blkio.throttle.write_bps_device：这些是基于带宽的控制方式blkio.throttl" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script src="http://static.blog.csdn.net/scripts/plugins.js" type="text/javascript"></script>
+<script src="http://static.blog.csdn.net/scripts/common.js" type="text/javascript"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/majieyue/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="/majieyue">majieyue的专栏</a></h1>
+            <h2></h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="/majieyue?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="/majieyue?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="/majieyue/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "majieyue";
+    var blog_address = "http://blog.csdn.net/majieyue";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+        
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://blog.csdn.net/csdnproduct/article/details/7863031" target="_blank">
+<font color=red>新版论坛系列介绍之二——功能介绍篇</font></a>
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/7863508"target="_blank">
+<font color=red>2012 SDCC门票社区团购火热开启！</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+<a href="http://blog.csdn.net/csdnproduct/article/details/7868152"target="_blank">
+<font color=red>公告：CSDN博客频道博客搬家功能上线！</font></a>
+
+<br />
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/7826827"target="_blank">
+<font color=blue>5折限时抢购移动开发者大会门票！ </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/7867718"target="_blank">
+<font color=red>没有重量只有质量：iPad版《程序员杂志》应用上线 </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/7838383"target="_blank">
+<font color=blue>“我最喜欢的技术博客”有奖推荐！ </font></a>
+
+</div><script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js"></script>
+
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Original"></span>
+    <h3>
+        <span class="link_title"><a href="/majieyue/article/details/7334828">
+        linux的qos机制 - cgroup篇 (4)
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/majieyue/article/category/928585">Linux内核</a> 
+        </span>
+    <span class="link_postdate">2012-04-24 17:31</span>
+    <span class="link_view" title="阅读次数">61人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('linux的qos机制 - cgroup篇 (4)','7334828');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(7334828,2);return false;" title="举报">举报</a></span>
+    
+</div>
+
+    
+<div id="article_content" class="article_content">
+
+<p>下面来看各个子系统对cgroup的支持，第一篇先研究blkio子系统</p>
+<p>blkio子系统支持三种类型的QoS控制：</p>
+<p></p>
+<ol>
+<li>blkio.weight， blkio.weight_device：这些是基于设备权重&#20540;的控制方式</li><li>blkio.throttle.read_bps_device，blkio.throttle.write_bps_device：这些是基于带宽的控制方式</li><li>blkio.throttle.read_iops_device，blkio.throttle.write_iops_device：这些是基于iops的控制方式</li></ol>
+<p></p>
+<p>其中基于权重的控制方式，必须依赖于CFQ调度器，而基于throttle的控制方式则只需要在通用块层实现就可以了</p>
+<p><br>
+</p>
+<p>1) 基于blkio的cgroup_subsys的定义如下：</p>
+<p>struct cgroup_subsys blkio_subsys = {<br>
+<span style="white-space:pre"></span>.name = &quot;blkio&quot;,<br>
+<span style="white-space:pre"></span>.create = blkiocg_create,<br>
+<span style="white-space:pre"></span>.can_attach_task = blkiocg_can_attach_task,<br>
+<span style="white-space:pre"></span>.attach_task = blkiocg_attach_task,<br>
+<span style="white-space:pre"></span>.destroy = blkiocg_destroy,<br>
+<span style="white-space:pre"></span>.populate = blkiocg_populate,<br>
+#ifdef CONFIG_BLK_CGROUP<br>
+<span style="white-space:pre"></span>/* note: blkio_subsys_id is otherwise defined in blk-cgroup.h */<br>
+<span style="white-space:pre"></span>.subsys_id = blkio_subsys_id,<br>
+#endif<br>
+<span style="white-space:pre"></span>.use_id = 1,<br>
+<span style="white-space:pre"></span>.module = THIS_MODULE,<br>
+};<br>
+</p>
+<p><em><strong>blkiocg_create(struct cgroup_subsys *subsys, struct cgroup *cgroup)</strong></em>：初始化一个blkio_cgroup结构，并初始化blkio_cgroup-&gt;policy_list, blkio_cgroup-&gt;blkg_list<br>
+</p>
+<p><strong><em>blkiocg_destroy(struct cgroup_subsys *subsys, struct cgroup *cgroup)</em></strong>：略过<br>
+</p>
+<p><strong><em>blkiocg_populate(struct cgroup_subsys *subsys, struct cgroup *cgroup)</em></strong>：初始化好blkio_files里所有的blkio_policy_node对应的cgroup文件系统的文件<br>
+</p>
+<p><strong><em>blkiocg_can_attach_task(struct cgroup *cgrp, struct task_struct *tsk)</em></strong>：<br>
+</p>
+<p>/*<br>
+&nbsp;* We cannot support shared io contexts, as we have no mean to support<br>
+&nbsp;* two tasks with the same ioc in two different groups without major rework<br>
+&nbsp;* of the main cic data structures. &nbsp;For now we allow a task to change<br>
+&nbsp;* its cgroup only if it's the only owner of its ioc.<br>
+&nbsp;*/</p>
+<p><br>
+</p>
+<p>2) 基于blkio的policy的数据结构定义如下：</p>
+<p>struct blkio_policy_node {<br>
+<span style="white-space:pre"></span>struct list_head node;<br>
+<span style="white-space:pre"></span>dev_t dev;<br>
+<span style="white-space:pre"></span>/* This node belongs to max bw policy or porportional weight policy */<br>
+<span style="white-space:pre"></span>enum blkio_policy_id plid;<br>
+<span style="white-space:pre"></span>/* cgroup file to which this rule belongs to */<br>
+<span style="white-space:pre"></span>int fileid;<br>
+<br>
+<span style="white-space:pre"></span>union {<br>
+<span style="white-space:pre"></span>unsigned int weight;<br>
+<span style="white-space:pre"></span>/*<br>
+<span style="white-space:pre"></span>* Rate read/write in terms of byptes per second<br>
+<span style="white-space:pre"></span>* Whether this rate represents read or write is determined<br>
+<span style="white-space:pre"></span>* by file type &quot;fileid&quot;.<br>
+<span style="white-space:pre"></span>*/<br>
+<span style="white-space:pre"></span>u64 bps;<br>
+<span style="white-space:pre"></span>unsigned int iops;<br>
+<span style="white-space:pre"></span>} val;<br>
+};<br>
+</p>
+<p>struct blkio_policy_ops {</p>
+<p><span style="white-space:pre"></span>blkio_unlink_group_fn *blkio_unlink_group_fn;<br>
+<span style="white-space:pre"></span>blkio_update_group_weight_fn *blkio_update_group_weight_fn;<br>
+<span style="white-space:pre"></span>blkio_update_group_read_bps_fn *blkio_update_group_read_bps_fn;<br>
+<span style="white-space:pre"></span>blkio_update_group_write_bps_fn *blkio_update_group_write_bps_fn;<br>
+<span style="white-space:pre"></span>blkio_update_group_read_iops_fn *blkio_update_group_read_iops_fn;<br>
+<span style="white-space:pre"></span>blkio_update_group_write_iops_fn *blkio_update_group_write_iops_fn;<br>
+};</p>
+<p>enum blkio_policy_id {<br>
+<span style="white-space:pre"></span>BLKIO_POLICY_PROP = 0,<span style="white-space:pre">
+</span>/* Proportional Bandwidth division */<br>
+<span style="white-space:pre"></span>BLKIO_POLICY_THROTL,<span style="white-space:pre">
+</span>/* Throttling */<br>
+};<br>
+</p>
+<p>struct blkio_policy_type {<br>
+<span style="white-space:pre"></span>struct list_head list;<br>
+<span style="white-space:pre"></span>struct blkio_policy_ops ops;<br>
+<span style="white-space:pre"></span>enum blkio_policy_id plid;<br>
+};<br>
+</p>
+<p>blkio_policy_node，基本上可以看做一个cgroup文件系统下的一个配置文件对应一个blkio_policy_node，一个cgroup目录的所有的policy_node都会被链在一个blkio_cgroup-&gt;policy_list的链表中</p>
+<p>blkio_policy_type根据不同的blkio_policy_id有不同的blkio_policy_ops，blkio_policy_register在cfq_init，throtl_init时被调用，这两个初始化函数分别对应基于权重的控制和基于阀&#20540;的控制，目前有两个全局的blkio_policy_type的变量：</p>
+<p>static struct blkio_policy_type blkio_policy_cfq = {<br>
+<span style="white-space:pre"></span>.ops = {<br>
+<span style="white-space:pre"></span>.blkio_unlink_group_fn =<span style="white-space:pre">
+</span>cfq_unlink_blkio_group,<br>
+<span style="white-space:pre"></span>.blkio_update_group_weight_fn =<span style="white-space:pre">
+</span>cfq_update_blkio_group_weight,<br>
+<span style="white-space:pre"></span>},<br>
+<span style="white-space:pre"></span>.plid = BLKIO_POLICY_PROP,<br>
+};<br>
+</p>
+<p>以及</p>
+<p>static struct blkio_policy_type blkio_policy_throtl = {<br>
+<span style="white-space:pre"></span>.ops = {<br>
+<span style="white-space:pre"></span>.blkio_unlink_group_fn = throtl_unlink_blkio_group,<br>
+<span style="white-space:pre"></span>.blkio_update_group_read_bps_fn =<br>
+<span style="white-space:pre"></span>throtl_update_blkio_group_read_bps,<br>
+<span style="white-space:pre"></span>.blkio_update_group_write_bps_fn =<br>
+<span style="white-space:pre"></span>throtl_update_blkio_group_write_bps,<br>
+<span style="white-space:pre"></span>.blkio_update_group_read_iops_fn =<br>
+<span style="white-space:pre"></span>throtl_update_blkio_group_read_iops,<br>
+<span style="white-space:pre"></span>.blkio_update_group_write_iops_fn =<br>
+<span style="white-space:pre"></span>throtl_update_blkio_group_write_iops,<br>
+<span style="white-space:pre"></span>},<br>
+<span style="white-space:pre"></span>.plid = BLKIO_POLICY_THROTL,<br>
+};</p>
+<p><br>
+</p>
+<p>3) 基于blkio的cgroup文件系统的数据结构如下：</p>
+<p>struct cftype blkio_files[] = {<br>
+<span style="white-space:pre"></span>{<br>
+<span style="white-space:pre"></span>.name = &quot;weight_device&quot;,<br>
+<span style="white-space:pre"></span>.private = BLKIOFILE_PRIVATE(BLKIO_POLICY_PROP,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_weight_device),<br>
+<span style="white-space:pre"></span>.read_seq_string = blkiocg_file_read,<br>
+<span style="white-space:pre"></span>.write_string = blkiocg_file_write,<br>
+<span style="white-space:pre"></span>.max_write_len = 256,<br>
+<span style="white-space:pre"></span>},<br>
+<span style="white-space:pre"></span>{<br>
+<span style="white-space:pre"></span>.name = &quot;weight&quot;,<br>
+<span style="white-space:pre"></span>.private = BLKIOFILE_PRIVATE(BLKIO_POLICY_PROP,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_weight),<br>
+<span style="white-space:pre"></span>.read_u64 = blkiocg_file_read_u64,<br>
+<span style="white-space:pre"></span>.write_u64 = blkiocg_file_write_u64,<br>
+<span style="white-space:pre"></span>},<br>
+</p>
+<p><span style="white-space:pre"></span>{<br>
+<span style="white-space:pre"></span>.name = &quot;throttle.read_bps_device&quot;,<br>
+<span style="white-space:pre"></span>.private = BLKIOFILE_PRIVATE(BLKIO_POLICY_THROTL,<br>
+<span style="white-space:pre"></span>BLKIO_THROTL_read_bps_device),<br>
+<span style="white-space:pre"></span>.read_seq_string = blkiocg_file_read,<br>
+<span style="white-space:pre"></span>.write_string = blkiocg_file_write,<br>
+<span style="white-space:pre"></span>.max_write_len = 256,<br>
+<span style="white-space:pre"></span>},<br>
+<span style="white-space:pre"></span>{<br>
+<span style="white-space:pre"></span>.name = &quot;throttle.write_bps_device&quot;,<br>
+<span style="white-space:pre"></span>.private = BLKIOFILE_PRIVATE(BLKIO_POLICY_THROTL,<br>
+<span style="white-space:pre"></span>BLKIO_THROTL_write_bps_device),<br>
+<span style="white-space:pre"></span>.read_seq_string = blkiocg_file_read,<br>
+<span style="white-space:pre"></span>.write_string = blkiocg_file_write,<br>
+<span style="white-space:pre"></span>.max_write_len = 256,<br>
+<span style="white-space:pre"></span>},<br>
+<span style="white-space:pre"></span>{<br>
+<span style="white-space:pre"></span>.name = &quot;throttle.read_iops_device&quot;,<br>
+<span style="white-space:pre"></span>.private = BLKIOFILE_PRIVATE(BLKIO_POLICY_THROTL,<br>
+<span style="white-space:pre"></span>BLKIO_THROTL_read_iops_device),<br>
+<span style="white-space:pre"></span>.read_seq_string = blkiocg_file_read,<br>
+<span style="white-space:pre"></span>.write_string = blkiocg_file_write,<br>
+<span style="white-space:pre"></span>.max_write_len = 256,<br>
+<span style="white-space:pre"></span>},<br>
+<span style="white-space:pre"></span>{<br>
+<span style="white-space:pre"></span>.name = &quot;throttle.write_iops_device&quot;,<br>
+<span style="white-space:pre"></span>.private = BLKIOFILE_PRIVATE(BLKIO_POLICY_THROTL,<br>
+<span style="white-space:pre"></span>BLKIO_THROTL_write_iops_device),<br>
+<span style="white-space:pre"></span>.read_seq_string = blkiocg_file_read,<br>
+<span style="white-space:pre"></span>.write_string = blkiocg_file_write,<br>
+<span style="white-space:pre"></span>.max_write_len = 256,<br>
+<span style="white-space:pre"></span>},<br>
+</p>
+<p>基本上调用的都是blkiocg_file_read，blkiocg_file_write</p>
+<p>blkio_files中的struct cftype有个private成员变量，通过BLKIOFILE_PRIVATE宏来赋&#20540;，e.g.&nbsp;</p>
+<p>.private = BLKIOFILE_PRIVATE(BLKIO_POLICY_PROP,&nbsp;BLKIO_PROP_weight_device)</p>
+<p>之后可以通过BLKIOFILE_POLICY获取其policy类型：BLKIO_POLICY_THROTL或者BLKIO_POLICY_PROP，通过BLKIOFILE_ATTR获取其文件名，所有的配置文件都有如下定义：</p>
+<p>/* cgroup files owned by proportional weight policy */<br>
+enum blkcg_file_name_prop {<br>
+<span style="white-space:pre"></span>BLKIO_PROP_weight = 1,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_weight_device,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_io_service_bytes,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_io_serviced,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_time,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_sectors,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_unaccounted_time,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_io_service_time,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_io_wait_time,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_io_merged,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_io_queued,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_avg_queue_size,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_group_wait_time,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_idle_time,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_empty_time,<br>
+<span style="white-space:pre"></span>BLKIO_PROP_dequeue,<br>
+};<br>
+/* cgroup files owned by throttle policy */<br>
+enum blkcg_file_name_throtl {<br>
+<span style="white-space:pre"></span>BLKIO_THROTL_read_bps_device,<br>
+<span style="white-space:pre"></span>BLKIO_THROTL_write_bps_device,<br>
+<span style="white-space:pre"></span>BLKIO_THROTL_read_iops_device,<br>
+<span style="white-space:pre"></span>BLKIO_THROTL_write_iops_device,<br>
+<span style="white-space:pre"></span>BLKIO_THROTL_io_service_bytes,<br>
+<span style="white-space:pre"></span>BLKIO_THROTL_io_serviced,<br>
+};<br>
+</p>
+<p><em><strong>static int blkiocg_file_read(struct cgroup *cgrp, struct cftype *cft,&nbsp;struct seq_file *m)</strong></em>：通过cftype得到POLICY_ID, POLICY_FILE_NAME，通过struct cgroup得到struct blkio_cgroup，然后调用blkio_read_policy_node_files，按照一定&#26684;式存到一个seq_file里面，可以参考<strong><em>blkio_print_policy_node</em></strong>函数</p>
+<p><strong><em>static int blkiocg_file_write(struct cgroup *cgrp, struct cftype *cft,&nbsp;const char *buffer)</em></strong>：先调用blkio_policy_parse_and_set生成一个新的blkio_policy_node，下面的步骤就是先删了已有的policy node，再把新的policy node插入到blkio_cgroup-&gt;policy_list里面，最后调用blkio_update_policy_node_blkg，该函数对blkio_cgroup下面的所有blkio_group，都调用blkio_update_blkg_policy，该函数会根据blkio_policy_node的plid,
+ fileid，调用不同的 blkio_update_xxxxx函数，以weight为例，最终调用到blkio_update_group_weight，后者又调用cfq_update_blkio_group_weight（这是跟CFQ紧耦合的一个函数，这里不做介绍了）</p>
+<p><br>
+</p>
+<p>4) 几个关键的数据结构blkio_cgroup和blkio_group</p>
+<p>struct blkio_cgroup {<br>
+<span style="white-space:pre"></span>struct cgroup_subsys_state css;<br>
+<span style="white-space:pre"></span>unsigned int weight;<br>
+<span style="white-space:pre"></span>spinlock_t lock;<br>
+<span style="white-space:pre"></span>struct hlist_head blkg_list;<br>
+<span style="white-space:pre"></span>struct list_head policy_list; /* list of blkio_policy_node */<br>
+};<br>
+</p>
+<p>struct blkio_group {<br>
+<span style="white-space:pre"></span>/* An rcu protected unique identifier for the group */<br>
+<span style="white-space:pre"></span>void *key;<br>
+<span style="white-space:pre"></span>struct hlist_node blkcg_node;<br>
+<span style="white-space:pre"></span>unsigned short blkcg_id;<br>
+<span style="white-space:pre"></span>/* Store cgroup path */<br>
+<span style="white-space:pre"></span>char path[128];<br>
+<span style="white-space:pre"></span>/* The device MKDEV(major, minor), this group has been created for */<br>
+<span style="white-space:pre"></span>dev_t dev;<br>
+<span style="white-space:pre"></span>/* policy which owns this blk group */<br>
+<span style="white-space:pre"></span>enum blkio_policy_id plid;<br>
+<br>
+<br>
+<span style="white-space:pre"></span>/* Need to serialize the stats in the case of reset/update */<br>
+<span style="white-space:pre"></span>spinlock_t stats_lock;<br>
+<span style="white-space:pre"></span>struct blkio_group_stats stats;<br>
+<span style="white-space:pre"></span>/* Per cpu stats pointer */<br>
+<span style="white-space:pre"></span>struct blkio_group_stats_cpu __percpu *stats_cpu;<br>
+};<br>
+</p>
+<p>blkio_cgroup代表了一个cgroup，但是这个cgroup里的进程有可能会读写多个块设备，所有通过一个cfq_data或者throtl_data的结构作为红黑树的key，把多个blkio_group关联到一个blkio_cgroup中。每个cfq_data或者throtl_data（根据policy的不同）实际上代表了一个块设备</p>
+<p><br>
+</p>
+<p><br>
+</p>
+<p><br>
+</p>
+<p><br>
+</p>
+<p><br>
+</p>
+
+</div>
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.1.236-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/majieyue/article/details/7395251">关于xen的杂七杂八 (DomU安装)</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/majieyue/article/details/7498119">在ubuntu12.04下build自己的openjdk</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen"></div>
+<script type="text/javascript">
+    new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '7334828';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js?v=1.2"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+    <ul class="panel_head"><span>个人资料</span></ul>
+    <ul class="panel_body profile">
+        <div id="blog_userface">
+            <a href="http://my.csdn.net/majieyue" target="_blank">
+            <img src="http://avatar.csdn.net/1/C/A/1_majieyue.jpg" title="访问我的空间" style="max-width:90%"/>
+            </a>
+            <br />
+            <span><a href="http://my.csdn.net/majieyue" target="_blank">majieyue</a></span>
+        </div>
+<div class="interact">
+<!--<a href="#" class="attented" title="已关注"></a>-->
+<a href="#" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="http://my.csdn.net/my/letter/send/majieyue" class="letter" title="[发私信]"></a>
+</div>
+        <div id="blog_medal">
+        </div>
+        <ul id="blog_rank">
+            <li>访问：<span>13026次</span></li>
+            <li>积分：<span>520分</span></li>
+            <li>排名：<span>第17163名</span></li>
+        </ul>
+        <ul id="blog_statistics">
+            <li>原创：<span>40篇</span></li>
+            <li>转载：<span>6篇</span></li>
+            <li>译文：<span>0篇</span></li>
+            <li>评论：<span>4条</span></li>
+        </ul>
+    </ul>
+</div>
+<script type="text/javascript">
+    var _blogger = 'majieyue';
+</script>
+<script type='text/javascript'>
+$(document).ready(function () {
+    var un = getUN().toLowerCase();
+    if (un == _blogger.toLowerCase()) {
+        $('.interact').hide();
+    } else if(un) {
+        var url = "http://my.csdn.net/index.php/follow/check_is_followed/" + encodeURIComponent(un) + "/" + encodeURIComponent(_blogger) + "?jsonpcallback=?";
+        $.getJSON(url, {}, function (data) {
+            if (data.succ == 1 && data.info == 1) {
+                $('#span_add_follow').attr('class', 'attented');
+            } else {
+                $('#span_add_follow').click(guanzhu);
+            }
+        }, 'json');
+    }
+});
+function guanzhu() {
+    var url = "http://my.csdn.net/index.php/follow/do_follow?jsonpcallback=?";
+    $.getJSON(url, { "username": _blogger }, function (data) {
+        if (data.succ == 1) {
+            alert('关注成功！');
+            $('#span_add_follow').attr('class', 'attented').click(function () { return false; });
+        } else {
+            alert(data.msg);
+        }
+    });
+    return false;
+}
+function getUN() {
+    var m = document.cookie.match(new RegExp("(^| )UserName=([^;]*)(;|$)"));
+    if (m) return m[2];
+    else return '';
+}
+</script>
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+    <ul class="panel_head"><span>文章分类</span></ul>
+    <ul class="panel_body">
+        <li>
+        <a href="http://blog.csdn.net/majieyue/article/category/709302">C++</a><span>(1)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/majieyue/article/category/679515">Linux</a><span>(8)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/majieyue/article/category/797426">Python</a><span>(3)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/majieyue/article/category/641312">服务器开发</a><span>(1)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/majieyue/article/category/846491">Xen</a><span>(13)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/majieyue/article/category/855428">服务器系统</a><span>(2)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/majieyue/article/category/862606">存储技术</a><span>(4)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/majieyue/article/category/928585">Linux内核</a><span>(12)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/majieyue/article/category/1133624">Java</a><span>(1)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/majieyue/article/category/1163509">工具</a><span>(1)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/majieyue/article/category/1203645">erlang</a><span>(0)</span>
+        </li>
+    </ul>
+</div><div id="panel_Archive" class="panel">
+    <ul class="panel_head"><span>文章存档</span></ul>
+    <ul class="panel_body">
+        <div id="archive_list">
+        <!--归档统计-->
+        <li><a href="http://blog.csdn.net/majieyue/article/month/2012/08">2012年08月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/07">2012年07月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/06">2012年06月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/04">2012年04月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/03">2012年03月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/02">2012年02月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/12">2011年12月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/11">2011年11月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/10">2011年10月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/09">2011年09月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/08">2011年08月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/07">2011年07月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/04">2011年04月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/03">2011年03月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2010/07">2010年07月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2010/06">2010年06月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2010/04">2010年04月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2010/01">2010年01月</a><span>(1)</span></li>
+        </div>
+    </ul>
+</div>
+<div id="hotarticls" class="panel">
+    <ul class="panel_head"><span>阅读排行</span></ul>
+    <ul class="panel_body itemlist">
+        <li>
+            <a href="/majieyue/article/details/7412481" title="linux的CFQ调度器解析(2)">linux的CFQ调度器解析(2)</a><span>(854)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/6671075" title="xen块设备体系结构(1)">xen块设备体系结构(1)</a><span>(830)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/6255970" title="Python服务器开发(1)">Python服务器开发(1)</a><span>(725)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/6686729" title="xen块设备体系结构(2)">xen块设备体系结构(2)</a><span>(566)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/6698032" title="xen块设备体系结构(4)">xen块设备体系结构(4)</a><span>(501)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/7262323" title="linux的qos机制 - cgroup篇 (1)">linux的qos机制 - cgroup篇 (1)</a><span>(473)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/7402184" title="linux的CFQ调度器解析(1)">linux的CFQ调度器解析(1)</a><span>(434)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/6769952" title="xen块设备体系结构(7)">xen块设备体系结构(7)</a><span>(387)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/6725511" title="Linux的RCU锁机制">Linux的RCU锁机制</a><span>(383)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/6803100" title="xen块设备体系结构 - tapdisk2 (2)">xen块设备体系结构 - tapdisk2 (2)</a><span>(353)</span>
+        </li>
+    </ul>
+</div>
+<div id="hotarticls2" class="panel">
+    <ul class="panel_head"><span>评论排行</span></ul>
+    <ul class="panel_body itemlist">
+        <li>
+            <a href="/majieyue/article/details/7395251" title="关于xen的杂七杂八 (DomU安装)">关于xen的杂七杂八 (DomU安装)</a><span>(1)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/6698032" title="xen块设备体系结构(4)">xen块设备体系结构(4)</a><span>(1)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/6255970" title="Python服务器开发(1)">Python服务器开发(1)</a><span>(1)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/6605218" title="xen toolstack - xen api">xen toolstack - xen api</a><span>(1)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/7334828" title="linux的qos机制 - cgroup篇 (4)">linux的qos机制 - cgroup篇 (4)</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/7327257" title="linux的qos机制 - cgroup篇 (3)">linux的qos机制 - cgroup篇 (3)</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/7323213" title="linux的qos机制 - dm-ioband篇 (4)">linux的qos机制 - dm-ioband篇 (4)</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/7314084" title="linux的qos机制 - dm-ioband篇 (3)">linux的qos机制 - dm-ioband篇 (3)</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/7298218" title="linux的qos机制 - dm-ioband篇 (1)">linux的qos机制 - dm-ioband篇 (1)</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="/majieyue/article/details/7263776" title="linux的qos机制 - cgroup篇 (2)">linux的qos机制 - cgroup篇 (2)</a><span>(0)</span>
+        </li>
+    </ul>
+</div>
+<div id="homepageArticles" class="panel">
+    <ul class="panel_head"><span>推荐文章</span></ul>
+    <ul class="panel_body" id="ad_commend">
+    </ul>
+</div>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js"></script>
+<script type="text/javascript">
+    new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/majieyue/article/details/7395251#comments">关于xen的杂七杂八 (DomU安装)</a>
+    <p style="margin:0px;">yaoyaminaco:
+博主可对live migration那块代码有所研究？
+    </p>
+    </li>
+    <li>
+    <a href="/majieyue/article/details/6605218#comments">xen toolstack - xen api</a>
+    <p style="margin:0px;">zhutonglin:
+请问程序怎么执行，是在命令行界面输入“python ./*.py”吗？程序执行后的结果是什么呢？谢谢...
+    </p>
+    </li>
+    <li>
+    <a href="/majieyue/article/details/6255970#comments">Python服务器开发(1)</a>
+    <p style="margin:0px;">bigfat2008:
+class ServerHandler(SocketServer.StreamRequestHand...
+    </p>
+    </li>
+    <li>
+    <a href="/majieyue/article/details/6698032#comments">xen块设备体系结构(4)</a>
+    <p style="margin:0px;">baozhao:
+能交流一下吗，我觉得blktap和blkback是两种实现，你似乎把它们搅在一起了
+    </p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/SyntaxHighlighter/shCore-src.js"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ZeroClipboard/ZeroClipboard.js"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/article_code.js"></script>
+
+<script type="text/javascript" src="http://medal.blog.csdn.net/scripts/show.js"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=765919"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+
+<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js"></script>
+
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js"></script>
+
+<!--ad.csdn.net-->
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-ibm11.js"></script>
+
+
+
+</div>
+</body>
+</html>

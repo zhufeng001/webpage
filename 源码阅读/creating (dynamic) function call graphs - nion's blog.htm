@@ -1,0 +1,587 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+           "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+    <title>creating (dynamic) function call graphs  - nion's blog</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <link rel="stylesheet" type="text/css" href="http://nion.modprobe.de/blog/serendipity.css" />
+    <link rel="alternate"  type="application/rss+xml" title="nion's blog RSS feed" href="http://nion.modprobe.de/blog/feeds/index.rss2" />
+    <link rel="alternate"  type="application/x.atom+xml"  title="nion's blog Atom feed"  href="http://nion.modprobe.de/blog/feeds/atom.xml" />
+    <link rel="pingback" href="http://nion.modprobe.de/blog/comment.php?type=pingback&amp;entry_id=556" />
+
+    <script type="text/javascript" src="/blog/templates/jquery.js"></script>
+    <script type="text/javascript">
+    jQuery.noConflict();
+    </script>
+
+</head>
+
+<body>
+
+<div id="header">
+    <h1><a class="homelink1" href="http://nion.modprobe.de/blog/">creating (dynamic) function call graphs</a></h1>
+    <h2><a class="homelink2" href="http://nion.modprobe.de/blog/">nion's blog</a></h2>
+</div>
+
+<table id="mainpane">
+    <tr>
+        <td id="content" valign="top"><!-- CONTENT START -->
+
+	<div class="serendipity_content_message"></div>
+
+<!-- ENTRIES START -->
+    
+
+        <div class="serendipity_Entry_Date">
+                
+        
+                <h4 class="serendipity_title"><a href="/blog/archives/556-creating-dynamic-function-call-graphs.html">creating (dynamic) function call graphs</a></h4>
+
+        <div class="serendipity_entry serendipity_entry_author_Nico-Golde ">
+            <p class="posttime">Posted by <a href="http://nion.modprobe.de/blog/authors/1-Nico-Golde">Nico Golde</a> in
+<br />
+
+Friday, May 25. 2007 
+		
+            <div class="serendipity_entry_body">
+                I am currently writing a general purpose shared library for <a href="http://en.wikipedia.org/wiki/ACPI">acpi</a> (more on that soon).<br />
+I was interested in having a function <a href="http://en.wikipedia.org/wiki/Call_graph">call graph</a> especially to see if the interface looks somehow clean and to include it in the documentation of the library. Of course I wanted to do it with open source tools. There are several tools for static call graphs but if you want dynamic call graphs you have to use additional features of your compiler to generate a graph based on code during runtime.<br />
+<br />
+The first variant I tried was using <a href="http://www.gson.org/egypt/egypt.html">egypt</a> a small perl script to generate a dot file. Dot (today included into <a href="http://www.graphviz.org/">graphviz</a>? is a tool originally developed at AT&T to generate hierarchical or layered drawings of directed graphs.<br />
+<br />
+So what is needed? <br />
+First install software (here on a Debian systen, egypt is not included in Debian):<br />
+<strong>$</strong> aptitude install graphviz graphicsmagick (+ download egypt from the homepage)<br />
+<br />
+Compile your software using <i>gcc</i> with the option <strong>-dr</strong> to dump an RTL file of the source.<br />
+Most of gcc's work is done in an intermediate representation of your code, called register transfer language (RTL). This pretty much describes the instructions in plain text and is inspired by LISP lists.<br />
+Ok, here we go:<br />
+<strong>$</strong> gcc -dr list.c libacpi.c test.c<br />
+This generates three RTL files, for every source file one. Depending on the gcc version the names may vary, here the names are libacpi.c.00.expand list.c.00.expand and test.c.00.expand.<br />
+<br />
+Now use egypt to create a dot file (I don't want one for test.c now):<br />
+<strong>$</strong> egypt libacpi.c.00.expand list.c.00.expand | dot -Gsize=100,100 -Grankdir=LR -Tps -o graph.ps<br />
+Egypt will create dot-output and by piping it to dot with -Tps -o graph.ps you get the resulting graph as a ps file. -Grankdir is used to generate a graph which runs from the left to the right, default is up-down which looks a bit strange.<br />
+<br />
+Now convert the ps file into a png:<br />
+<strong>$</strong> gm convert graph.ps graph.png<br />
+The result looks like this (looks cool huh? <img src="/blog/templates/default/img/emoticons/smile.png" alt=":-)" style="display: inline; vertical-align: bottom;" class="emoticon" />):<br />
+<br />
+<a href="http://nion.modprobe.de/bimg/graph.png"><img src="http://nion.modprobe.de/bimg/graph_small.png"></a><br />
+<br />
+The second variant I tested is a bit different and in my opinion the resulting graph looks a bit better.<br />
+The gcc commandline switch <i>-finstrument-functions</i> allows easy creations of call-graphs for C/C++ (script languages used but I haven't tried).<br />
+You need to compile every file with the -finstrument-functions switch. Then gcc places a call to the functions <i>__cyg_profile_func_enter</i> upon entering a function and <i>__cyg_profile_func_exit</i> on leaving a function.<br />
+<br />
+Compile your sources with -g and -finstrumental-functions:<br />
+<strong>$</strong> gcc -g -finstrumental-functions list.c libacpi.c test.c -o test<br />
+Now you need to get some source code by Sebastian Krahmer (SuSE):<br />
+<strong>$</strong> wget http://www.suse.de/~krahmer/instrumental/instrumental.tgz && tar xvfz instrumental.tgz && cd instrumental<br />
+Compile a shared object file:<br />
+<strong>$</strong> cc -fPIC -c instrumental.c && ld -Bshareable instrumental.o -o inst.so<br />
+This generates a shared object file you can preload with LD_PRELOAD<br />
+<strong>$</strong> LD_PRELOAD=./inst.so test<br />
+ .....<br />
+<br />
+Now you will find a log.inst.dot.&lt;pid&gt; and log.inst.ascii.&lt;pid&gt; in /tmp (path can be modified in instrumental.c).<br />
+The first file is a dot file you can now create a ps and a png file with but you need to attach a closing bracket <i>}</i> at the end of the file since the package is not<br />
+able to intercept exit() or aborts. echo '}' &gt;&gt; log.inst.dot.&lt;pid&gt;<br />
+<strong>$</strong>  dot -Gsize=15,20 -Grankdir=LR -Tps -o graph.ps log.inst.dot.&lt;pid&gt; && gm convert graph.ps graph.png<br />
+The result looks like:<br />
+<br />
+<a href="http://nion.modprobe.de/bimg/graph2.png"><img src="http://nion.modprobe.de/bimg/graph2_small.png"></a><br />
+<a href="http://nion.modprobe.de/graph.pdf">PDF file which scales a bit better</a><br />
+<br />
+The other file represents the call graph in ascii:<br />
+~ [1000|1000|1000] -- main (0x8049ea4)<br />
+~ [1000|1000|1000]   |-- check_acpi_support (0x8048984)<br />
+~ [1000|1000|1000]   |  |-- get_acpi_version (0x8048782)<br />
+~ [1000|1000|1000]   |  |  |-- get_acpi_content (0x80486b4)<br />
+~ [1000|1000|1000]   |  |  |-- scan_acpi_value (0x8048837)<br />
+~ [1000|1000|1000]   |-- init_acpi_batt (0x80489d6)<br />
+~ [1000|1000|1000]   |  |-- dir_list (0x804a447)<br />
+~ [1000|1000|1000]   |  |  |-- new_list (0x804a23c)<br />
+~ [1000|1000|1000]   |  |  |-- append_node (0x804a309)<br />
+~ [1000|1000|1000]   |  |  |-- append_node (0x804a309)<br />
+~ [1000|1000|1000]   |  |-- read_acpi_battinfo (0x80497d3)<br />
+~ [1000|1000|1000]   |  |  |-- get_acpi_content (0x80486b4)<br />
+....<br />
+<br />
+So both methods work but the first seems to be more useful if you want a graph for a specific file, not a specific program since you get an RTL file for each source file and you don't need all to create the dot file. The second method however looks better but has the limitation that you actually need to run the program (but that's dynamic and not static) and you can't (correct me if I miss something) create graphs for single files.<br />
+<br />
+Have fun creating graphs for your favorite software and have a look into Sebastian Krahmers paper <a href="http://www.suse.de/~krahmer/instrumental/instrumental.pdf">http://www.suse.de/~krahmer/instrumental/instrumental.pdf</a> and <a href="http://www.ibm.com/developerworks/library/l-graphvis/">http://www.ibm.com/developerworks/library/l-graphvis/</a>. He also created a graph for <a href="http://www.openssh.org">openssh</a> <a href="http://www.suse.de/~krahmer/ossh4.6.pdf">http://www.suse.de/~krahmer/ossh4.6.pdf</a>.<br />
+<br />
+UPDATE: You can also use the capabilities of <a href="http://www.valgrind.org">valgrind</a> to generate callgraphs in combination with a KDE tool named <a href="http://kcachegrind.sourceforge.net/cgi-bin/show.cgi">kcachegrind</a>. If you use valgrind --tool=callgrind programname you can get a file with a traced callgraph you can then use in kcachegrind to export a callgraph. I just did a quick test and it looks good but has two drawbacks, KDE sucks (well just a joke ; ) and if you use a .valgrindrc file with command line options specified you have to rename it or valgrind will complain. Thanks <a href="http://www.enricozini.org//2007/tips/callgrind.html">Enrico</a> for the hint.<br />
+
+            </div>
+
+            
+            
+            <div class='serendipity_entryFooter'>
+                                                             <a href="/blog/archives/556-creating-dynamic-function-call-graphs.html#comments">Comments (6)</a>
+                                    
+                                                            - <a href="/blog/archives/556-creating-dynamic-function-call-graphs.html#trackbacks">Trackbacks (2)</a>
+                                    
+                
+                <div class="serendipity_freeTag">Defined tags for this entry: <a href="http://nion.modprobe.de/blog/plugin/tag/debian" title="debian" rel="tag">debian</a>, <a href="http://nion.modprobe.de/blog/plugin/tag/documentation" title="documentation" rel="tag">documentation</a>, <a href="http://nion.modprobe.de/blog/plugin/tag/gcc" title="gcc" rel="tag">gcc</a>, <a href="http://nion.modprobe.de/blog/plugin/tag/graphs" title="graphs" rel="tag">graphs</a>, <a href="http://nion.modprobe.de/blog/plugin/tag/hacks" title="hacks" rel="tag">hacks</a>, <a href="http://nion.modprobe.de/blog/plugin/tag/open+source" title="open source" rel="tag">open source</a>, <a href="http://nion.modprobe.de/blog/plugin/tag/programming" title="programming" rel="tag">programming</a>, <a href="http://nion.modprobe.de/blog/plugin/tag/software" title="software" rel="tag">software</a></div><div class="serendipity_freeTag_related">Related entries by tags:<ul class="plainList"><li> <a href="http://nion.modprobe.de/blog/archives/704-Exploiting-the-UbiquisysSFR-femtocell-webserver-wsalshttpdmongooseyassl-embedded-webserver.html" title="Exploiting the Ubiquisys/SFR femtocell webserver (wsal/shttpd/mongoose/yassl embedded webserver)">Exploiting the Ubiquisys/SFR femtocell webserver (wsal/shttpd/mongoose/yassl embedded webserver)</a></li><li> <a href="http://nion.modprobe.de/blog/archives/702-So-what-happened-recently....html" title="So what happened recently...">So what happened recently...</a></li><li> <a href="http://nion.modprobe.de/blog/archives/701-Debian-6.0-squeeze.html" title=""></a></li></ul></div>
+            </div>
+        </div>
+        <!--
+        <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+                 xmlns:trackback="http://madskills.com/public/xml/rss/module/trackback/"
+                 xmlns:dc="http://purl.org/dc/elements/1.1/">
+        <rdf:Description
+                 rdf:about="http://nion.modprobe.de/blog/feeds/ei_556.rdf"
+                 trackback:ping="http://nion.modprobe.de/blog/comment.php?type=trackback&amp;entry_id=556"
+                 dc:title="creating (dynamic) function call graphs"
+                 dc:identifier="http://nion.modprobe.de/blog/archives/556-creating-dynamic-function-call-graphs.html" />
+        </rdf:RDF>
+        -->
+        
+
+                    
+            
+            
+            
+            
+            <div class="serendipity_comments">
+                <br />
+                <a id="trackbacks"></a>
+                <div class="serendipity_commentsTitle">Trackbacks</div>
+                    <div class="serendipity_center">
+                        <a rel="nofollow" style="font-weight: normal" href="http://nion.modprobe.de/blog/comment.php?type=trackback&amp;entry_id=556" onclick="alert('This link is not meant to be clicked. It contains the trackback URI for this entry. You can use this URI to send ping- &amp; trackbacks from your own blog to this entry. To copy the link, right click and select &quot;Copy Shortcut&quot; in Internet Explorer or &quot;Copy Link Location&quot; in Mozilla.'); return false;" title="This link is not meant to be clicked. It contains the trackback URI for this entry. You can use this URI to send ping- &amp; trackbacks from your own blog to this entry. To copy the link, right click and select &quot;Copy Shortcut&quot; in Internet Explorer or &quot;Copy Link Location&quot; in Mozilla.">Trackback specific URI for this entry</a>
+                    </div>
+                    <br />
+                            <div class="serendipity_comment">
+        <a id="c5129"></a>
+        <div class="serendipity_commentBody">
+            <a href="http://synflood.at/blog/index.php?/archives/680-Callgraphen-von-C-Programmen-generieren.html" >Callgraphen von C-Programmen generieren</a><br />
+            
+        </div>
+        <div class="serendipity_comment_source">
+            <b>Weblog:</b> AK's weblog<br />
+            <b>Tracked:</b> May 25, 09:05
+                </div>
+    </div>
+    <div class="serendipity_comment">
+        <a id="c5146"></a>
+        <div class="serendipity_commentBody">
+            <a href="http://florolf.devbraindump.de/blogn/index.php?/archives/29-Programmieren-ist-Kunst.html" >Programmieren ist Kunst</a><br />
+            Oder kann man das hiernach noch leugnen? 
+Obiges ist der Callgraph des IRCd(2.11.1p1), angeregt durch Nions lesenswerten Blogpost.
+        </div>
+        <div class="serendipity_comment_source">
+            <b>Weblog:</b> braindump<br />
+            <b>Tracked:</b> Jun 03, 23:44
+                </div>
+    </div>
+
+            </div>
+        
+                    <div class="serendipity_comments">
+                <br />
+                <a id="comments"></a>
+                <div class="serendipity_commentsTitle">Comments</div>
+                <div class="serendipity_center">Display comments as
+                                    (<a rel="nofollow" href="/blog/index.php?url=archives/556-creating-dynamic-function-call-graphs.html&amp;serendipity[cview]=linear#comments">Linear</a> | Threaded)
+                                </div>
+                <br />
+                        <a id="c5130"></a>
+    <div id="serendipity_comment_5130" class="serendipity_comment serendipity_comment_author_Josh  comment_oddbox" style="padding-left: 0px">
+        <div class="serendipity_commentBody">
+                    Try Sparse.  Grab the latest version from Git (or one of the snapshots), build it, and run the resulting &quot;graph&quot; program on one or more C files.  It prints graphviz output that you can redirect to a file, or you can pipe it through one of the scripts in the gvpr/ directory to filter it to just the callers or callees of a particular function.
+                </div>
+        <div class="serendipity_comment_source">
+            <a class="comment_source_trace" href="#c5130">#1</a>
+            <span class="comment_source_author">
+                            Josh
+                        </span>
+                            (<a class="comment_source_url" href="http://www.kernel.org/pub/software/devel/sparse/" title="http://www.kernel.org/pub/software/devel/sparse/">Homepage</a>)
+                        on
+            <span class="comment_source_date">2007-05-25 18:19</span>
+
+                                        (<a class="comment_reply" href="#serendipity_CommentForm" id="serendipity_reply_5130" onclick="document.getElementById('serendipity_replyTo').value='5130'; ">Reply</a>)
+                <div id="serendipity_replyform_5130"></div>
+                    </div>
+    </div>
+    <a id="c5131"></a>
+    <div id="serendipity_comment_5131" class="serendipity_comment serendipity_comment_author_nion   comment_evenbox" style="padding-left: 0px">
+        <div class="serendipity_commentBody">
+                    but that wouldn't be a dynamic graph would it?
+                </div>
+        <div class="serendipity_comment_source">
+            <a class="comment_source_trace" href="#c5131">#2</a>
+            <span class="comment_source_author">
+                            nion
+                        </span>
+                        on
+            <span class="comment_source_date">2007-05-25 23:55</span>
+
+                                        (<a class="comment_reply" href="#serendipity_CommentForm" id="serendipity_reply_5131" onclick="document.getElementById('serendipity_replyTo').value='5131'; ">Reply</a>)
+                <div id="serendipity_replyform_5131"></div>
+                    </div>
+    </div>
+    <a id="c5132"></a>
+    <div id="serendipity_comment_5132" class="serendipity_comment serendipity_comment_author_Josh  comment_oddbox" style="padding-left: 20px">
+        <div class="serendipity_commentBody">
+                    It doesn't seem like egypt gives you a dynamic graph either.
+                </div>
+        <div class="serendipity_comment_source">
+            <a class="comment_source_trace" href="#c5132">#2.1</a>
+            <span class="comment_source_author">
+                            Josh
+                        </span>
+                        on
+            <span class="comment_source_date">2007-05-26 00:37</span>
+
+                                        (<a class="comment_reply" href="#serendipity_CommentForm" id="serendipity_reply_5132" onclick="document.getElementById('serendipity_replyTo').value='5132'; ">Reply</a>)
+                <div id="serendipity_replyform_5132"></div>
+                    </div>
+    </div>
+    <a id="c5133"></a>
+    <div id="serendipity_comment_5133" class="serendipity_comment serendipity_comment_author_nion   comment_evenbox" style="padding-left: 40px">
+        <div class="serendipity_commentBody">
+                    no like i wrote this is just possible with instruments. anyway, thanks for the tip, i'll look into sparse.<br />
+cheers<br />
+nion
+                </div>
+        <div class="serendipity_comment_source">
+            <a class="comment_source_trace" href="#c5133">#2.1.1</a>
+            <span class="comment_source_author">
+                            nion
+                        </span>
+                        on
+            <span class="comment_source_date">2007-05-26 03:14</span>
+
+                                        (<a class="comment_reply" href="#serendipity_CommentForm" id="serendipity_reply_5133" onclick="document.getElementById('serendipity_replyTo').value='5133'; ">Reply</a>)
+                <div id="serendipity_replyform_5133"></div>
+                    </div>
+    </div>
+    <a id="c5134"></a>
+    <div id="serendipity_comment_5134" class="serendipity_comment serendipity_comment_author_meillo  comment_oddbox" style="padding-left: 0px">
+        <div class="serendipity_commentBody">
+                    you can generate png-output directly by using -Tpng<br />
+You maybe know this already, I just wanted to mention in case you don't<br />
+<br />
+btw: thanks for this article <img src="/blog/templates/default/img/emoticons/smile.png" alt=":-)" style="display: inline; vertical-align: bottom;" class="emoticon" />
+                </div>
+        <div class="serendipity_comment_source">
+            <a class="comment_source_trace" href="#c5134">#3</a>
+            <span class="comment_source_author">
+                            meillo
+                        </span>
+                            (<a class="comment_source_url" href="http://marmaro.de" title="http://marmaro.de">Homepage</a>)
+                        on
+            <span class="comment_source_date">2007-05-28 00:53</span>
+
+                                        (<a class="comment_reply" href="#serendipity_CommentForm" id="serendipity_reply_5134" onclick="document.getElementById('serendipity_replyTo').value='5134'; ">Reply</a>)
+                <div id="serendipity_replyform_5134"></div>
+                    </div>
+    </div>
+    <a id="c5135"></a>
+    <div id="serendipity_comment_5135" class="serendipity_comment serendipity_comment_author_nion   comment_evenbox" style="padding-left: 0px">
+        <div class="serendipity_commentBody">
+                    thanks for the hint!
+                </div>
+        <div class="serendipity_comment_source">
+            <a class="comment_source_trace" href="#c5135">#4</a>
+            <span class="comment_source_author">
+                            nion
+                        </span>
+                        on
+            <span class="comment_source_date">2007-05-28 02:42</span>
+
+                                        (<a class="comment_reply" href="#serendipity_CommentForm" id="serendipity_reply_5135" onclick="document.getElementById('serendipity_replyTo').value='5135'; ">Reply</a>)
+                <div id="serendipity_replyform_5135"></div>
+                    </div>
+    </div>
+
+
+                                <a id="feedback"></a>
+
+                
+                
+                <br />
+                <div class="serendipity_commentsTitle">Add Comment</div>
+                <div id="serendipityCommentFormC" class="serendipityCommentForm">
+    <div id="serendipity_replyform_0"></div>
+    <a id="serendipity_CommentForm"></a>
+    <form id="serendipity_comment" action="/blog/index.php?url=archives/556-creating-dynamic-function-call-graphs.html#feedback" method="post">
+    <div><input type="hidden" name="serendipity[entry_id]" value="556" /></div>
+    <table border="0" width="100%" cellpadding="3">
+        <tr>
+            <td class="serendipity_commentsLabel"><label for="serendipity_commentform_name">Name</label></td>
+            <td class="serendipity_commentsValue"><input type="text" id="serendipity_commentform_name" name="serendipity[name]" value="" size="30" /></td>
+        </tr>
+
+        <tr>
+            <td class="serendipity_commentsLabel"><label for="serendipity_commentform_email">Email</label></td>
+            <td class="serendipity_commentsValue"><input type="text" id="serendipity_commentform_email" name="serendipity[email]" value="" /></td>
+        </tr>
+
+        <tr>
+            <td class="serendipity_commentsLabel"><label for="serendipity_commentform_url">Homepage</label></td>
+            <td class="serendipity_commentsValue"><input type="text" id="serendipity_commentform_url" name="serendipity[url]" value="" /></td>
+        </tr>
+
+        <tr>
+            <td class="serendipity_commentsLabel"><label for="serendipity_replyTo">In reply to</label></td>
+            <td class="serendipity_commentsValue"><select id="serendipity_replyTo" onchange="" name="serendipity[replyTo]"><option value="0">[ Top level ]</option><option value="5130">#1: Josh on 2007-05-25 18:19</option>
+<option value="5131">#2: nion on 2007-05-25 23:55</option>
+<option value="5132">&#160;&#160;#2.1: Josh on 2007-05-26 00:37</option>
+<option value="5133">&#160;&#160;&#160;&#160;#2.1.1: nion on 2007-05-26 03:14</option>
+<option value="5134">#3: meillo on 2007-05-28 00:53</option>
+<option value="5135">#4: nion on 2007-05-28 02:42</option>
+</select></td>
+        </tr>
+
+        <tr>
+            <td class="serendipity_commentsLabel"><label for="serendipity_commentform_comment">Comment</label></td>
+            <td class="serendipity_commentsValue">
+                <textarea rows="10" cols="40" id="serendipity_commentform_comment" name="serendipity[comment]"></textarea><br />
+                <div class="serendipity_commentDirection serendipity_comment_s9ymarkup">Enclosing asterisks marks text as bold (*word*), underscore are made via _word_.</div><div class="serendipity_commentDirection serendipity_comment_emoticate">Standard emoticons like :-) and ;-) are converted to images.</div><div class="serendipity_commentDirection serendipity_comment_geshi">You can use <b>[geshi lang=lang_name [,ln={y|n}]][/geshi]</b> tags to embed source code snippets.</div><div class="serendipity_commentDirection serendipity_comment_spamblock">E-Mail addresses will not be displayed and will only be used for E-Mail notifications.</div><input type="hidden" name="serendipity[token]" value="f8792c0b4ecf9634e257ec1cec83bafa" /><div class="serendipity_commentDirection serendipity_comment_captcha"><br />To prevent automated Bots from commentspamming, please enter the string you see in the image below in the appropriate input box. Your comment will only be submitted if the strings match. Please ensure that your browser supports and accepts cookies, or your comment cannot be verified correctly.<br /><div class="serendipity_comment_captcha_image" style="background-color: #ffffff"><img src="http://nion.modprobe.de/blog/plugin/captcha_1_32e8d9eca5a35a05c631e65a644077b4" title="Enter the string you see here in the input box!" alt="CAPTCHA 1" class="captcha" /><img src="http://nion.modprobe.de/blog/plugin/captcha_2_32e8d9eca5a35a05c631e65a644077b4" title="Enter the string you see here in the input box!" alt="CAPTCHA 2" class="captcha" /><img src="http://nion.modprobe.de/blog/plugin/captcha_3_32e8d9eca5a35a05c631e65a644077b4" title="Enter the string you see here in the input box!" alt="CAPTCHA 3" class="captcha" /><img src="http://nion.modprobe.de/blog/plugin/captcha_4_32e8d9eca5a35a05c631e65a644077b4" title="Enter the string you see here in the input box!" alt="CAPTCHA 4" class="captcha" /><img src="http://nion.modprobe.de/blog/plugin/captcha_5_32e8d9eca5a35a05c631e65a644077b4" title="Enter the string you see here in the input box!" alt="CAPTCHA 5" class="captcha" /></div><br /><label for="captcha">Enter the string from the spam-prevention image above: </label><br /><input class="input_textbox" type="text" size="5" name="serendipity[captcha]" value="" id="captcha" /></div><div class="serendipity_commentDirection serendipity_comment_geshi">You can use <b>[geshi lang=lang_name [,ln={y|n}]][/geshi]</b> tags to embed source code snippets.</div>
+            </td>
+        </tr>
+
+        <tr>
+            <td>&#160;</td>
+            <td class="serendipity_commentsLabel">
+                <input id="checkbox_remember" type="checkbox" name="serendipity[remember]"  /><label for="checkbox_remember">Remember Information? </label>
+                </td>
+       </tr>
+
+
+       <tr>
+            <td>&#160;</td>
+            <td><input type="submit" name="serendipity[submit]" value="Submit Comment" /> <input type="submit" id="serendipity_preview" name="serendipity[preview]" value="Preview" /></td>
+        </tr>
+    </table>
+    </form>
+</div>
+
+                            </div>
+        
+        
+            </div>
+    
+    <div class='serendipity_entryFooter' style="text-align: center">
+    
+    
+    
+    
+    </div>
+<!-- ENTRIES END -->
+
+
+<!-- CONTENT END --></td>
+        <td id="serendipityRightSideBar" valign="top">    <div class="serendipitySideBarItem container_serendipity_calendar_plugin">
+        <h4 class="serendipitySideBarTitle serendipity_calendar_plugin">Calendar</h4>        <div class="serendipitySideBarContent"><table style="width: 100%" cellspacing="0" cellpadding="0" class="serendipity_calendar">
+    <tr>
+        <td class="serendipity_calendarHeader">
+            <a title="Back" href="http://nion.modprobe.de/blog/archives/2014/08.html"><img alt="Back" src="/blog/templates/carl_blue/img/back.gif" style="border: 0px" /></a>
+        </td>
+
+        <td colspan="5" class="serendipity_calendarHeader" style="text-align: center; ">
+            <b><a style="white-space: nowrap" href="http://nion.modprobe.de/blog/archives/2014/09.html">September '14</a></b>
+        </td>
+
+        <td class="serendipity_calendarHeader" style="text-align: right">
+        </td>
+    </tr>
+
+    <tr>
+            <td scope="col" abbr="Monday" title="Monday" class="serendipity_weekDayName" align="center">Mon</td>
+            <td scope="col" abbr="Tuesday" title="Tuesday" class="serendipity_weekDayName" align="center">Tue</td>
+            <td scope="col" abbr="Wednesday" title="Wednesday" class="serendipity_weekDayName" align="center">Wed</td>
+            <td scope="col" abbr="Thursday" title="Thursday" class="serendipity_weekDayName" align="center">Thu</td>
+            <td scope="col" abbr="Friday" title="Friday" class="serendipity_weekDayName" align="center">Fri</td>
+            <td scope="col" abbr="Saturday" title="Saturday" class="serendipity_weekDayName" align="center">Sat</td>
+            <td scope="col" abbr="Sunday" title="Sunday" class="serendipity_weekDayName" align="center">Sun</td>
+        </tr>
+
+            <tr class="serendipity_calendar">
+                    <td class="serendipity_calendarDay FirstRow FirstInRow Today">1</td>
+                    <td class="serendipity_calendarDay FirstRow">2</td>
+                    <td class="serendipity_calendarDay FirstRow">3</td>
+                    <td class="serendipity_calendarDay FirstRow">4</td>
+                    <td class="serendipity_calendarDay FirstRow">5</td>
+                    <td class="serendipity_calendarDay FirstRow">6</td>
+                    <td class="serendipity_calendarDay FirstRow LastInRow">7</td>
+                </tr>
+            <tr class="serendipity_calendar">
+                    <td class="serendipity_calendarDay FirstInRow">8</td>
+                    <td class="serendipity_calendarDay ">9</td>
+                    <td class="serendipity_calendarDay ">10</td>
+                    <td class="serendipity_calendarDay ">11</td>
+                    <td class="serendipity_calendarDay ">12</td>
+                    <td class="serendipity_calendarDay ">13</td>
+                    <td class="serendipity_calendarDay LastInRow">14</td>
+                </tr>
+            <tr class="serendipity_calendar">
+                    <td class="serendipity_calendarDay FirstInRow">15</td>
+                    <td class="serendipity_calendarDay ">16</td>
+                    <td class="serendipity_calendarDay ">17</td>
+                    <td class="serendipity_calendarDay ">18</td>
+                    <td class="serendipity_calendarDay ">19</td>
+                    <td class="serendipity_calendarDay ">20</td>
+                    <td class="serendipity_calendarDay LastInRow">21</td>
+                </tr>
+            <tr class="serendipity_calendar">
+                    <td class="serendipity_calendarDay FirstInRow">22</td>
+                    <td class="serendipity_calendarDay ">23</td>
+                    <td class="serendipity_calendarDay ">24</td>
+                    <td class="serendipity_calendarDay ">25</td>
+                    <td class="serendipity_calendarDay ">26</td>
+                    <td class="serendipity_calendarDay ">27</td>
+                    <td class="serendipity_calendarDay LastInRow">28</td>
+                </tr>
+            <tr class="serendipity_calendar">
+                    <td class="serendipity_calendarDay FirstInRow LastRow">29</td>
+                    <td class="serendipity_calendarDay LastRow">30</td>
+                    <td class="serendipity_calendarDay LastRow">&#160;</td>
+                    <td class="serendipity_calendarDay LastRow">&#160;</td>
+                    <td class="serendipity_calendarDay LastRow">&#160;</td>
+                    <td class="serendipity_calendarDay LastRow">&#160;</td>
+                    <td class="serendipity_calendarDay LastInRow LastRow">&#160;</td>
+                </tr>
+    </table></div>
+    </div>
+    <div class="serendipitySideBarItem container_serendipity_quicksearch_plugin">
+        <h4 class="serendipitySideBarTitle serendipity_quicksearch_plugin">Quicksearch</h4>        <div class="serendipitySideBarContent"><form id="searchform" action="/blog/index.php" method="get">
+    <div>
+        <input type="hidden" name="serendipity[action]" value="search" />
+        <input type="hidden" name="serendipity[fullentry]" value="1" />
+        <input type="text" id="serendipityQuickSearchTermField" name="serendipity[searchTerm]" size="13" />
+        <input class="quicksearch_submit" type="submit" value="&gt;" name="serendipity[searchButton]" title="Go!" style="width: 2em;" />
+    </div>
+    <div id="LSResult" style="display: none;"><div id="LSShadow"></div></div>
+</form>
+</div>
+    </div>
+    <div class="serendipitySideBarItem container_serendipity_html_nugget_plugin">
+        <h4 class="serendipitySideBarTitle serendipity_html_nugget_plugin">Support</h4>        <div class="serendipitySideBarContent"><!-- start uberwach code :: do not change :: v1 -->
+<script type="text/javascript"><!--
+document.writeln('<a href="http://www.uberwach.de/"><img src="http://www.uberwach.de/wanze?'+escape(window.location)+'" alt="Aktion UBERWACH!" width="80" height="15" border="0" /></a>');
+//--></script><noscript><a href="http://www.uberwach.de/"><img src="http://www.uberwach.de/wanze" alt="Aktion UBERWACH!" width="80" height="15" border="0" /></a></noscript>
+<!-- ende uberwach code --></div>
+    </div>
+    <div class="serendipitySideBarItem container_serendipity_html_nugget_plugin">
+                <div class="serendipitySideBarContent"><a href="https://twitter.com/iamnion" class="twitter-follow-button" data-show-count="false">Follow @iamnion</a><br />
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script><br />
+<a href="http://www.ngolde.de">=>my website</a></div>
+    </div>
+    <div class="serendipitySideBarItem container_serendipity_plugin_recententries">
+        <h4 class="serendipitySideBarTitle serendipity_plugin_recententries">Recent Entries</h4>        <div class="serendipitySideBarContent"><dl>
+<dt class="serendipity_recententries_entrylink"><a href="/blog/archives/705-E-Plus-GSM-privacyTMSI-allocation-leak.html" title="E-Plus GSM privacy/TMSI allocation leak">E-Plus GSM privacy/TMSI allocation leak</a></dt>
+<dd class="serendipity_recententries_entrydate serendipitySideBarDate">Thursday, October 11 2012</dd>
+<dt class="serendipity_recententries_entrylink"><a href="/blog/archives/704-Exploiting-the-UbiquisysSFR-femtocell-webserver-wsalshttpdmongooseyassl-embedded-webserver.html" title="Exploiting the Ubiquisys/SFR femtocell webserver (wsal/shttpd/mongoose/yassl embedded webserver)">Exploiting the Ubiquisys/SFR femtocell webserver (wsal/shttpd/mongoose/yassl embedded webserver)</a></dt>
+<dd class="serendipity_recententries_entrydate serendipitySideBarDate">Wednesday, August  3 2011</dd>
+<dt class="serendipity_recententries_entrylink"><a href="/blog/archives/702-So-what-happened-recently....html" title="So what happened recently...">So what happened recently...</a></dt>
+<dd class="serendipity_recententries_entrydate serendipitySideBarDate">Wednesday, April  6 2011</dd>
+<dt class="serendipity_recententries_entrylink"><a href="/blog/archives/701-Debian-6.0-squeeze.html" title=""></a></dt>
+<dd class="serendipity_recententries_entrydate serendipitySideBarDate">Sunday, February  6 2011</dd>
+<dt class="serendipity_recententries_entrylink"><a href="/blog/archives/700-exim-remote-vulnerability.html" title="exim remote vulnerability">exim remote vulnerability</a></dt>
+<dd class="serendipity_recententries_entrydate serendipitySideBarDate">Thursday, December  9 2010</dd>
+<dt class="serendipity_recententries_entrylink"><a href="/blog/archives/696-Will-my-Phone-Show-An-Unencrypted-Connection.html" title="Will my Phone Show An Unencrypted Connection?">Will my Phone Show An Unencrypted Connection?</a></dt>
+<dd class="serendipity_recententries_entrydate serendipitySideBarDate">Wednesday, September  8 2010</dd>
+<dt class="serendipity_recententries_entrylink"><a href="/blog/archives/695-smpCTF-2010-quals-writeups.html" title="smpCTF 2010 quals writeups">smpCTF 2010 quals writeups</a></dt>
+<dd class="serendipity_recententries_entrydate serendipitySideBarDate">Sunday, August  8 2010</dd>
+<dt class="serendipity_recententries_entrylink"><a href="/blog/archives/694-protocol-design-fail-MMS-notification.html" title="protocol design fail: MMS notification">protocol design fail: MMS notification</a></dt>
+<dd class="serendipity_recententries_entrydate serendipitySideBarDate">Wednesday, July 28 2010</dd>
+<dt class="serendipity_recententries_entrylink"><a href="/blog/archives/693-acrobat-reader-stealing-my-passwords.html" title="acrobat reader stealing my passwords">acrobat reader stealing my passwords</a></dt>
+<dd class="serendipity_recententries_entrydate serendipitySideBarDate">Tuesday, June 29 2010</dd>
+<dt class="serendipity_recententries_entrylink"><a href="/blog/archives/692-UnrealIRCd-backdoored.html" title="UnrealIRCd backdoored">UnrealIRCd backdoored</a></dt>
+<dd class="serendipity_recententries_entrydate serendipitySideBarDate">Saturday, June 12 2010</dd>
+</dl>
+
+</div>
+    </div>
+    <div class="serendipitySideBarItem container_serendipity_archives_plugin">
+        <h4 class="serendipitySideBarTitle serendipity_archives_plugin">Archives</h4>        <div class="serendipitySideBarContent"><ul class="plainList">
+<li><a href="/blog/archives/2014/09.html" title="September 2014">September 2014</a></li>
+<li><a href="/blog/archives/2014/08.html" title="August 2014">August 2014</a></li>
+<li><a href="/blog/archives/2014/07.html" title="July 2014">July 2014</a></li>
+<li><a href="/blog/index.php?frontpage">Recent...</a></li>
+<li><a href="http://nion.modprobe.de/blog/archive">Older...</a></li>
+</ul>
+</div>
+    </div>
+    <div class="serendipitySideBarItem container_serendipity_syndication_plugin">
+        <h4 class="serendipitySideBarTitle serendipity_syndication_plugin">Syndicate This Blog</h4>        <div class="serendipitySideBarContent"><ul class="plainList">        <li>
+            <a class="serendipity_xml_icon" href="/blog/feeds/index.rss"><img src="/blog/templates/carl_blue/img/xml.gif" alt="XML" style="border: 0px" /></a>
+            <a href="/blog/feeds/index.rss">RSS 0.91 feed</a>
+        </li>
+        <li>
+            <a class="serendipity_xml_icon" href="/blog/feeds/index.rss1"><img src="/blog/templates/carl_blue/img/xml.gif" alt="XML" style="border: 0px" /></a>
+            <a href="/blog/feeds/index.rss1">RSS 1.0 feed</a>
+        </li>
+        <li>
+            <a class="serendipity_xml_icon" href="/blog/feeds/index.rss2"><img src="/blog/templates/carl_blue/img/xml.gif" alt="XML" style="border: 0px" /></a>
+            <a href="/blog/feeds/index.rss2">RSS 2.0 feed</a>
+        </li>
+        <li>
+            <a class="serendipity_xml_icon" href="/blog/feeds/atom03.xml"><img src="/blog/templates/carl_blue/img/xml.gif" alt="ATOM/XML" style="border: 0px" /></a>
+            <a href="/blog/feeds/atom03.xml">ATOM 0.3 feed</a>
+        </li>
+        <li>
+            <a class="serendipity_xml_icon" href="/blog/feeds/atom10.xml"><img src="/blog/templates/carl_blue/img/xml.gif" alt="ATOM/XML" style="border: 0px" /></a>
+            <a href="/blog/feeds/atom10.xml">ATOM 1.0 feed</a>
+        </li>
+        <li>
+            <a class="serendipity_xml_icon" href="/blog/feeds/comments.rss2"><img src="/blog/templates/carl_blue/img/xml.gif" alt="XML" style="border: 0px" /></a>
+            <a href="/blog/feeds/comments.rss2"><span style="white-space: nowrap">RSS 2.0 Comments</span></a>
+        </li>
+</ul></div>
+    </div>
+    <div class="serendipitySideBarItem container_serendipity_categories_plugin">
+        <h4 class="serendipitySideBarTitle serendipity_categories_plugin">Categories</h4>        <div class="serendipitySideBarContent"><form action="http://nion.modprobe.de/blog/index.php?frontpage" method="post">
+              <div id="serendipity_category_form_content"><ul id="serendipity_categories_list" style="list-style: none; margin: 0px; padding: 0px"><li class="category_depth0 category_9" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="9" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/9-blogging.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/9-blogging" title="" style="padding-left: 0px">blogging</a></li>
+<li class="category_depth0 category_11" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="11" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/11-books.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/11-books" title="" style="padding-left: 0px">books</a></li>
+<li class="category_depth0 category_13" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="13" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/13-cats.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/13-cats" title="" style="padding-left: 0px">cats</a></li>
+<li class="category_depth0 category_2" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="2" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/2-debian.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/2-debian" title="" style="padding-left: 0px">debian</a></li>
+<li class="category_depth0 category_5" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="5" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/5-events.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/5-events" title="" style="padding-left: 0px">events</a></li>
+<li class="category_depth0 category_6" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="6" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/6-fun.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/6-fun" title="" style="padding-left: 0px">fun</a></li>
+<li class="category_depth0 category_14" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="14" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/14-google.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/14-google" title="" style="padding-left: 0px">google</a></li>
+<li class="category_depth0 category_15" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="15" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/15-gsm.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/15-gsm" title="gsm" style="padding-left: 0px">gsm</a></li>
+<li class="category_depth0 category_1" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="1" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/1-hacks-code.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/1-hacks-code" title="" style="padding-left: 0px">hacks &amp; code</a></li>
+<li class="category_depth0 category_8" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="8" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/8-linux.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/8-linux" title="" style="padding-left: 0px">linux</a></li>
+<li class="category_depth0 category_7" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="7" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/7-random-blurb.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/7-random-blurb" title="" style="padding-left: 0px">random blurb</a></li>
+<li class="category_depth0 category_10" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="10" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/10-s9y.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/10-s9y" title="" style="padding-left: 0px">s9y</a></li>
+<li class="category_depth0 category_3" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="3" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/3-software.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/3-software" title="" style="padding-left: 0px">software</a></li>
+<li class="category_depth0 category_12" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="12" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/12-university.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/12-university" title="" style="padding-left: 0px">university</a></li>
+<li class="category_depth0 category_4" style="display: block;"><input style="width: 15px" type="checkbox" name="serendipity[multiCat][]" value="4" /><a class="serendipity_xml_icon" href="/blog/feeds/categories/4-web.rss"><img src="/blog/templates/default/img/xml.gif" alt="XML" style="border: 0px" /></a> <a href="/blog/categories/4-web" title="" style="padding-left: 0px">web</a></li>
+</ul><div class="category_submit"><br /><input type="submit" name="serendipity[isMultiCat]" value="Go!" /></div><div class="category_link_all"><br /><a href="/blog/index.php?frontpage" title="All categories">All categories</a></div></div></form></div>
+    </div>
+    <div class="serendipitySideBarItem container_serendipity_plugin_freetag">
+        <h4 class="serendipitySideBarTitle serendipity_plugin_freetag">Tag cloud</h4>        <div class="serendipitySideBarContent"><span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/23c3" title="23c3 (2) ">23c3</a></span> <span class="tag_weight_107" style="font-size: 107%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/acpi" title="acpi (4) ">acpi</a></span> <span class="tag_weight_107" style="font-size: 107%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/advertising" title="advertising (4) ">advertising</a></span> <span class="tag_weight_111" style="font-size: 111%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/annouce" title="annouce (5) ">annouce</a></span> <span class="tag_weight_165" style="font-size: 165%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/announce" title="announce (20) ">announce</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/argh" title="argh (2) ">argh</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/art" title="art (3) ">art</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/awards" title="awards (3) ">awards</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/bash" title="bash (2) ">bash</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/blogging" title="blogging (3) ">blogging</a></span> <span class="tag_weight_111" style="font-size: 111%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/bugs" title="bugs (5) ">bugs</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/c" title="c (2) ">c</a></span> <span class="tag_weight_122" style="font-size: 122%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/cli" title="cli (8) ">cli</a></span> <span class="tag_weight_129" style="font-size: 129%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/code" title="code (10) ">code</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/conferences" title="conferences (2) ">conferences</a></span> <span class="tag_weight_140" style="font-size: 140%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/config" title="config (13) ">config</a></span> <span class="tag_weight_107" style="font-size: 107%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/configuration" title="configuration (4) ">configuration</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/copyright" title="copyright (2) ">copyright</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/data+mining" title="data mining (2) ">data mining</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/debconf" title="debconf (2) ">debconf</a></span> <span class="tag_weight_289" style="font-size: 289%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/debian" title="debian (54) ">debian</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/dell" title="dell (2) ">dell</a></span> <span class="tag_weight_107" style="font-size: 107%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/dns" title="dns (4) ">dns</a></span> <span class="tag_weight_125" style="font-size: 125%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/documentation" title="documentation (9) ">documentation</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/email" title="email (3) ">email</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/errm%3F" title="errm? (3) ">errm?</a></span> <span class="tag_weight_111" style="font-size: 111%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/events" title="events (5) ">events</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/exploit" title="exploit (2) ">exploit</a></span> <span class="tag_weight_122" style="font-size: 122%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/fail" title="fail (8) ">fail</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/fail2ban" title="fail2ban (2) ">fail2ban</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/filesharing" title="filesharing (3) ">filesharing</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/films" title="films (2) ">films</a></span> <span class="tag_weight_125" style="font-size: 125%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/flame" title="flame (9) ">flame</a></span> <span class="tag_weight_169" style="font-size: 169%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/fun" title="fun (21) ">fun</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/gcc" title="gcc (2) ">gcc</a></span> <span class="tag_weight_118" style="font-size: 118%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/google" title="google (7) ">google</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/graphs" title="graphs (2) ">graphs</a></span> <span class="tag_weight_115" style="font-size: 115%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/grml" title="grml (6) ">grml</a></span> <span class="tag_weight_133" style="font-size: 133%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/hacking" title="hacking (11) ">hacking</a></span> <span class="tag_weight_151" style="font-size: 151%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/hacks" title="hacks (16) ">hacks</a></span> <span class="tag_weight_118" style="font-size: 118%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/hardware" title="hardware (7) ">hardware</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/heise" title="heise (3) ">heise</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/images" title="images (2) ">images</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/information" title="information (3) ">information</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/installation" title="installation (2) ">installation</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/internet" title="internet (2) ">internet</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/irc" title="irc (3) ">irc</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/knowledge" title="knowledge (3) ">knowledge</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/links" title="links (2) ">links</a></span> <span class="tag_weight_187" style="font-size: 187%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/linux" title="linux (26) ">linux</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/mail" title="mail (2) ">mail</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/mobile+phones" title="mobile phones (2) ">mobile phones</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/monitoring" title="monitoring (2) ">monitoring</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/network" title="network (3) ">network</a></span> <span class="tag_weight_151" style="font-size: 151%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/news" title="news (16) ">news</a></span> <span class="tag_weight_118" style="font-size: 118%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/newsbeuter" title="newsbeuter (7) ">newsbeuter</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/nonsense" title="nonsense (2) ">nonsense</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/omg" title="omg (2) ">omg</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/openoffice" title="openoffice (2) ">openoffice</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/open+source" title="open source (2) ">open source</a></span> <span class="tag_weight_111" style="font-size: 111%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/opera" title="opera (5) ">opera</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/phrack" title="phrack (2) ">phrack</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/privacy" title="privacy (3) ">privacy</a></span> <span class="tag_weight_144" style="font-size: 144%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/programming" title="programming (14) ">programming</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/qa" title="qa (2) ">qa</a></span> <span class="tag_weight_205" style="font-size: 205%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/random+blurb" title="random blurb (31) ">random blurb</a></span> <span class="tag_weight_165" style="font-size: 165%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/rant" title="rant (20) ">rant</a></span> <span class="tag_weight_133" style="font-size: 133%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/release" title="release (11) ">release</a></span> <span class="tag_weight_129" style="font-size: 129%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/releases" title="releases (10) ">releases</a></span> <span class="tag_weight_125" style="font-size: 125%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/rss" title="rss (9) ">rss</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/scripts" title="scripts (3) ">scripts</a></span> <span class="tag_weight_209" style="font-size: 209%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/security" title="security (32) ">security</a></span> <span class="tag_weight_118" style="font-size: 118%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/service" title="service (7) ">service</a></span> <span class="tag_weight_118" style="font-size: 118%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/setup" title="setup (7) ">setup</a></span> <span class="tag_weight_125" style="font-size: 125%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/shell" title="shell (9) ">shell</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/sms" title="sms (2) ">sms</a></span> <span class="tag_weight_300" style="font-size: 300%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/software" title="software (57) ">software</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/spam" title="spam (3) ">spam</a></span> <span class="tag_weight_107" style="font-size: 107%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/ssh" title="ssh (4) ">ssh</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/stfl" title="stfl (2) ">stfl</a></span> <span class="tag_weight_107" style="font-size: 107%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/stuff" title="stuff (4) ">stuff</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/terminal" title="terminal (2) ">terminal</a></span> <span class="tag_weight_115" style="font-size: 115%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/tests" title="tests (6) ">tests</a></span> <span class="tag_weight_125" style="font-size: 125%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/text+mode" title="text mode (9) ">text mode</a></span> <span class="tag_weight_111" style="font-size: 111%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/tip" title="tip (5) ">tip</a></span> <span class="tag_weight_107" style="font-size: 107%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/tips" title="tips (4) ">tips</a></span> <span class="tag_weight_107" style="font-size: 107%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/tools" title="tools (4) ">tools</a></span> <span class="tag_weight_107" style="font-size: 107%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/troubleshooting" title="troubleshooting (4) ">troubleshooting</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/unix" title="unix (2) ">unix</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/user" title="user (2) ">user</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/video" title="video (3) ">video</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/vim%FFediting" title="vim.editing (2) ">vim.editing</a></span> <span class="tag_weight_115" style="font-size: 115%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/web" title="web (6) ">web</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/web+2%FF0" title="web 2.0 (2) ">web 2.0</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/websites" title="websites (3) ">websites</a></span> <span class="tag_weight_100" style="font-size: 100%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/wordpress" title="wordpress (2) ">wordpress</a></span> <span class="tag_weight_122" style="font-size: 122%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/wtf" title="wtf (8) ">wtf</a></span> <span class="tag_weight_198" style="font-size: 198%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/www" title="www (29) ">www</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/youtube" title="youtube (3) ">youtube</a></span> <span class="tag_weight_104" style="font-size: 104%; white-space: normal;"><a rel="tag" href="http://nion.modprobe.de/blog/plugin/tag/zsh" title="zsh (3) ">zsh</a></span></div>
+    </div>
+    <div class="serendipitySideBarItem container_serendipity_html_nugget_plugin">
+                <div class="serendipitySideBarContent"><!-- <script src="http://www.google-analytics.com/urchin.js" type="text/javascript"><br />
+</script><br />
+<script type="text/javascript"><br />
+_uacct = "UA-314058-1";<br />
+urchinTracker();<br />
+</script> --></div>
+    </div>
+    <div class="serendipitySideBarItem container_serendipity_html_nugget_plugin">
+                <div class="serendipitySideBarContent"><!-- BlogCounter Code START --><br />
+<a href="http://www.blogcounter.de/" target="_blank" id="bclink" title="kostenloser Counter fuer Weblogs"><span id="bccount" style="font-size:8px">kostenloser Counter</span></a><br />
+<script language="JavaScript" type="text/javascript" src="http://track.blogcounter.de/js.php?user=nion&amp;style=5"><br />
+</script><noscript><a href="http://www.blogcounter.de/" target="_blank"><br />
+<img alt="Blogcounter" src="http://track.blogcounter.de/log.php?id=nion" border="0" /></a></noscript><br />
+<!-- BlogCounter Code END --><br />
+<script language="JavaScript" src="http://www.gvisit.com/record.php?sid=cce12b36dec270c632a7755cb9285f98" type="text/javascript"></script></div>
+    </div>
+</td>
+    </tr>
+</table>
+<div id="footer">
+    <p>
+    </p>
+</div>
+
+
+
+</body>
+</html>

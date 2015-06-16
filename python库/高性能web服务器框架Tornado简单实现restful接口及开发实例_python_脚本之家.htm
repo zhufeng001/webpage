@@ -1,0 +1,354 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-cn">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<title>高性能web服务器框架Tornado简单实现restful接口及开发实例_python_脚本之家</title>
+<meta http-equiv="Content-Language" content="zh-CN" />
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+<meta http-equiv="mobile-agent" content="format=html5; url=http://m.jb51.net/article/52209.htm">
+<meta http-equiv="mobile-agent" content="format=xhtml; url=http://m.jb51.net/article/52209.htm">
+<script type="text/javascript" src="http://siteapp.baidu.com/static/webappservice/uaredirect.js"></script>
+<script type="text/javascript">uaredirect("http://m.jb51.net/article/52209.htm");</script>
+<meta name="keywords" content="Tornado,web框架" />
+<meta name="description" content="Tornado和现在的主流Web服务器框架（包括大多数Python的框架）有着明显的区别：它是非阻塞式服务器，而且速度相当快。得利于其 非阻塞的方式和对epoll的运用，Tornado每秒可以处理数以千计的连接，这意味着对于实时Web服务来说，Tornado是一个理想的Web框架。
+
+" />
+<link rel="stylesheet" href="http://img.jb51.net/skin/blue/global.css" type="text/css" media="all" />
+<link rel="stylesheet" href="http://img.jb51.net/skin/blue/content.css" type="text/css" media="all" />
+<link type="text/css" rel="stylesheet" href="/jslib/syntaxhighlighter/styles/shCore.css" />
+<link type="text/css" rel="Stylesheet" href="/jslib/syntaxhighlighter/styles/shThemeDefault.css" />
+<script type="text/javascript" src="http://img.jb51.net/js/function.js"></script>
+</head>
+<body>
+<DIV id=topnav>
+<div class="wrap">
+<DIV id=toptext>脚 本 之 家 www.jb51.net</DIV>
+<UL id=topnavlist>
+<script type="text/javascript" charset="gb2312">dy("top");</script>
+</UL>
+</div>
+</DIV>
+<div class="wrap">
+<div id="dxy_logo">
+<div id="logo_l"><a href="http://www.jb51.net" title="脚本之家" target="_blank"><img src="http://www.jb51.net/images/logo.gif" alt="脚本之家" /></a></div>
+<div id="logo_m"></div>
+<div id="logo_r"></div>
+</div><!--导航开始-->
+<div id="nav_top">
+<ul>
+<li class="current"><a href="http://www.jb51.net">首页</a></li>
+<li><a href="http://www.jb51.net/web/">网页制作</a></li>
+<li><a href="http://www.jb51.net/list/index_96.htm">脚本专栏</a></li>
+<li><a href="http://www.jb51.net/jiaoben/">脚本下载</a></li>
+<li><a href="http://www.jb51.net/list/index_1.htm">网络编程</a></li>
+<li><a href="http://www.jb51.net/list/index_104.htm">数据库</a></li>
+<li><a href="http://www.jb51.net/cms/">CMS教程</a></li>
+<li><a href="http://www.jb51.net/books/">电子书籍</a></li>
+<li><a href="http://www.jb51.net/pingmian/">平面设计</a></li>
+<li><a href="http://www.jb51.net/media/">媒体动画</a></li>
+<li><a href="http://www.jb51.net/os/">操作系统</a></li>
+<li><a href="http://www.jb51.net/yunying/">网站运营</a></li>
+<li class="last"><a href="http://www.jb51.net/hack/">网络安全</a></li>
+</ul>
+</div><!--导航结束-->
+<div class=blank3></div>
+<div class="subnav">
+<ul><li><a href='/list/list_114_1.htm' title="vbs">vbs</a></li>
+<li><a href='/list/list_106_1.htm' title="DOS/BAT">DOS/BAT</a></li>
+<li><a href='/list/list_110_1.htm' title="hta">hta</a></li>
+<li><a href='/list/list_111_1.htm' title="htc">htc</a></li>
+<li><a href='/list/list_97_1.htm' title="python">python</a></li>
+<li><a href='/list/list_125_1.htm' title="perl">perl</a></li>
+<li><a href='/list/list_138_1.htm' title="游戏相关">游戏相关</a></li>
+<li><a href='/list/list_161_1.htm' title="VBA">VBA</a></li>
+<li><a href='/list/list_163_1.htm' title="远程脚本">远程脚本</a></li>
+<li><a href='/list/list_178_1.htm' title="ColdFusion">ColdFusion</a></li>
+<li><a href='/list/list_201_1.htm' title="ruby专题">ruby专题</a></li>
+<li><a href='/list/list_213_1.htm' title="autoit">autoit</a></li>
+<li><a href='/list/list_214_1.htm' title="seraphzone">seraphzone</a></li>
+<li><a href='/list/list_234_1.htm' title="PowerShell">PowerShell</a></li>
+<li><a href='/list/list_235_1.htm' title="linux shell">linux shell</a></li>
+<li><a href='/list/list_245_1.htm' title="Lua">Lua</a></li>
+<li><a href='/list/list_246_1.htm' title="Golang">Golang</a></li>
+<li><a href='/list/list_249_1.htm' title="Erlang ">Erlang </a></li>
+<li><a href='/list/list_130_1.htm' title="其它">其它</a></li>
+</ul>
+</div>
+<div class=blank3></div>
+<DIV class="search">
+<UL><LI class=search-hot><SPAN>特色栏目：</SPAN>
+<A href="http://www.jb51.net/list/list_114_1.htm" target='_blank'>vbscript</A> 
+<A href="http://www.jb51.net/list/list_6_1.htm" target='_blank'>正则表达式</A> 
+<A href="http://www.jb51.net/list/list_3_1.htm" target='_blank'>javascript</A>
+<A href="http://www.jb51.net/list/list_106_1.htm" target='_blank'>批处理</A>
+<A href="http://s.jb51.net">服务器软件</A> 
+<A href="http://sc.jb51.net/?txt" target="_blank" style="color:red">素材下载</A> 
+</LI><LI class=search-box>
+<div class="sall">
+<form action="http://so.jb51.net/cse/search" target="_blank">
+    <input type="hidden" name="s" value="10520733385329581432">
+    <input type="hidden" name="ie" value="gbk">
+    <input type="text" name="q" class="keyword_input">
+    <input type="submit" value="搜索" class="s_btn">
+</form></div>
+</LI></UL>
+</div>
+<div class=blank3></div>
+<DIV class="tonglanad">
+<script type="text/javascript">var tougao="hebedich";var lmname="python";dy("bdtl");</script>
+</div>
+<div class=blank3></div>
+<div id="tonglan1"></div>
+<div class=blank3></div>
+<div class="dxy_main">
+<div class="dxy_main_l">
+<div id="art_con">
+<div id="daohang">页面导航：  <a href='/'>首页</a> → <a href="/list/index_96.htm" title="脚本专栏">脚本专栏</a> → <a href="/list/list_97_1.htm" title="python">python</a> → 正文内容 Tornado简单实现restful接口及开发实例<div class="blank3"></div></div>
+<div class=blank3></div>
+<h1>高性能web服务器框架Tornado简单实现restful接口及开发实例</h1>
+<div id="art_info">
+投稿：hebedich  字体：[<a href="javascript:turnbig()">增加</a> <a href="javascript:turnsmall()">减小</a>] 类型：转载 
+</div><!--end art_info-->
+<div class=blank3></div>
+<div id="art_demo">Tornado和现在的主流Web服务器框架（包括大多数Python的框架）有着明显的区别：它是非阻塞式服务器，而且速度相当快。得利于其 非阻塞的方式和对epoll的运用，Tornado每秒可以处理数以千计的连接，这意味着对于实时Web服务来说，Tornado是一个理想的Web框架。
+
+</div>
+<div class=blank3></div>
+<div id="con_all">
+<script type="text/javascript">dy("bcall");</script>
+</div>
+<div id="art_content">
+<!--NEWSZW_HZH_BEGIN-->
+<p>有个朋友让我搞搞tornado框架，说实话，这个框架我用的不多。。。</p>
+<p>我就把自己的一些个运维研发相关的例子，分享给大家。</p>
+<p><img src="http://files.jb51.net/file_images/article/201407/201471683757870.png&#63;201461683823" alt="" /></p>
+<p>怎么安装tornado，我想大家都懂。<br />
+</p>
+<div class="jb51code">
+<pre class="brush:bash;">
+pip install tornado
+</pre>
+</div>
+<p>再来说说他的一些个模块，官网有介绍的。我这里再啰嗦的复读机一下，里面掺夹我的理解。</p>
+<p>主要模块<br />
+web - FriendFeed 使用的基础 Web 框架，包含了 Tornado 的大多数重要的功能，反正你进入就对了。<br />
+escape - XHTML, JSON, URL 的编码/解码方法<br />
+database - 对 MySQLdb 的简单封装，使其更容易使用，是个orm的东西。<br />
+template - 基于 Python 的 web 模板系统，类似jinja2<br />
+httpclient - 非阻塞式 HTTP 客户端，它被设计用来和 web 及 httpserver 协同工作，这个类似加个urllib2<br />
+auth - 第三方认证的实现（包括 Google OpenID/OAuth、Facebook Platform、Yahoo BBAuth、FriendFeed OpenID/OAuth、Twitter OAuth）<br />
+locale - 针对本地化和翻译的支持<br />
+options - 命令行和配置文件解析工具，针对服务器环境做了优化，接受参数的</p>
+<p>底层模块<br />
+httpserver - 服务于 web 模块的一个非常简单的 HTTP 服务器的实现<br />
+iostream - 对非阻塞式的 socket 的简单封装，以方便常用读写操作<br />
+ioloop - 核心的 I/O 循环</p>
+<p>再来说说tornado接受请求的方式：<br />
+关于get的方式</p>
+<div class="jb51code">
+<pre class="brush:py;">
+class MainHandler(tornado.web.RequestHandler): 
+  def get(self): 
+    self.write("You requested the main page") 
+class niubi(tornado.web.RequestHandler): 
+  def get(self, story_id): 
+    self.write("xiaorui.cc niubi'id is " + story_id) 
+application = tornado.web.Application([ 
+  (r"/", MainHandler), 
+  (r"/niubi/([0-9]+)", niubi), 
+])
+
+</pre>
+</div>
+<p>这样我们访问 /niubi/123123123 就会走niubi这个类，里面的get参数。<br />
+关于post的方式</p>
+<div class="jb51code">
+<pre class="brush:py;">
+class MainHandler(tornado.web.RequestHandler): 
+  def get(self): 
+    self.write('&lt;html&gt;&lt;body&gt;&lt;form action="/" method="post"&gt;'
+         '&lt;input type="text" name="message"&gt;'
+         '&lt;input type="submit" value="Submit"&gt;'
+         '&lt;/form&gt;&lt;/body&gt;&lt;/html&gt;') 
+  def post(self): 
+    self.set_header("Content-Type", "text/plain") 
+    self.write("xiaorui.cc and " + self.get_argument("message"))
+
+</pre>
+</div>
+<p>在tornado里面，一般get和post都在一个访问路由里面的，只是按照不同method来区分相应的。<br />
+扯淡的完了，大家测试下get和post。</p>
+<div class="jb51code">
+<pre class="brush:py;">
+import tornado.ioloop 
+import tornado.web 
+import json 
+class hello(tornado.web.RequestHandler): 
+  def get(self): 
+    self.write('Hello,xiaorui.cc') 
+class add(tornado.web.RequestHandler): 
+  def post(self): 
+    res = Add(json.loads(self.request.body)) 
+    self.write(json.dumps(res)) 
+def Add(input): 
+  sum = input['num1'] + input['num2'] 
+  result = {} 
+  result['sum'] = sum 
+  return result 
+application = tornado.web.Application([ 
+  (r"/", hello), 
+  (r"/add", add), 
+]) 
+if __name__ == "__main__": 
+  application.listen(8888) 
+  tornado.ioloop.IOLoop.instance().start() 
+</pre>
+</div>
+<p>#大家可以写个form测试，也可以用curl -d测试</p>
+<!--NEWSZW_HZH_END-->
+
+<div id="art_xg">
+<h4>您可能感兴趣的文章:</h4><ul><li><a href="/article/49792.htm" title="Python Web服务器Tornado使用小结" target="_blank">Python Web服务器Tornado使用小结</a></li><li><a href="/article/47298.htm" title="tornado捕获和处理404错误的方法" target="_blank">tornado捕获和处理404错误的方法</a></li><li><a href="/article/47297.htm" title="python为tornado添加recaptcha验证码功能" target="_blank">python为tornado添加recaptcha验证码功能</a></li><li><a href="/article/43566.htm" title="tornado框架blog模块分析与使用" target="_blank">tornado框架blog模块分析与使用</a></li><li><a href="/article/43065.htm" title="Python(Tornado)模拟登录小米抢手机" target="_blank">Python(Tornado)模拟登录小米抢手机</a></li><li><a href="/article/52212.htm" title="Web服务器框架 Tornado简介" target="_blank">Web服务器框架 Tornado简介</a></li></ul>
+<div id="con_da2">
+<script type="text/javascript">dy("baidu580");</script>
+</div>
+</div>
+<div id="con_bo"></div>
+</div>
+<div class=blank3></div>
+<div id="shoucang">
+    <div id="bdshare" class="bdshare_t bds_tools get-codes-bdshare">
+        <a class="bds_qzone">QQ空间</a>
+        <a class="bds_tsina">新浪微博</a>
+        <a class="bds_tqq">腾讯微博</a>
+        <a class="bds_tsohu">搜狐微博</a>
+        <a class="bds_renren">人人网</a>
+        <a class="bds_kaixin001">开心网</a>
+        <a class="bds_baidu">百度搜藏</a>
+        <span class="bds_more">更多</span>
+		<a class="shareCount"></a>
+    </div>
+</div>
+<div class=blank3></div>
+<div class="tags">
+<strong>Tags：</strong><a href="http://img.jb51.net/tag/Tornado/1.htm" target="_blank" title="搜索关于Tornado的文章">Tornado</a> <a href="http://img.jb51.net/tag/web%BF%F2%BC%DC/1.htm" target="_blank" title="搜索关于web框架的文章">web框架</a> 
+</div>
+<div class=blank3></div>
+<div class="con_ff">
+<A title=复制本文链接发给你QQ/MSN上的好友 href="javascript: copyUserHomeToClipBoard()" 
+rel=nofollow class=button_link>复制链接</A><a href="javascript:addBookmark(document.title,document.location.href)" class=button_link>收藏本文</a><a href="javascript:doPrint();" class="button_link">打印本文</a><a href="javascript:closeWindow()" class="button_link">关闭本文</a><a href='/index.htm' class=button_link>返回首页</a>
+</div>
+<div id="prenext">
+<div id='prv'>上一篇：<a href='/article/52169.htm' title='Django在Win7下的安装及创建项目hello word简明教程'>Django在Win7下的安装及创建项目hello word简明教程</a></div><div id='next'>下一篇：<a href='/article/61150.htm'>Python中使用Inotify监控文件实例</a></div>
+</div>
+<div class=blank3></div>
+<DIV id=relatedarticle>
+<H2>相关文章</H2>
+<ul><li><span>2014-04-04</span><a href="/article/48793.htm" title="使用python实现递归版汉诺塔示例(汉诺塔递归算法)" target="_blank">使用python实现递归版汉诺塔示例(汉诺塔递归算法)</a></li><li><span>2014-09-09</span><a href="/article/54912.htm" title="Python切片用法实例教程" target="_blank">Python切片用法实例教程</a></li><li><span>2015-01-01</span><a href="/article/59599.htm" title="Python中字符编码简介、方法及使用建议" target="_blank">Python中字符编码简介、方法及使用建议</a></li><li><span>2014-03-03</span><a href="/article/47994.htm" title="Python break语句详解" target="_blank">Python break语句详解</a></li><li><span>2014-04-04</span><a href="/article/49216.htm" title="python 七种邮件内容发送方法实例" target="_blank">python 七种邮件内容发送方法实例</a></li><li><span>2013-03-03</span><a href="/article/34732.htm" title="Python中条件选择和循环语句使用方法介绍" target="_blank">Python中条件选择和循环语句使用方法介绍</a></li><li><span>2012-05-05</span><a href="/article/30400.htm" title="用python实现批量重命名文件的代码" target="_blank">用python实现批量重命名文件的代码</a></li><li><span>2014-06-06</span><a href="/article/51121.htm" title="Python写的贪吃蛇游戏例子" target="_blank">Python写的贪吃蛇游戏例子</a></li><li><span>2014-07-07</span><a href="/article/52659.htm" title="python海龟绘图实例教程" target="_blank">python海龟绘图实例教程</a></li><li><span>2014-06-06</span><a href="/article/50625.htm" title="Python程序员鲜为人知但你应该知道的17个问题" target="_blank">Python程序员鲜为人知但你应该知道的17个问题</a></li></ul>
+<DIV class=clear></DIV></DIV>
+<div class="sm"><script type="text/javascript" charset="gb2312">dy("bdtxt");</script></div>
+<DIV id=comments>
+<H2>文章评论</H2>
+<div id="commentList">
+<div class="ds-thread" data-category="" data-thread-key="art_52209" data-title="高性能web服务器框架Tornado简单实现restful接口及开发实例" data-author-key="" data-url="http://www.jb51.net/article/52209.htm"></div>
+</div>
+</div>
+<div class=blank3></div>
+<div class="sm"><script type="text/javascript" charset="gb2312">dy("sm");</script></div>
+<div class=blank3></div>
+<div id="hm_t_3717"></div>
+<div class=blank3></div>
+</div>
+</div><!--end dxy_mainl-->
+<div class="dxy_main_r">
+<div class="rbg" id="art_1"><script type="text/javascript">dy("r1");</script></div>
+<div class=blank3></div>
+<DIV class="r_title"><H6>最 近 更 新</H6></div>
+<div class="rightContent">
+<ul><li><a href="/article/44572.htm" title="python算法学习之计数排序实例" target="_blank">python算法学习之计数排序实例</a></li><li><a href="/article/55913.htm" title="python实现调用其他python脚本的方法" target="_blank">python实现调用其他python脚本的方法</a></li><li><a href="/article/57272.htm" title="Python模仿POST提交HTTP数据及使用Cookie值的方法" target="_blank">Python模仿POST提交HTTP数据及使用Cookie</a></li><li><a href="/article/55935.htm" title="python基于queue和threading实现多线程下载实例" target="_blank">python基于queue和threading实现多线程下</a></li><li><a href="/article/44926.htm" title="python正则匹配抓取豆瓣电影链接和评论代码分享" target="_blank">python正则匹配抓取豆瓣电影链接和评论代</a></li><li><a href="/article/53573.htm" title="将图片文件嵌入到wxpython代码中的实现方法" target="_blank">将图片文件嵌入到wxpython代码中的实现方</a></li><li><a href="/article/48414.htm" title="python读写ini文件示例(python读写文件)" target="_blank">python读写ini文件示例(python读写文件)</a></li><li><a href="/article/46287.htm" title="python目录操作之python遍历文件夹后将结果存储为xml" target="_blank">python目录操作之python遍历文件夹后将结</a></li><li><a href="/article/45422.htm" title="python发送伪造的arp请求" target="_blank">python发送伪造的arp请求</a></li><li><a href="/article/15461.htm" title="Python备份Mysql脚本" target="_blank">Python备份Mysql脚本</a></li></ul>
+</div>
+<div class=blank3></div>
+<div id="art_2"><script type="text/javascript">dy("r2");</script></div>
+<div class=blank3></div>
+<DIV class="r_title"><H6>热 点 排 行</H6></div>
+<div class="hotContent">
+<ul class="toplist"><li class="light"><SPAN class=r_num>1</SPAN><a href="/article/926.htm" title="Python入门教程 超详细1小时学会Python" target="_blank">Python入门教程 超详细1小时学会</a></li><li class="light"><SPAN class=r_num>2</SPAN><a href="/article/26543.htm" title="python 中文乱码问题深入分析" target="_blank">python 中文乱码问题深入分析</a></li><li class="light"><SPAN class=r_num>3</SPAN><a href="/article/15707.htm" title="比较详细Python正则表达式操作指南(re使用)" target="_blank">比较详细Python正则表达式操作指</a></li><li><SPAN class=r_num>4</SPAN><a href="/article/17560.htm" title="Python字符串的encode与decode研究心得乱码问题解决方法" target="_blank">Python字符串的encode与decode研</a></li><li><SPAN class=r_num>5</SPAN><a href="/article/34998.htm" title="python 字符串split的用法分享" target="_blank">python 字符串split的用法分享</a></li><li><SPAN class=r_num>6</SPAN><a href="/article/15709.htm" title="Python open读写文件实现脚本" target="_blank">Python open读写文件实现脚本</a></li><li><SPAN class=r_num>7</SPAN><a href="/article/15715.htm" title="Python enumerate遍历数组示例应用" target="_blank">Python enumerate遍历数组示例应</a></li><li><SPAN class=r_num>8</SPAN><a href="/article/15717.htm" title="Python 深入理解yield" target="_blank">Python 深入理解yield</a></li><li><SPAN class=r_num>9</SPAN><a href="/article/37287.htm" title="python strip()函数 介绍" target="_blank">python strip()函数 介绍</a></li><li><SPAN class=r_num>10</SPAN><a href="/article/21007.htm" title="python 文件和路径操作函数小结" target="_blank">python 文件和路径操作函数小结</a></li></ul>
+</div>
+<div class=blank3></div>
+<div id="art_3"><script type="text/javascript">dy("r3");</script></div>
+<div class=blank3></div>
+<div id="baidu300"><script type="text/javascript">dy("baidu300_2");</script></div>
+</DIV><!--end mainr-->
+<div class=clear></div>
+</div><!--end main2-->
+</div>
+<div class="blank3"></div>
+
+<div id="footer">
+  <div id="footerinfo">
+   <div id="footercontent"><a href="http://www.jb51.net/about.htm" target="_blank">关于我们</a> - <a href="http://www.jb51.net/support.htm" target="_blank">广告合作</a> - <a href="http://www.jb51.net/linkus.htm" target="_blank">联系我们</a> -  <a href="http://www.jb51.net/sm.htm" target="_blank">免责声明</a> -  <a href="http://www.jb51.net/sitemap.htm" target="_blank">网站地图</a> - <a href="tencent://message/?uin=461478385&Site=http://www.jb51.net" target="_blank">投诉建议</a> - <a href="http://www.jb51.net/up.htm" target="_blank">在线投稿</a></div>
+    <div id="footercopyrights">CopyRight &copy; 2006-2015 <a href="http://www.jb51.net">脚本之家</a> JB51.Net , All Rights Reserved</div>
+  </div>
+  <DIV class=ewm><IMG alt="脚本之家官方微信" src="http://img.jb51.net/images/weixin_jb51.gif"></DIV>
+</div>
+<!-- Baidu Button BEGIN -->
+<div id="logo_m_tp"><script type="text/javascript">dy("logo_m");</script></div>
+<div id="logo_r_tp"><script type="text/javascript">dy("logo_r");</script></div>
+<div id="tonglan1_tp"><script type="text/javascript">dy("tonglan1");</script></div>
+<script type="text/javascript" src="http://img.jb51.net/jslib/jquery/jquery-1.8.3.min.js"></script>
+<script type="text/javascript" src="http://img.jb51.net/js/foot.js"></script>
+<script type="text/javascript" src="/jslib/syntaxhighlighter/scripts/shCore.js"></script>
+<script type="text/javascript" src="/jslib/syntaxhighlighter/scripts/shAutoloader.js"></script>
+<script type="text/javascript"> 
+SyntaxHighlighter.autoloader(
+	'applescript			/jslib/syntaxhighlighter/scripts/shBrushAppleScript.js',
+	'actionscript3 as3		/jslib/syntaxhighlighter/scripts/shBrushAS3.js',
+	'bash shell				/jslib/syntaxhighlighter/scripts/shBrushBash.js',
+	'coldfusion cf			/jslib/syntaxhighlighter/scripts/shBrushColdFusion.js',
+	'cpp c					/jslib/syntaxhighlighter/scripts/shBrushCpp.js',
+	'obj-c objc				/jslib/syntaxhighlighter/scripts/shBrushObjC.js',
+	'c# c-sharp csharp		/jslib/syntaxhighlighter/scripts/shBrushCSharp.js',
+	'css					/jslib/syntaxhighlighter/scripts/shBrushCss.js',
+	'delphi pascal			/jslib/syntaxhighlighter/scripts/shBrushDelphi.js',
+	'diff patch pas			/jslib/syntaxhighlighter/scripts/shBrushDiff.js',
+	'erl erlang				/jslib/syntaxhighlighter/scripts/shBrushErlang.js',
+	'groovy					/jslib/syntaxhighlighter/scripts/shBrushGroovy.js',
+	'haxe hx				/jslib/syntaxhighlighter/scripts/shBrushHaxe.js',
+	'java					/jslib/syntaxhighlighter/scripts/shBrushJava.js',
+	'jfx javafx				/jslib/syntaxhighlighter/scripts/shBrushJavaFX.js',
+	'js jscript javascript	/jslib/syntaxhighlighter/scripts/shBrushJScript.js',
+	'perl pl				/jslib/syntaxhighlighter/scripts/shBrushPerl.js',
+	'php					/jslib/syntaxhighlighter/scripts/shBrushPhp.js',
+	'text plain				/jslib/syntaxhighlighter/scripts/shBrushPlain.js',
+	'py python				/jslib/syntaxhighlighter/scripts/shBrushPython.js',
+	'ruby rails ror rb		/jslib/syntaxhighlighter/scripts/shBrushRuby.js',
+	'scala					/jslib/syntaxhighlighter/scripts/shBrushScala.js',
+	'sql					/jslib/syntaxhighlighter/scripts/shBrushSql.js',
+	'vb vbnet				/jslib/syntaxhighlighter/scripts/shBrushVb.js',
+	'xml xhtml xslt html	/jslib/syntaxhighlighter/scripts/shBrushXml.js'
+);
+SyntaxHighlighter.all();
+</script>
+<div class="tongji"><script type="text/javascript" src="http://img.jb51.net/inc/tongji.js"></script></div>
+<script type="text/javascript" src="http://www.jb51.net/pl.asp?id=52209"></script>
+<!-- Baidu Button BEGIN -->
+<script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=50347" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<!-- Baidu Button END -->
+<!-- Duoshuo Comment BEGIN -->
+<script type="text/javascript">
+document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?t=" + new Date().getHours();
+var duoshuoQuery = {short_name:"jb51"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = 'http://static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		|| document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+<!-- Duoshuo Comment END -->
+</body>
+</html>
+<!-- published at 2015-2-16 0:27:44By dxycms qq:461478385  -->

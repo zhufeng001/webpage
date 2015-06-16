@@ -1,0 +1,349 @@
+﻿
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh">
+<head>
+<title>CentOS 6.3下rsync+inotify安装配置笔记  第2页_服务器应用_Linux公社-Linux系统门户网站</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8"/>
+<link rel="icon" href="../../favicon.ico" type="image/x-icon"/>
+<link rel="shortcut icon" href="../../favicon.ico" type="image/x-icon"/>
+<meta name="description" content="inotify是一种强大的，细粒度的，异步文件系统时间监控机制，它可以替代crond实现与rsync的触发式文件同步，从而监控文件系统中添加，删除， 第2页"/>
+<meta name="keywords" content="CentOS 6.3,rsync inotify,rsync,CentOS 6.3下rsync+inotify安装配置笔记  第2页,服务器,Linux服务器,Apache,Hadoop,集群,分布式,Nginx,Tomcat,分布式系统"/>
+<meta name="generator" content="Linux公社"/>
+<meta name="generator" content="Linux"/>
+<link rel="stylesheet" href="../../style/systems/style.css" type="text/css"/>
+<meta name="generator" content="专业的Linux网站"/>
+<script type="text/javascript" src="../../inc/jquery.js"></script>
+<script type="text/javascript" src="../../inc/iwms.js"></script>
+<script type="text/javascript">iwms.urlPrefix="../../";</script>
+
+<script type="text/javascript" src="../../inc/show.js"></script>
+</head>
+<body>
+<div class="topBar">
+	<div class="twidth">
+	
+	<div style="float:right">
+		<script type="text/javascript" src="../../inc/language.js"></script>
+	</div>
+	
+	<div id="topUser">你好，游客 <a href="#" onclick="iwms.logPop()">登录</a>
+	<a href="../../memberreg.aspx" rel="nofollow">注册</a>
+	<a href="../../search.aspx" rel="nofollow">搜索</a>
+	</div>
+	</div>
+</div>
+<div class="twidth">
+<div id="sitehead">
+<div class="l"></div>
+<div class="r"></div>
+<div class="m">
+	<table width="100%">
+	<tr align="center"><td width="160">
+	<a href="http://www.linuxidc.com/"><img style="filter: chroma(color=#FFFFFF);" src="../../pic/logo.jpg" alt="Linux公社" width="155" height="53" border="0" /></a>
+	</td><td>
+	<script type="text/javascript" language="javaScript" src="/linuxfile/linux.js"></script>
+	</td>
+	</tr></table>
+</div>
+</div>
+<div id="navbar">
+<div class="l"></div>
+<div class="r"></div>
+<div class="m">
+	<a href="../../index.htm" class="first">首页</a><a href="../../it/">Linux新闻</a><a href="../../Linuxit/">Linux教程</a><a href="../../MySql/">数据库技术</a><a href="../../RedLinux/">Linux编程</a><a href="../../Apache/" class="thisclass">服务器应用</a><a href="../../Unix/">Linux安全</a><a href="../../download/">Linux下载</a><a href="../../Linuxrz/">Linux认证</a><a href="../../theme/">Linux主题</a><a href="../../Linuxwallpaper/">Linux壁纸</a><a href="../../linuxsoft/">Linux软件</a><a href="../../digi/">数码</a><a href="../../mobile/">手机</a><a href="../../diannao/">电脑</a>
+
+</div>
+</div>
+
+<div id="navsub">
+<div class="l"></div>
+<div class="r"></div>
+<div class="m">
+	<a href="../../index.htm">首页</a> → <a href="../../Apache/">服务器应用</a>
+</div>
+</div>
+<div class="linuxe1"><script type="text/javascript" language="javaScript" src="/linuxfile/linuxe1.js"></script></div>
+<div class="linux1"><script type="text/javascript" language="javaScript" src="/linuxfile/linux1.js"></script></div>
+<div class="linuxa"><script type="text/javascript" language="javaScript" src="/linuxfile/linuxa.js"></script></div>
+<div class="linuxa1"><script type="text/javascript" language="javaScript" src="/linuxfile/linuxa1.js"></script></div>
+<table id="middle" width="100%" cellspacing="0" cellpadding="0" style="table-layout:fixed">
+<tr valign="top"><td>
+
+	<div class="mframe mR">
+	<div class="tl"></div>
+	<div class="tr"></div>
+	<div class="tm">
+		<div class="moreR">
+			背景：<script type="text/javascript">WriteBg()</script>
+		</div>
+		<span class="tt">阅读新闻</span>
+	</div>
+	<div class="wrapper">
+	<div class="ml"></div>
+	<div class="mr"></div>
+	<div class="mm" id="bodyTd">
+		<div id="printBody" style="word-break:break-all;">
+			<div style="text-align:center"><h1 class="aTitle">CentOS 6.3下rsync+inotify安装配置笔记</h1></div>
+			
+			<table width="97%" align="center">
+				<tr>
+				<td width="140">[日期：2013-06-07]</td>
+				<td align="center">来源：Linux社区&nbsp;
+				作者：showerlee</td>
+				<td width="160" align="right">[字体：<a href="javascript:ContentSize(16)">大</a> <a href="javascript:ContentSize(0)">中</a> <a href="javascript:ContentSize(12)">小</a>]
+				</td></tr>
+			</table>
+<div id="li_all">
+<div id="li_1"><script type="text/javascript" src="/linuxfile/linux201.js"></script></div>
+<div id="li_2"><script type="text/javascript" src="/linuxfile/linux2.js"></script></div>
+</div>
+			<div id="content"><div class="linux19"><script type="text/javascript" language="javaScript" src="/linuxfile/linux19.js"></script></div> <p>二.安装inotify-tools：(server,client)</p>
+<p>可以到https://github.com/rvoicilas/inotify-tools/下载zip包，然后传到系统进行编译安装：</p>
+<p># unzip inotify-tools-master.zip</p>
+<p># cd inotify-tools-master</p>
+<p># ./autogen.sh</p>
+<p># ./configure --prefix=/usr/local/inotify</p>
+<p># make &amp;&amp; make install</p>
+<p>&nbsp;</p>
+<p>配置client端的inotify：(client)</p>
+<p># vi /etc/rc.d/inotify.sh</p>
+<p>该脚本在做客户端目录下文件若发生变化，则向服务端做同步上传操作，也就是保持客户端目录文件发生变化，服务端也相应改变。</p>
+<p>------------------</p>
+<p>#!/bin/bash</p>
+<p>src=/test</p>
+<p>des=test</p>
+<p>ip=192.168.7.73</p>
+<p>&nbsp;</p>
+<p>/usr/local/inotify/bin/inotifywait -mrq --timefmt '%d/%m/%y/%H:%M' --format '%T%w%f' -e modify,delete,create,attrib $src | while read file</p>
+<p>do</p>
+<p>rsync -vzrtopg --delete --progress $src user@$ip::$des --password-file=/etc/rsync.pas &amp;&amp;</p>
+<p>echo "$src has been resynced"</p>
+<p>done</p>
+<p>------------------</p>
+<p>&nbsp;</p>
+<p>赋予执行权限</p>
+<p># chmod +x /etc/rc.d/inotify.sh</p>
+<p>执行脚本并做开机启动：</p>
+<p># /etc/rc.d/inotify.sh</p>
+<p># echo "/etc/rc.d/inotify.sh" &gt;&gt; /etc/rc.local</p>
+<p>注：这个脚本的作用是通过inotify监控文件目录的变化，进而触发rsync进行同步操作，由于这是通过内核完成的主动式触发操作，所以比rsync遍历整个目录的扫描方式效率要高很多。</p>
+<p>&nbsp;</p>
+<p>验证：</p>
+<p>在客户端创建5个文件，到服务端查看文件是否实时同步？</p>
+<p>(client)</p>
+<p># cd /test</p>
+<p># touch 1 2 3 4 5</p>
+<p>(server)</p>
+<p># cd /test</p>
+<p># ls</p>
+<p>-------------</p>
+<p>1 2 3 4 5</p>
+<p>-------------</p>
+<p>验证成功，client端的目录发生变化会实时同步到server端，类似一个网络raid-1</p>
+<p>&nbsp;</p>
+<p>总结：</p>
+<p>rsync+inotify比较适用于轻量级文件即时同步，如果量大建议还是使用共享存储方法解决。</p>
+<p><span><span style="color: #ff0000;">更多<a href="http://www.linuxidc.com/topicnews.aspx?tid=14" target="_blank" title="CentOS">CentOS</a>相关信息见</span><a href="../../topicnews.aspx?tid=14" target="_self"><span style="color: #0000ff;">CentOS</span></a><span style="color: #ff0000;"> 专题页面 </span><span style="color: #0000ff;"><a title="CentOS" href="../../topicnews.aspx?tid=14" target="">http://www.linuxidc.com/topicnews.aspx?tid=14</a></span></span></p><a href="http://www.linuxidc.com" target="_blank"><img src="/linuxfile/logo.gif" alt="linux" width="15" height="17" /></div>
+<div class="linux301"><script type="text/javascript" src="/linuxfile/linux301.js"></script></div>
+<div class="linux3"><script type="text/javascript" src="/linuxfile/linux3.js"></script></div>
+<div class="linux302"><script type="text/javascript" src="/linuxfile/linux302.js"></script></div>		
+			<table align="center"><tr><td><div class="pager"><ul><li><a href="../../Linux/2013-06/85595.htm" title="上一页">上一页</a></li><li><a href="../../Linux/2013-06/85595.htm">1</a></li><li class="p_current">2</li><li><div><input type="text" value="1" onkeydown="pager.Jump(event,this)"/></div><script type="text/javascript" src="../../inc/pager.js"></script><script type="text/javascript">var pager=new iwmsPager(2,2,true);</script></li></ul></div></td></tr></table>
+			
+		</div>
+		<div style="padding:0 15px">
+			<ul id="digg" class="digg">
+				<li class="digg1">0</li>
+				<li class="digg2"><a href="###" onclick="iwms.diggIt(this,iwms.aId)">顶一下</a></li>
+			</ul>	
+		</div>
+<div class="linuxfx"><script type="text/javascript" language="javaScript" src="/linuxfile/fx.js"></script></div>	
+<div class="linux8"><script type="text/javascript" language="javaScript" src="/linuxfile/linux8.js"></script></div>
+<div class="linux801"><script type="text/javascript" language="javaScript" src="/linuxfile/linux801.js"></script></div>
+		<div class="nearNews">
+			<div class="prevNews"><a href="../../Linux/2013-06/85594.htm">Linux用户建立秘钥认证实现SHELL脚本管理,分发,部署</a></div>
+			<div class="nextNews"><a href="../../Linux/2013-06/85597.htm">CentOS 6.3下rsync笔记</a></div>
+		</div>
+	</div>
+	</div>
+	<div class="bl"></div>
+	<div class="br"></div>
+	<div class="bm"></div>
+	</div>
+	
+	<div class="mframe mR">
+	<div class="tl"></div>
+	<div class="tr"></div>
+	<div class="tm">
+		<span class="tt">相关资讯</span> &nbsp; &nbsp; &nbsp;
+		<a href="../../search.aspx?where=nkey&amp;keyword=3374" target="_blank">rsync</a>&nbsp; <a href="../../search.aspx?where=nkey&amp;keyword=11870" target="_blank">CentOS 6.3</a>&nbsp; <a href="../../search.aspx?where=nkey&amp;keyword=17585" target="_blank">rsync inotify</a>&nbsp; 
+	</div>
+	<div class="wrapper">
+	<div class="ml"></div>
+	<div class="mr"></div>
+	<div class="mm">
+		<table width='100%'><tr><td width='50%' valign='top'><ul class='nl'><li><a href="../../Linux/2013-11/92975.htm"  target="_blank" >rsync 搭建容灾备份系统</a>&nbsp; <span class="gray">(<span class="time">今 14:55</span>)</span></li>
+<li><a href="../../Linux/2013-10/91893.htm"  target="_blank" >配置rsync服务器</a>&nbsp; <span class="gray">(10月25日)</span></li>
+<li><a href="../../Linux/2013-10/90805.htm"  target="_blank"  title="rsync:mkstemp failed:Permission denied">rsync:mkstemp failed:Permission </a>&nbsp; <span class="gray">(10月01日)</span></li>
+</ul></td><td width='50%' valign='top'><ul class='nl'><li><a href="../../Linux/2013-11/92497.htm"  target="_blank"  title="企业Linux服务器数据实时同步备份的解决方案">企业Linux服务器数据实时同步备份</a>&nbsp; <span class="gray">(11月09日)</span></li>
+<li><a href="../../Linux/2013-10/90806.htm"  target="_blank" >文件同步 Rsync</a>&nbsp; <span class="gray">(10月01日)</span></li>
+<li><a href="../../Linux/2013-10/90803.htm"  target="_blank"  title="rsync错误：@ERROR: auth failed on module xxx">rsync错误：@ERROR: auth failed </a>&nbsp; <span class="gray">(10月01日)</span></li>
+</ul></td></tr></table>
+	</div>
+	</div>
+	<div class="bl"></div>
+	<div class="br"></div>
+	<div class="bm"></div>
+	</div>
+
+	<div class="mframe mR">
+	<div class="tl"></div>
+	<div class="tr"></div>
+	<div class="tm">
+		<span class="tt">图片资讯</span> &nbsp; &nbsp; &nbsp;
+	</div>
+	<div class="wrapper">
+	<div class="ml"></div>
+	<div class="mr"></div>
+	<div class="mm">
+<div class="imgList"><ul><li style="width:25%"><a href="../../Linux/2013-11/92975.htm"  target="_blank"  title="rsync 搭建容灾备份系统"><img src="../../upload/2013_11/131120145947712t.jpg" alt="rsync 搭建容灾备份系统" width="120" height="90"/>rsync 搭建容灾备份系</a></li><li style="width:25%"><a href="../../Linux/2013-11/92497.htm"  target="_blank"  title="企业Linux服务器数据实时同步备份的解决方案"><img src="../../upload/2013_11/131109072783721t.jpg" alt="企业Linux服务器数据实时同步备份的解决方案" width="120" height="90"/>企业Linux服务器数据</a></li><li style="width:25%"><a href="../../Linux/2013-10/90806.htm"  target="_blank" ><img src="../../upload/2013_10/13100109162209t.jpg" alt="文件同步 Rsync" width="120" height="90"/>文件同步 Rsync</a></li><li style="width:25%"><a href="../../Linux/2013-09/89668.htm"  target="_blank"  title="CentOS 6.3下部署文件恢复神器extundelete"><img src="../../upload/2013_09/130904194040721t.jpg" alt="CentOS 6.3下部署文件恢复神器extundelete" width="120" height="90"/>CentOS 6.3下部署文件</a></li><li style="width:25%"><a href="../../Linux/2013-09/89666.htm"  target="_blank"  title="rsync+inotify实时同步参考步骤"><img src="../../upload/2013_09/130904191884142t.jpg" alt="rsync+inotify实时同步参考步骤" width="120" height="90"/>rsync+inotify实时同</a></li><li style="width:25%"><a href="../../Linux/2013-09/89645.htm"  target="_blank"  title="Hyper-v 3.0 安装 CentOS 6.3"><img src="../../upload/2013_09/130904114182712t.jpg" alt="Hyper-v 3.0 安装 CentOS 6.3" width="120" height="90"/>Hyper-v 3.0 安装 </a></li><li style="width:25%"><a href="../../Linux/2013-09/89588.htm"  target="_blank"  title="inotify+rsync原理实验详解"><img src="../../upload/2013_09/13090306238225t.jpg" alt="inotify+rsync原理实验详解" width="120" height="90"/>inotify+rsync原理实</a></li><li style="width:25%"><a href="../../Linux/2013-07/86955.htm"  target="_blank"  title="CentOS 6.3下Apache+SVN部署Web版本同步"><img src="../../upload/2013_07/130706111636349t.jpg" alt="CentOS 6.3下Apache+SVN部署Web版本同步" width="120" height="90"/>CentOS 6.3下Apache+</a></li></ul></div>
+	</div>
+	</div>
+	<div class="bl"></div>
+	<div class="br"></div>
+	<div class="bm"></div>
+	</div>
+	
+	
+	<div class="mframe mR">
+	<div class="tl"></div>
+	<div class="tr"></div>
+	<div class="tm">
+		<span class="tt">本文评论</span>
+		 	　　<a href="../../remark.aspx?id=85595" target="_blank">查看全部评论</a> <span class="gray">(0)</span>
+	</div>
+	<div class="wrapper">
+	<div class="ml"></div>
+	<div class="mr"></div>
+	<div class="mm">
+		<table width="100%" style="margin:6px">		
+		<tr><td width="100%">
+			<form action="" name="fmRemarkSt" onsubmit="return remark.post(this);">
+			<input type="hidden" value="1" name="face"/>
+			表情： <img src="../../pic/b.gif" alt="表情" class="face1" style="cursor:pointer;vertical-align:middle" onclick="remark.dispFace(this)" onmouseout="remark.hideFace()"/>
+			姓名： <input type="text" name="username" value="" maxlength="15" style="width:60px" class="inputbg"/>
+			<input type="checkbox" id="rmAnonymitySt" onclick="remark.anony(this)"/><label for="rmAnonymitySt">匿名</label>
+			字数 <input type="text" id="bodyLen" size="3" readonly="readonly" style="border-width:0;background:transparent;vertical-align:middle" value="0"/>
+			<br/>
+			<textarea name="body" cols="40" rows="4" onkeydown="remark.dispLen(this)" onkeyup="remark.handle(event,this);remark.dispLen(this)" style="width:40em;height:100px;margin:3px 0;overflow-y:auto"></textarea>
+				<br/>
+		　　　<input type="checkbox" checked="checked" id="rmAgreeSt"/><label for="rmAgreeSt">同意评论声明</label>
+		　　　<button type="submit" style="width:50px">发表</button>
+			</form>
+		</td></tr>
+		<tr><td width="100%">
+			评论声明
+			<ul style="list-style-type:square;margin:5px 0 0 1em;padding:0">
+			<li>尊重网上道德，遵守中华人民共和国的各项有关法律法规</li>
+			<li>承担一切因您的行为而直接或间接导致的民事或刑事法律责任</li>
+			<li>本站管理人员有权保留或删除其管辖留言中的任意内容</li>
+			<li>本站有权在网站内转载或引用您的评论</li>
+			<li>参与本评论即表明您已经阅读并接受上述条款</li>
+			</ul>
+		</td></tr>
+		</table>
+		<script type="text/javascript" src="../../inc/remark.js"></script>
+		<script type="text/javascript">
+			remark.maxSize=500;
+			remark.minSize=2;
+			remark.sourceEle=$(document.fmRemarkSt).find("button").get(0);
+			iwms.vCode="31E1F88C";
+			iwms.user.name.length==0 ? $i("rmAnonymitySt").click() : $i("rmAnonymitySt").form.username.value=iwms.user.name;
+		</script>
+		
+		<div class="reCont" id="reContainer"></div>
+	</div>
+	</div>
+	<div class="bl"></div>
+	<div class="br"></div>
+	<div class="bm"></div>
+	</div>
+	
+</td><td width="300" valign="top">
+<div class="linux901"><script type="text/javascript" language="javaScript" src="/linuxfile/linux901.js"></script></div>
+<div class="linux902"><script type="text/javascript" language="javaScript" src="/linuxfile/linux902.js"></script></div>
+<div class="linux903"><script type="text/javascript" language="javaScript" src="/linuxfile/linux903.js"></script></div>
+<div class="linux905"><script type="text/javascript" language="javaScript" src="/linuxfile/linux905.js"></script></div>
+	
+	<div class="lframe">
+	<div class="tl"></div>
+	<div class="tr"></div>
+	<div class="tm">
+		<span class="tt">最新资讯</span>
+	</div>
+	<div class="wrapper">
+	<div class="ml"></div>
+	<div class="mr"></div>
+	<div class="mm">
+		<ul class="nl">
+<li><a href="../../Linux/2013-11/92975.htm" target="_blank">rsync 搭建容灾备份系统</a></li>
+<li><a href="../../Linux/2013-11/92974.htm" target="_blank">Cisco 路由器启动过程详解及重置密码的原理</a></li>
+<li><a href="../../Linux/2013-11/92973.htm" target="_blank">Android读取Txt文件</a></li>
+<li><a href="../../Linux/2013-11/92972.htm" target="_blank">ncdu-基于Ncurses的磁盘实用工具</a></li>
+<li><a href="../../Linux/2013-11/92971.htm" target="_blank">在红帽Linux中使用YUM包管理器</a></li>
+<li><a href="../../Linux/2013-11/92970.htm" target="_blank">LabKey Server 13.3 发布，实验室数据管理</a></li>
+<li><a href="../../Linux/2013-11/92969.htm" target="_blank">phpMyFAQ 2.8.3 发布，修复严重的权限漏洞</a></li>
+<li><a href="../../Linux/2013-11/92968.htm" target="_blank">Worker 3.2.0 发布，UN*X 文件管理器</a></li>
+<li><a href="../../Linux/2013-11/92967.htm" target="_blank">Infinispan 6.0.0.Final 发布</a></li>
+<li><a href="../../Linux/2013-11/92966.htm" target="_blank">Gitorious 3.0 发布，项目托管平台</a></li>
+</ul>
+	</div>
+	</div>
+	<div class="bl"></div>
+	<div class="br"></div>
+	<div class="bm"></div>
+	</div>
+
+	<div class="lframe">
+	<div class="tl"></div>
+	<div class="tr"></div>
+	<div class="tm">
+		<span class="tt">本周热门</span>
+	</div>
+	<div class="wrapper">
+	<div class="ml"></div>
+	<div class="mr"></div>
+	<div class="mm">
+		<ul class="nl">
+<li><a href="../../Linux/2012-02/53927.htm" target="_blank">单机版搭建Hadoop环境图文教程详解</a></li>
+<li><a href="../../Linux/2012-11/74252.htm" target="_blank" title="CentOS 6.3下部署LVS(NAT)+Keepalived实现高性能高可用负载均衡">CentOS 6.3下部署LVS(NAT)+Keepalived实现高性</a></li>
+<li><a href="../../Linux/2013-08/89035.htm" target="_blank">Linux 高可用（HA）集群之DRBD详解</a></li>
+<li><a href="../../Linux/2012-12/75980.htm" target="_blank">HAProxy+Keepalived高可用负载均衡配置</a></li>
+<li><a href="../../Linux/2010-05/26203.htm" target="_blank" title="Apache无法启动解决 the requested operation has failed">Apache无法启动解决 the requested operation </a></li>
+<li><a href="../../Linux/2013-06/86428.htm" target="_blank">基于RHEL6.3-KVM三节点虚拟机命令行搭建HA</a></li>
+<li><a href="../../Linux/2013-08/88663.htm" target="_blank" title="Heartbeat+MySQL+NFS 实现高可用(HA)的MySQL集群">Heartbeat+MySQL+NFS 实现高可用(HA)的MySQL集</a></li>
+<li><a href="../../Linux/2013-08/88522.htm" target="_blank">Linux 高可用（HA）集群基本概念详解</a></li>
+<li><a href="../../Linux/2013-04/82075.htm" target="_blank" title="502 bad gateway是什么意思？502 bad gateway怎么解决！">502 bad gateway是什么意思？502 bad gateway怎</a></li>
+<li><a href="../../Linux/2012-11/74388.htm" target="_blank" title="CentOS 6.3安装配置LAMP服务器(Linux+Apache+MySQL+PHP5)">CentOS 6.3安装配置LAMP服务器(Linux+Apache+</a></li>
+</ul>
+	</div>
+	</div>
+	<div class="bl"></div>
+	<div class="br"></div>
+	<div class="bm"></div>
+	</div>
+	<div class="linuxy9"><script type="text/javascript" language="javaScript" src="/linuxfile/y9.js"></script></div>	
+</td></tr>
+</table>
+<div class="linux906"><script type="text/javascript" language="javaScript" src="/linuxfile/linux906.js"></script></div>
+<div id="footer">
+<a href="http://www.linuxidc.com/aboutus.htm">Linux公社简介</a> - <a href="http://www.linuxidc.com/adsense.htm">广告服务</a> - <a href="http://www.linuxidc.com/sitemap.aspx">网站地图</a> - <a href="http://www.linuxidc.com/help.htm">帮助信息</a> - <a href="http://www.linuxidc.com/contactus.htm">联系我们</a><br />本站（LinuxIDC）所刊载文章不代表同意其说法或描述，仅为提供更多信息，也不构成任何建议。<br /><script type="text/javascript" language="javaScript" src="/linuxfile/qq.js"></script><br />
+<script type="text/javascript" language="javaScript" src="/linuxfile/foot.js"></script><br />Copyright &copy; 2006-2011　<a href="http://www.linuxidc.com/">Linux公社</a>　All rights reserved 浙ICP备06018118号
+	<script type="text/javascript">iwms.aId=85595;$(function(){iwms.imgCont=$i('content');iwms.imgResize();InitContStyle();iwms.getVars();})</script>
+	
+</div>
+</div>
+<script type="text/javascript" language="javaScript" src="/linuxren/linuxren1.js"></script>
+<script type="text/javascript" language="javaScript" src="/linuxren/linuxren2.js"></script>
+<script type="text/javascript" language="javaScript" src="/linuxren/linuxren3.js"></script>
+</body>
+</html>

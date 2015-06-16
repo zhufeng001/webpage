@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-cn">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>在扩展模块中对python的GIL进行解锁 - 进步一点点 - 博客园</title>
+<link type="text/css" rel="stylesheet" href="/bundles/blog-common.css?v=gdNkSiQMyBMkpTeO1ex9qW-60UbMszQItnCUpBAT3LQ1"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="http://common.cnblogs.com/Skins/sea/style.css?id=20140415"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/hdtianfu/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/hdtianfu/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/hdtianfu/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">var currentBlogApp = 'hdtianfu', cb_enable_mathjax=false;</script>
+<script src="/bundles/blog-common.js?v=15gzXd7pJ_PNpSlGpVykf0EBaNg79HWL7oD5vVw0NGA1" type="text/javascript"></script>
+</head>
+<body>
+<a name="top"></a>
+
+<!--done-->
+<div id="header">
+	
+<!--done-->
+<div class="header">
+	<div class="headerText">
+		<a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/hdtianfu/">进步一点点</a><br>
+		
+	</div>
+</div>
+
+</div>
+
+<div id="mytopmenu" >
+	
+		<div id="mylinks">
+<!--done-->
+<a id="MyLinks1_HomeLink" class="menu" href="http://www.cnblogs.com/">博客园</a> &nbsp;
+<a id="MyLinks1_MyHomeLink" class="menu" href="http://www.cnblogs.com/hdtianfu/">首页</a> &nbsp;
+<a href="http://q.cnblogs.com" class="menu">博问</a> &nbsp;
+<a href="http://home.cnblogs.com/ing/" class="menu">闪存</a> &nbsp;
+<a id="MyLinks1_NewPostLink" class="menu" rel="nofollow" href="http://i.cnblogs.com/EditPosts.aspx?opt=1">新随笔</a> &nbsp;
+<a id="MyLinks1_ContactLink" class="menu" rel="nofollow" href="http://space.cnblogs.com/msg/send/%e8%bf%9b%e6%ad%a5%e4%b8%80%e7%82%b9%e7%82%b9">联系</a> &nbsp;
+<a id="MyLinks1_Syndication" class="menu" href="http://www.cnblogs.com/hdtianfu/rss">订阅</a><a id="MyLinks1_XMLLink" href="http://www.cnblogs.com/hdtianfu/rss"><img src="http://www.cnblogs.com/images/xml.gif" alt="订阅" /></a>&nbsp;
+<a id="MyLinks1_Admin" class="menu" rel="nofollow" href="http://i.cnblogs.com/">管理</a>
+</div>
+		<DIV id="mystats">
+<!--done-->
+随笔-56&nbsp;
+评论-3&nbsp;
+文章-0&nbsp;
+trackbacks-0
+</DIV>
+	
+</div>
+<div id="centercontent" >
+	
+
+<div class = "post">
+	<h1 class = "postTitle"><a id="cb_post_title_url" class="postTitle2" href="http://www.cnblogs.com/hdtianfu/archive/2012/10/28/2743799.html">在扩展模块中对python的GIL进行解锁</a></h1>
+	<div id="cnblogs_post_body"><span style="font-size: 12px; ">
+<div>在多线程环境下，python虚拟机按照以下方式运行：</div>
+<div></div>
+<div>&nbsp; &nbsp;1. 设置GIL（全局解释器锁）</div>
+<div>&nbsp; &nbsp;2. 切换到一个线程中去</div>
+<div>&nbsp; &nbsp;3. 运行</div>
+<div>&nbsp; &nbsp; &nbsp; &nbsp; a. <strong>指定数量的字节码的指令</strong>，或者</div>
+<div>&nbsp; &nbsp; &nbsp; &nbsp; b. 线程主动让出控制(可以条用time.sleep(0) )</div>
+<div>&nbsp; &nbsp;4. 把线程设置为睡眠模式</div>
+<div>&nbsp; &nbsp;5. 解锁GIL</div>
+<div>&nbsp; &nbsp;6. 再次重复以上步骤</div>
+<div></div>
+<div>调用C/C++扩展函数的时候，GIL会被锁定，直到这个函数结束。<strong>由于这期间没有python的字节码被运行，所以线程不会切换</strong>。</div>
+<p>&nbsp;</p>
+<p>如果我在扩展模块中调用阻塞式地I/O函数，那么就会发生比较糟糕的事情。</p>
+<p>比如说，我在扩展模块中接受网络数据，如果对端机器没有发送数据，那么我的整个Python程序就会阻塞到这一点，而且不会进行线程的切换。</p>
+<p>如果发生这样的事情，python中的多线程机制就形同虚设了。&nbsp;</p>
+<p>&nbsp;不过，python允许扩展模块自己对GIL进行解锁，方法如下：&nbsp;</p>
+<p>&nbsp;解锁GIL的代码结构</p><fieldset>
+<pre>Save the thread state in a local variable.&nbsp;</pre>
+<pre>Release the global interpreter lock.&nbsp;</pre>
+<pre>... Do some blocking I/O operation ...&nbsp;</pre>
+<pre>Reacquire the global interpreter lock.&nbsp;</pre>
+<pre>Restore the thread state from the local variable. </pre>
+</fieldset>
+<p>&nbsp;由于这个步骤十分通用，Python提供了宏以简化代码，如下：</p><div class="cnblogs_code"><div>Py_BEGIN_ALLOW_THREADS<br />...&nbsp;Do&nbsp;some&nbsp;blocking&nbsp;I/O&nbsp;operation&nbsp;...<br />Py_END_ALLOW_THREADS</div></div><p>例如，如果我们在代码中使用了 getch 这个函数，那么我们的代码可以这么写：</p><div class="cnblogs_code"><div><span style="color: #008000;">#</span><span style="color: #008000;">&nbsp;getch&nbsp;test</span><span style="color: #008000;"><br /></span>Py_BEGIN_ALLOW_THREADS<br />int&nbsp;key&nbsp;=&nbsp;getch();<br />Py_END_ALLOW_THREADS</div></div><p>这段代码会被扩展为如下：</p><p>&nbsp;<span style="color: #008000; ">#</span><span style="color: #008000; ">&nbsp;getch&nbsp;test</span></p><div class="cnblogs_code"><div>PyThreadState&nbsp;*_save;<br /><br />_save&nbsp;=&nbsp;PyEval_SaveThread();<br />int&nbsp;key&nbsp;=&nbsp;getch();<br />PyEval_RestoreThread(_save);</div></div>&nbsp;<p>&nbsp;</p>
+</span></div><div id="MySignature"></div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="blog_post_info">
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"></div>
+</div>
+
+
+	<div class = "postDesc">posted on <span id="post-date">2012-10-28 18:04</span> <a href='http://www.cnblogs.com/hdtianfu/'>进步一点点</a> 阅读(<span id="post_view_count">...</span>) 评论(<span id="post_comment_count">...</span>)  <a href ="http://i.cnblogs.com/EditPosts.aspx?postid=2743799" rel="nofollow">编辑</a> <a href="#" onclick="AddToWz(2743799);return false;">收藏</a></div>
+</div>
+<script type="text/javascript">var allowComments=true,isLogined=false,cb_blogId=62433,cb_entryId=2743799,cb_blogApp=currentBlogApp,cb_blogUserGuid='09489f66-95c4-de11-ba8f-001cf0cd104b',cb_entryCreatedDate='2012/10/28 18:04:00';loadViewCount(cb_entryId);</script>
+
+<a name="!comments"></a><div id="blog-comments-placeholder"></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="程序员的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="ad_under_post_holder"></div>
+<script type="text/javascript">
+var enableGoogleAd = true;
+var googletag = googletag || {};
+googletag.cmd = googletag.cmd || [];
+fixPostBodyFormat();
+loadAdUnderPost();
+</script>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+loadBlogSignature();
+LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);
+GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+</script>
+<script type="text/javascript">
+    $.ajax({ url: 'http://counter.cnblogs.com/blog/post/' + cb_entryId, type: 'get', dataType: 'script', cache: true });
+</script>
+</div>
+
+</div>
+<div id="leftcontent">
+	
+		<DIV id="leftcontentcontainer">
+			
+<!--done-->
+<div class="newsItem">
+	<div id="blog-news"></div><script type="text/javascript">loadBlogNews();</script>
+</div>
+
+			<div id="blog-calendar" style="display:none"></div><script type="text/javascript">loadBlogDefaultCalendar();</script><br>
+			<div id="blog-sidecolumn"></div><script type="text/javascript">loadBlogSideColumn();</script></DIV>
+	
+</div>
+
+<!--done-->
+<div class="footer">
+	Powered by: <a href="http://www.cnblogs.com">博客园</a>	模板提供：<a href="http://blog.hjenglish.com">沪江博客</a>
+	Copyright &copy;2014 进步一点点
+</div>
+
+
+
+</body>
+</html>

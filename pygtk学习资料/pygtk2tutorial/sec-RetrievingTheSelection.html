@@ -1,0 +1,212 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>21.2. Retrieving the Selection</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-ManagingSelections.html" title="Chapter 21. Managing Selections"><link rel="prev" href="ch-ManagingSelections.html" title="Chapter 21. Managing Selections"><link rel="next" href="sec-SupplyingTheSelection.html" title="21.3. Supplying the Selection"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">21.2. Retrieving the Selection</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch-ManagingSelections.html">Prev</a> </td><th width="60%" align="center">Chapter 21. Managing Selections</th><td width="20%" align="right"> <a accesskey="n" href="sec-SupplyingTheSelection.html">Next</a></td></tr></table><hr></div><div class="sect1" title="21.2. Retrieving the Selection"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-RetrievingTheSelection"></a>21.2. Retrieving the Selection</h2></div></div></div><p>Retrieving the selection is an asynchronous process. To start
+the process, you call:</p><pre class="programlisting">
+  result = widget.selection_convert(<strong class="parameter"><code>selection</code></strong>, <strong class="parameter"><code>target</code></strong>, <strong class="parameter"><code>time</code></strong>=0)
+</pre><p>This converts the <em class="parameter"><code>selection</code></em> into the form
+specified by <em class="parameter"><code>target</code></em>. <em class="parameter"><code>selection</code></em>
+is an atom corresponding to the selection type; the common selections are
+the strings:</p><pre class="programlisting">
+  PRIMARY
+
+  SECONDARY
+</pre><p>If at all possible, the <em class="parameter"><code>time</code></em> field should
+be the time from the event that triggered the
+<em class="parameter"><code>selection</code></em>.  This helps make sure that events occur in
+the order that the user requested them. However, if it is not available (for
+instance, if the conversion was triggered by a "clicked" signal), then you
+can use 0 which means use the current time. <em class="parameter"><code>result</code></em> is
+<code class="literal">TRUE</code> if the conversion succeeded,
+<code class="literal">FALSE</code> otherwise.</p><p>When the selection owner responds to the request, a
+"selection_received" signal is sent to your application. The handler for
+this signal receives a <code class="classname">gtk.SelectionData</code> object,
+which has the following attributes:</p><pre class="programlisting">
+  selection
+  target
+  type
+  format
+  data
+</pre><p><em class="parameter"><code>selection</code></em> and <em class="parameter"><code>target</code></em>
+are the values you gave in your <code class="methodname">selection_convert</code>()
+method.</p><p><em class="parameter"><code>type</code></em> is an atom that identifies the type of
+data returned by the selection owner. Some possible values are "STRING", a
+string of latin-1 characters, "ATOM", a series of atoms, "INTEGER", an
+integer, "image/x-xpixmap", etc. Most targets can only return one
+type.</p><p>The list of standard atoms in X and GTK+ is:</p><pre class="programlisting">
+  PRIMARY
+  SECONDARY
+  ARC
+  ATOM
+  BITMAP
+  CARDINAL
+  COLORMAP
+  CURSOR
+  CUT_BUFFER0
+  CUT_BUFFER1
+  CUT_BUFFER2
+  CUT_BUFFER3
+  CUT_BUFFER4
+  CUT_BUFFER5
+  CUT_BUFFER6
+  CUT_BUFFER7
+  DRAWABLE
+  FONT
+  INTEGER
+  PIXMAP
+  POINT
+  RECTANGLE
+  RESOURCE_MANAGER
+  RGB_COLOR_MAP
+  RGB_BEST_MAP
+  RGB_BLUE_MAP
+  RGB_DEFAULT_MAP
+  RGB_GRAY_MAP
+  RGB_GREEN_MAP
+  RGB_RED_MAP
+  STRING
+  VISUALID
+  WINDOW
+  WM_COMMAND
+  WM_HINTS
+  WM_CLIENT_MACHINE
+  WM_ICON_NAME
+  WM_ICON_SIZE
+  WM_NAME
+  WM_NORMAL_HINTS
+  WM_SIZE_HINTS
+  WM_ZOOM_HINTS
+  MIN_SPACE
+  NORM_SPACE
+  MAX_SPACE  END_SPACE,
+  SUPERSCRIPT_X
+  SUPERSCRIPT_Y
+  SUBSCRIPT_X
+  SUBSCRIPT_Y
+  UNDERLINE_POSITION
+  UNDERLINE_THICKNESS
+  STRIKEOUT_ASCENT
+  STRIKEOUT_DESCENT
+  ITALIC_ANGLE
+  X_HEIGHT
+  QUAD_WIDTH
+  WEIGHT
+  POINT_SIZE
+  RESOLUTION
+  COPYRIGHT
+  NOTICE
+  FONT_NAME
+  FAMILY_NAME
+  FULL_NAME
+  CAP_HEIGHT
+  WM_CLASS
+  WM_TRANSIENT_FOR
+  CLIPBOARD
+</pre><p><em class="parameter"><code>format</code></em> gives the length of the units (for
+instance characters) in bits. Usually, you don't care about this when
+receiving data.</p><p><em class="parameter"><code>data</code></em> is the returned data in the form of a
+string.</p><p>PyGTK wraps all received data into a string. This makes it easy
+to handle string targets. To retrieve targets of other types (e.g. ATOM or
+INTEGER) the program must extract the information from the returned string.
+PyGTK provides two methods to retrieve text and a list of targets from the
+selection data:</p><pre class="programlisting">
+  text = selection_data.get_text()
+
+  targets = selection_data.get_targets()
+</pre><p>where <em class="parameter"><code>text</code></em> is a string containing the text
+of the selection and <em class="parameter"><code>targets</code></em> is a list of the targets
+supported by the selection.</p><p>Given a <code class="classname">gtk.SelectionData</code> containing a
+list of targets the method:</p><pre class="programlisting">
+  has_text = selection_data.targets_include_text()
+</pre><p>will return <code class="literal">TRUE</code> if one or more of the targets
+can provide text.</p><p>The <a class="ulink" href="examples/getselection.py" target="_top"><span class="command"><strong>getselection.py</strong></span></a>
+example program demonstrates the retrieving of a "STRING" or "TARGETS"
+target from the primary selection and printing the corresponding data to the
+console when the associated button is "clicked".  <a class="xref" href="sec-RetrievingTheSelection.html#getselectionfig" title="Figure 21.1. Get Selection Example">Figure 21.1, “Get Selection Example”</a> illustrates the program display:</p><div class="figure"><a name="getselectionfig"></a><p class="title"><b>Figure 21.1. Get Selection Example</b></p><div class="figure-contents"><div class="mediaobject" align="center"><img src="figures/getselection.png" align="middle" alt="Get Selection Example"></div></div></div><br class="figure-break"><p>The source code for the <a class="ulink" href="examples/getselection.py" target="_top"><span class="command"><strong>getselection.py</strong></span></a>
+program is:</p><pre class="programlisting">
+    1	#!/usr/bin/env python
+    2	
+    3	# example getselection.py
+    4	
+    5	import pygtk
+    6	pygtk.require('2.0')
+    7	import gtk
+    8	
+    9	class GetSelectionExample:
+   10	    # Signal handler invoked when user clicks on the
+   11	    # "Get String Target" button
+   12	    def get_stringtarget(self, widget):
+   13	        # And request the "STRING" target for the primary selection
+   14	        ret = widget.selection_convert("PRIMARY", "STRING")
+   15	        return
+   16	
+   17	    # Signal handler invoked when user clicks on the "Get Targets" button
+   18	    def get_targets(self, widget):
+   19	        # And request the "TARGETS" target for the primary selection
+   20	        ret = widget.selection_convert("PRIMARY", "TARGETS")
+   21	        return
+   22	
+   23	    # Signal handler called when the selections owner returns the data
+   24	    def selection_received(self, widget, selection_data, data):
+   25	        # Make sure we got the data in the expected form
+   26	        if str(selection_data.type) == "STRING":
+   27	            # Print out the string we received
+   28	            print "STRING TARGET: %s" % selection_data.get_text()
+   29	
+   30	        elif str(selection_data.type) == "ATOM":
+   31	            # Print out the target list we received
+   32	            targets = selection_data.get_targets()
+   33	            for target in targets:
+   34	                name = str(target)
+   35	                if name != None:
+   36	                    print "%s" % name
+   37	                else:
+   38	                    print "(bad target)"
+   39	        else:
+   40	            print "Selection was not returned as \"STRING\" or \"ATOM\"!"
+   41	
+   42	        return False
+   43	  
+   44	
+   45	    def __init__(self):
+   46	        # Create the toplevel window
+   47	        window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+   48	        window.set_title("Get Selection")
+   49	        window.set_border_width(10)
+   50	        window.connect("destroy", lambda w: gtk.main_quit())
+   51	
+   52	        vbox = gtk.VBox(False, 0)
+   53	        window.add(vbox)
+   54	        vbox.show()
+   55	
+   56	        # Create a button the user can click to get the string target
+   57	        button = gtk.Button("Get String Target")
+   58	        eventbox = gtk.EventBox()
+   59	        eventbox.add(button)
+   60	        button.connect_object("clicked", self.get_stringtarget, eventbox)
+   61	        eventbox.connect("selection_received", self.selection_received)
+   62	        vbox.pack_start(eventbox)
+   63	        eventbox.show()
+   64	        button.show()
+   65	
+   66	        # Create a button the user can click to get targets
+   67	        button = gtk.Button("Get Targets")
+   68	        eventbox = gtk.EventBox()
+   69	        eventbox.add(button)
+   70	        button.connect_object("clicked", self.get_targets, eventbox)
+   71	        eventbox.connect("selection_received", self.selection_received)
+   72	        vbox.pack_start(eventbox)
+   73	        eventbox.show()
+   74	        button.show()
+   75	
+   76	        window.show()
+   77	
+   78	def main():
+   79	    gtk.main()
+   80	    return 0
+   81	
+   82	if __name__ == "__main__":
+   83	    GetSelectionExample()
+   84	    main()
+</pre><p>Lines 30-38 handle the retrieval of the "TARGETS" selection data
+and print the list of target names. The buttons are enclosed in their own
+eventboxes because a selection must be associated with a
+<code class="classname">gtk.gdkWindow</code> and buttons are "windowless" widgets in
+GTK+2.0.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch-ManagingSelections.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-ManagingSelections.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="sec-SupplyingTheSelection.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 21. Managing Selections </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 21.3. Supplying the Selection</td></tr></table></div></body></html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<title>利用framebuffer和tty在linux编写图形驱动_Linux时代 - 中国最大的Linux技术社区</title>
+<meta name="keywords" content="图形,驱动,编写,利用">
+<meta name="description" content="　　虽然framebuffer有很多局限性，比如在内核启动之后就无法修改分辨率，但是通过framebuffer这个内核抽象出来的设备文件可以很方便的控制显卡，显示图像。　　由于framebuffer是显卡的抽象...">
+<base href="http://pub.chinaunix.net/" />
+<link href="/css/news.css" rel="stylesheet" type="text/css" />
+<style type="text/css">
+<!--
+.STYLE1 {color: #FF0000}
+.STYLE2 {font-size: 14px}
+-->
+</style>
+<script language="JavaScript" src="data/config.js"></script>
+<script language="JavaScript" src="images/js/jquery.min.js"></script>
+<script language="JavaScript" src="images/js/css.js"></script>
+<script language="JavaScript" src="images/js/common.js"></script>
+</head>
+<body>
+<table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tr>
+    <td height="27"></td>
+  </tr>
+  <tr>
+    <td height="1" bgcolor="#CCCCCC"></td>
+  </tr>
+  <tr>
+    <td><table width="100%" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td height="84"><img src="/images/news/title.gif" /></td>
+        <td align="right" ><IFRAME SRC="http://count.chinaunix.net/iframe.php?id=54" width="725" height="80" frameborder="0"  scrolling="no"></IFRAME></td>
+      </tr>
+    </table></td>
+  </tr>
+</table>
+<table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tr>
+    <td height="30" valign="bottom">&nbsp;&nbsp;<a href="http://www.chinaunix.net">ChinaUnix</a> &gt;&gt; <a href="http://doc.chinaunix.net">文档中心</a> &gt;&gt; <a href="http://doc.chinaunix.net/os/">操作系统</a> &gt;&gt; <a href="http://doc.chinaunix.net/linux/">Linux</a> &gt;&gt; 正文</td>
+<td align=right><a href="http://bbs.chinaunix.net/forumdisplay.php?fid=46" target=_blank>IT新闻与评论交流区</a></td>
+  </tr>
+  <tr>
+    <td height="1" bgcolor="#CCCCCC" colspan=2></td>
+  </tr>
+  <tr>
+    <td height="8" colspan=2></td>
+  </tr>
+</table><table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tr>
+    <td valign="top" class="BLKtext"><table width="660" border="0" align="center" cellpadding="0" cellspacing="0">
+      <tr>
+        <td height="8">&nbsp;</td>
+      </tr>
+      <tr>
+        <td height="30" class="Ftext1">利用framebuffer和tty在linux编写图形驱动</td>
+      </tr>
+      <tr>
+        <td><table width="80%" border="0" align="center" cellpadding="0" cellspacing="0">
+          <tr>
+            <td height="1" bgcolor="#CCCCCC"></td>
+          </tr>
+        </table></td>
+      </tr>
+      <tr>
+        <td height="40" align="center">
+发布者：chinaitlab 
+ 　日期：
+2010-10-28 00:00:00　浏览次数：<span id="hits">0</span>　(共有<span class="STYLE1" id ="comments_top">_</span>条评论)  
+<a href="comment/?keyid=man-content-title-1000117&verify=b72bafc9b3b07688e7ae20949e7235d4"  target="_blank">查看评论</a> | <a href="comment/?keyid=man-content-title-1000117&verify=b72bafc9b3b07688e7ae20949e7235d4"  target="_blank">我要评论</a></td>
+      </tr>
+      <tr>
+        <td>&nbsp;</td>
+      </tr>
+      <tr>
+        <td class="F14"><P>　　虽然framebuffer有很多局限性，比如在内核启动之后就无法修改分辨率，但是通过framebuffer这个内核抽象出来的设备文件可以很方便的控制显卡，显示图像。</P>
+<P>　　由于framebuffer是显卡的抽象，因此向 /dev/fb0(假设是fb0)，就相当于向显存写数据，因此无论你是在什么环境下屏幕都会被覆盖掉，但是同时还有其他进程和你争抢显卡的显示权，因此需要一种方式独占显卡的使用权限，这个也是我找了很久才发现的。</P>
+<P>　　对framebuffer的操作很容易从网上找到例子，我这里简单说一下</P>
+<P>　　1.在未开启framebuffer的linux系统下开启framebuffer(以Ubuntu 9.04alpha6为例)</P>
+<P>　　开启framebuffer需要修改以下几个文件，你可以在在命令行里用vi编辑，也可以个用gedit，我个人还是推荐后者。</P>
+<P>　　sudo gedit /etc/initramfs-tools/modules</P>
+<P>　　在最后面新起两行加入</P>
+<P>　　fbcon</P>
+<P>　　vesafb</P>
+<P>　　sudo gedit /etc/modprobe.d/blacklist-framebuffer.conf</P>
+<P>　　注释掉(前面添加一个#)</P>
+<P>　　blacklist vesafb</P>
+<P>　　同时还要注释掉你的显卡驱动，我的是nVidia</P>
+<P>　　sudo gedit /boot/grub/menu.lst</P>
+<P>　　在kernel启动参数的行末尾添上 vga=0x317 (1024x768，16位，你也可以使用别的分辨率模式)</P>
+<P>　　然后</P>
+<P>　　sudo update-initramfs -u</P>
+<P>　　重新启动就可以了！</P>
+<P>　　2.framebuffer的基本操作</P>
+<P>　　一下代码均是我写的源代码，绝对是可以编译通过的，至于运行效果我只在我自己的电脑上测试过有效。</P>
+<P>　　基本预处理操作</P>
+<P>　　包含头文件</P>
+<P>　　#include &lt;unistd.h&gt;</P>
+<P>　　#include &lt;stdio.h&gt;</P>
+<P>　　#include &lt;stdlib.h&gt;</P>
+<P>　　#include &lt;fcntl.h&gt;</P>
+<P>　　#include &lt;linux/fb.h&gt;</P>
+<P>　　#include &lt;sys/mman.h&gt;</P>
+<P>　　#include &lt;sys/ioctl.h&gt;</P>
+<P>　　//要打开的framebuffer的编号，默认是0</P>
+<P>　　char devname[50];</P>
+<P>　　autorefresh=false;</P>
+<P>　　sprintf(devname,"/dev/fb%d",num);</P>
+<P>　　fd=open(devname,O_RDWR);</P>
+<P>　　if(fd&lt;0)</P>
+<P>　　{</P>
+<P>　　fd=-1;</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("open %s error!\n",devname);</P>
+<P>　　#endif</P>
+<P>　　return;</P>
+<P>　　}</P>
+<P>　　//获取信息</P>
+<P>　　if(fb::refreshinfo())</P>
+<P>　　{</P>
+<P>　　//映射内存</P>
+<P>　　mem = (char*)mmap(0,finfo.smem_len,PROT_READ | PROT_WRITE,MAP_SHARED,fd, 0);</P>
+<P>　　if((int)mem==-1)</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("reflect memory error! \n");</P>
+<P>　　#endif</P>
+<P>　　mem=NULL;</P>
+<P>　　}</P>
+<P>　　}</P>
+<P>　　else</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("can not reflect memory!\n");</P>
+<P>　　#endif</P>
+<P>　　mem=NULL;</P>
+<P>　　}</P>
+<P>　　/＊---------------------------------------------------------------------------------------------------------------＊/</P>
+<P>　　//更新fb信息</P>
+<P>　　if(ioctl(fd,FBIOGET_FSCREENINFO,&amp;finfo))</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("Reading fb_fix_screeninfo error!\n");</P>
+<P>　　#endif</P>
+<P>　　return false;</P>
+<P>　　}</P>
+<P>　　if(ioctl(fd,FBIOGET_VSCREENINFO,&amp;vinfo))</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("Reading fb_var_screeninfo error!\n");</P>
+<P>　　#endif</P>
+<P>　　return false;</P>
+<P>　　}</P>
+<P>　　return true;</P>
+<P>　　这两个是最重要的，怎么样，简单吧？至于修改参数，我按照网上参考的源代码去做没有效果，待我研究透彻再搬上来。</P>
+<P>　　如何独占显卡？我在跟踪mplayer在fbdev方式下播放时的操作发现的，原理是这样的：</P>
+<P>　　mplayer首先找到当前活动的终端，然后打开该终端，保存当前终端的状态，然后修改状态，最后把终端切换到图形模式，这是他就获得了控制权，即使你按下ctrl+alt+fn切换终端也是无效的。</P>
+<P>　　但是这其中还有一个问题没有解决，无论是我写的程序，还是mplayer在x.org的图形终端里无法正常显示、播放图像、视频。我记得x.org没有使用framebuffer，他有自己的一套驱动，但是显卡只有一个，他的驱动如何和framebuffer协同工作，这其中我不是很清楚，在x.org里（其实是xsever）里可以修改分辨率的，当然正宗的针对nVidia的驱动做到这点没什么神奇的，问题是framebuffer的分辨率和他不一样，也就是说framebuffer和xsever驱动不可以同时运行，但是我确实赋值成功了，而且屏幕确实改变了，只不过不是想象中的图像。</P>
+<P>　　好了，下面写操作虚拟终端的代码，当然，你也可一不使用当前终端，可以创建一个新的终端，创建新终端很简单，只要打开相应的设备文件即可。</P>
+<P>　　头文件</P>
+<P>　　#include&lt;linux/vt.h&gt;</P>
+<P>　　#include&lt;linux/kd.h&gt;</P>
+<P>　　//获取当前活动的虚拟终端</P>
+<P>　　int kd;</P>
+<P>　　struct vt_stat vts;</P>
+<P>　　kd=open("/dev/tty0", O_WRONLY, 0);</P>
+<P>　　if(kd&lt;0)</P>
+<P>　　{</P>
+<P>　　//打开失败</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("Open /dev/tty0 error!");</P>
+<P>　　#endif</P>
+<P>　　return lge::gphdev::gphdevice::tty(-1);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //-1表示不初始化</P>
+<P>　　//产生错误</P>
+<P>　　}</P>
+<P>　　if (ioctl(kd, VT_GETSTATE, &amp;vts) == 0)</P>
+<P>　　{</P>
+<P>　　close(kd);</P>
+<P>　　return lge::gphdev::gphdevice::tty(vts.v_active);</P>
+<P>　　}</P>
+<P>　　else</P>
+<P>　　{</P>
+<P>　　//获取状态失败</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("ioctl VT_GETSTATE error!\n");</P>
+<P>　　#endif</P>
+<P>　　close(kd);</P>
+<P>　　return lge::gphdev::gphdevice::tty(-1);</P>
+<P>　　}</P>
+<P></p> </P>
+<P>&nbsp;</P>
+<P>　　/*----------------------------------------------------------------------*/</P>
+<P>　　char devname[50];</P>
+<P>　　vtsaved=false;</P>
+<P>　　curnum=ttynum;</P>
+<P>　　if(ttynum==-1)</P>
+<P>　　{</P>
+<P>　　//不初始化</P>
+<P>　　fd=-1;</P>
+<P>　　return;</P>
+<P>　　}</P>
+<P>　　//打开</P>
+<P>　　sprintf(devname,"/dev/tty%d",ttynum);</P>
+<P>　　fd=open(devname, O_RDWR | O_NDELAY, 0);</P>
+<P>　　if(fd&lt;0)</P>
+<P>　　{</P>
+<P>　　//打开文件失败</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("open %s error!\n",devname);</P>
+<P>　　#endif</P>
+<P>　　fd=-1;</P>
+<P>　　curnum=-1;</P>
+<P>　　return;</P>
+<P>　　}</P>
+<P>　　/*---------------------------------------------------------------------------*/</P>
+<P>　　//保存这个虚拟终端的状态</P>
+<P>　　if(fd==-1)</P>
+<P>　　return false;</P>
+<P>　　if (ioctl(fd, VT_GETMODE, &amp;o_vt) &lt; 0)</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("ioctl VT_GETMODE error!\n");</P>
+<P>　　#endif</P>
+<P>　　return false;</P>
+<P>　　}</P>
+<P>　　vtsaved=true;</P>
+<P>　　return true;</P>
+<P>　　/*---------------------------------------------------------------------------*/</P>
+<P>　　//从保存的状态中恢复</P>
+<P>　　if(fd==-1 || vtsaved==false)</P>
+<P>　　return false;</P>
+<P>　　if(ioctl(fd, VT_SETMODE, &amp;o_vt)&lt;0)</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("ioctl VT_SETMODE error!\n");</P>
+<P>　　#endif</P>
+<P>　　return false;</P>
+<P>　　}</P>
+<P>　　return true;</P>
+<P>　　/*---------------------------------------------------------------------------*/</P>
+<P>　　//文字模式</P>
+<P>　　if(fd==-1)</P>
+<P>　　return false;</P>
+<P>　　if(ioctl(fd, KDSETMODE, KD_TEXT)&lt;0)</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("ioctl KDSETMODE KD_TEXT error!\n");</P>
+<P>　　#endif</P>
+<P>　　return false;</P>
+<P>　　}</P>
+<P>　　return true;</P>
+<P>　　/*--------------------------------------------------------------------------*/</P>
+<P>　　//图形模式</P>
+<P>　　struct vt_mode vt;</P>
+<P>　　if(fd==-1)</P>
+<P>　　return false;</P>
+<P>　　//??</P>
+<P>　　vt.mode = VT_PROCESS;</P>
+<P>　　vt.relsig = SIGUSR1;</P>
+<P>　　vt.acqsig = SIGUSR1;</P>
+<P>　　//--</P>
+<P>　　if(ioctl(fd, VT_SETMODE, &amp;vt) &lt; 0)</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("ioctl VT_SETMODE error!\n");</P>
+<P>　　#endif</P>
+<P>　　return false;</P>
+<P>　　}</P>
+<P>　　//修改显示模式</P>
+<P>　　if (ioctl(fd, KDSETMODE, KD_GRAPHICS) &lt; 0)</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("ioctl KDSETMODE KD_GRAPHICS error!\n");</P>
+<P>　　#endif</P>
+<P>　　return false;</P>
+<P>　　}</P>
+<P>　　return true;</P>
+<P>　　/*--------------------------------------------------------------------------*/</P>
+<P>　　其中fd是在第一个构造函数里打开的终端文件的句柄</P>
+<P>　　简单讲一下ioctl用于和驱动程序交换信息，至于把某结构修改成某某值大家先这样做把，尤其是</P>
+<P>　　//??</P>
+<P>　　vt.mode = VT_PROCESS;</P>
+<P>　　vt.relsig = SIGUSR1;</P>
+<P>　　vt.acqsig = SIGUSR1;</P>
+<P>　　//--</P>
+<P>　　很重要，否则会使它失去响应的，至于为什么……你没看到我也画问号了吗~</P>
+<P>　　哦~忘记说了</P>
+<P>　　#define SIGUSR1 10</P>
+<P>　　这个不要忘。</P>
+<P>　　测试吗~可以简单向影射好的内存地址memset一堆0你就看到屏幕黑了，嘿嘿，至于显示图像嘛~我也就能解码bmp的，不敢献丑勒…</P>
+<P>　　PS:再告诉大家一个好方法，看到不懂地方就去看看头文件，注释很详细的，而且编写fb.h的大牛很搞笑</P>
+<P>　　在结构</P>
+<P>　　struct fb_var_screeninfo</P>
+<P>　　有一句</P>
+<P>　　__u32 bits_per_pixel;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* guess what&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */</P></p></td>
+      </tr>
+      <tr>
+        <td height="20" align="right">
+        </td>
+      </tr>
+      <tr>
+        <td>
+&nbsp;&nbsp;&nbsp;&nbsp;<font color=red>&gt;&gt;更多交流，请到</font>&nbsp;<a href="http://linux.chinaunix.net/bbs/forum-2-1.html" target="_blank" style="color:red">ChinaUnix【Linux系统管理论坛】：http://linux.chinaunix.net/bbs/forum-2-1.html</a>
+<br /><br />
+            <div id="keyword"><strong>关键词：</strong><a href="newstag.php?tag=%CD%BC%D0%CE" class="keyword">图形</a><a href="newstag.php?tag=%C7%FD%B6%AF" class="keyword">驱动</a><a href="newstag.php?tag=%B1%E0%D0%B4" class="keyword">编写</a><a href="newstag.php?tag=%C0%FB%D3%C3" class="keyword">利用</a></div>
+                  <!--分页-->
+      <div id="pages"></div>      
+      </td>
+      </tr>
+      <tr>
+        <td>        <div id="digg_div"></div>
+  <script  type="text/javascript">var contentid = '1000117'; var catid = '73';</script>
+  <script type="text/javascript" id="calldigg_js"></script>
+      <script type="text/javascript" src="digg/digg.php?contentid=1000117&catid=73"></script>
+      </td>
+      </tr>
+      <tr>
+        <td>
+    <div class="box" style="margin-top:1%;">
+      <h3>相关文章</h3>
+      <ul class="text_list">
+        <li><a href="http://doc.chinaunix.net/linux/201010/1000117.shtml" target="_blank">利用framebuffer和tty在linux编写图形驱动</a></li>
+<li><a href="http://doc.chinaunix.net/linux/201009/930492.shtml" target="_blank">Linux&nbsp;driver编写思考</a></li>
+<li><a href="http://doc.chinaunix.net/linux/201009/886384.shtml" target="_blank">Linux图形化之流量监控和IO监控</a></li>
+<li><a href="http://doc.chinaunix.net/linux/201008/773479.shtml" target="_blank">Redhat进入twm图形模式解决方案</a></li>
+<li><a href="http://doc.chinaunix.net/linux/201007/717978.shtml" target="_blank">文件操作——利用Linux系统调用</a></li>
+<li><a href="http://doc.chinaunix.net/linux/201006/669837.shtml" target="_blank">如何编写Linux设备驱动程序</a></li>
+<li><a href="http://doc.chinaunix.net/linux/201006/657358.shtml" target="_blank">Linux下使用MASM编写汇编程序</a></li>
+<li><a href="http://doc.chinaunix.net/linux/201006/623891.shtml" target="_blank">Linux下利用find和perl正则替换文件内容</a></li>
+<li><a href="http://doc.chinaunix.net/linux/201005/608709.shtml" target="_blank">Linux系统下利用SSH进行远程控制</a></li>
+<li><a href="http://doc.chinaunix.net/linux/201005/584748.shtml" target="_blank">Linux下利用ext3grep恢复被删除的文件</a></li>
+ 
+      </ul>
+    </div></td>
+      </tr>
+      <tr>
+      <td>
+      <div class="box" style="margin-top:1%;">
+      
+      <!--评论-->
+                  <h3>网友评论<span id="commnent_tag" style="float:right">
+        <a href="comment/?keyid=man-content-title-1000117&verify=b72bafc9b3b07688e7ae20949e7235d4">
+        已有<strong class="c_red"><span id="comments">0</span></strong>位网友发表了看法</a>
+      </span></h3>
+      <div class="commenttext" style="text-align:center;margin-top:0">
+        <form action="comment/?action=addpost" method="post" onSubmit="return checkForm();">
+<input type="hidden" name="keyid" value="man-content-title-1000117"/>
+<input type="hidden" name="verify" value="b72bafc9b3b07688e7ae20949e7235d4"/>
+<ul>
+          <li>
+            <textarea cols="100" rows="8" name="comment" id="comment" onfocus="reply_clearfield()" onblur="reply_restoration()"></textarea>
+          </li>
+          <li style="text-align:left;margin-left:1%;margin-top:1%;">
+            <span id="checker"><div style="float:left">验证码：</div><input type="text" style="ime-mode: disabled;" size="6" id="checkcode" name="checkcode" /><img src="images/d.gif" id="code_img" style="display:none" onclick="this.src='checkcode.php?'+Math.random()" alt="点击换一张">【输入评论后显示验证码，均为大写字母，点击图片更新】</span>
+            &nbsp;&nbsp;&nbsp;&nbsp;<input id="dosubmit" name="dosubmit" type="submit" value="发表评论" />
+          </li>
+        </ul>
+        </form>
+      </div>
+      </div>
+      <script type="text/javascript" src="data/js/comment_setting.js"></script>
+      <script type="text/javascript">
+      <!--
+        $().ready(function() {        
+            if(setting.ischecklogin == 0 && getcookie('auth') === null)
+            {
+                $('#comment').val("请您登陆后发表评论！");
+                $('#comment').attr("disabled","disabled");
+                $('#dosubmit').attr("disabled","disabled");
+            }
+            else 
+            {
+                if($('#comment').val()=='')$('#comment').val("我也来说两句！");
+            }
+        });
+        function reply_restoration()
+        {
+            if($('#comment').val() == '')
+            {
+                $('#comment').val("我也来说两句！");
+            }
+        }
+        function reply_clearfield()
+        {
+            if ($('#comment').val() == "我也来说两句！") 
+            {
+                $('#comment').val("");   
+            }
+document.getElementById('code_img').style.display = 'block';document.getElementById('code_img').src='checkcode.php';
+        }
+        function checkForm()
+        {
+            if($('#comment').val() == '' || $('#comment').val() == "我也来说两句！")
+            {
+                alert("内容不能为空");
+                $('#comment').focus();
+                return false;
+            }
+            if($('#checkcode').val() == '' )
+            {
+                alert("验证码不能为空");
+                $('#checkcode').focus();
+                return false;
+            }
+            if ($('#comment').val().length > 1000) 
+            {
+                alert("内容太长，最多 1000 个文字");
+                return false;
+            }
+        }
+      //-->
+      </script>
+           
+      </td>
+      </tr>
+    </table>
+
+</td>
+    <td width="8">&nbsp;</td>
+    <td width="245" valign="top" bgcolor="#FFF9EB">
+
+
+
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+        <td height="27" background="/images/news/bg245.jpg" class="F13"><table width="100%"><tr><td>&nbsp;论坛最新热点</td><td align="right"><a href="http://linux.chinaunix.net/bbs/forum-2-1.html" target="_blank">更多&gt;&gt;</a>&nbsp;</td></tr></table></td>
+      </tr>
+      <tr>
+        <td valign="top" bgcolor="#FFFFFF" class="BLKtext" ><table width="97%" border="0" align="center" cellpadding="0" cellspacing="0">
+          <tr>
+            <td height="5"></td>
+          </tr>
+          <tr>
+            <td>&middot; <a href='http://linux.chinaunix.net/bbs/thread-1179308-1-1.html' title='[求助]   LINUX开机自动挂载硬盘问题' target='_blank'>[求助]   LINUX开机自动挂载硬...</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-1179100-1-1.html' title='vsftp服务器上传excel文件乱码' target='_blank'>vsftp服务器上传excel文件乱码</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-1179097-1-1.html' title='请问如何将windows里的文件复制到虚拟机里的Ubuntu里' target='_blank'>请问如何将windows里的文件复制...</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-1179145-1-1.html' title='export命令在rc.local中不运行' target='_blank'>export命令在rc.local中不运行</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-1179255-1-1.html' title='关于子进程杀不死的情况' target='_blank'>关于子进程杀不死的情况</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-1179162-1-1.html' title='为什么这么多的UDP端口？' target='_blank'>为什么这么多的UDP端口？</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-1179372-1-1.html' title='求助····linux高手帮忙解决一下' target='_blank'>求助····linux高手帮忙解决...</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-1179094-1-1.html' title='nagios或cacti可以监控一个单独的进程吗？' target='_blank'>nagios或cacti可以监控一个单独...</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-1179394-1-1.html' title='用debootstrap创建一个可以启动的debian系统' target='_blank'>用debootstrap创建一个可以启动...</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-1179287-1-1.html' title='如何用xinetd限制某用户对telnet的访问，' target='_blank'>如何用xinetd限制某用户对teln...</a><br /></td>
+          </tr>
+          <tr>
+            <td height="5"></td>
+          </tr>
+        </table>
+</td>
+   </tr>
+   <tr>
+     <td height="10" bgcolor="#FFFFFF"></td>
+   </tr>
+ <tr>
+</table>
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+        <td height="27" background="/images/news/bg245.jpg" class="F13"><table width="100%"><tr><td>&nbsp;论坛热门讨论</td><td align="right"><a href="http://linux.chinaunix.net/bbs/forum-2-1.html" target="_blank">更多&gt;&gt;</a>&nbsp;</td></tr></table></td>
+      </tr>
+      <tr>
+        <td valign="top" bgcolor="#FFFFFF" class="BLKtext" ><table width="97%" border="0" align="center" cellpadding="0" cellspacing="0">
+          <tr>
+            <td height="5"></td>
+          </tr>
+          <tr>
+            <td>&middot; <a href='http://linux.chinaunix.net/bbs/thread-915112-1-1.html' title='华为 3com 内部培训资料 —— linux 基础知识' target='_blank'>华为 3com 内部培训资料 —— ...</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-914428-1-1.html' title='選出你心目中最“舒服”的LINUX' target='_blank'>選出你心目中最“舒服”的LINUX</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-683158-1-1.html' title='Linux术语大全(Linux Glossary) 【原创】' target='_blank'>Linux术语大全(Linux Glossary...</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-900011-1-1.html' title='装完F7后您的感觉？' target='_blank'>装完F7后您的感觉？</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-16141-1-1.html' title='Linux一句话精彩问答--2009/04/16更新--20090416pdf版本下载' target='_blank'>Linux一句话精彩问答--2009/04...</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-859297-1-1.html' title='今天晚上死定了' target='_blank'>今天晚上死定了</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-641512-1-1.html' title='开始学Linux了，我的学习笔记' target='_blank'>开始学Linux了，我的学习笔记</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-365956-1-1.html' title='大家都来写一下自己的(计算机)简历吧! (最好写上特长!)' target='_blank'>大家都来写一下自己的(计算机)...</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-995597-1-1.html' title='利用sudo加固Linux系统安全' target='_blank'>利用sudo加固Linux系统安全</a><br />&middot; <a href='http://linux.chinaunix.net/bbs/thread-893807-1-1.html' title='重新提供下载：Red Hat Enterprise Linux AS包含最新RHEL5 ，更新加入CentOS5/FC6等' target='_blank'>重新提供下载：Red Hat Enterp...</a><br /></td>
+          </tr>
+          <tr>
+            <td height="5"></td>
+          </tr>
+        </table>
+</td>
+   </tr>
+   <tr>
+     <td height="10" bgcolor="#FFFFFF"></td>
+   </tr>
+ <tr>
+</table>
+
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+        <td height="27" background="/images/news/bg245.jpg" class="F13"><table width="100%"><tr><td>&nbsp;本周十大热点新闻</td><td align="right">&nbsp;</td></tr></table></td>
+      </tr>
+      <tr>
+        <td valign="top" bgcolor="#FFFFFF" class="BLKtext" ><table width="97%" border="0" align="center" cellpadding="0" cellspacing="0">
+          <tr>
+            <td height="5"></td>
+          </tr>
+          <tr>
+            <td>&middot; <a href='http://news.chinaunix.net/digi/2012/0207/1966308.shtml' title='详解360系列产品 将重回苹果APP商店' target='_blank'>详解360系列产品 将重回苹果AP...</a><br />&middot; <a href='http://news.chinaunix.net/society/2012/0207/1966302.shtml' title='小伙毕业旅行从澳大利亚骑车回浙江' target='_blank'>小伙毕业旅行从澳大利亚骑车回浙江</a><br />&middot; <a href='http://news.chinaunix.net/blog/2012/0207/1966293.shtml' title='台湾，我来了----台湾八日游第一天' target='_blank'>台湾，我来了----台湾八日游第一天</a><br />&middot; <a href='http://news.chinaunix.net/ent/2012/0207/1966244.shtml' title='明星纷抢红馆开演唱会 谢霆锋年底开唱(组图)' target='_blank'>明星纷抢红馆开演唱会 谢霆锋年...</a><br />&middot; <a href='http://news.chinaunix.net/digi/2012/0207/1966232.shtml' title='360深陷下架门:或因隐私问题遭苹果处罚' target='_blank'>360深陷下架门:或因隐私问题遭...</a><br />&middot; <a href='http://news.chinaunix.net/sci/2012/0207/1966210.shtml' title='美10岁女生拼出新分子结构将研发新药物' target='_blank'>美10岁女生拼出新分子结构将研...</a><br />&middot; <a href='http://news.chinaunix.net/society/2012/0207/1966080.shtml' title='环卫工弄脏挡道轿车遭暴打续：打人者道歉赔偿' target='_blank'>环卫工弄脏挡道轿车遭暴打续：...</a><br />&middot; <a href='http://news.chinaunix.net/internet/2011/0509/1310960.shtml' title='支付宝一家独大格局开始洗牌:1周2商户分道扬镳' target='_blank'>支付宝一家独大格局开始洗牌:1...</a><br />&middot; <a href='http://news.chinaunix.net/blog/2011/0509/1310920.shtml' title='永中注册商标价值几何？' target='_blank'>永中注册商标价值几何？</a><br />&middot; <a href='http://news.chinaunix.net/auto/2011/0509/1310904.shtml' title='造型设计已经定型 全新QQ将于明年上市' target='_blank'>造型设计已经定型 全新QQ将于明...</a><br /></td>
+          </tr>
+          <tr>
+            <td height="5"></td>
+          </tr>
+        </table>
+</td>
+   </tr>
+   <tr>
+     <td height="10" bgcolor="#FFFFFF"></td>
+   </tr>
+ <tr>
+</table>
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+        <td height="27" background="/images/news/bg245.jpg" class="F13"><table width="100%"><tr><td>&nbsp;本周十大争议新闻</td><td align="right">&nbsp;</td></tr></table></td>
+      </tr>
+      <tr>
+        <td valign="top" bgcolor="#FFFFFF" class="BLKtext" ><table width="97%" border="0" align="center" cellpadding="0" cellspacing="0">
+          <tr>
+            <td height="5"></td>
+          </tr>
+          <tr>
+            <td>&middot; <a href='http://news.chinaunix.net/sci/2012/0502/2146744.shtml' title='长安大学两男生为救同学溺水身亡' target='_blank'>长安大学两男生为救同学溺水身亡</a><br />&middot; <a href='http://news.chinaunix.net/society/2012/0503/2149219.shtml' title='网帖曝光现役军人回家探亲时拍摄强拆被羁禁' target='_blank'>网帖曝光现役军人回家探亲时拍...</a><br />&middot; <a href='http://news.chinaunix.net/internet/2011/0919/1646600.shtml' title='58同城回应虚假信息问题：建立欺诈企业黑名单' target='_blank'>58同城回应虚假信息问题：建立...</a><br />&middot; <a href='http://news.chinaunix.net/ent/2012/0503/2150070.shtml' title='资料：话剧《笑面人》演员-刘端端' target='_blank'>资料：话剧《笑面人》演员-刘端端</a><br />&middot; <a href='http://news.chinaunix.net/blog/2010/1029/1003072.shtml' title='青岛建设银行员工晒工资和支出 月3000元生活不下去 建行待遇收入' target='_blank'>青岛建设银行员工晒工资和支出...</a><br />&middot; <a href='http://news.chinaunix.net/ent/2011/0519/1338707.shtml' title='《加勒比海盗4》杰克船长是镇台之宝(组图)' target='_blank'>《加勒比海盗4》杰克船长是镇台...</a><br />&middot; <a href='http://news.chinaunix.net/ent/2011/0728/1514642.shtml' title='《甄嬛传》演员阵容强大 孙茜演槿汐聪明有分寸' target='_blank'>《甄嬛传》演员阵容强大 孙茜演...</a><br />&middot; <a href='http://news.chinaunix.net/ent/2011/1202/1830831.shtml' title='资料图片：《我爱记歌词》领唱团队-海峰' target='_blank'>资料图片：《我爱记歌词》领唱...</a><br />&middot; <a href='http://news.chinaunix.net/ent/2012/0105/1908054.shtml' title='资料图片：《麻辣女兵》主要演员--侯梦莎' target='_blank'>资料图片：《麻辣女兵》主要演...</a><br />&middot; <a href='http://news.chinaunix.net/ent/2012/0131/1950398.shtml' title='新版《西游记》坎坷上路 减少6集戏份' target='_blank'>新版《西游记》坎坷上路 减少6...</a><br /></td>
+          </tr>
+          <tr>
+            <td height="5"></td>
+          </tr>
+        </table>
+</td>
+   </tr>
+   <tr>
+     <td height="10" bgcolor="#FFFFFF"></td>
+   </tr>
+ <tr>
+</table>
+</td>
+  </tr>
+</table>
+<script language="JavaScript" src="count.php?contentid=1000117"></script>
+<table border="0" cellspacing="0" cellpadding="0" width="950" align="center">
+    <tbody>
+        <tr>
+            <td>&nbsp;</td>
+        </tr>
+    </tbody>
+</table>
+<table border="0" cellspacing="0" cellpadding="0" width="950" align="center">
+    <tbody>
+        <tr>
+            <td bgcolor="#308cf6" height="2">&nbsp;</td>
+        </tr>
+        <tr>
+            <td bgcolor="#308cf6" height="2">&nbsp;</td>
+        </tr>
+        <tr>
+            <td align="center">
+            <p>Copyright &copy; 2001-2010 ChinaUnix.net All Rights Reserved</p>
+            <p>感谢所有关心和支持过ChinaUnix的朋友们<br />
+            &nbsp;</p>
+            <p>京ICP证:060528号<br />
+            &nbsp;</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<!-- 统计 START --><script src="http://stat.it168.com/pv.js" type="text/javascript"></script><script>
+function sendPV(){
+    var pvTrack = new PvTrack();
+    pvTrack.type = 10; // 频道类别ID
+    pvTrack.channel = 22; // 频道ID
+   
+    pvTrack.pageType = 0;
+    pvTrack.track();
+}
+window.setTimeout("sendPV()", 0);
+</script><!-- 统计 END -->
+<div style='display:none'>
+<script type="text/javascript"> 
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F0ee5e8cdc4d43389b3d1bfd76e83216b' type='text/javascript'%3E%3C/script%3E"));
+</script>
+</div>
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-11982772-2");
+pageTracker._setDomainName(".chinaunix.net");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+<script src="http://stat.it168.com/google/pv.js" type="text/javascript" type="text/javascript"></script>
+</body>
+</html>

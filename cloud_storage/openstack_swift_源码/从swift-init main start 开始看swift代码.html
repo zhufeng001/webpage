@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>从swift-init main start 开始看swift代码</title>
+<meta name="keywords" content="黑鹰,hiying,崔洪民,mysql,优化，虚拟化，云计算，xen，lxc，image" />
+<meta name="description" content="" />
+<meta name="generator" content="emlog" />
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://hiying.net/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://hiying.net/wlwmanifest.xml" />
+<link rel="alternate" type="application/rss+xml" title="RSS"  href="http://hiying.net/rss.php" />
+<link href="http://hiying.net/content/templates/Vigour/main.css" rel="stylesheet" type="text/css" />
+<script src="http://hiying.net/include/lib/js/common_tpl.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://hiying.net/include/lib/js/jquery/jquery-1.7.1.js"></script>
+<script type="text/javascript" src="http://hiying.net/content/templates/Vigour/index.js"></script>
+<script type="text/javascript" src="http://hiying.net/include/lib/js/jquery/jquery-1.2.6.js"></script>
+<script type="text/javascript">jQuery(function($){$("a[href*=://]:not(a[href^=http://hiying.net/],a[href^=javascript:])").attr("target", "_blank");})</script>
+</head>
+<body>
+<div id="page-top"></div>
+<div id="wrap">
+  <div id="header">
+    <h1><a href="http://hiying.net/">黑鹰</a></h1>
+    <h3>记录生命，关注技术和美女</h3>
+	<div class="clear"></div>
+  </div>
+<div class="clear"></div>
+
+  <div id="nav">
+    	<ul>
+			<li class="common"><a href="http://hiying.net/" >首页</a></li>
+			<li class="common"><a href="http://hiying.net/t" >微语</a></li>
+			<li class="common"><a href="http://hiying.net/admin" >登录</a></li>
+		</ul>
+      <div class="clear"></div>
+  </div><!-- end #nav-->
+<div id="content">
+<div id="contentleft">
+	<h2 id="blog_title">从swift-init main start 开始看swift代码</h2>
+	<div id="blog_info">
+			<span class="author"><a href="http://hiying.net/author/1" title="黑鹰，山东人士，出生于上世纪七十年代末的农村，现居深圳。 825211@qq.com">黑鹰</a></span>			<span class="date">2013-06-05 23:01</span>
+					<span class="sort"><a href="http://hiying.net/sort/python">Python</a></span>
+								</div>
+	<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><span style="margin:0px;padding:0px;">从swift-init main start 开始看swift代码</span></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&lt;本人此前发表在新浪轻博客的原创文章，转载请标注原作者&gt;&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">swift作为openstack的对象存储系统，在openstack生态环境中扮演如AmazonS3的功能。虽然本人之前学习过ruby之类的脚本语言，但是也是从看swift代码的过程中逐渐学习python的特性，其中必然会有种种错误，请看官斧正。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">环境：</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">OS：Ubuntu12.04 LTS （10.04LTS更新python2.6.5之后unittest会failed）</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">Swift-install:按照swiftdev文档中SAIO的方式部署</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">Swift-version: &nbsp;1.4.6（相当于openstack E版）</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">PythonVersion: 2.7.3</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">开始：</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">swift是一个对象存储，官方文档对比文件系统时提到其主要是没有文件系统文件（夹）嵌套的概念。其实swift这里是简化了处理多层文件的问题，通过container和account来进行逻辑上的区分，形成一个相对较为flat的结构。这里从Swift的RESTAPI也可以看出来。基本的结构如下：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">METHOD http(s)://host:port/&lt;api_version&gt;/&lt;account&gt;/&lt;container&gt;/&lt;object&gt;</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">这种目录式的API结构尤其是将version的加入，在InfoQ上许多介绍RESTAPI设计准则上都有提及。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">可能是由于中毒于Java代码中的“过度设计”，本人阅读swift的代码时感觉中可以优化的地方确实很多，比如几乎所有server中做check的方法，完全可以提取成一个单独的内部方法；再比如说这里用于操作数据库的swift/common/db.py里的AccountBroker和ContainerBroker为什么不单独放在各自的包里，而是放在common下操作数据库的入口这里。也可能是pythonist的习惯使然，但是在一个py文件中写好几个类导致近2000行代码，还是有点让人有些阅读障碍。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">在SAIO的文档中，提到需要自己添加启动脚本startmain，实际功能就是执行了 swift-initmain start，我们就从这行命令开始入手研究swift代码。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">swift-init是{swift_locate}/bin目录下的一个python脚本，主要功能就是启动swift的基本服务，并且指定了commandline下可以选择配置的参数，其中命令的格式为</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">swift-init&lt;server&gt; [&lt;server&gt; ...] &lt;command&gt; [options]</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">具体执行的功能是在{swift_locate}/swift/common/manager.py中完成的。manager.py中定义了支持的command，包括['status','start','no_wait','no_daemon', 'once','stop', 'shutdown','restart', 'reload','force_reload']，并且将swift的服务分为两大类：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">ALL_SERVERS= ['account-auditor','account-server','container-auditor',</p>
+<p align="left" style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">'container-replicator','container-server','container-sync',</p>
+<p align="left" style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">'container-updater','object-auditor','object-server','object-expirer',</p>
+<p align="left" style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">'object-replicator','object-updater','proxy-server',</p>
+<p align="left" style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">'account-replicator','account-reaper']</p>
+<p align="left" style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">MAIN_SERVERS= ['proxy-server','account-server','container-server',</p>
+<p align="left" style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">'object-server']</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">在mainstart命令中启动了proxy-server,account-server, container-server和object-server,这些是swift提供的基本服务，在官方文档exampleinstallation architecture章节里，可以看到，在集群环境下proxy-server,proxynode中只需运行proxy-server，storagenode中则需要运行剩下的3个server。在Manager#start方法中,在执行完基本的setup_env之后，将每一个MAIN_SERVERS里的server包装成Server对象（Server包含server,type,cmd和procs四个属性，type会在下文用于查找配置文件，cmd用来启动server实例），然后执行执行Server#launch。这里会分别读取server的configuration文件，configuration文件是按照utils#search_tree的方法查找得到，即在SWIFT_DIR下查找文件名符合{server_type}-server*.conf的文件或符合{server_type}-server*的文件夹，若为文件夹，则在此文件夹中查找后缀名为.conf的文件，其中SWIFT_DIR默认为/etc/swift,server_type为'account','container', 'object','proxy'之类。然后执行Server.cmd命令启动服务。这里server.cmd实际也是根据server的名字组成的字符串，对应bin目录下的脚本命令。由于每一个服务对应一个conf文件，所以，如果是在集群环境下会有多个进程在不同的storagenode上执行，每一个进程代表一个server。由于实验环境是ALLIN ONE的方式，所以可以在ps中看到多个accout/container/objectserver进程在执行。与此相一致的是，swift的内部组件之间的交互完全是采用RESTAPI调用的方式，这样在简化交互方式的同时也降低了耦合。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">Swift的Http实现利用了Eventlet和paste.deploy，具体实现在wsgi.py中，其中wsgi.server所需的app参数是利用paste.deploy风格的config文件产生的,这也是为什么上文提到的.conf文件中包含形如</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">[app:account-server]</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">use= egg:swift#account</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">的信息了。另外，在*/server.py中的app_factory方法，正是返回了app的实例。接下来，分别介绍一下proxy/server.py,accout/server.py, container/server.py,obj/server.py。proxy/server.py用于处理和转发对swift的所有请求，所有对swift的操作都由proxy/server.py中Application#handle_request处理，并最终由另外3种server的实例分别提供对account,container, object的RESTAPI访问。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">proxy-server</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">首先，从用户API请求入手，研究proxy/server.py中对于http请求的处理。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">从exampleinstallation architecture中可以看出，proxy-server的作用是捕获所有对swift的HTTP请求，然后将处理的请求发送至storagenode进行处理。proxy/server.py中定义了proxy-server的Application类，和处理请求的*Controller类，类图如下：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><img src="http://hiying.net/content/uploadfile/201306/1fd08870c2e11bdb1e9aa27cab7d714420130605150132.jpg" alt="" style="margin:0px;padding:0px;border:0px;" /></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">proxy/server.py的app_factory方法返回的是Application的实例，相比其父类BaseApplication,Application在handle_request()方法中来处理发送来的HTTP请求。过程如下图所示：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><img src="http://hiying.net/content/uploadfile/201306/a97cf1fd818121bb3f121131d4d2b7b320130605150133.jpg" alt="" style="margin:0px;padding:0px;border:0px;" /></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">当一个Userrequest发送至proxy-server后，首先handle的是Application#handle_request(图中A)，其实就是为request添加当前时间作为start_time，然后调用父类方法的handle_request方法(图中a)，在BaseApplication#handle_request中（图中B），会根据request的url(/&lt;account&gt;/&lt;container&gt;/&lt;object&gt;)调用BaseApplication#get_controller，根据URL的目录层级返回相应的X-Controller(AccountController/ContainerController/ObjectController)。然后通过</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">controller= controller(self, **path_parts)</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">新建X-Controller实例，即X-Controller.app=Application，path_parts是从url解析出的dict类型字典，包含version,account_name,container_name,object_name。有了处理请求的的Class，再根据请求的HTTPmethod选择调用的class的方法，handler= getattr(controller, req.method)。之后对request进行authorize，如果权限满足，调用选择的X-Controller的HTTP同名的方法(图中b)。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">在图中C过程中，X-Controller会根据request的HTTP方法对请求进行处理，这里值得注意的是，GET和HEAD请求的处理方法是一样的，代码里可以看出GET和HEAD方法都被转送到GETorHead方法了。除了GETorHead方法被Controller#GETorHead_base处理之外，其他的方法都在各自的方法体中先从ring中得到node信息（通过self.app.xxx_ring.get_nodes)，增加或修改一些head信息，然后调用父类Controller#make_requests方法(图中D)对storagenode上的swift服务发出HTTP请求(图中d)。这里对Object的COPY请求会被转换成PUT请求发送。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">关于Ring的code层面的知识我会在进一步研究后分享，从文档和概念上的了解来看是一个基于一致性哈希原理的存储负载均衡手段的实现。Ring#get_nodes方法会返回的信息是一个二元组(partition,list of node dicts),每一个nodedict会至少包含id,weight,zone,ip,port,device,meta信息，代码中的描述如下：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><img src="http://hiying.net/content/uploadfile/201306/8fb82f0d273314dc96edd35a2997c07020130605150133.jpg" alt="" style="margin:0px;padding:0px;border:0px;" /></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">值得注意的是当使用make_requests调用storagenodes的RESTAPI时，URL发生了改变，新的API格式为:METHODhttp://node_ip:node_port/node_device/partition/&lt;account&gt;/&lt;container&gt;/&lt;object&gt;,其中node_ip:node_port/node_device/partition的值均来自Ring#get_nodes,account,container,object的name均来自用户的http请求。当storagenodes的response回复给proxy后，Controller#best_response方法会从中选择合适的并加以处理和log回传给X-Controller进行进一步的处理后返回给用户(图中E,F)。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">这样，来自用户的请求就通过proxy-server转发给storagenodes上的swift服务了。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">account-server, container-server, object-server:</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">下面开始深入了解运行在storagenode中的account-server,container-server和object-server。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">swift使用了sqlite轻量级数据库，用于存储account/container的状态信息和metadata，同时object存储需要用到文件的扩展属性来标识metadata，因此需要注意部署时的文件系统。这里对数据库的操作是通过swift/common/db.py中的X-Broker来处理的，object的元数据信息则是利用xattr提供的方法实现读写，序列化操作是利用cPickle包中的功能实现。其中的关系如下图：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><img src="http://hiying.net/content/uploadfile/201306/09750ee3d3537eca806922bb3e55bc9f20130605150134.jpg" alt="" style="margin:0px;padding:0px;border:0px;" /></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">接下来，我们逐一介绍每个controller。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">1.AccountController</strong><br style="margin:0px;padding:0px;" />
+<img src="http://hiying.net/content/uploadfile/201306/b4fad0cfa4ab2bfef648ed7ffab4a7d220130605150135.jpg" alt="" style="margin:0px;padding:0px;border:0px;" /><br style="margin:0px;padding:0px;" />
+从类图里可以很清晰的看到用于处理HTTP请求的方法，其中POST/PUT/GET/DELETE/HEAD用于新建/更新(若不存在则新建)/查询/删除Account的RESTAPI，HEAD和GET的区别在于HEAD只返回GET请求HTTP头的元数据信息，另外的REPLICATE是Swift内部用于维护和冗余备份的API。属性root,mount_check, auto_create_account_prefix的值分别来源于conf文件里key为'devices','mount_check','auto_create_account_prefix'的value，如果为空，则默认值分别为'/srv/node','true','.'。从属性名可以看出，root是devices所在根目录 ，mount_check是是否进行mount检查,'auto_create_account_prefix'是自动创建account的前缀。另外的replicator_rpc和logger主要是提供replicator和日志功能，与此相关的replicator下次会详细介绍。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">方法_get_account_broker是一个内部方法，功能是返回一个AccountBroker的实例，用于代理对sqlite数据库的操作。sqlite是个嵌入式数据库，对于一个特定的account，其sqlitedb文件的绝对文件路径为:</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">db_file={account.root}/{device}/{DATADIR}/{partition}/{hash_path[-3:]}/{hash_path}/{hash_path}.db</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">hash_path=hash(account_name)</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">这样，对于一个特定的account其相关的database就对应一个特定的文件，{DATADIR}='accounts',{account.root}为AccountController的root属性，{dirve},{partition},{account_name}分别来自HTTP请求中的URL，util#hash函数是对name和配置文件/etc/swift/swift.conf中的HASH_PATH_SUFFIX连接后取md5摘要。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">知道了db文件，就可以利用sqlite3命令对数据库进行访问了，可以查看account数据库的schema，这些信息也可以在DatabaseBroker#initialize,AccountBroker#create_container_table和AccountBroker#create_account_stat_table这三个方法中看到，信息如下：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><img src="http://hiying.net/content/uploadfile/201306/1ee3a0dc4c968306f84b9d2aac163ae920130605150135.jpg" alt="" style="margin:0px;padding:0px;border:0px;" /></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">从之前介绍针对不同的account会有不同的db_file路径，而且account和container只是逻辑上的概念，所以account_stat只会有一行数据，用来存储当前路径所属account的相关状态信息，metadata用dict结构存储account相关元数据，结构是&lt;key,(value,timestamps)&gt;；container表则是存储当前account的container的基本统计信息，并且在代码中可以看到在对container进行insert/update/delete操作时会有TRIGGER对account_stat表进行更新。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">1.DELETE</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">DELETE请求会删除当前account，但是这里的删除是逻辑删除，只是标记account为删除状态，并不会真正删除account和相关资源。流程如下</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 1.checkrequest url是否合法，mount_checkdb 所在文件目录是否存在，检查head是否包含特定信息'x-timestamp'，如果均满足，转入2</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 2.检查db_file.pending文件，取出未同步的数据更新到数据库中(AccountBroker#_commit_puts),转入3</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 3.检查所请求的account是否为DELETED状态，如果是转入4</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 4.如果满足上述要求,调用DatabaseBroker#delete_db,这里清除metadata的数据并且调用AccountBroker#_delete_db将status置为DELETED，同时更新相关timestamp。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">2.PUT</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">PUT请求会handle两种类型的HTTP请求，当没有url中没有&lt;container&gt;时，会更新account的metadata信息，流程如下：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 1.checkrequest url是否合法，mount_checkdb所需的文件目录是否存在,检查head中的'x-timestamp'，如果满足，转入2</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 2.若db_file不存在，则新建数据库，created=True，否则updateaccount_statu的put_timestamp字段(AccountBroker#update_put_timestamp)，转入3</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 3.根据requesthead中的以'x-account-meta-'开始的key的值更新到metadata，并且更新数据库的metadata字段(AccountBroker#update_metadata)，转入4</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 4.如果created==True，返回201Created，否则返回202Accepted。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">在代码中可以看到步骤2和步骤3是分两次commit的，这里如果步骤3失败步骤2不会发生回滚，个人觉得存在问题。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">若url有&lt;container&gt;时，Account-Server则会新建/更新container的信息，这里不会直接更新至数据库，而是将序列化到db_file.pending文件(AccountBroker#put_container)。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">3.HEAD</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">HEAD请求返回account的基本信息(元数据信息)，并以key-value的形式保存在HTTPHEAD中返回，通过AccountBroker#get_info获得account的基本信息(account,created_at, put_timestamp, delete_timestamp, container_count,object_count, bytes_used, hash,id)，如果url中包含container，则返回信息中还会包含利用AccountBroker#get_container_timestamp得到的container的put_timestamp(最近更新时间)。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">4.GET</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">在HEAD请求的基础上，在responesebody中会包含container的list(AccountBroker#list_containers_iter)，这里会根据请求中需要的返回格式返回相关信息，支持的格式包括json,xml,plain。有近50行代码解决将数据用字符串拼出json/xml的格式，同时在ContainerController也有类似方法，个人认为可以抽象到utils方法中去。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">5.REPLICATE</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">这个请求主要用于replicator的同步请求，保持系统的一致性(ReplicatorRpc#dispatch)。具体细节会在分析replicator服务的时候详述。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">6.POST</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">用于根据requesthead中的以'x-account-meta-'开头的key的值更新account_stat表中的metadata字段的值。流程也是先检查url和目录存在与否，以及account是否为DELETED状态，然后从head中取出特定要求的metadata更新至数据库(AccountBroker#update_metadata)。相对简单，这里不再赘述。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">2.ContainerController</strong><br style="margin:0px;padding:0px;" />
+<img src="http://hiying.net/content/uploadfile/201306/ea9613fb4a7c0fc12a8824700a572cf920130605150136.jpg" alt="" style="margin:0px;padding:0px;border:0px;" /><br style="margin:0px;padding:0px;" />
+Container与Account相类似，都是在逻辑结构，不同的是Account的子对象是Container，而Container的子对象是Object。从类图中可以看出ContainerController和AccountController在很多地方有相似之处。众多属性中,root,mount_check,node_timeout,conn_timeout, allowed_sync_hosts,auto_create_account_prefix的值均来自于container的conf文件，replicator_rpc是ReplicatorRpc的实例用于冗余处理,save_heads是请求头中需要包含键值对的键的数组。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">ContainerController#_get_container_broker返回一个ContainerBroker实例，用于代理其数据库访问的操作。其db_file的绝对路径为:</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">db_file={container.root}/{device}/{DATADIR}/{partition}/{hash_path[-3:]}/{hash_path}/{hash_path}.db</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">hash_path=hash(account_name+container_name)</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">这里我们可以通过代码或sqlite3命令查看container数据库的schema，如下图：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><img src="http://hiying.net/content/uploadfile/201306/2ef72970437738f1772dfc581bfeaeff20130605150137.jpg" alt="" style="margin:0px;padding:0px;border:0px;" /></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">ContainerController#account_update用于在对container做删除/修改操作时通知其所属account做同步修改，主要部分就是向account所在server_ip发送PUT请求，URL格式为：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">PUThttp://{account_ip}:{account_port}/{account_device}/{account_partition}/{account}/{container}</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">还记得AccountController#PUT吗？提供带container的PUT请求的处理机制，就是为了在这里更新container信息时同时更新account。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">1.DELETE</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">输入的URL格式为host:port/device/partition/account/container/&lt;object&gt;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">其中&lt;object&gt;可有可无。如果没有object字段，说明是删除container，过程和Account的DELETE操作一样，先进行一系列检查，然后根据db_file.pengding文件刷新数据库到最新状态并检查是否已经删除，如果status字段不为DELETED,清空数据库中的metadata字段，更新delete_timestamp然后置status字段为DELETED，最后调用account_update通知其所属account更新状态。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">如果URL中包含object字段，则是为了在对其所包含的Object进行操作后同步更新container，这里会调用ContainerBroker#delete_object,同样也是将删除信息序列化后写入db_file.pending文件，待下次对该container操作时更新进数据库。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">2.PUT</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">输入的URL格式为host:port/device/partition/account/container/&lt;object&gt;，其中&lt;object&gt;可有可无。这里的处理流程同AccountController#PUT，如果包含object信息，则序列化后写入db_file.pending文件，否则根据request.head中的key-value更新container_statu数据库的metadata，并且调用account_update通知account-server更新状态。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">3.HEAD，GET，POST，REPLICATE</strong>的流程同AccountController，只是操作的对象是container。这里不再详细介绍。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">3.ObjectController</strong><br style="margin:0px;padding:0px;" />
+<img src="http://hiying.net/content/uploadfile/201306/85fe21ed6373401e359116c9ea0582cb20130605150138.jpg" alt="" style="margin:0px;padding:0px;border:0px;" /></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">ObjectController直接操作的是文件系统中的文件，用来检索/删除/修改/新建对象系统中存储的对象，而非account/container那样的逻辑层，因此这里没有用到数据库来存储object的元数据，而是将其直接与文件系统中文件的扩展属性相关联。Swift中用DiskFile类来表示存储的文件对象，ObjectController对文件实体的操作都是通过DiskFile代理的。类图如下：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">这里详细介绍一下这两个类的属性和方法.</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">ObjectController:</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1.DATADIR='objects',常量，用来组成具体文件和目录；</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2.devices，来自配置文件中'devices'的值，默认'/srv/node/',功能同AccountController,ContainerController中的root属性；</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 3.Logger，用于记录log信息，根据配置文件生成的LogAdapter对象；</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 4.mount_check,用于确定是否检查文件挂载情况，来自配置文件中'mount_check'的值,默认true;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5.node_timeout,conn_timeout,用于配置超时时间，分别来自配置文件中的'node_timeout'和'conn_timeout'，默认分别为3,0.5;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6.disk_chunk_size,network_chunk_size,文件系统和网络中文件的块的小，分别来自配置文件中'disk_chunk_size'和'network_chunk_size'，默认为65536;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 7.log_requests,是否记录requests信息，来自配置文件中'log_requests'，默认为true</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8.max_upload_time，最大上传时间，默认86400;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9.slow,用于控制请求间隔时间，来自配置文件中'slow',默认为0;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 10.bytes_per_sync,当文件较大时，当buffer_cache多大时写入一次文件系统，取值来自于配置文件'mb_per_sync'(单位为MB)，默认为512M</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 11.allowed_headers，可以处理的http请求header的keys</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 12.expiring_objects_account，expiring_objects_container_divisor在delete_at_update中用于同步更新object的container相关的信息。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 13.async_update()用于当object发生变化时，发送HTTP请求至所属container，更新container的数据，如果请求失败，则将更新序列化写入async_dir的dest文件中,具体路径如下：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">ASYNCDIR='async_pending'</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">async_dir=self.devices/objdevice/&lt;ASYNCDIR&gt;</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">hash_path=hash(account,container, obj)</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">dest=&lt;async_dir&gt;/&lt;hash_path&gt;[-3:]/&lt;hash_path&gt;-&lt;timestamp&gt;</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 14.container_update()用于当object更新时更新所属container，具体请求是通过async_update发送的</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 15.delete_at_update()用于当object被删除时更新所属container，具体请求是通过async_update发送的</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 16.POST/PUT/GET/HEAD/DELETE/REPLICATE用于处理HTTP请求，详细过程会在下文详细介绍，这里先不详述。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">DiskFile:</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1.传入参数path,device, partition, account, container, obj, logger,keep_data_fp=False,disk_chunk_size=65536,其中deivce,partition, account, container,obj的值来自REST请求，其他来自ObjectController的属性(path=ObjectController.devices)</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2.disk_chunk_size，每次操作文件的块大小</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 3.name，DiskFile的名字标识，值为/&lt;account&gt;/&lt;container&gt;/&lt;obj&gt;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 4.datadir,表示object信息文件所在目录，</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">DATADIR='objects'</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">hash_path=hash(account,container, obj)</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">datadir=&lt;path&gt;/&lt;device&gt;/DATADIR/&lt;partition&gt;/&lt;hash_path&gt;[-3:]/&lt;hash_path&gt;/</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5.device_path,值为&lt;path&gt;/&lt;device&gt;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6.tmpdir,临时文件目录，值为device_path/tmp</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 7.logger，传入的logger对象</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8.metadata，文件的元数据信息</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9.meta_file，存放文件元数据信息的文件路径</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 10.data_file，存放object的文件路径</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 11.fp，data_file的文件对象</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 12.iter_etag,started_at_0,read_to_eof,quarantined_dir,keep_cache为操作DiskFile的细节设置。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">构造函数中有meta_file和data_file的初始化过程：</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 1.files为datadir下所有文件文件名的list</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 2.如果files中有文件名后缀为'.ts',表示该对象已经标记为删除，则meta_file和data_file均为None</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 3.否则后缀名为'.meta'的文件为meta_file，后缀名为'.data'的文件为data-file。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">构造函数中有metadata的初始化过程，其值来自于data_file的xattr和meta_file</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 13.app_iter_range()读取data_file中的制定段内容。由于DiskFile重写了__iter__，所以可以以iterator的方式对其data_file读写</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 14._handle_close_quarantine()，检查data_file是否被损坏</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 15.close()，关闭data_file所代表的文件</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 16.is_deleted()，通过判断data_file是否存在和metadata是否有'deleted'项，检查DiskFile是否被删除</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 17.mkstemp()，生成一个临时文件</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 18.put()，将文件写入到磁盘中，并且将临时文件覆盖.data或.meta或.ts文件,格式为&lt;file.datadir&gt;/&lt;timestamp&gt;.&lt;extension&gt;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 19.unlinkold()，删除object的老版本文件，根据传入参数timestamp进行版本比较</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 20.drop_cache()，清空文件缓存</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 21.quarantine(),如果data_file被损坏，将文件移至quarantined_dir(device_path/quarantined/objects/basename(data_file))</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 22.get_data_file_size(),返回data_file的大小，如果data_file在OS中的大小与metadata不一致，会抛出异常DiskFileError。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">了解了每个方法的功能，下面来详细了解下object-server是如果处理来自proxy的REST请求。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">1.POST</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">更新object的元数据信息，流程如下</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 1.从requesturl中提取device,partition, account, container, obj,检查requestheads中的'x-timestamp'是否存在，检查mount情况</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 2.根据请求信息新建DiskFile对象file，检查是否存在(包括检查metadata中的'X-Delete-At',调用file#is_deleted()和检查file.data_size)</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 3.如果检查都通过，则根据request.heads中的元素更新metadata</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 4.从request.heads中提取'X-Delete-At'并与file.metadata中的相同字段比较，根据较新的值调用file#delete_at_update()，通知更新container的信息</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 5.调用file#put()方法将metadata写入到.meta文件和data_file的扩展属性中</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">2.PUT</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">新建/更新一个object对象，流程如下</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 1.从requesturl中提取需要新建/更新的object信息，检查request.heads中的必要K-V,检查mount情况，并根据url中的信息实例化一个DiskFile对象file</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 2.通过file#mkstemp新建临时文件temp,按照request.heads中的'content-length'申请temp的空间，按照network_chunk_size接收来自network的chunk，并且检查上传文件的大小，并更新信息摘要etag(md5)如果大于等于bytes_per_sync会执行一次os.fdatasync并且调用drop_buffer_cache清空缓存</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 3.如果接收到的文件大小和request.head中声明的一致，并且etag也与heads中的'etag'一致时，说明文件接收成功</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 4.根据request.heads中的值新建/更新file.metadata，通过file#put方法写入磁盘(包括用temp文件改名.data文件和写入metadata)</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 5.通过file#unlinkold删除较早版本object文件</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 6.调用container_update通知container更新信息</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">3.GET</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">检索一个object对象，在response.heads中返回metadata，在response.body中返回objectdata，流程如下</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 1.根据url中的信息新建DiskFile对象file，检查request.heads中的必要K-V，检查mount情况</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 2.如果file#is_deleted或者file.metadata中'X-Delete-At'小于当前时间(表示已标记为准备删除)或者通过file#get_data_file_size查看文件是否异常，如果已经删除或存在异常，返回404HTTPNotFound</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 3.检查request.heads里的'If-match'和'If-none-match'，前者检查file.metadata中的'ETag'是否与其一致确定所检索的文件，后者确定如果没有匹配的是否返回file的etag信息</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 4.确定了需要操作的file，利用file的iterator，将其绑定response的构造函数参数app_iter，并且将file.metadata写入response.heads中，并返回response</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">4.HEAD</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">检索返回一个object的metadata，同GET请求的处理方法几乎一致，唯一不同的是不在body中返回file</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">5.DELETE</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">删除一个object，流程如下</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 1.检查url,mount,必要的request.heads，并根据request信息产生DiskFile实例file</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">检查文件是否已被删除(file#is_deleted)，如果没有删除，则更新metadata，将其'deleted'字段设为True</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 2.通知container-server更新object‘X-Delete-At’时间，新建temp_file，并调用file#put将metadata写入temp_file的xttar并更新meta_file，并将temp_file改名为&lt;file.datadir&gt;/&lt;timestamp&gt;.ts</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;&nbsp;&nbsp;&nbsp; 3.通过file#unlinkold删除较早版本object文件，并通知container-server文件删除</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">&nbsp;</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">6.REPLICATE</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">通过调用obj.replicator#tpooled_get_hashes获取hash值来验证object是否发生变化，具体细节会在未来介绍replicator时介绍。</p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;"><strong style="margin:0px;padding:0px;">结束</strong></p>
+<p style="margin:10px auto;padding:0px;font-family:Verdana, Arial, Helvetica, sans-serif;font-size:14px;line-height:20px;">至此，介绍了swift存储的基本过程和细节，没有涉及Ring,Replicator,Auditor,Updaters等组件，待进一步研究之后再做总结。</p>	<div id="related_log" style="font-size:12px"><p><b>相关日志：</b></p><p><a href="http://hiying.net/post-45.html">SWIFT API 使用文档</a></p></div>	<div class="nextlog">
+	<a href="http://hiying.net/post-47.html" class="prev">&nbsp;使用tornado的coroutine进行编程</a><a href="http://hiying.net/post-45.html" class="next">&nbsp;SWIFT API 使用文档</a>
+</div>
+				    <div id="pagenavi">
+	        </div>
+		<div style="clear:both;"></div>
+</div><!--end #contentleft-->
+<ul id="sidebar">
+	<li>
+	<h3><span>分类</span></h3>
+	<ul id="blogsort">
+		<li>
+	<a href="http://hiying.net/sort/life">人生感悟(1)</a>
+	<a href="http://hiying.net/rss.php?sort=1"><img src="http://hiying.net/content/templates/Vigour/images/rss.png" alt="订阅该分类"/></a>
+	</li>
+		<li>
+	<a href="http://hiying.net/sort/mysql">Mysql数据库(0)</a>
+	<a href="http://hiying.net/rss.php?sort=2"><img src="http://hiying.net/content/templates/Vigour/images/rss.png" alt="订阅该分类"/></a>
+	</li>
+		<li>
+	<a href="http://hiying.net/sort/python">Python(2)</a>
+	<a href="http://hiying.net/rss.php?sort=3"><img src="http://hiying.net/content/templates/Vigour/images/rss.png" alt="订阅该分类"/></a>
+	</li>
+		<li>
+	<a href="http://hiying.net/sort/hot">热点(4)</a>
+	<a href="http://hiying.net/rss.php?sort=5"><img src="http://hiying.net/content/templates/Vigour/images/rss.png" alt="订阅该分类"/></a>
+	</li>
+		<li>
+	<a href="http://hiying.net/sort/php">PHP技巧(0)</a>
+	<a href="http://hiying.net/rss.php?sort=6"><img src="http://hiying.net/content/templates/Vigour/images/rss.png" alt="订阅该分类"/></a>
+	</li>
+		<li>
+	<a href="http://hiying.net/sort/it">综合技术(0)</a>
+	<a href="http://hiying.net/rss.php?sort=7"><img src="http://hiying.net/content/templates/Vigour/images/rss.png" alt="订阅该分类"/></a>
+	</li>
+		</ul>
+	</li>
+	<li>
+	<h3><span> </span></h3>
+	<ul>
+	<script type="text/javascript"><!--
+google_ad_client = "ca-pub-1476599646217916";
+/* 200-200 */
+google_ad_slot = "4454763468";
+google_ad_width = 200;
+google_ad_height = 200;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>	</ul>
+	</li>
+	<li>
+	<h3><span>搜索</span></h3>
+	<ul id="logserch">
+	<form name="keyform" method="get" action="http://hiying.net/index.php">
+	<input name="keyword" class="search" type="text" />
+	</form>
+	</ul>
+	</li>
+	<li>
+	<h3><span>最新评论</span></h3>
+	<ul id="newcomment">
+		</ul>
+	</li>
+	<li>
+	<h3><span>链接</span></h3>
+	<ul id="link">
+		<li><a href="http://guitar.tradeant.com/" title="free study guitar" target="_blank">The Guitar Library</a></li>
+		<li><a href="http://www.reeai.com" title="爱时尚、爱生活、热爱你的热爱！" target="_blank">热爱网</a></li>
+		<li><a href="http://www.gamemm.net" title="" target="_blank">时尚生活@游戏人生</a></li>
+		<li><a href="http://www.ruanyifeng.com" title="阮一峰的网络日志" target="_blank">阮一峰的网络日志</a></li>
+		<li><a href="http://www.alidba.net/" title="Alibaba DBA Team" target="_blank">Alibaba DBA Team</a></li>
+		<li><a href="http://www.netpigp.com/" title="网络猪屁" target="_blank">网络猪屁</a></li>
+		<li><a href="http://coolshell.cn/" title="" target="_blank">酷壳</a></li>
+		<li><a href="http://www.erevus.tk/" title="" target="_blank">小E的博客</a></li>
+		<li><a href="http://blogold.chinaunix.net/u3/111930/index.php" title="新时代海怪的窝" target="_blank">新时代海怪的窝</a></li>
+		<li><a href="http://blog.longwin.com.tw/" title="Tsung's Blog" target="_blank">Tsung's Blog</a></li>
+		<li><a href="http://fengzhiyi.tk" title="风之翼博客" target="_blank">风之翼博客</a></li>
+		<li><a href="http://www.cnblogs.com/lisperl/" title="" target="_blank">芥子须弥</a></li>
+		</ul>
+	</li>
+</ul><!--end #siderbar-->
+</div><!--end #content-->
+<div style="clear:both;"></div>
+<div id="footerbar">
+&copy; 2009 黑鹰 all rights reserved. Powered by <a href="http://www.emlog.net" title="emlog 5.2.1">emlog</a><script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3Fe44a5d12da84b7bddf0ed343be130a60' type='text/javascript'%3E%3C/script%3E"));
+</script>  </div><!--end #footerbar-->
+</div><!--end #wrap-->
+</body>
+</html>

@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>How To Set Up MySQL Master-Master Replication | DigitalOcean</title>
+<meta content='This second installment of "Scaling Web Applications" will list out the steps necessary for scaling a mysql deployment over two VPS. ' name='description'>
+<meta content='["Backups", "Ubuntu", "MySQL"]' name='keywords'>
+<!-- Twitter Meta -->
+<meta content='summary' name='twitter:card'>
+<meta content='@digitalocean' name='twitter:site'>
+<meta content='@digitalocean' name='twitter:creator'>
+<meta content='How To Set Up MySQL Master-Master Replication' name='twitter:title'>
+<meta content='This second installment of "Scaling Web Applications" will list out the steps necessary for scaling a mysql deployment over two VPS. ' name='twitter:description'>
+<!-- Facebook Meta -->
+<meta content='How To Set Up MySQL Master-Master Replication' name='og:title'>
+<meta content='This second installment of "Scaling Web Applications" will list out the steps necessary for scaling a mysql deployment over two VPS. ' name='og:description'>
+<meta content='DigitalOcean' name='og:site_name'>
+<meta content='article' name='og:type'>
+
+
+<link href="/assets/community/application-e952adb8f46040a3fd5061f0512f97e7.css" media="screen" rel="stylesheet" type="text/css" />
+<meta content="authenticity_token" name="csrf-param" />
+<meta content="rzNKZOza7XiUmZpDgFdq4UsuuWovcb6d1qk2tnspfYM=" name="csrf-token" />
+<script type="text/javascript" src="//use.typekit.net/izu1uqu.js"></script>
+<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+<script>
+  //<![CDATA[
+    (function() {
+      var config = {
+        kitId: 'mwy0yxy',
+        scriptTimeout: 3000
+      };
+      var h=document.getElementsByTagName("html")[0];h.className+=" wf-loading";var t=setTimeout(function(){h.className=h.className.replace(/(\s|^)wf-loading(\s|$)/g," ");h.className+=" wf-inactive"},config.scriptTimeout);var tk=document.createElement("script"),d=false;tk.src='//use.typekit.net/'+config.kitId+'.js';tk.type="text/javascript";tk.async="true";tk.onload=tk.onreadystatechange=function(){var a=this.readyState;if(d||a&&a!="complete"&&a!="loaded")return;d=true;clearTimeout(t);try{Typekit.load(config)}catch(b){}};var s=document.getElementsByTagName("script")[0];s.parentNode.insertBefore(tk,s)
+    })();
+    
+    var _gaq = _gaq || [];
+     _gaq.push(['_setAccount', 'UA-26573244-1']);
+     _gaq.push(['_trackPageview']);
+    
+     (function() {
+       var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+       ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+       var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+     })();
+    
+     /* <![CDATA[ */
+     var google_conversion_id = 1010666955;
+     var google_conversion_language = "en";
+     var google_conversion_format = "3";
+     var google_conversion_color = "ffffff";
+     var google_conversion_label = "g5d3CM2C9QIQy5v24QM";
+     var google_conversion_value = 0;
+     /* ]]> */
+  //]]>
+</script>
+</head>
+<body class='community'>
+<header>
+	<div class="wrapper">
+
+    <a href="/" class="logo"></a>
+
+      <div id="entrance">
+        <a href="https://cloud.digitalocean.com/registrations/new" class="button" id="sign-up">Sign Up</a>
+        <a href="https://cloud.digitalocean.com/login" class="button" id="log-in">Log In</a>
+      </div>
+
+    <nav>
+      <ul>
+        <li><a href="/community/" class="community">Community</a></li>
+        <li><a href="/community/articles">Tutorials</a></li>
+        <li><a href="/community/questions">Questions</a></li>
+        <li><a href="/community/projects">Projects</a></li>
+        <li><a href="/community/tags">Explore</a></li>
+        <li class="irc-link"><a href="#">IRC</a></li>
+      </ul>
+
+      <div class="overlay" style="display:none;"></div>
+      <div class="box">
+       <a class="boxclose"></a>
+       <h1>Before you continue...</h1>
+       <p>
+        You are about to enter a community-supported IRC chat.  DigitalOcean is not responsible for its content. If you require immediate assistance, please open a <a href="https://cloud.digitalocean.com/support">support ticket</a></a>.
+       </p>
+       <a href="http://webchat.freenode.net/?channels=digitalocean&amp;uio=d4" class="continue">Continue to IRC Chat</a>
+      </div>
+    </nav>
+
+    <form accept-charset="UTF-8" action="/community/search" data-remote="true" id="search" method="post"><div style="margin:0;padding:0;display:inline"><input name="utf8" type="hidden" value="&#x2713;" /><input name="authenticity_token" type="hidden" value="rzNKZOza7XiUmZpDgFdq4UsuuWovcb6d1qk2tnspfYM=" /></div>
+      <input type="text" name="search[query]" id="search_query" placeholder="Search the Community" value="">
+
+      <button type="submit" class="icon-btn">
+        <span class="icon-arrow-down"></span>
+      </button>
+</form>  </div>
+</header>
+<div class='tutorial-single wrapper'>
+
+<div id="tutorial-wrapper">
+  <div id="table-of-contents">
+  <h3 id="toc-trigger">
+    <a href="#">
+    Contents
+    <span class="icon-navicon"></span>
+    </a>
+  </h3>
+  </div>
+
+  <div id="slim-sidebar">
+    <div class="big-upvote"></div>
+    <p class="author"></p>
+    <p class="date">April 26, 2013</p>
+    <span class="difficulty-level beginner">Beginner</span>
+  </div>
+
+  <div class="slim-body" id="tutorial-body">
+  <h1>How To Set Up MySQL Master-Master Replication</h1>
+    <div id="tags">
+      <span>Tagged In: </span>
+      <a href="/community/tags/backups">Backups</a>, <a href="/community/tags/ubuntu">Ubuntu</a>, <a href="/community/tags/mysql">My Sql</a>
+    </div>
+
+  <div class="tutorial-content">
+    <h3>Intro</h3><hr>
+This second installment of "Scaling Web Applications" will list out the steps necessary for scaling a mysql deployment over two VPS. 
+The first article in this series laid out the steps needed to load-balance nginx over two VPS, and it is recommended that you read 
+<a href="https://www.digitalocean.com/community/articles/how-to-scale-web-applications-on-ubuntu-12-10"> 
+that article</a> first. <br/></br>
+MySQL replication is the process by which a single data set, stored in a MySQL database, will be live-copied to a second server. This 
+configuration, called "master-slave" replication, is a typical setup. Our setup will be better than that, because master-master replication
+allows data to be copied from either server to the other one. This subtle but important difference allows us to perform mysql read or writes
+from either server. This configuration adds redundancy and increases efficiency when dealing with accessing the data. <br/> 
+The examples in this article will be based on two VPS, named Server C and Server D. <br/>
+<b>Server C: 3.3.3.3</b>
+<br/>
+<b>Server D: 4.4.4.4</b>
+<h2> Step 1 - Install and Configure MySQL on Server C </h2><hr>
+The first thing we need to do is to install the mysql-server and mysql-client packages on our server. We can do that by typing the 
+following:
+<pre>
+sudo apt-get install mysql-server mysql-client
+</pre>
+<br/>
+By default, the mysql process will only accept connections on localhost (127.0.0.1). To change this default behavior and change a few other
+settings necessary for replication to work properly, we need to edit /etc/mysql/my.cnf on Server C. <br/>
+There are four lines that we need to change, which are currently set to the following:
+<pre>
+#server-id              = 1
+#log_bin                = /var/log/mysql/mysql-bin.log
+#binlog_do_db           = include_database_name
+bind-address            = 127.0.0.1
+</pre>
+<br/>
+The first of those lines is to uniquely identify our particular server, in our replication configuration. We need to uncomment that line, by
+removing the "#" before it. The second line indicates the file in which changes to any mysql database or table will be logged. 
+The third line indicates which databases we want to replicate between our servers. You can add as many databases to this line 
+as you'd like. The article will use a single database named "example" for the purposes of simplicity. And the last line tells our server
+to accept connections from the internet (by not listening on 127.0.0.1). 
+<pre>
+server-id               = 1
+log_bin                 = /var/log/mysql/mysql-bin.log
+binlog_do_db            = example
+# bind-address            = 127.0.0.1
+</pre>
+<br/>
+Now we need to restart mysql:
+<pre>
+sudo service mysql restart
+</pre>
+<br/>
+We next need to change some command-line settings within our mysql instance. Back at our shell, we can get to our root mysql user by 
+typing the following: 
+<pre>
+mysql -u root -p 
+</pre>
+<br/>
+Please note that the password this command will prompt you for is that of the root mysql user, not the root user on our droplet.<br/><br/>
+To confirm that you are logged in to the mysql shell, the prompt should look like the following. 
+<pre>
+mysql> 
+</pre>
+<br/>
+Once we are logged in, we need to run a few commands. <br/>
+<br/>
+We need to create a pseudo-user that will be used for replicating data between our two VPS. The examples in this article will 
+assume that you name this user "replicator". Replace "password" with the password you wish to use for replication. 
+<pre>
+create user 'replicator'@'%' identified by 'password'; 
+</pre>
+<br/>
+Next, we need to give this user permissions to replicate our mysql data: 
+<pre>
+grant replication slave on *.* to 'replicator'@'%'; 
+</pre>
+<br/>
+Permissions for replication cannot, unfortunately, be given on a per-database basis. Our user will only replicate the database(s) that we 
+instruct it to in our config file. 
+<br/>
+For the final step of the initial Server C configuration, we need to get some information about the current MySQL instance which we will 
+later provide to Server D. <br/>
+The following command will output a few pieces of important information, which we will need to make note of:
+<pre>
+show master status; 
+</pre>
+<br/>
+The output will looking similiar to the following, and will have two pieces of critical information: 
+<pre>
++------------------+----------+--------------+------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB |
++------------------+----------+--------------+------------------+
+| mysql-bin.000001 |      107 | example      |                  |
++------------------+----------+--------------+------------------+
+1 row in set (0.00 sec)
+</pre>
+<br/>
+We need to make a note of the file and position which will be used in the next step. 
+<h2> Step 2 - Install and Configure MySQL on Server D </h2><hr>
+We need to repeat the same steps that we followed on Server C. <br/><br/>
+First we need to install it, which we can do with the following command: 
+<pre>
+sudo apt-get install mysql-server mysql-client
+</pre>
+<br/>
+Once the two packages are properly installed, we need to configure it in much the same way as we configured Server C. We will start by 
+editing the /etc/mysql/my.cnf file. 
+<pre>
+sudo nano /etc/mysql/my.cnf 
+</pre>
+<br/>
+We need to change the same four lines in the configuration file as we changed earlier. <br/>
+The defaults are listed below, followed by the changes we need to make. 
+<pre>
+#server-id              = 1
+#log_bin                = /var/log/mysql/mysql-bin.log
+#binlog_do_db           = include_database_name
+bind-address            = 127.0.0.1
+</pre>
+<br/>
+We need to change these four lines to match the lines below. Please note, that unlike Server C, the server-id for Server D cannot be set
+to 1. 
+<pre>
+server-id              = 2
+log_bin                = /var/log/mysql/mysql-bin.log
+binlog_do_db           = example
+# bind-address            = 127.0.0.1
+</pre>
+<br/>
+After you save and quit that file, you need to restart mysql: 
+<pre>
+sudo service mysql restart
+</pre>
+<br/>
+It is time to go into the mysql shell and set some more configuration options. 
+<pre>
+mysql -u root -p 
+</pre>
+<br/>
+First, just as on Server C, we are going to create the pseudo-user which will be responsible for the replication. Replace "password" with the password you wish to use. 
+<pre>
+create user 'replicator'@'%' identified by 'password'; 
+</pre>
+<br/>
+Next, we need to create the database that we are going to replicate across our VPS. 
+<pre>
+create database example; 
+</pre>
+<br/>
+And we need to give our newly created 'replication' user permissions to replicate it. 
+<pre>
+grant replication slave on *.* to 'replicator'@'%'; 
+</pre>
+<br/>
+The next step involves taking the information that we took a note of earlier and applying it to our mysql instance. This will allow 
+replication to begin. The following should be typed at the mysql shell:
+<pre>
+slave stop; 
+CHANGE MASTER TO MASTER_HOST = '3.3.3.3', MASTER_USER = 'replicator', MASTER_PASSWORD = 'password', MASTER_LOG_FILE = 'mysql-bin.000001', MASTER_LOG_POS = 107; 
+slave start; 
+</pre>
+<br/>
+You need to replace 'password' with the password that you have chosen for replication. Your values for MASTER_LOG_FILE and MASTER_LOG_POS may differ than those above. You should copy the values that "SHOW MASTER STATUS" returns on Server C. <br/><br/>
+The last thing we have to do before we complete the mysql master-master replication is to make note of the master log file and position to use to replicate in the other direction (from Server D to Server C). <br/> 
+We can do that by typing the following: 
+<pre>
+SHOW MASTER STATUS; 
+</pre>
+<br/>
+The output will look similiar to the following:
+<pre>
++------------------+----------+--------------+------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB |
++------------------+----------+--------------+------------------+
+| mysql-bin.000004 |      107 | example      |                  |
++------------------+----------+--------------+------------------+
+1 row in set (0.00 sec)
+</pre>
+<br/>
+Take note of the file and position, as we will have to enter those on server C, to complete the two-way replication. 
+The next step will explain how to do that. 
+<h2> Step 3 - Completing Replication on Server C </h2><hr>
+Back on Server C, we need to finish configuring replication on the command line. Running this command will replicate all data from Server D. 
+<pre> 
+slave stop; 
+CHANGE MASTER TO MASTER_HOST = '4.4.4.4', MASTER_USER = 'replicator', MASTER_PASSWORD = 'password', MASTER_LOG_FILE = 'mysql-bin.000004', MASTER_LOG_POS = 107; 
+slave start; 
+</pre>
+<br/>
+Keep in mind that your values may differ from those above. Please also replace the value of MASTER_PASSWORD with the password you created when setting up the replication user. 
+<br/>
+The output will look similiar to the following:
+<pre>
+Query OK, 0 rows affected (0.01 sec)
+</pre>
+<br/>
+The last thing to do is to test that replication is working on both VPS. The last step will explain an easy way to test this configuration. 
+<h2> Step 4 - Testing Master-Master Replication </h2><hr>
+Now that have all the configuration set up, we are going to test it now. To do this, we are going to create a table in our example database
+on Server C and check on Server D to see if it shows up. Then, we are going to delete it from Server D and make sure it's no longer showing 
+up on Server C.<br/><br/>
+We now need to create the database that will be replicated between the servers. We can do that by typing the following at the mysql shell:
+<pre>
+create database example; 
+</pre> 
+<br/>
+Once that's done, let's create a dummy table on Server C: 
+<pre>
+create table example.dummy (`id` varchar(10)); 
+</pre>
+<br/>
+We now are going to check Server D to see if our table exists. 
+<pre> 
+show tables in example; 
+</pre>
+<br/>
+We should see output similiar to the following:
+<pre>
++-------------------+
+| Tables_in_example |
++-------------------+
+| dummy             |
++-------------------+
+1 row in set (0.00 sec)
+</pre>
+<br/>
+The last test to do is to delete our dummy table from Server D. It should also be deleted from Server C. 
+We can do this by entering the following on Server D: 
+<pre>
+DROP TABLE dummy; 
+</pre>
+<br/>
+To confirm this, running the "show tables" command on Server C will show no tables:
+<pre>
+Empty set (0.00 sec)
+</pre>
+<br/>
+And there you have it! Working mysql master-master replication. <br/><br/>
+As always, any feedback is more than welcome.
+  </div>
+
+  
+  <div class="related">
+      <h3>Related Articles</h3>
+      <ul>
+        <li><a href="/community/articles/how-to-use-backups-git-and-apt-get-to-undo-changes-on-a-linux-vps">How To Use Backups, Git, and Apt-Get to Undo Changes on a Linux VPS</a></li>
+        <li><a href="/community/articles/how-to-secure-a-cloud-server-against-sql-injection">How To Secure a Cloud Server Against SQL Injection</a></li>
+        <li><a href="/community/articles/how-to-backup-postgresql-databases-on-an-ubuntu-vps">How To Backup PostgreSQL Databases on an Ubuntu VPS</a></li>
+        <li><a href="/community/articles/how-to-install-rsnapshot-on-ubuntu-12-04">How to Install Rsnapshot on Ubuntu 12.04</a></li>
+        <li><a href="/community/articles/how-to-choose-an-effective-backup-strategy-for-your-vps">How To Choose an Effective Backup Strategy for your VPS</a></li>
+        <li><a href="/community/articles/how-to-configure-and-maintain-ghost-from-the-command-line">How To Configure and Maintain Ghost from the Command Line</a></li>
+        <li><a href="/community/articles/how-to-use-digitalocean-snapshots-to-automatically-backup-your-droplets">How To Use DigitalOcean Snapshots to Automatically Backup your Droplets</a></li>
+        <li><a href="/community/articles/how-to-use-backuppc-to-create-a-backup-server-on-an-ubuntu-12-04-vps">How To Use BackupPC to Create a Backup Server on an Ubuntu 12.04 VPS</a></li>
+      </ul>
+  </div>
+
+  <div id="sharing-is-caring">
+  <h2>Share this Tutorial</h2>
+  <a href="https://twitter.com/share" class="twitter-share-button" data-lang="en">Tweet</a>
+  <div id="fb-root">
+    <div class="fb-link" data-href="https://www.digitalocean.com/community/articles/how-to-set-up-mysql-master-master-replication" data-send="false" data-layout="button_count" data-width="450" data-show-faces="false" data-font="arial"></div>
+  </div>
+  <div class="g-plus" data-action="share" data-annotation="bubble"></div>
+  <a href="https://news.ycombinator.com/submit" class="hn-button" data-count="horizontal">Vote on Hacker News</a>
+</div>
+
+
+  <br>
+<div class='do-form tutorial-call-action' id='register'>
+<div class='form-wrap'>
+<h2><strong>Try this tutorial</strong> on an SSD cloud server.</h2>
+<p class="copy">Includes 512MB RAM, 20GB SSD Disk, and 1TB Transfer for
+<strong>$5/mo</strong>! <a class="learn-more" href="https://www.digitalocean.com/pricing">Learn more</a></p>
+<form accept-charset="UTF-8" action="https://cloud.digitalocean.com/registrations" class="form-inline" id="new_user" method="post"><div style="margin:0;padding:0;display:inline"><input name="utf8" type="hidden" value="&#x2713;" /><input name="authenticity_token" type="hidden" value="rzNKZOza7XiUmZpDgFdq4UsuuWovcb6d1qk2tnspfYM=" /></div><fieldset>
+<input id="user_signup_form_name" name="user[signup_form_name]" type="hidden" value="articles" />
+  <fieldset id="register">
+    <legend>Create an account or login:</legend>
+
+    <div class="field">
+      <input id="user_email" name="user[email]" placeholder="Email" required="required" type="text" />
+    </div>
+
+    <div class="field">
+      <input data-toggle="tooltip" id="user_password" name="user[password]" placeholder="Password" rel="tooltip-focus" required="required" title="Must be at least 6 characters long and it must contain at least one letter" type="password" />
+    </div>
+  </fieldset>
+
+<div class='field'>
+<input class="button" name="commit" type="submit" value="Get Started!" />
+</div>
+</fieldset>
+</form>
+
+</div>
+</div>
+
+
+  <div id="comment-wrapper" class="tutorial-comments">
+    <h4>82 Comments</h4>
+    <a href="/community/get-paid-to-write" class="write">
+      <span class="icon-edit"></span> Write Tutorial
+</a>    <div>
+  <ul class="comment-responses ">
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/da6ea5162f8cc1c5a569253680e76a88?default=identicon" width="80" />
+  <a class="full-name">Marlon</a>
+  <span id="1371723360" class="time-ago" title="2013-06-20 10:16:00 UTC">11 months</span>
+  <p class="comment-copy">This is excellent, Followed it by example, then set up my master-master-slave from there. Thanks D.O.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1371726811" class="time-ago" title="2013-06-20 11:13:31 UTC">11 months</span>
+  <p class="comment-copy">@Marlon: Thanks for the awesome feedback! I'm really glad to hear that this article was helpful to you :]</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/da6ea5162f8cc1c5a569253680e76a88?default=identicon" width="80" />
+  <a class="full-name">Marlon</a>
+  <span id="1371746132" class="time-ago" title="2013-06-20 16:35:32 UTC">11 months</span>
+  <p class="comment-copy">Karmal, cool!
+
+I hate posting again, but I forgot something. I could be way off, but I think adding the auto_increment and auto_increment_offset directives might be a good idea for master-master, as this could save folks from potential PK conflicts, or users could investigate this for themselves: http://dev.mysql.com/doc/refman/5.7/en/replication-options-master.html#sysvar_auto_increment_increment
+So on Server C: 2/1 and for server D: 2/2 or something like that.
+</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/b53f222408243b040d402ebb629940a8?default=identicon" width="80" />
+  <a class="full-name">rmang</a>
+  <span id="1372811746" class="time-ago" title="2013-07-03 00:35:46 UTC">10 months</span>
+  <p class="comment-copy">How about if you have an existing database and want to set up master-master? What needs to be changed for this scenario?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1372852925" class="time-ago" title="2013-07-03 12:02:05 UTC">10 months</span>
+  <p class="comment-copy">@rmang: This article should still work even if you have an already existing mysql setup.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/15e10eaa69a500ab4e5acea7f2b3b7f9?default=identicon" width="80" />
+  <a class="full-name">Dave Ganley</a>
+  <span id="1372904203" class="time-ago" title="2013-07-04 02:16:43 UTC">10 months</span>
+  <p class="comment-copy">These guys have a really good replication configurator http://www.severalnines.com/</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/346839104f738d748fbb5136ed03ab62?default=identicon" width="80" />
+  <a class="full-name">vguhesan+do</a>
+  <span id="1375110208" class="time-ago" title="2013-07-29 15:03:28 UTC">10 months</span>
+  <p class="comment-copy">what is the minimal MySQL version that supports this model? 5.0, 5.1, 5.5, 5.6???</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1375110371" class="time-ago" title="2013-07-29 15:06:11 UTC">10 months</span>
+  <p class="comment-copy">@vguhesan+do: Replication capabilities enabling the databases on one MySQL server to be duplicated on another were introduced in MySQL 3.23.15.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/f9a192e4ff1680028df4b3474985b85a?default=identicon" width="80" />
+  <a class="full-name">masud</a>
+  <span id="1377675973" class="time-ago" title="2013-08-28 07:46:13 UTC">9 months</span>
+  <p class="comment-copy">Kamal, great article. Congratulations. 
+
+Now I have one scenario on hand. We have 2 servers under one physical load balancer. Its configured using round robin method. Now we know the content / file replication or synchronization wont be an issue but can we have the same database on both dedicated servers ( under same network! ) and do real-time replication using your method or you suggest something else?
+
+We did consider rsync for mysql as well but it can be tricky as the db has to be stopped while replicating and all.
+
+Can you please advice?
+
+Thanks in advance mate.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1377691277" class="time-ago" title="2013-08-28 12:01:17 UTC">9 months</span>
+  <p class="comment-copy">@masud: I recommend using one separate database server and having it accessible by both web servers so that they access the exact same data.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/00b2a55d2397a61feafa29d8aa8bdb21?default=identicon" width="80" />
+  <a class="full-name">Sarayut Utsakoo</a>
+  <span id="1379059363" class="time-ago" title="2013-09-13 08:02:43 UTC">8 months</span>
+  <p class="comment-copy">This is a really good article what I'm look for.
+Thanks for share.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/061ebbbaf52816267ba58124549d5744?default=identicon" width="80" />
+  <a class="full-name">m.shoaib.mir</a>
+  <span id="1379407652" class="time-ago" title="2013-09-17 08:47:32 UTC">8 months</span>
+  <p class="comment-copy">Is this article work for two droplets ? I have been trying to configure master master on two droplets with different ips and db servers. But it doesn't work. All is set and no data is replicated. Any help ?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1379422392" class="time-ago" title="2013-09-17 12:53:12 UTC">8 months</span>
+  <p class="comment-copy">@m.shoaib.mir: Check mysql's binary logs:
+
+<a href="http://egloo.wordpress.com/2008/11/19/how-to-read-mysql-binary-logs/">http://egloo.wordpress.com/2008/11/19/how-to-read-mysql-binary-logs/</a> - see if you can find any errors/pointers there.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/061ebbbaf52816267ba58124549d5744?default=identicon" width="80" />
+  <a class="full-name">m.shoaib.mir</a>
+  <span id="1379876737" class="time-ago" title="2013-09-22 19:05:37 UTC">8 months</span>
+  <p class="comment-copy">Hi Kamal,
+
+I am getting the following error in Master Master Replication between two droplets. I have found the error through the command "mysql> show slave status\G;"
+
+Error - error connecting to master 'replicator@Droplet IP:3306'
+
+It means that Master-Master or Master Slave are not connecting with each other.
+
+Help!!!</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1379947483" class="time-ago" title="2013-09-23 14:44:43 UTC">8 months</span>
+  <p class="comment-copy">@m.shoaib.mir: Did you follow steps 1 and 2?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/061ebbbaf52816267ba58124549d5744?default=identicon" width="80" />
+  <a class="full-name">m.shoaib.mir</a>
+  <span id="1380096105" class="time-ago" title="2013-09-25 08:01:45 UTC">8 months</span>
+  <p class="comment-copy">@Kamal Naseer
+Yes, I had followed steps 1 and 2.
+</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/992421c82e416c8117611f6ff4937c7f?default=identicon" width="80" />
+  <a class="full-name">hi.suketu82</a>
+  <span id="1380110781" class="time-ago" title="2013-09-25 12:06:21 UTC">8 months</span>
+  <p class="comment-copy">Which edition of MYSQL is required for this setup. Does it works in Standard edition? </p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1380118893" class="time-ago" title="2013-09-25 14:21:33 UTC">8 months</span>
+  <p class="comment-copy">@hi.suketu82: It should work in all editions of MySQL.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1380118912" class="time-ago" title="2013-09-25 14:21:52 UTC">8 months</span>
+  <p class="comment-copy">@m.shoaib.mir: Are the droplets firewalled? What's the output of <pre>sudo iptables -L -n -v</pre> on each droplet?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/061ebbbaf52816267ba58124549d5744?default=identicon" width="80" />
+  <a class="full-name">m.shoaib.mir</a>
+  <span id="1380203392" class="time-ago" title="2013-09-26 13:49:52 UTC">8 months</span>
+  <p class="comment-copy">////////////////////////////////////// Droplet 1 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+Chain INPUT (policy ACCEPT 679 packets, 46247 bytes)
+ pkts bytes target     prot opt in     out     source               destination                   
+
+Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination                   
+
+Chain OUTPUT (policy ACCEPT 732 packets, 59559 bytes)
+ pkts bytes target     prot opt in     out     source               destination   
+
+
+
+/////////////////////////////////////////////////// Droplet 1 Ends\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+//////////////////////////Droplet 2 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination 
+
+Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination 
+
+Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+
+//////////////////Droplet 2 Ends\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ </p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/061ebbbaf52816267ba58124549d5744?default=identicon" width="80" />
+  <a class="full-name">m.shoaib.mir</a>
+  <span id="1380265210" class="time-ago" title="2013-09-27 07:00:10 UTC">8 months</span>
+  <p class="comment-copy">@ Kamal Nasser
+Any help :)
+
+Thank you</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1380273653" class="time-ago" title="2013-09-27 09:20:53 UTC">8 months</span>
+  <p class="comment-copy">@m.shoaib.mir: What's the output of <pre>grep bind-address /etc/mysql/my.cnf</pre> on each droplet? Also try restarting mysql on both droplets and see if that fixes it: <pre>sudo service mysql restart</pre></p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/ecaad2e6d11b1e164f980f3459be61d5?default=identicon" width="80" />
+  <a class="full-name">hedberg</a>
+  <span id="1381152987" class="time-ago" title="2013-10-07 13:36:27 UTC">7 months</span>
+  <p class="comment-copy">I have the same scenarios as Masud had. But i didnt understand your answer Kamal. 2 webservers 2 sql-servers useing your method and in front 1 loadbalancer with roundroubin for the SQL. Would this be a good soulution to use then to reach a good HA solution for mysql?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1381160126" class="time-ago" title="2013-10-07 15:35:26 UTC">7 months</span>
+  <p class="comment-copy">@hedberg: <strong>2 webservers 2 sql-servers</strong>
+
+I'm pretty sure you don't really need 2 database servers however if you want to go that route you can have webserver 1 connect to database server 1 and webserver 2 connect to database server 2.
+
+Then set up master-master replication between both database servers so that they have the same data.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/ecaad2e6d11b1e164f980f3459be61d5?default=identicon" width="80" />
+  <a class="full-name">hedberg</a>
+  <span id="1381222952" class="time-ago" title="2013-10-08 09:02:32 UTC">7 months</span>
+  <p class="comment-copy">Why I want that is because of the failover, if one of the hardware crashes i still want the site up and running. But yes that is a smart way of doing it. But what happens if when the one node goes down, then i make the loadbalancer chooses the sql and web that is up ofcourse.
+
+But why isnt it a good ide to make webserver1 write to random sql server?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1381339364" class="time-ago" title="2013-10-09 17:22:44 UTC">7 months</span>
+  <p class="comment-copy">@hedberg: It's not a bad idea but it needs more work, we do not support floating IPs so you cannot use programs such as Heartbeat to use only the database server that is up.
+
+You can also select a random database server in your app's logic so that it connects to a random database server on e.g. each page load.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/16a1a712ce1705969f28e767f6f4487e?default=identicon" width="80" />
+  <a class="full-name">mikster22</a>
+  <span id="1383430746" class="time-ago" title="2013-11-02 22:19:06 UTC">6 months</span>
+  <p class="comment-copy">i have tried this about 3 times on virtual machines, (clean installs) the "show slave status" appears to have no errors, but it goes off the screen so i can't be sure. new databases that i create and give the replicator user permission to and add to the /etc/mysql/my.cnf  do not get replicated, and in the original database the test table from your guide does not get created. so i don't think replication is working, i thought it could be a connection issue, but i can connect to both servers using mysql workbench from my computer.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1383515629" class="time-ago" title="2013-11-03 21:53:49 UTC">6 months</span>
+  <p class="comment-copy">@mikster22: You can scroll through "show slave status"'s output by running the following command:
+
+<pre>mysql --pager=`which less` -u root -p -e 'show slave status'</pre></p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/33a859d5f95072e9d61ed2152891077e?default=identicon" width="80" />
+  <a class="full-name">lionel</a>
+  <span id="1383623947" class="time-ago" title="2013-11-05 03:59:07 UTC">6 months</span>
+  <p class="comment-copy">Used your tutorial on two VM's but I wasn't getting replication until I ran 'unlock tables;' dropped the 'example' db and recreated it. 
+
+Also, I seem to unable to replicate anything other than a DB called 'example'. Does this have something to do with the bin_log name?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1383657927" class="time-ago" title="2013-11-05 13:25:27 UTC">6 months</span>
+  <p class="comment-copy">@lionel: You should edit the <strong>binlog_do_db            = example</strong> directive and replace "example" with the databases you want to replicate.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/06d2d74f22b5e1bec32de298d7613804?default=identicon" width="80" />
+  <a class="full-name">amos.kanakam</a>
+  <span id="1383677697" class="time-ago" title="2013-11-05 18:54:57 UTC">6 months</span>
+  <p class="comment-copy">Hi Kamal, Excellent post. I have one doubt : do I need to use auto_increment and auto_increment_offset to do master - master replication? thank you.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1383755696" class="time-ago" title="2013-11-06 16:34:56 UTC">6 months</span>
+  <p class="comment-copy">@amos.kanakam: You usually don't <strong>need</strong> them, however you might have to configure them if you get primary key conflicts however this is usually not needed unless you have a really large amount of rows inserted every second. See <a href="http://dev.mysql.com/doc/refman/5.0/en/replication-options-master.html">http://dev.mysql.com/doc/refman/5.0/en/replication-options-master.html</a> for more info on what they do.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/2005df1a0154ce2dd265b104223bf8d5?default=identicon" width="80" />
+  <a class="full-name">martin</a>
+  <span id="1385658293" class="time-ago" title="2013-11-28 17:04:53 UTC">5 months</span>
+  <p class="comment-copy">Hi Kamal, quick question. I got the replication working great on a Master-Master basis. However, how would I get the DB back in sync if one goes offline for a bit and needs to be updated when it becomes available again? Can this be forced through manually?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1385662166" class="time-ago" title="2013-11-28 18:09:26 UTC">5 months</span>
+  <p class="comment-copy">@martin: I believe it does that automatically.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/a5aca84896ab0fa00f5fda3b51bcc849?default=identicon" width="80" />
+  <a class="full-name">el3raf6</a>
+  <span id="1386964268" class="time-ago" title="2013-12-13 19:51:08 UTC">5 months</span>
+  <p class="comment-copy">اشكرك جزيل الشكر .. لقد استفدت جدا من شرحك المرتب الجميل الخالي من التعقيد وقمت بالفعل بعمل 
+replication master master
+وهي تعمل بكفاءة وتنقل داتا بالملايين
+
+اشكرك جدا جدا وربنا يبارك فيك</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/4f00aae9ee56b01375740c7d22ea104e?default=identicon" width="80" />
+  <a class="full-name">piotr.pawlaczek</a>
+  <span id="1388710208" class="time-ago" title="2014-01-03 00:50:08 UTC">4 months</span>
+  <p class="comment-copy">It works well when we have 2 databases, but what should I change when there are >2 databases? For ex. there are 3 databases (A, B, C). When A is changed I expect this change will be replicated to B and C. Is that possible?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/6824408f32574d165cf4ec8e2e454856?default=identicon" width="80" />
+  <a class="full-name">ruoju.liu</a>
+  <span id="1388796646" class="time-ago" title="2014-01-04 00:50:46 UTC">4 months</span>
+  <p class="comment-copy">same question as piotr.pawlaczek</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1388864073" class="time-ago" title="2014-01-04 19:34:33 UTC">4 months</span>
+  <p class="comment-copy">@piotr.pawlaczek, @ruoju.liu: I believe setting up master-master replication from server 1 to server 2, and then from server 2 to server 3 should work. So you will have to follow this article once on server 1 and server 2, and once on server 2 and server 3.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/1f81f5146ce54ef04b149b13b89e2b46?default=identicon" width="80" />
+  <a class="full-name">Krishna </a>
+  <span id="1389197035" class="time-ago" title="2014-01-08 16:03:55 UTC">4 months</span>
+  <p class="comment-copy">Hi , Auto_increment is not working & find my configuration file http://pastebin.com/6bFCksEB</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/e9911c1832e46137dec3890620b29e55?default=identicon" width="80" />
+  <a class="full-name">arthurzheng</a>
+  <span id="1390340127" class="time-ago" title="2014-01-21 21:35:27 UTC">4 months</span>
+  <p class="comment-copy">I am running  Mysql  in Windows. Can I have  your  advice on how  to do a master to master replicatio?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/69e32e8e49f332fb24ae6340824ae05a?default=identicon" width="80" />
+  <a class="full-name">suhail</a>
+  <span id="1390908587" class="time-ago" title="2014-01-28 11:29:47 UTC">3 months</span>
+  <p class="comment-copy">What if the data in one of the Master server gets corrupt, will the corrupt data get copied over to the other master server? If yes, how can this be avoided?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1390931535" class="time-ago" title="2014-01-28 17:52:15 UTC">3 months</span>
+  <p class="comment-copy">@suhail: Yes, the corrupt data will be copied over to the other master. You can't avoid that however you can delay it by setting up <a href="http://dev.mysql.com/doc/refman/5.6/en/replication-delayed.html">Delayed Replication</a>.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/bcdb1e02176dc285b093aea82b2c45a1?default=identicon" width="80" />
+  <a class="full-name">casbot</a>
+  <span id="1391300175" class="time-ago" title="2014-02-02 00:16:15 UTC">3 months</span>
+  <p class="comment-copy">This doesnt work.  I have 2 ubuntu 12.10 servers.  Did a lamp install on them.  Then went and did all of your steps to the T and it didnt work.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1391347271" class="time-ago" title="2014-02-02 13:21:11 UTC">3 months</span>
+  <p class="comment-copy">@casbot: Which part doesn't work? Are there any errors in the error logs?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/c7948b485cae75b2bcc3ab0350192d41?default=identicon" width="80" />
+  <a class="full-name">shnx88</a>
+  <span id="1392024753" class="time-ago" title="2014-02-10 09:32:33 UTC">3 months</span>
+  <p class="comment-copy">nice article.. i had been assigned with this task , and i followed ur steps and i completed my task :)</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/c7948b485cae75b2bcc3ab0350192d41?default=identicon" width="80" />
+  <a class="full-name">shnx88</a>
+  <span id="1392025084" class="time-ago" title="2014-02-10 09:38:04 UTC">3 months</span>
+  <p class="comment-copy">one doubt.. can we have multiple masters to be  connected to single slave? </p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1392053547" class="time-ago" title="2014-02-10 17:32:27 UTC">3 months</span>
+  <p class="comment-copy">@shnx88: It's not possible to have multiple masters replicate to a single slave.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/c7948b485cae75b2bcc3ab0350192d41?default=identicon" width="80" />
+  <a class="full-name">shnx88</a>
+  <span id="1392109257" class="time-ago" title="2014-02-11 09:00:57 UTC">3 months</span>
+  <p class="comment-copy">yeah that what i read. But if you give "SHOW SLAVE STATUS" command you can see these configuration.
+Replicate_Ignore_Server_Ids:
+             Master_Server_Id: 1
+which is nothing but telling slave to ignore events from configured masters. 
+http://dev.mysql.com/doc/refman/5.6/en/show-slave-status.html
+</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/4aa7a06694d2c174761e136ce349cea5?default=identicon" width="80" />
+  <a class="full-name">casbot</a>
+  <span id="1392215455" class="time-ago" title="2014-02-12 14:30:55 UTC">3 months</span>
+  <p class="comment-copy">Kamal,  I followed the steps exactly and when I went into one of the databases through PHPMyAdmin and changed a value in the table, I waited about 5 minutes and then went to the other database via PHPMyAdmin and checked and the value had not sync´d.  I did not see any errors.    What do you suggest as this point?  I really need this master- master configuration to work as I have a website using the MySql database and then a duplicate website on another machine on the same subnet that I am load balancing and so i need databases to sync when someone changes something on either one so that both sites keep synd´d</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/4aa7a06694d2c174761e136ce349cea5?default=identicon" width="80" />
+  <a class="full-name">casbot</a>
+  <span id="1392221995" class="time-ago" title="2014-02-12 16:19:55 UTC">3 months</span>
+  <p class="comment-copy">By the way, I even tried it by creating a database on one server, the same database on the other server, and then I did an import of a schema.sql to one of the server´s database.  The tables that got created on the first server never got replicated on the second server.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/4aa7a06694d2c174761e136ce349cea5?default=identicon" width="80" />
+  <a class="full-name">casbot</a>
+  <span id="1392255210" class="time-ago" title="2014-02-13 01:33:30 UTC">3 months</span>
+  <p class="comment-copy">Kamal,  well i setup two fresh lamp servers on Ubuntu 12.10.  I also install PHPMyAdmin and tried throught the gui this time.  I was able to get 50% of configured from the Server 1 --> Server 2 and the replicatioin worked fine.  Then I set it up for the other way too and then all of it broke unless I manually told it to sync.  Now on both servers the Slave SQL Thread is not running and I cant get it to start.
+
+Any suggestions, or should I uninstall MySQL and PHPMyAdmin and then reinstall them and try again via the cli above per your instructions?
+
+Thanks.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/4aa7a06694d2c174761e136ce349cea5?default=identicon" width="80" />
+  <a class="full-name">casbot</a>
+  <span id="1392280857" class="time-ago" title="2014-02-13 08:40:57 UTC">3 months</span>
+  <p class="comment-copy">Well I sat up until 1am trying this and these instructions DONT WORK.    I dont think youre instructions above are for Ubuntu 12.10.  The reason I say this is because the command you stated above for the big long "change master to .....", you cant combine all those commands on the same line like that.  When I type it in exactly like you have it, the system spits out syntax errors saying its not correct, so I end up having to multiple "change master to " lines.
+
+Now doing it my way through PHPMyAdmin, at least i had replication going one way but then it broke when i configured it to go back the other way.  With your instructions, and I have tried them 3 times now, DO NOT WORK at all.
+
+Please create a step by step, and when I say step by step I mean every little detail, on how to do this via PHPMyAdmin because obviously you are not on the same platform as me. And, doing it through the gui it does all the correct cli commands in the background so there are no typos.  I need this crap working ASAP.  Unfortunately your article is the only one on the internet that I can find. So please revise it to match Ubuntu 12.10 and the default MySql that gets installed on that version.
+
+Thanks.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/ec245aa7beea3377ca5718f8a9b99684?default=identicon" width="80" />
+  <a class="full-name">kevin.waterson</a>
+  <span id="1393214386" class="time-ago" title="2014-02-24 03:59:46 UTC">3 months</span>
+  <p class="comment-copy">For some reason this does not work on ubuntu as expected.
+I have tried with other distro's without issue, but ubuntu fails.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1393242504" class="time-ago" title="2014-02-24 11:48:24 UTC">3 months</span>
+  <p class="comment-copy">@kevin.waterson: Which part doesn't work for you on Ubuntu?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/1cb57a2af5e2fe37f18d202fd5f84489?default=identicon" width="80" />
+  <a class="full-name">gopi.te</a>
+  <span id="1393434474" class="time-ago" title="2014-02-26 17:07:54 UTC">2 months</span>
+  <p class="comment-copy">I have tried it on Ubuntu as well.  Replication is not working.  
+
+I have 2 droplets, one in NYC and other in AMS.  I have followed the tutorial.  Replication is not working.  One thing I noticed is when I look at the "show master status" the position and file changes quite often.  I am not sure about it.
+
+Do I have to open 3306 PORT on iptables?
+
+Thanks</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/1cb57a2af5e2fe37f18d202fd5f84489?default=identicon" width="80" />
+  <a class="full-name">gopi.te</a>
+  <span id="1393436461" class="time-ago" title="2014-02-26 17:41:01 UTC">2 months</span>
+  <p class="comment-copy">I looked at the slave status on the Droplet 1.  This is the message i get.
+
+error connecting to master '<a class="__cf_email__" href="http://www.cloudflare.com/email-protection" data-cfemail="25574055494c4644514a57655d5d0b5d5d0b5d5d0b5d5d">[email&nbsp;protected]</a><script type="text/javascript">
+/* <![CDATA[ */
+(function(){try{var s,a,i,j,r,c,l,b=document.getElementsByTagName("script");l=b[b.length-1].previousSibling;a=l.getAttribute('data-cfemail');if(a){s='';r=parseInt(a.substr(0,2),16);for(j=2;a.length-j;j+=2){c=parseInt(a.substr(j,2),16)^r;s+=String.fromCharCode(c);}s=document.createTextNode(s);l.parentNode.replaceChild(s,l);}}catch(e){}})();
+/* ]]> */
+</script>:3306' - retry-time: 60  retries: 86400
+
+Is that mean, do I have to allow the access to droplet1 on Droplet2 in iptables?  Do we have to do that, since we have removed "bind-address"?
+
+Thanks</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1393508922" class="time-ago" title="2014-02-27 13:48:42 UTC">2 months</span>
+  <p class="comment-copy">@gopi.te: You have to open up port 3306 on both droplets only to the other mysql server and app droplets. e.g. the first mysql server would only allow the second mysql server and all app servers to connect to port 3306 while the second mysql server would only allow the first mysql server and all app servers to connect.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/daea374da69a526bc3c3f42cc484f5c0?default=identicon" width="80" />
+  <a class="full-name">wea.along</a>
+  <span id="1393835970" class="time-ago" title="2014-03-03 08:39:30 UTC">2 months</span>
+  <p class="comment-copy">If 1 server goes down what happen if that server comes up again?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1393861505" class="time-ago" title="2014-03-03 15:45:05 UTC">2 months</span>
+  <p class="comment-copy">@wea.along: As far as I know, it will reconnect to the other master and sync the data it missed.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/c48867f361b78deceff51f5757b7f8df?default=identicon" width="80" />
+  <a class="full-name">info</a>
+  <span id="1394196171" class="time-ago" title="2014-03-07 12:42:51 UTC">2 months</span>
+  <p class="comment-copy">Kamal,
+
+Nice, simple and straight article.
+
+I just followed the steps and I've gotten the replication to work.
+
+Now I can go to sleep having replicated between two servers - different providers</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/302cd019a42b626fc782121f76e638c5?default=identicon" width="80" />
+  <a class="full-name">ken</a>
+  <span id="1394618501" class="time-ago" title="2014-03-12 10:01:41 UTC">2 months</span>
+  <p class="comment-copy">Kamal
+
+"I recommend using one separate database server and having it accessible by both web servers so that they access the exact same data."
+
+Is there a tutorial on this?
+
+Cheers!</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/ab8327fa10ce37f71510354201bc3c52?default=identicon" width="80" />
+  <a class="full-name">dbase92000</a>
+  <span id="1394702225" class="time-ago" title="2014-03-13 09:17:05 UTC">about 1 month</span>
+  <p class="comment-copy">It was very helpful. Thank you very much.
+But why do I have to restart the mysql  server every time at server D to see the changes that were done by Server C.
+</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/06d2d74f22b5e1bec32de298d7613804?default=identicon" width="80" />
+  <a class="full-name">amos.kanakam</a>
+  <span id="1394728636" class="time-ago" title="2014-03-13 16:37:16 UTC">about 1 month</span>
+  <p class="comment-copy">Hi Kamal,
+
+I have setup the master - master replication on CentOS6.4 machine, mysql 5.1.69.
+Replication is working, but sometimes, the data is not replicating. During this time I never find any errors (show slave status). How to rectify this issue? how to check which queries are replicated and which are not.
+
+Please suggest.
+
+Thank you,
+Amos</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/030842b59f2c6bbf01764df30ad13f6e?default=identicon" width="80" />
+  <a class="full-name">Justin L.</a>
+  <span id="1394745492" class="time-ago" title="2014-03-13 21:18:12 UTC">about 1 month</span>
+  <p class="comment-copy">With this master-master, can I also add a master-master+slave approach? How should that be configured? Should both masters sync to the slave or should only one master replicate to the slave? Awesome article BTW!</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/ab8327fa10ce37f71510354201bc3c52?default=identicon" width="80" />
+  <a class="full-name">dbase92000</a>
+  <span id="1394787610" class="time-ago" title="2014-03-14 09:00:10 UTC">about 1 month</span>
+  <p class="comment-copy">Hi kamal, I have a question. What happens when Server C and Server D are disconnected and now they are isolated and the database is updated independently at isolated state respectively. What happens when they reconnect ? Will they synchronize with each other when they reconnect?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1394884320" class="time-ago" title="2014-03-15 11:52:00 UTC">about 1 month</span>
+  <p class="comment-copy">@ken: Simply install MySQL on a fresh new droplet (<a href="https://www.digitalocean.com/community/articles/how-to-secure-mysql-and-mariadb-databases-in-a-linux-vps">https://www.digitalocean.com/community/articles/how-to-secure-mysql-and-mariadb-databases-in-a-linux-vps</a>) but make sure it's listening on the private interface: (bind-address = 1.2.3.4 where 1.2.3.4 is your droplet's private IP address).
+
+Make sure you set up a firewall so that only your app servers can connect to it: <a href="https://www.digitalocean.com/community/articles/how-to-setup-a-firewall-with-ufw-on-an-ubuntu-and-debian-cloud-server">https://www.digitalocean.com/community/articles/how-to-setup-a-firewall-with-ufw-on-an-ubuntu-and-debian-cloud-server</a>.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1394884348" class="time-ago" title="2014-03-15 11:52:28 UTC">about 1 month</span>
+  <p class="comment-copy">@Justin: I think you can do that. But you can't have two masters syncing to one slave. Pick one of the masters and have it replicate to a slave.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1394884401" class="time-ago" title="2014-03-15 11:53:21 UTC">about 1 month</span>
+  <p class="comment-copy">@dbase92000: As far as I know, they will act is if they were separate servers and will sync once they're reconnected.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/215b6bc15b5cf772f9c4477a3ba0544b?default=identicon" width="80" />
+  <a class="full-name">Kamal Nasser</a>
+  <span id="1394884434" class="time-ago" title="2014-03-15 11:53:54 UTC">about 1 month</span>
+  <p class="comment-copy">@amos.kanakam: Check MySQL's error log, are there any errors in there? <a href="www.cyberciti.biz/faq/debian-ubuntu-linux-mysql-error-log/">www.cyberciti.biz/faq/debian-ubuntu-linux-mysql-error-log/</a>.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/45853b9ff0edeb364ce2760186564e07?default=identicon" width="80" />
+  <a class="full-name">kiran.gkundapur</a>
+  <span id="1395233352" class="time-ago" title="2014-03-19 12:49:12 UTC">about 1 month</span>
+  <p class="comment-copy">Hi. This is super code and works fine for single DB. Can you tell me how to do this for more than 1 DB
+binlog_do_db           = example
+here what should i change ??</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/b4c37a9ba80b846d5301b362dbdbf3ae?default=identicon" width="80" />
+  <a class="full-name">jrdubstep</a>
+  <span id="1395882123" class="time-ago" title="2014-03-27 01:02:03 UTC">about 1 month</span>
+  <p class="comment-copy">maybe i can help someone else with their headache. I was stuck on this for 5 hours with constant errors. in particular:
+
+ERROR 1007 (HY000): Can't create database 'example'; database exists
+
+and lo and behold i just removed 'other_database' from the server that was reporting the error and then the master-master configuration took over.
+
+i rebooted mysql on the error prone server which then took over commands from the other master, resulting in a successful master-master config with a database.
+
+I cant believe it took me that long, i had even created 2 brand new droplets to figure out the problem.
+
+what it came down to is that in the steps their is:
+
+create database example; 
+
+its listed twice so i went ahead and did them in order which resulted in the conflicting databases!
+
+hope this helps someone</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/9e71f62d326b91254238e16a9649cfee?default=identicon" width="80" />
+  <a class="full-name">anomalieh</a>
+  <span id="1396009323" class="time-ago" title="2014-03-28 12:22:03 UTC">about 1 month</span>
+  <p class="comment-copy">Hi Kamal, I followed the outlined steps and I'm unable to replicate my database on mysql 5.5. When I checked my slave status I noticed that the "Replicate_Do_DB" is blank.
+
+mysql> show slave status\G
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 172.18.23.52
+                  Master_User: jinny
+                  Master_Port: 3306
+                Connect_Retry: 60
+              Master_Log_File: mysql-bin.000003
+          Read_Master_Log_Pos: 30474
+               Relay_Log_File: vodjsr1-relay-bin.000003
+                Relay_Log_Pos: 1086
+        Relay_Master_Log_File: mysql-bin.000003
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+              Replicate_Do_DB: 
+          Replicate_Ignore_DB: 
+           Replicate_Do_Table: 
+       Replicate_Ignore_Table: 
+      Replicate_Wild_Do_Table: 
+  Replicate_Wild_Ignore_Table: 
+                   Last_Errno: 0
+                   Last_Error: 
+                 Skip_Counter: 0
+          Exec_Master_Log_Pos: 30474
+              Relay_Log_Space: 30843
+              Until_Condition: None
+               Until_Log_File: 
+                Until_Log_Pos: 0
+           Master_SSL_Allowed: No
+           Master_SSL_CA_File: 
+           Master_SSL_CA_Path: 
+              Master_SSL_Cert: 
+            Master_SSL_Cipher: 
+               Master_SSL_Key: 
+        Seconds_Behind_Master: 0
+Master_SSL_Verify_Server_Cert: No
+                Last_IO_Errno: 0
+                Last_IO_Error: 
+               Last_SQL_Errno: 0
+               Last_SQL_Error: 
+  Replicate_Ignore_Server_Ids: 
+             Master_Server_Id: 2
+1 row in set (0.00 sec)
+ 
+Which steps should I follow to enable replication Master-Master for a particular database?
+
+Best Regards
+
+Pete</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/d4e4b68de43f5a7d6c4c0241a0a4ed2d?default=identicon" width="80" />
+  <a class="full-name">suraj.pune22</a>
+  <span id="1396013936" class="time-ago" title="2014-03-28 13:38:56 UTC">about 1 month</span>
+  <p class="comment-copy">Hello Kamal,
+
+Very GOOD Article.
+
+I setup the Master-Master replication as you described in your tutorial but when 1 server goes down then it will not connect to secondary. Means Failover is not working in my structure.
+
+Here I have one Web application which is on 192.168.1.68 & I am using two database servers for this application
+
+Server 1 : 192.168.1.126
+Server 2 : 192.168.1.54
+
+Primarily web application dump the data in 192.168.1.126 but in case this mysql server 1 goes down then it should automatically connected to Server 2 : 192.168.1.54 without noticing to web application user.
+
+Please provide me the solustion.
+
+Waiting for your reply.
+
+Thanks,
+Suraj
+
+</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/39fca89abf35467010ead07faa7f65a0?default=identicon" width="80" />
+  <a class="full-name">wbhuana</a>
+  <span id="1396026648" class="time-ago" title="2014-03-28 17:10:48 UTC">about 1 month</span>
+  <p class="comment-copy">Hi....I'm running Mysql Server 5.5. And i can't find 
+binlog_do_db
+
+I have my own configuration, and it works. You try this configuration (from fresh my.ini or my.cnf):
+
+
+    log-bin=mysql-bin				# this conf will create mysql-bin.xxxxxx
+    server-id=1
+    innodb_flush_log_at_trx_commit=1
+    sync_binlog=1
+
+
+You can CREATE USER and GRANT like above example. Just make sure you create user at '%'. 
+MySQL Replication is log-based replication. When we set 
+      log-bin=mysql-bin
+ it means that we activate logging option and the log file is mysql-bin.xxxxxx (xxxxxx is number). CMIIW, everytime we restart the server, the log file are different. Log file mysql-bin.000004 will changed to mysql-bin.000005 after restart. That is why we have to set 
+     MASTER_LOG_FILE = 'mysql-bin.000004', MASTER_LOG_POS = 107; 
+MASTER_LOG_POS is starting line where Slave should start reading the log file. 
+Any operation logged AFTER 107 will be executed by SLAVE (including CREATE DATABASE). Hope this answer kiran.gkundapur question.
+
+With that configuration we will have bin-log-do-db dan replicate-do-db empty. Actually that option only needed if we replicate specific database.
+ 
+We can use this configuration both on MASTER or SLAVE to do MASTER to MASTER Replication. Just make sure the server-id on my.cnf or my.ini are different.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/39fca89abf35467010ead07faa7f65a0?default=identicon" width="80" />
+  <a class="full-name">wbhuana</a>
+  <span id="1396027426" class="time-ago" title="2014-03-28 17:23:46 UTC">about 1 month</span>
+  <p class="comment-copy">@suraj.pune22
+both this article and my configuration above won't work for Failover.
+
+kamal:
+@wea.along: As far as I know, it will reconnect to the other master and sync the data it missed.
+
+Are you sure? As far as I know, log-bin file will be different every time we restart (stop and then start the server).</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/39fca89abf35467010ead07faa7f65a0?default=identicon" width="80" />
+  <a class="full-name">wbhuana</a>
+  <span id="1396028012" class="time-ago" title="2014-03-28 17:33:32 UTC">about 1 month</span>
+  <p class="comment-copy">Ah...i do replication between windows (xampp) and linux mint (ubuntu based) on VirtualBox. And it's run well.
+
+I have 2 video made by my student, database level and table level replication configuration, but i'm running slow internet connection now...so... </p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/5793082c513ee9190269f2beaefe94be?default=identicon" width="80" />
+  <a class="full-name">cbluth</a>
+  <span id="1396454920" class="time-ago" title="2014-04-02 16:08:40 UTC">about 1 month</span>
+  <p class="comment-copy">Would you be able to provide a quick set of steps to add a third master?
+Mostly to avoid split brain syndrome.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/5172a7ba0eca560141c9cb69122b43fb?default=identicon" width="80" />
+  <a class="full-name">parsaniyaparth</a>
+  <span id="1396940746" class="time-ago" title="2014-04-08 07:05:46 UTC">about 1 month</span>
+  <p class="comment-copy">Will it possible that the master replication and slave replication on the same server?
+I want replication on which the master server id is same as the slave server id.
+</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/0279b03f64273c6cc179c8e8cfec1846?default=identicon" width="80" />
+  <a class="full-name">rehbur</a>
+  <span id="1397919649" class="time-ago" title="2014-04-19 15:00:49 UTC">23 days</span>
+  <p class="comment-copy">I am trying the same. Will it work for two different version mysql 5.5 to mysql 5.6 and vice versa?  Also what is VPS in our scenario? Can't it configure on two simple linux machine? Sorry for the question but I am new.</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/ab8327fa10ce37f71510354201bc3c52?default=identicon" width="80" />
+  <a class="full-name">dbase92000</a>
+  <span id="1398065761" class="time-ago" title="2014-04-21 07:36:01 UTC">21 days</span>
+  <p class="comment-copy">I tried to with 3 MySQL servers(A to B  master-master) and then (B to C master-master). Now i created database in A, i could see it in B but could not see it in C. Again, I dropped the database and created the database in B. Now it showed in C.
+I want to create a database from A and it should be seen in C too, where should i make the change?</p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/62308637055e4b7705f8c208a7556d68?default=identicon" width="80" />
+  <a class="full-name">niraj.vara</a>
+  <span id="1398334778" class="time-ago" title="2014-04-24 10:19:38 UTC">18 days</span>
+  <p class="comment-copy">when we create a  example db.
+create database example; on C.  It will replicate this to slave(D)  means slave side the same command run create database example; in background.
+
+So the D as master will send this create database example; to slave C  ???
+
+and C will again run the same command create database example; ?????
+
+
+  </p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+      <li>
+  <img alt="Gravatar" height="80" src="https://secure.gravatar.com/avatar/8ea757bdad2453b35cbb45701db2b930?default=identicon" width="80" />
+  <a class="full-name">zain302</a>
+  <span id="1399829030" class="time-ago" title="2014-05-11 17:23:50 UTC">about 10 hours</span>
+  <p class="comment-copy">Love you man you ! are awesome and your tutorial is awesome </p>
+  <div class="comment-actions">
+    <a href="#tutorial-comment-submit">Reply</a>
+  </div>
+</li>
+  </ul>
+</div>
+
+    <div id="tutorial-comment-submit">
+  <h4>Leave a Comment</h4>
+  <div id="signed-in">
+  </div>
+
+  <div class="comments">
+
+    <form accept-charset="UTF-8" action="/community/articles/how-to-set-up-mysql-master-master-replication/comments" class="simple_form new_comment" data-remote="true" id="new_comment" method="post" novalidate="novalidate"><div style="margin:0;padding:0;display:inline"><input name="utf8" type="hidden" value="&#x2713;" /><input name="authenticity_token" type="hidden" value="rzNKZOza7XiUmZpDgFdq4UsuuWovcb6d1qk2tnspfYM=" /></div>
+      <div class="control-group text required"><div class="controls"><textarea class="text required textarea" cols="40" id="comment_content" name="comment[content]" placeholder="Leave a comment..." rows="20">
+</textarea></div></div>
+
+        <fieldset id="register">
+    <legend>Create an account or login:</legend>
+
+    <div class="field">
+      <input id="user_email" name="user[email]" placeholder="Email" required="required" type="text" />
+    </div>
+
+    <div class="field">
+      <input data-toggle="tooltip" id="user_password" name="user[password]" placeholder="Password" rel="tooltip-focus" required="required" title="Must be at least 6 characters long and it must contain at least one letter" type="password" />
+    </div>
+  </fieldset>
+
+
+      <div class="errors" style="clear:both;"></div>
+
+      <div class="field">
+        <input id="submit-comment" name="commit" type="submit" value="Submit Comment" />      </div>
+</form>  </div>
+</div>
+
+<div class="new-comment loading">
+  <img alt="Ajax-loader" src="/assets/community/ajax-loader-338c17cb4b726875e8bd8c70442e2bc4.gif" />
+</div>
+  </div>
+  </div>
+</div>
+</div>
+<footer id="footer">
+  <div class="wrapper">
+    <div id="column-main" class="footer-column">
+      <a href="#" class="cloud-icon"></a>
+      <div id="copyright">
+
+        Copyright &copy; 2014<br>
+        DigitalOcean &trade; Inc.
+      </div>
+      <a href="http://nytm.org/made-in-nyc/" id="made-in-ny">Proudly Made in NY</a>
+
+      <div id="privacy">
+        <a href="/legal/terms/">Terms, Privacy, &amp; Copyright</a>
+        <a href="#">Security</a>
+      </div>
+
+    </div>
+
+    <div id="column-product" class="footer-column">
+      <h3>Product</h3>
+      <ul>
+        <li><a href="/pricing/">Pricing</a></li>
+        <li><a href="/features/">Features</a></li>
+        <li><a href="/customers/">Customers</a></li>
+        <li><a href="/features/one-click-apps/">One-Click Apps</a></li>
+        <li><a href="https://api.digitalocean.com/">API</a></li>
+      </ul>
+    </div>
+
+    <div id="column-company" class="footer-column">
+      <h3>Company</h3>
+      <ul>
+        <li><a href="/company/about/">About Us</a></li>
+        <li><a href="/company/blog/">Blog</a></li>
+        <li><a href="/company/careers/">Jobs</a></li>
+        <li><a href="/company/press/">Press</a></li>
+        <li><a href="/company/logos-and-badges/">Logos &amp; Badges</a></li>
+        <li><a href="/company/events/">Events</a></li>
+        <li><a href="/company/contact/" target="_blank">Contact</a></li>
+      </ul>
+    </div>
+
+    <div id="column-help" class="footer-column">
+      <h3>Help</h3>
+      <ul>
+        <li><a href="/help/">Knowledgebase</a></li>
+        <li><a href="/help/getting-started/">Getting Started</a></li>
+        <li><a href="http://digitalocean.uservoice.com/forums/136585-digital-ocean" target="_blank">Feedback</a></li>
+        <li><a href="/referral-program/">Referral Program</a></li>
+        <li><a href="http://www.digitaloceanstatus.com" target="_blank">Network Status</a></li>
+      </ul>
+    </div>
+
+    <div id="column-community" class="footer-column">
+      <h3>Community</h3>
+      <ul>
+        <li><a href="/community/">Dashboard</a></li>
+        <li><a href="/community/overview">Overview</a></li>
+        <li><a href="/community/articles">Tutorials</a></li>
+        <li><a href="/community/questions">Questions</a></li>
+        <li><a href="/community/projects">Projects</a></li>
+        <li><a href="https://www.digitalocean.com/community/articles/digitalocean-community-article-suggestions-and-ideas">Tutorial Suggestions</a></li>
+        <li><a href="/community/get-paid-to-write">Get Paid to Write</a></li>
+      </ul>
+    </div>
+
+    <div id="column-connect" class="footer-column">
+      <h3>Connect</h3>
+      <ul>
+        <li class="twitter"><a href="https://twitter.com/digitalocean">Twitter</a></li>
+        <li class="facebook"><a href="https://www.facebook.com/DigitalOceanCloudHosting">Facebook</a></li>
+        <li class="linkedin"><a href="http://www.linkedin.com/company/digitalocean">LinkedIn</a></li>
+        <li class="google"><a href="https://plus.google.com/+Digitalocean/posts">Google+</a></li>
+        <li class="instagram"><a href="http://instagram.com/thedigitalocean">Instagram</a></li>
+      </ul>
+    </div>
+
+    <div id="droplet-count">
+      <span class="count">1,624,375</span> Droplets Launched
+    </div>
+  </div>
+</footer>
+</body>
+<script type="text/javascript" src="https://www.googleadservices.com/pagead/conversion.js">
+</script>
+<noscript>
+<div style="display:hidden;position:absolute;top:-1000px;">
+<img height="1" width="1" style="border-style:none;" alt="" src="https://www.googleadservices.com/pagead/conversion/1010666955/?value=0&amp;label=g5d3CM2C9QIQy5v24QM&amp;guid=ON&amp;script=0"/>
+</div>
+</noscript>
+<script src="//platform.twitter.com/oct.js" type="text/javascript"></script>
+<script type="text/javascript">twttr.conversion.trackPid('l4etp');</script>
+<noscript>
+<img height="1" width="1" style="display:none;" alt="" src="https://analytics.twitter.com/i/adsct?txn_id=l4etp&p_id=Twitter" />
+<img height="1" width="1" style="display:none;" alt="" src="//t.co/i/adsct?txn_id=l4etp&p_id=Twitter" />
+</noscript>
+<script>
+  //<![CDATA[
+    !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.async=true;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");
+  //]]>
+</script>
+<script>
+  //<![CDATA[
+    setTimeout(function(){var a=document.createElement("script");
+    var b=document.getElementsByTagName("script")[0];
+    a.src=document.location.protocol+"//dnn506yrbagrg.cloudfront.net/pages/scripts/0020/5850.js?"+Math.floor(new Date().getTime()/3600000);
+    a.async=true;a.type="text/javascript";b.parentNode.insertBefore(a,b)}, 1);
+  //]]>
+</script>
+<script src="/assets/community/application-3323b6d7d1860c78cdcd62c730a5e85c.js" type="text/javascript"></script>
+<script>
+  //<![CDATA[
+    (function(e,b){if(!b.__SV){var a,f,i,g;window.mixpanel=b;a=e.createElement("script");a.type="text/javascript";a.async=!0;a.src=("https:"===e.location.protocol?"https:":"http:")+'//cdn.mxpnl.com/libs/mixpanel-2.2.min.js';f=e.getElementsByTagName("script")[0];f.parentNode.insertBefore(a,f);b._i=[];b.init=function(a,e,d){function f(b,h){var a=h.split(".");2==a.length&&(b=b[a[0]],h=a[1]);b[h]=function(){b.push([h].concat(Array.prototype.slice.call(arguments,0)))}}var c=b;"undefined"!==
+    typeof d?c=b[d]=[]:d="mixpanel";c.people=c.people||[];c.toString=function(b){var a="mixpanel";"mixpanel"!==d&&(a+="."+d);b||(a+=" (stub)");return a};c.people.toString=function(){return c.toString(1)+".people (stub)"};i="disable track track_pageview track_links track_forms register register_once alias unregister identify name_tag set_config people.set people.set_once people.increment people.append people.track_charge people.clear_charges people.delete_user".split(" ");for(g=0;g<i.length;g++)f(c,i[g]);
+    b._i.push([a,e,d])};b.__SV=1.2}})(document,window.mixpanel||[]);
+    mixpanel.init("155e217a94fcfc75058909a4489b9c58");
+  //]]>
+</script>
+
+
+
+  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.async=true;js.src="https://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");
+
+    (function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id; js.async = true;
+      js.src = "//connect.facebook.net/en_US/all.js#xfbml=1&appId=439858199408280";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+
+    window.___gcfg = {
+      lang: 'en-US',
+      parsetags: 'onload'
+    };
+    (function() {
+      var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+          po.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+    })();
+
+    var HN=[];HN.factory=function(e){return function(){HN.push([e].concat(Array.prototype.slice.call(arguments,0)))};},HN.on=HN.factory("on"),HN.once=HN.factory("once"),HN.off=HN.factory("off"),HN.emit=HN.factory("emit"),HN.load=function(){var e="hn-button.js";if(document.getElementById(e))return;var t=document.createElement("script");t.async=true;t.id=e,t.src="//hn-button.herokuapp.com/hn-button.js";var n=document.getElementsByTagName("script")[0];n.parentNode.insertBefore(t,n)},HN.load();
+  </script>
+<script>
+  //<![CDATA[
+    mixpanel.track("Page View");
+  //]]>
+</script>
+
+<script type="text/javascript">
+  (function() {
+    window._pa = window._pa || {};
+    var pa = document.createElement('script'); pa.type = 'text/javascript'; pa.async = true;
+    pa.src = ('https:' == document.location.protocol ? 'https:' : 'http:') + "//tag.perfectaudience.com/serve/51c8920f71ca6dc47d00002f.js";
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(pa, s);
+  })();
+</script>
+<script type="text/javascript">
+  adroll_adv_id = "S4BPDI4QWNB57PEKEZSLIP";
+  adroll_pix_id = "4IDGVTPEAFC4TM2QKYNQ53";
+  (function () {
+  var oldonload = window.onload;
+  window.onload = function(){
+     __adroll_loaded=true;
+     var scr = document.createElement("script");
+     var host = (("https:" == document.location.protocol) ? "https://s.adroll.com" : "http://a.adroll.com");
+     scr.setAttribute('async', 'true');
+     scr.type = "text/javascript";
+     scr.src = host + "/j/roundtrip.js";
+     ((document.getElementsByTagName('head') || [null])[0] ||
+      document.getElementsByTagName('script')[0].parentNode).appendChild(scr);
+     if(oldonload){oldonload()}};
+  }());
+</script>
+
+</html>

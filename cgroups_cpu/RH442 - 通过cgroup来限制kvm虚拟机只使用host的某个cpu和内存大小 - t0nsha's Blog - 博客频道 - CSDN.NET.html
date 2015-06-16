@@ -1,0 +1,626 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+ 
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>RH442 - 通过cgroup来限制kvm虚拟机只使用host的某个cpu和内存大小 - t0nsha&#39;s Blog
+        - 博客频道 - CSDN.NET</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="description" content="测试使用的系统版本[root@desktop2 ~]# cat /proc/version Linux version 2.6.32-220.el6.x86_64 (mockbuild@x86-004.build.bos.redhat.com) (gcc version 4.4.5 20110214 (Red Hat 4.4.5-6) (GCC) ) #1 SMP Wed Nov 9 08:03:" />
+    <script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+    <script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+    <link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css?v=1.1" />
+    <link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/t0nsha/rss/list" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+
+</head>
+<body>
+    <script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js" type="text/javascript"></script>
+    <div id="container">
+        <div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1>
+                <a href="http://blog.csdn.net/t0nsha">t0nsha&#39;s Blog</a></h1>
+            <h2>Justice, Equality, Freedom, Free</h2>
+            <div class="clear">
+            </div>
+        </div>
+        <div class="clear">
+        </div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg">
+    </div>
+    <div class="navigator">
+        <ul>
+                <li id="btnContents"><a href="http://blog.csdn.net/t0nsha?viewmode=contents"><span>
+                    <img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+                <li id="btnView"><a href="http://blog.csdn.net/t0nsha?viewmode=list"><span>
+                    <img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+                <li id="btnRss"><a href="http://blog.csdn.net/t0nsha/rss/list"><span>
+                    <img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "t0nsha";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/t0nsha";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+        <div id="body">
+            <div id="main">
+                <div class="main">
+<div class="notice tracking-ad" data-mod='popu_3' > 
+
+<a href="https://code.csdn.net/blog/33" target="_blank">
+<font color=blue>博文代码可自动存入CODE啦了！ </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/youxin2012/article/details/12872805" target="_blank"><font color=red>WebApp实时开源框架Clouda---认识心得
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/csdnproduct/article/details/12423189"target="_blank">
+<font color=blue>Tag功能介绍—我们为什么打Tag 
+ </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+<a href="http://newsletter.csdn.net/show_book/show_book_list?type=5"target="_blank">
+<font color=red>订阅CSDN社区周刊，及时了解社区精华内容
+ </font></a>
+
+</div>                    <link href="http://static.blog.csdn.net/css/comment1.css" type="text/css" rel="stylesheet" />
+<link href="http://static.blog.csdn.net/css/style1.css" type="text/css" rel="stylesheet" />
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Original"></span>
+    <h3>
+        <span class="link_title"><a href="/t0nsha/article/details/8511433">
+        RH442 - 通过cgroup来限制kvm虚拟机只使用host的某个cpu和内存大小
+        </a></span>
+    </h3>
+</div>
+
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/t0nsha/article/category/1155353">RHCA</a> 
+        </span>
+    <span class="link_postdate">2013-01-17 00:14</span>
+    <span class="link_view" title="阅读次数">1302人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(1)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('RH442 - 通过cgroup来限制kvm虚拟机只使用host的某个cpu和内存大小','8511433');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(8511433,2);return false;" title="举报">举报</a></span>
+    
+</div>
+
+    
+<div id="article_content" class="article_content">
+<p><strong>测试使用的系统版本</strong></p><p>[root@desktop2 ~]# cat /proc/version <br />Linux version 2.6.32-220.el6.x86_64 (mockbuild@x86-004.build.bos.redhat.com) (gcc version 4.4.5 20110214 (Red Hat 4.4.5-6) (GCC) ) #1 SMP Wed Nov 9 08:03:13 EST 2011<br />You have new mail in /var/spool/mail/root<br />[root@desktop2 ~]# <br /><br /><br /></p><p><strong>安装libcgroup和libvirt两个包</strong><br /></p><p>[root@desktop2 ~]# yum list libcgroup<br />Loaded plugins: product-id, refresh-packagekit, security, subscription-manager<br />Updating certificate-based repositories.<br />Installed Packages<br />libcgroup.x86_64 0.37-3.el6 @anaconda-RedHatEnterpriseLinux-201111171049.x86_64/6.2<br />Available Packages<br />libcgroup.i686&nbsp;&nbsp; 0.37-3.el6 base&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;<br />[root@desktop2 ~]# yum list libvirt<br />Loaded plugins: product-id, refresh-packagekit, security, subscription-manager<br />Updating certificate-based repositories.<br />Installed Packages<br />libvirt.x86_64 0.9.4-23.el6&nbsp;&nbsp;&nbsp;&nbsp; @anaconda-RedHatEnterpriseLinux-201111171049.x86_64/6.2<br />Available Packages<br />libvirt.x86_64 0.9.4-23.el6_2.1 Updates&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;<br />[root@desktop2 ~]# <br /></p><p><strong>启动cgconfig和libvirtd服务</strong><br />[root@desktop2 ~]# service cgconfig restart<br />Stopping cgconfig service:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [&nbsp; OK&nbsp; ]<br />Starting cgconfig service:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [&nbsp; OK&nbsp; ]<br />[root@desktop2 ~]# service libvirtd restart<br />Stopping libvirtd daemon:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [&nbsp; OK&nbsp; ]<br />Starting libvirtd daemon:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [&nbsp; OK&nbsp; ]<br />[root@desktop2 ~]# <br /></p><p><br /></p><p><strong>至此已经可以在cgroup目录下看到libvirt目录了，但是还看不到kvm虚拟机的目录（即使虚拟机已经启动）</strong><br /></p><p>[root@desktop2 ~]# ls /cgroup/cpuset/libvirt/qemu/<br />cgroup.procs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cpuset.memory_spread_page<br />cpuset.cpu_exclusive&nbsp;&nbsp;&nbsp; cpuset.memory_spread_slab<br />cpuset.cpus&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cpuset.mems<br />cpuset.mem_exclusive&nbsp;&nbsp;&nbsp; cpuset.sched_load_balance<br />cpuset.mem_hardwall&nbsp;&nbsp;&nbsp;&nbsp; cpuset.sched_relax_domain_level<br />cpuset.memory_migrate&nbsp;&nbsp; notify_on_release<br />cpuset.memory_pressure&nbsp; tasks<br />You have new mail in /var/spool/mail/root<br />[root@desktop2 ~]# <br /></p><p><br /></p><p><strong>启动虚拟机（必须在重启cgconfig和libvirtd服务后，再重启虚拟机才会在cgroup目录下生成虚拟机目录）</strong><br /></p><p>[root@desktop2 ~]# virsh list<br />&nbsp;Id Name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; State<br />----------------------------------<br /><br />[root@desktop2 ~]# virsh start vserver<br />Domain vserver started<br /><br />[root@desktop2 ~]# virsh list<br />&nbsp;Id Name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; State<br />----------------------------------<br />&nbsp; 1 vserver&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; running<br /><br />[root@desktop2 ~]# <br /></p><p><br /></p><p><strong>现在可以看到虚拟机<span style="color:#FF0000;">vserver</span>目录了</strong><br /></p><p>[root@desktop2 ~]# ls /cgroup/cpuset/libvirt/qemu/<br />cgroup.procs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cpuset.memory_spread_slab<br />cpuset.cpu_exclusive&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cpuset.mems<br />cpuset.cpus&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cpuset.sched_load_balance<br />cpuset.mem_exclusive&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cpuset.sched_relax_domain_level<br />cpuset.mem_hardwall&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; notify_on_release<br />cpuset.memory_migrate&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tasks<br />cpuset.memory_pressure&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#FF0000;">vserver</span><br />cpuset.memory_spread_page<br />[root@desktop2 ~]# ls /cgroup/cpuset/libvirt/qemu/vserver/<br />cgroup.procs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cpuset.memory_spread_page<br />cpuset.cpu_exclusive&nbsp;&nbsp;&nbsp; cpuset.memory_spread_slab<br />cpuset.cpus&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cpuset.mems<br />cpuset.mem_exclusive&nbsp;&nbsp;&nbsp; cpuset.sched_load_balance<br />cpuset.mem_hardwall&nbsp;&nbsp;&nbsp;&nbsp; cpuset.sched_relax_domain_level<br />cpuset.memory_migrate&nbsp;&nbsp; notify_on_release<br />cpuset.memory_pressure&nbsp; tasks<br />[root@desktop2 ~]# <br /><br /><strong>现在看到虚拟机使用host上的cpu0和cpu1</strong><br />[root@desktop2 ~]# watch -n .1 &quot;virsh vcpuinfo vserver&quot; #为方便观察，建议新起一个终端后执行此命令<br />You have new mail in /var/spool/mail/root<br />[root@desktop2 ~]# virsh vcpuinfo vserver<br />VCPU:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0<br /><span style="color:#FF0000;">CPU:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1</span><br />State:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; running<br />CPU time:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 23.7s<br />CPU Affinity:&nbsp;&nbsp; -y<br /><br />VCPU:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1<br /><span style="color:#FF0000;">CPU:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</span><br />State:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; running<br />CPU time:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 13.5s<br />CPU Affinity:&nbsp;&nbsp; yy<br /><br />[root@desktop2 ~]# <br /></p><p><br /></p><p><strong>限制虚拟机只能使用host的cpu0</strong><br /></p><p>[root@desktop2 ~]# cgset -r cpuset.cpus=0 libvirt/qemu/vserver<br />[root@desktop2 ~]# virsh vcpuinfo vserver<br />VCPU:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0<br /><span style="color:#FF0000;">CPU:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</span><br />State:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; running<br />CPU time:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24.1s<br />CPU Affinity:&nbsp;&nbsp; y-<br /><br />VCPU:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1<br /><span style="color:#FF0000;">CPU:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0</span><br />State:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; running<br />CPU time:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 13.9s<br />CPU Affinity:&nbsp;&nbsp; y-<br /><br />[root@desktop2 ~]# <br /></p><p><br /></p><p><strong>限制虚拟机只能使用512M内存</strong><br /></p><p>[root@desktop2 ~]# cgset -r memory.limit_in_bytes=512M libvirt/qemu/vserver<br />[root@desktop2 ~]# cat /cgroup/memory/libvirt/qemu/vserver/memory.limit_in_bytes <br />536870912<br />[root@desktop2 ~]# <br /></p><p><br /></p><p><strong>限制内存的配置文件写法</strong><br /></p><p>[root@desktop2 etc]# vim /etc/cgconfig.conf</p><p>.....<br />group libvirt/qemu/vserver {<br />memory{<br />memory.limit_in_bytes=512M;<br />}<br />}<br /></p><p><br /></p><p><strong>但是限制只使用某个物理cpu时，采用写配置文件的方法一直<span style="color:#FF0000;">出错</span>：</strong></p><p>这样写可以(语法是正确的)<br /></p><p>group vserver {<br />cpuset{<br />cpuset.cpus=0;<br />cpuset.mems=0;<br />}<br />}<br /></p><p>下面这样就不行（以下配置会让cgconfig服务无法启动，删除后cgconfig服务可以正常启动）：<br />group libvirt/qemu/vserver {<br />cpuset{<br />cpuset.cpus=0;<br />cpuset.mems=0;<br />}<br />}<br /></p><p>错误信息如下：<br />[root@desktop2 init.d]# service cgconfig&nbsp; restart<br />Stopping cgconfig service:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [&nbsp; <span style="background-color: rgb(0, 153, 0);">OK</span>&nbsp; ]<br />Starting cgconfig service: Loading configuration file /etc/cgconfig.conf failed<br />Value setting does not succeed<br />Failed to parse /etc/cgconfig.conf&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [<span style="background-color: rgb(255, 0, 0);">FAILED</span>]<br />[root@desktop2 init.d]# <br /><br />再翻了翻书，发现对于有些controllers来说（如cpuset），光限制nested cgroup还不够，还应限制其所有父亲controllers（不包括根controller），要想通过配置文件cgconfig.conf限制虚拟机只使用某个cpu，需按照如下写法：</p><p>* PAGE247: With Some controllers just placing limits on a nested cgroup is not enough. The cpuset controller for instance requires you to at least set cpuset.cpus and cpuset.mems on all parents leading up to (but not including) root.<br /></p><p>... ...<br />group libvirt {<br />cpuset{<br />cpuset.cpus=0;<br />cpuset.mems=0;<br />}<br />}<br /><br />group libvirt/qemu {<br />cpuset{<br />cpuset.cpus=0;<br />cpuset.mems=0;<br />}<br />}<br /><br />group libvirt/qemu/vserver {<br />cpuset{<br />cpuset.cpus=0;<br />cpuset.mems=0;<br />}<br />}</p><p><br /></p><p>查看结果：<br />[root@desktop2 init.d]# service cgconfig&nbsp; restart<br />Stopping cgconfig service:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [&nbsp; OK&nbsp; ]<br />Starting cgconfig service:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [&nbsp; OK&nbsp; ]<br />[root@desktop2 init.d]# cat /cgroup/cpuset/libvirt/qemu/vserver/cpuset.cpus <br />0<br />[root@desktop2 init.d]# <br /><br /><br /></p><p><strong>当我们对虚拟机的内存进行限制后，如果虚拟机使用的内存大于限制值，kvm进程将会直接被内核杀掉</strong><br /></p><p>[root@desktop2 ~]# tail /var/log/messages<br />Jan 17 00:25:24 desktop2 kernel: Total swap = 524280kB<br />Jan 17 00:25:24 desktop2 kernel: 1048560 pages RAM<br />Jan 17 00:25:24 desktop2 kernel: 69242 pages reserved<br />Jan 17 00:25:24 desktop2 kernel: 82826 pages shared<br />Jan 17 00:25:24 desktop2 kernel: 270283 pages non-shared<br />Jan 17 00:25:24 desktop2 kernel: [ pid ]&nbsp;&nbsp; uid&nbsp; tgid total_vm&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rss cpu oom_adj oom_score_adj name<br /><span style="color:#FF0000;">Jan 17 00:25:24 desktop2 kernel: [27532]&nbsp;&nbsp; 107 27532&nbsp;&nbsp; 347618&nbsp;&nbsp; 100566&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0 qemu-kvm<br />Jan 17 00:25:24 desktop2 kernel: Memory cgroup out of memory: Kill process 27532 (qemu-kvm) score 1000 or sacrifice child<br />Jan 17 00:25:24 desktop2 kernel: Killed process 27532, UID 107, (qemu-kvm) total-vm:1390472kB, anon-rss:398708kB, file-rss:3556kB<br />Jan 17 00:25:24 desktop2 kernel: Kill process 27552 (vhost-27532) sharing same memory</span><br />[root@desktop2 ~]# virsh list<br />&nbsp;Id Name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; State<br />----------------------------------<br /><br />[root@desktop2 ~]# <br /><br /><br /></p>
+</div>
+
+
+
+<!-- Baidu Button BEGIN -->
+<div id="bdshare" class="bdshare_t bds_tools get-codes-bdshare" style="float: right;">
+<a class="bds_qzone"></a>
+<a class="bds_tsina"></a>
+<a class="bds_tqq"></a>
+<a class="bds_renren"></a>
+<a class="bds_t163"></a>
+<span class="bds_more">更多</span>
+<a class="shareCount"></a>
+</div>
+<!-- Baidu Button END -->
+
+
+<!--192.168.100.33-->
+<div class="article_next_prev">
+            <li class="prev_article"><span>上一篇：</span><a href="/t0nsha/article/details/8495042">Archlinux从3.6.9-1-ARCH升级到3.6.11-1-ARCH后vmware 9不能启动的解决办法</a></li>
+            <li class="next_article"><span>下一篇：</span><a href="/t0nsha/article/details/8511470">RH442 - 如何通过lvm快照克隆一个kvm虚拟机</a></li>
+</div>
+
+<!-- Baidu Button BEGIN -->
+<script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=1536434" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+    document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date()/3600000)
+</script>
+<!-- Baidu Button END -->
+
+</div>
+    <div id="ad_cen">
+        <script type="text/javascript">            BAIDU_CLB_SLOT_ID = "117306";</script>
+        <script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+    </div>
+    <script type="text/javascript">
+        //new Ad(4, 'ad_cen');
+    </script>
+<div id="comment_title" class="panel_head">
+    查看评论<a name="comments"></a></div>
+<div id="comment_list">
+</div>
+<div id="comment_bar">
+</div>
+<div id="comment_form">
+</div>
+<div class="announce">
+    * 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '8511433';
+    var commentscount = 1;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+    <div id="ad_bot">
+    </div>
+    <script type="text/javascript">
+    new Ad(5, 'ad_bot');
+    </script>
+<div id="report_dialog">
+</div>
+<div id="d-top" style="display: none;">
+    <a id="d-top-a" href="#" title="回到顶部">
+        <img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function ()
+    {
+        var d_top = $('#d-top');
+        document.onscroll = function ()
+        {
+            var scrTop = (document.body.scrollTop || document.documentElement.scrollTop);
+            if (scrTop > 500)
+            {
+                d_top.show();
+            } else
+            {
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function ()
+        {
+            scrollTo(0, 0);
+            this.blur();
+            return false;
+        });
+    });
+  
+</script>
+<style type="text/css">
+    .tag_list
+    {
+        background: none repeat scroll 0 0 #FFFFFF;
+        border: 1px solid #D7CBC1;
+        color: #000000;
+        font-size: 12px;
+        line-height: 20px;
+        list-style: none outside none;
+        margin: 10px 2% 0 1%;
+        padding: 1px;
+    }
+    .tag_list h5
+    {
+        background: none repeat scroll 0 0 #E0DBD3;
+        color: #47381C;
+        font-size: 12px;
+        height: 24px;
+        line-height: 24px;
+        padding: 0 5px;
+        margin: 0;
+    }
+    .tag_list h5 a
+    {
+        color: #47381C;
+    }
+    .classify
+    {
+        margin: 10px 0;
+        padding: 4px 12px 8px;
+    }
+    .classify a
+    {
+        margin-right: 20px;
+        white-space: nowrap;
+    }
+</style>
+<div class="tag_list">
+    <h5>
+        <a href="http://www.csdn.net/tag/" target="_blank">核心技术类目</a></h5>
+    <div class="classify">
+        <a title="全部主题" href="http://www.csdn.net/tag" target="_blank" onclick="LogClickCount(this,336);">
+            全部主题</a> <a title="数据挖掘" href="http://www.csdn.net/tag/数据挖掘" target="_blank" onclick="LogClickCount(this,336);">
+                数据挖掘</a> <a title="SOA" href="http://www.csdn.net/tag/soa" target="_blank" onclick="LogClickCount(this,336);">
+                    SOA</a> <a title="UML" href="http://www.csdn.net/tag/uml" target="_blank" onclick="LogClickCount(this,336);">
+                        UML</a> <a title="开放平台" href="http://www.csdn.net/tag/开放平台" target="_blank" onclick="LogClickCount(this,336);">
+                            开放平台</a> <a title="HTML5" href="http://www.csdn.net/tag/HTML5" target="_blank" onclick="LogClickCount(this,336);">
+                                HTML5</a> <a title="开源" href="http://www.csdn.net/tag/开源" target="_blank" onclick="LogClickCount(this,336);">
+                                    开源</a> <a title="移动开发" href="http://www.csdn.net/tag/移动开发" target="_blank" onclick="LogClickCount(this,336);">
+                                        移动开发</a> <a title="iOS" href="http://www.csdn.net/tag/iOS" target="_blank" onclick="LogClickCount(this,336);">
+                                            iOS</a> <a title="Android" href="http://www.csdn.net/tag/android" target="_blank"
+                                                onclick="LogClickCount(this,336);">Android</a>
+        <a title="移动游戏" href="http://www.csdn.net/tag/移动游戏" target="_blank" onclick="LogClickCount(this,336);">
+            移动游戏</a> <a title="Windows Phone" href="http://www.csdn.net/tag/Windows Phone" target="_blank"
+                onclick="LogClickCount(this,336);">Windows Phone</a> <a title="JavaScript" href="http://www.csdn.net/tag/JavaScript"
+                    target="_blank" onclick="LogClickCount(this,336);">JavaScript</a> <a title="CSS"
+                        href="http://www.csdn.net/Tag/CSS" target="_blank" onclick="LogClickCount(this,336);">
+                        CSS</a> <a title="游戏引擎" href="http://www.csdn.net/tag/游戏引擎" target="_blank" onclick="LogClickCount(this,336);">
+                            游戏引擎</a> <a title="云计算" href="http://www.csdn.net/tag/云计算" target="_blank" onclick="LogClickCount(this,336);">
+                                云计算</a> <a title="大数据" href="http://www.csdn.net/tag/大数据" target="_blank" onclick="LogClickCount(this,336);">
+                                    大数据</a> <a title="Hadoop" href="http://www.csdn.net/tag/Hadoop" target="_blank" onclick="LogClickCount(this,336);">
+                                        Hadoop</a> <a title="OpenStack" href="http://www.csdn.net/tag/OpenStack" target="_blank"
+                                            onclick="LogClickCount(this,336);">OpenStack</a>
+        <a title="云平台" href="http://www.csdn.net/tag/云平台" target="_blank" onclick="LogClickCount(this,336);">
+            云平台</a> <a title="PHP" href="http://www.csdn.net/tag/PHP" target="_blank" onclick="LogClickCount(this,336);">
+                PHP</a> <a title="MongoDB" href="http://www.csdn.net/tag/MongoDB" target="_blank"
+                    onclick="LogClickCount(this,336);">MongoDB</a> <a title="JSON" href="http://www.csdn.net/tag/JSON"
+                        target="_blank" onclick="LogClickCount(this,336);">JSON</a> <a title="Xcode" href="http://www.csdn.net/tag/Xcode"
+                            target="_blank" onclick="LogClickCount(this,336);">Xcode</a>
+        <a title="Node.js" href="http://www.csdn.net/tag/Node.js" target="_blank" onclick="LogClickCount(this,336);">
+            Node.js</a> <a title="前端开发" href="http://www.csdn.net/tag/前端开发" target="_blank" onclick="LogClickCount(this,336);">
+                前端开发</a> <a title="神经网络" href="http://www.csdn.net/tag/神经网络" target="_blank" onclick="LogClickCount(this,336);">
+                    神经网络</a> <a title="安全" href="http://www.csdn.net/tag/安全" target="_blank" onclick="LogClickCount(this,336);">
+                        安全</a> <a title="Java" href="http://www.csdn.net/tag/Java" target="_blank" onclick="LogClickCount(this,336);">
+                            Java</a> <a title=".NET" href="http://www.csdn.net/tag/.NET" target="_blank" onclick="LogClickCount(this,336);">
+                                .NET</a> <a title="MySQL" href="http://www.csdn.net/tag/MySQL" target="_blank" onclick="LogClickCount(this,336);">
+                                    MySQL</a> <a title="textview" href="http://www.csdn.net/tag/textview" target="_blank"
+                                        onclick="LogClickCount(this,336);">textview</a>
+        <a title="BigTable" href="http://www.csdn.net/tag/BigTable" target="_blank" onclick="LogClickCount(this,336);">
+            BigTable</a> <a title="web框架" href="http://www.csdn.net/tag/web框架" target="_blank"
+                onclick="LogClickCount(this,336);">web框架</a> <a title="SQL" href="http://www.csdn.net/tag/SQL"
+                    target="_blank" onclick="LogClickCount(this,336);">SQL</a> <a title="Redis" href="http://www.csdn.net/tag/Redis"
+                        target="_blank" onclick="LogClickCount(this,336);">Redis</a> <a title="CouchDB" href="http://www.csdn.net/tag/CouchDB"
+                            target="_blank" onclick="LogClickCount(this,336);">CouchDB</a>
+        <a title="Linux" href="http://www.csdn.net/tag/Linux" target="_blank" onclick="LogClickCount(this,336);">
+            Linux</a> <a title="可穿戴计算" href="http://www.csdn.net/tag/可穿戴计算" target="_blank" onclick="LogClickCount(this,336);">
+                可穿戴计算</a> <a title="NoSQL" href="http://www.csdn.net/tag/NoSQL" target="_blank" onclick="LogClickCount(this,336);">
+                    NoSQL</a> <a title="Ruby" href="http://www.csdn.net/tag/Ruby" target="_blank" onclick="LogClickCount(this,336);">
+                        Ruby</a> <a title="API" href="http://www.csdn.net/tag/API" target="_blank" onclick="LogClickCount(this,336);">
+                            API</a> <a title="GPL" href="http://www.csdn.net/tag/GPL" target="_blank" onclick="LogClickCount(this,336);">
+                                GPL</a> <a title="XAML" href="http://www.csdn.net/tag/XAML" target="_blank" onclick="LogClickCount(this,336);">
+                                    XAML</a> <a title="ASP.NET" href="http://www.csdn.net/tag/ASP.NET" target="_blank"
+                                        onclick="LogClickCount(this,336);">ASP.NET</a> <a title="前端开发" href="http://www.csdn.net/tag/前端开发"
+                                            target="_blank" onclick="LogClickCount(this,336);">前端开发</a>
+        <a title="虚拟化" href="http://www.csdn.net/tag/虚拟化" target="_blank" onclick="LogClickCount(this,336);">
+            虚拟化</a> <a title="框架" href="http://www.csdn.net/tag/框架" target="_blank" onclick="LogClickCount(this,336);">
+                框架</a> <a title="机器学习" href="http://www.csdn.net/tag/机器学习" target="_blank" onclick="LogClickCount(this,336);">
+                    机器学习</a> <a title="数据中心" href="http://www.csdn.net/tag/数据中心" target="_blank" onclick="LogClickCount(this,336);">
+                        数据中心</a> <a title="IE10" href="http://www.csdn.net/tag/IE10" target="_blank" onclick="LogClickCount(this,336);">
+                            IE10</a> <a title="敏捷" href="http://www.csdn.net/tag/敏捷" target="_blank" onclick="LogClickCount(this,336);">
+                                敏捷</a> <a title="集群" href="http://www.csdn.net/tag/集群" target="_blank" onclick="LogClickCount(this,336);">
+                                    集群</a>
+    </div>
+</div>
+
+                    <div class="clear">
+                    </div>
+                </div>
+            </div>
+            <div id="side">
+    <div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/t0nsha" target="_blank">
+    <img src="http://avatar.csdn.net/1/1/4/1_t0nsha.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/t0nsha" class="user_name" target="_blank">t0nsha</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+        <div class="ico_expert" title="CSDN认证专家"></div>
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>316660次</span></li>
+    <li>积分：<span>6001分</span></li>
+    <li>排名：<span>第781名</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>267篇</span></li>
+    <li>转载：<span>101篇</span></li>
+    <li>译文：<span>5篇</span></li>
+    <li>评论：<span>126条</span></li>
+</ul>
+</ul>
+</div>
+
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="custom_column_22261655" class="panel">
+<ul class="panel_head"><span>注意事项</span></ul>
+<ul class="panel_body">
+本站所有原创文章都在<a href="http://creativecommons.org/licenses/by-nc-sa/3.0/cn/" target="_blank">CC BY-NC-SA 3.0</a>许可下发布。
+<br><br>
+liaodunxia(at)gmail.com
+</ul>
+</div><div id="panel_Category" class="panel">
+    <ul class="panel_head"><span>博客专栏</span></ul>
+    <ul class="panel_body" id="sp_column">
+    <table cellpadding="0" cellspacing="0"><tr>
+    <td style="padding:10px 10px 0 0;">
+    <a href="http://blog.csdn.net/column/details/rhca-ex.html" target="_blank"><img src="http://avatar.csdn.net/blogpic/20130910190151781.jpg" style="width:75px;height:75px;" /></a>
+    </td>
+    <td style="padding:10px 0; vertical-align:top;">
+    <a href="http://blog.csdn.net/column/details/rhca-ex.html" target="_blank">RHCA实验笔记</a>
+    <p>文章：26篇</p>
+    <span>阅读：12170</span>
+    </td>
+    </tr></table>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/620019">ASM/C/CPP/JAVA</a><span>(26)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/938072">Oracle - PL/SQL</a><span>(57)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/938093">Oracle - 安装/管理</a><span>(30)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/938096">Oracle - 备份恢复</a><span>(8)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/498442">Oracle - EBS/APP</a><span>(48)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/938122">Oracle - 优化/结构</a><span>(14)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/938117">Oracle - 认证/杂项</a><span>(14)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/263078">Relax</a><span>(14)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/263074">BAT/SH/PY/PL/VBS</a><span>(44)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/263094">Tips</a><span>(24)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/264639">U/Linux</a><span>(46)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/1082514">RHCE6</a><span>(15)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/1155353">RHCA</a><span>(31)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/1198135">Fedora</a><span>(10)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/1303112">ArchLinux</a><span>(7)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/t0nsha/article/category/1456499">Debian</a><span>(4)</span>
+</li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/t0nsha/article/month/2013/11">2013年11月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2013/10">2013年10月</a><span>(12)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2013/09">2013年09月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2013/08">2013年08月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2013/07">2013年07月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2013/06">2013年06月</a><span>(13)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2013/05">2013年05月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2013/04">2013年04月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2013/03">2013年03月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2013/02">2013年02月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2013/01">2013年01月</a><span>(12)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2012/12">2012年12月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2012/11">2012年11月</a><span>(9)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2012/10">2012年10月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2012/09">2012年09月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2012/08">2012年08月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2012/07">2012年07月</a><span>(12)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2012/06">2012年06月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2012/05">2012年05月</a><span>(17)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2012/04">2012年04月</a><span>(11)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2012/03">2012年03月</a><span>(9)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2012/02">2012年02月</a><span>(12)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2012/01">2012年01月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2011/12">2011年12月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2011/11">2011年11月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2011/10">2011年10月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2011/09">2011年09月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2011/08">2011年08月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2011/07">2011年07月</a><span>(14)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2011/06">2011年06月</a><span>(14)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2011/05">2011年05月</a><span>(13)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2011/04">2011年04月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2011/03">2011年03月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2011/02">2011年02月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2011/01">2011年01月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2010/12">2010年12月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2010/11">2010年11月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2010/10">2010年10月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2010/09">2010年09月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2010/08">2010年08月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2010/06">2010年06月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2010/03">2010年03月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2010/02">2010年02月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2009/11">2009年11月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2009/10">2009年10月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2009/09">2009年09月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2009/08">2009年08月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2009/07">2009年07月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2009/05">2009年05月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2009/03">2009年03月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2009/02">2009年02月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2009/01">2009年01月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2008/12">2008年12月</a><span>(9)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2008/05">2008年05月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2008/04">2008年04月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2008/03">2008年03月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2007/12">2007年12月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2007/11">2007年11月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2007/10">2007年10月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2007/08">2007年08月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2007/07">2007年07月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2007/06">2007年06月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2007/04">2007年04月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2007/03">2007年03月</a><span>(9)</span></li><li><a href="http://blog.csdn.net/t0nsha/article/month/2006/12">2006年12月</a><span>(13)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/t0nsha/article/details/1450971" title="取英文名字的几个规则">取英文名字的几个规则</a><span>(12760)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/2147090" title="升级linux内核到2.6.24">升级linux内核到2.6.24</a><span>(11735)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/6210524" title="Accounting 里的Debit 和 credit是如何区分的。。。 ">Accounting 里的Debit 和 credit是如何区分的。。。 </a><span>(4108)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/7482986" title="VirtualBox 不能为虚拟电脑 openfiler 打开一个新任务">VirtualBox 不能为虚拟电脑 openfiler 打开一个新任务</a><span>(4003)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/6588978" title="修改hosts文件无效？附解决办法">修改hosts文件无效？附解决办法</a><span>(3882)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/4824752" title="在VS.NET的VC++中运行控制台程序后暂停 ">在VS.NET的VC++中运行控制台程序后暂停 </a><span>(3688)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/7424496" title="WinXP利用无线网卡做AP共享上网">WinXP利用无线网卡做AP共享上网</a><span>(3664)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/6429361" title="Oracle之AUTHID CURRENT_USER">Oracle之AUTHID CURRENT_USER</a><span>(3262)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/1540212" title="用批处理写的一个Ipc$扫描器（Ipc$Scan V2.0.bat）">用批处理写的一个Ipc$扫描器（Ipc$Scan V2.0.bat）</a><span>(3199)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/2139022" title="看一个大男人是怎样处理家庭矛盾的（绝对经典）（转） ">看一个大男人是怎样处理家庭矛盾的（绝对经典）（转） </a><span>(3188)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/t0nsha/article/details/2147090" title="升级linux内核到2.6.24">升级linux内核到2.6.24</a><span>(26)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/6742781" title="您已经成为CSDN博客专家">您已经成为CSDN博客专家</a><span>(9)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/6991724" title="OCP终于考完了">OCP终于考完了</a><span>(5)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/7722171" title="[面试]应聘某公司BI/DW/SQL开发的一道测试题（行转列）">[面试]应聘某公司BI/DW/SQL开发的一道测试题（行转列）</a><span>(5)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/6984025" title="[Data Guard实验]一步一步创建Oracle单机物理Standby">[Data Guard实验]一步一步创建Oracle单机物理Standby</a><span>(4)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/2364495" title="简单屏幕锁(Simple Screen Locker) 1.1.6.16">简单屏幕锁(Simple Screen Locker) 1.1.6.16</a><span>(4)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/3838022" title="更改Oracle JDeveloper的显示语言为英语">更改Oracle JDeveloper的显示语言为英语</a><span>(3)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/8604089" title="rh442 - Linux下cpu使用率load average的简单理解">rh442 - Linux下cpu使用率load average的简单理解</a><span>(3)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/1671566" title="SeqList">SeqList</a><span>(2)</span>
+</li>
+<li>
+<a href="/t0nsha/article/details/1753064" title="antiautorun v1.0.vbs">antiautorun v1.0.vbs</a><span>(2)</span>
+</li>
+</ul>
+</div>
+<div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/t0nsha/article/details/8569954#comments">/proc/sys和/sys目录的区别</a>
+    <p style="margin:0px;"><a href="/sun123bingyong" class="user_name">sun123bingyong</a>:
+YES
+    </p>
+    </li>
+    <li>
+    <a href="/t0nsha/article/details/8604089#comments">rh442 - Linux下cpu使用率load average的简单理解</a>
+    <p style="margin:0px;"><a href="/t0nsha" class="user_name">t0nsha</a>:
+@lcg0211:嗯, 多谢指出, 已更正
+    </p>
+    </li>
+    <li>
+    <a href="/t0nsha/article/details/8604089#comments">rh442 - Linux下cpu使用率load average的简单理解</a>
+    <p style="margin:0px;"><a href="/lcg0211" class="user_name">lcg0211</a>:
+你说的减去0.3，根据原文意思是针对单核的情况吧
+    </p>
+    </li>
+    <li>
+    <a href="/t0nsha/article/details/8606886#comments">解释bash脚本中set -e与set -o pipefail的作用</a>
+    <p style="margin:0px;"><a href="/xiaoyao3857" class="user_name">xiaoyao3857</a>:
+good,学习了
+    </p>
+    </li>
+    <li>
+    <a href="/t0nsha/article/details/8478932#comments">模拟使用lvm快照功能进行在线热备</a>
+    <p style="margin:0px;"><a href="/t0nsha" class="user_name">t0nsha</a>:
+@mosdn:找不到了...
+    </p>
+    </li>
+    <li>
+    <a href="/t0nsha/article/details/8511433#comments">RH442 - 通过cgroup来限制kvm虚拟机只使用host的某个cpu和内存大小</a>
+    <p style="margin:0px;"><a href="/mosdn" class="user_name">mosdn</a>:
+限制cpu限制内存，写入/etc/cgconfig.conf，重启cgconfig后。virsh m...
+    </p>
+    </li>
+    <li>
+    <a href="/t0nsha/article/details/8478932#comments">模拟使用lvm快照功能进行在线热备</a>
+    <p style="margin:0px;"><a href="/mosdn" class="user_name">mosdn</a>:
+哥们，共享一下zcav.HDD、zcav.SSD。谢谢～
+    </p>
+    </li>
+    <li>
+    <a href="/t0nsha/article/details/2223438#comments">WIN32汇编基础</a>
+    <p style="margin:0px;"><a href="/xiaoxiaoyule2007" class="user_name">xiaoxiaoyule2007</a>:
+很好的文章
+    </p>
+    </li>
+    <li>
+    <a href="/t0nsha/article/details/8495042#comments">Archlinux从3.6.9-1-ARCH升级到3.6.11-1-ARCH后vmware 9不能启动的解决办法</a>
+    <p style="margin:0px;"><a href="/t0nsha" class="user_name">t0nsha</a>:
+@lch13452394397:如果是最近下载的arch安装文件的话,需要选最新kernel的那个,...
+    </p>
+    </li>
+    <li>
+    <a href="/t0nsha/article/details/8495042#comments">Archlinux从3.6.9-1-ARCH升级到3.6.11-1-ARCH后vmware 9不能启动的解决办法</a>
+    <p style="margin:0px;"><a href="/lch13452394397" class="user_name">lch13452394397</a>:
+问下，vmware9 安装arch linux的时候选的什么内容？linux kernel 2.6 ...
+    </p>
+    </li>
+</ul>
+</div>
+<div id="custom_column_974052" class="panel">
+<ul class="panel_head"><span>友情链接</span></ul>
+<ul class="panel_body">
+<ul><li><a href="http://hi.baidu.com/%C0%B3%C4%F1%D2%BB%BC%B6" target="_blank">寒冰的空间</a></li></ul>
+</ul>
+</div><div id="custom_column_8088490" class="panel">
+<ul class="panel_head"><span>在线文档</span></ul>
+<ul class="panel_body">
+<ul>
+<li><a href="http://tahiti.oracle.com/" target="_blank">Oracle Documentation</a> </li><li><a href="http://ajava.org/" target="_blank">AJava</a> </li></ul>
+</ul>
+</div>    </div>
+    <div class="clear">
+    </div>
+</div>
+
+            <div class="clear">
+            </div>
+        </div>
+        
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=170751"></script>
+<script type="text/javascript">
+    document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date() / 120000).toString(36) + '="></' + 'script>');
+</script>
+    <script type="text/javascript" src="http://pass.csdn.net/content/loginbox/login.js"></script>
+    <script type="text/javascript" src="http://js.tongji.linezing.com/2671224/tongji.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js"></script>
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+<script type="text/javascript" src="http://zz.csdn.net/js/count.js"></script>
+<script type="text/javascript">
+    $(function () {
+        function __get_code_toolbar(snippet_id) {
+            return $("<a href='https://code.csdn.net/snippets/"
+                    + snippet_id
+                    + "' target='_blank' title='在CODE上查看代码片' style='text-indent:0;'><img src='https://code.csdn.net/assets/CODE_ico.png' width=12 height=12 alt='在CODE上查看代码片' style='position:relative;top:1px;left:2px;'/></a>"
+                    + "<a href='https://code.csdn.net/snippets/"
+                    + snippet_id
+                    + "/fork' target='_blank' title='派生到我的代码片'  style='text-indent:0;'><img src='https://code.csdn.net/assets/ico_fork.svg' width=12 height=12 alt='派生到我的代码片' style='position:relative;top:2px;left:2px;'/></a>");
+        }
+        
+        $("[code_snippet_id]").each(function () {
+            __s_id = $(this).attr("code_snippet_id");
+            if (__s_id != null && __s_id != "" && __s_id != 0 && parseInt(__s_id) > 70020) {
+                __code_tool = __get_code_toolbar(__s_id);
+                $(this).prev().find(".tools").append(__code_tool);
+            }
+        });
+    });
+</script>
+
+    </div>
+</body>
+</html>

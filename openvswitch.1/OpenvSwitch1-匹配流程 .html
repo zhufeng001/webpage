@@ -1,0 +1,454 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>【OpenvSwitch】1-匹配流程 -  - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="版本：OVS 1.7.1简称：dp-&gt;datapath, of-&gt;OpenFlow, sw-&gt;switch背景：报文匹配的流程可以说是对一个switch效率影响最大的地方，现在已经有很多厂家（包括一些研究院）说可以做到比OVS效率高十倍的流表匹配。当然这是有可能的，毕竟都是纯软件，非常容易创新。而ovs也没有做多级流表，跟of标准上不一定比得过别人。我们接下来就分析一下OV" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/alex0/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="/alex0"></a></h1>
+            <h2></h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="/alex0?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="/alex0?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="/alex0/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "alex0";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/alex0";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://events.csdn.net/DR2013/roadshow/index.html" target="_blank">
+<font color=red>【免费有礼】欧美最新网络营销技巧分享 
+   </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/l09196891/article/details/8845828" target="_blank"><font color=blue>博客导入工具
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8863634" target="_blank"><font color=red>【限时优惠】第五届云计算大会社区门票抢购
+
+
+
+
+</font></a>
+
+<br />
+
+
+
+
+
+<a href="http://events.csdn.net/wy/APC/invite.html
+"target="_blank">
+<font color=red>探究云计算数据中心节能增效之道
+
+
+ </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2013-05-02/2815118 "target="_blank">
+<font color=red>专访邓凡平：Android开发路上的快速学习之道
+ </font></a>
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8853291"target="_blank">
+<font color=blue>CSDN博客第二期最佳移动开发博主评选
+ </font></a>
+
+
+
+
+</div>
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Original"></span>
+    <h3>
+        <span class="link_title"><a href="/alex0/article/details/8871711">
+        【OpenvSwitch】1-匹配流程
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/alex0/article/category/1334303">OpenvSwitch</a> 
+        </span>
+    <span class="link_postdate">2013-05-01 12:33</span>
+    <span class="link_view" title="阅读次数">38人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(1)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('【OpenvSwitch】1-匹配流程','8871711');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(8871711,2);return false;" title="举报">举报</a></span>
+    
+</div>
+<div class="tag2box"><a href='http://blog.csdn.net/tag/details.html?tag=SDN' target=_blank>SDN</a><a href='http://blog.csdn.net/tag/details.html?tag=openvswitch' target=_blank>openvswitch</a><a href='http://blog.csdn.net/tag/details.html?tag=OpenFlow' target=_blank>OpenFlow</a></div>
+
+
+    
+<div id="article_content" class="article_content">
+
+<p><span style="font-family:Microsoft YaHei"><strong>版本：</strong>OVS 1.7.1</span></p>
+<p><span style="font-family:Microsoft YaHei"><strong>简称：</strong>dp-&gt;datapath, of-&gt;OpenFlow, sw-&gt;switch</span></p>
+<p></p>
+<p><span style="font-family:Microsoft YaHei"><strong>背景：</strong></span></p>
+<p></p>
+<ul>
+<li><span style="font-family:'Microsoft YaHei'">报文匹配的流程可以说是对一个switch效率影响最大的地方，现在已经有很多厂家（包括一些研究院）说可以做到比OVS效率高十倍的流表匹配。</span></li><li><span style="font-family:'Microsoft YaHei'">当然这是有可能的，毕竟都是纯软件，非常容易创新。而ovs也没有做多级流表，跟of标准上不一定比得过别人。我们接下来就分析一下OVS的匹配流程。</span></li></ul>
+<span style="font-family:Microsoft YaHei"><strong>TIPS：</strong><br>
+</span>
+<p></p>
+<ul>
+<li><span style="font-family:'Microsoft YaHei'">整体的匹配逻辑很简单，都是OpenFlow规定好的。</span></li><li><span style="font-family:'Microsoft YaHei'">报文通过dp时先查找精确匹配表（facet），如果找不到，那么进行upcall，上送到用户态。</span></li><li><span style="font-family:'Microsoft YaHei'">在用户态会查找模糊匹配表（table），这个地方可以说是较没有效率的地方。下面我们看一看具体的代码。</span></li></ul>
+<p><span style="font-family:Microsoft YaHei"><strong>调用流程（内核）</strong>：</span></p>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<p><span style="color:rgb(204,0,0); font-family:'Microsoft YaHei'"><strong>ovs_vport_receive-&gt;ovs_dp_process_received_packet-&gt;ovs_flow_tbl_lookup-&gt;ovs_dp_upcall-&gt;queue_userspace_packet</strong></span></p>
+</blockquote>
+<span style="font-family:'Microsoft YaHei'"><strong>调用流程（用户态）：</strong></span><br>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<p><span style="font-family:'Microsoft YaHei'; color:rgb(204,0,0)"><strong>handle_miss_upcalls-&gt;handle_flow_miss-&gt;rule_dpif_lookup-&gt;rule_dpif_lookup__-&gt;classifier_lookup-&gt;find_match</strong></span></p>
+</blockquote>
+<p></p>
+<ol>
+<li><span style="font-family:Microsoft YaHei">在<span style="color:rgb(204,0,0); font-family:'Microsoft YaHei'"><strong>handle_miss_upcalls</strong></span>里解析了报文，生成了报文的精确匹配项，如果我们把它遮盖掉（mask）一部分，那么它就是一个模糊匹配的flow了。实际上ovs也就是这么做的。</span></li><li><span style="font-family:Microsoft YaHei">注意到每个flow table拥有一个cls，一个cls拥有多个cls_table，cls_table中拥有mask完全一致的flow。</span></li><li><span style="font-family:Microsoft YaHei">而在find_match中，ovs将精确匹配项对应cls_table的mask位置0，然后通过hash查找是否有匹配的flow。</span></li></ol>
+<p><span style="font-family:Microsoft YaHei"><strong>关键代码</strong>：</span></p>
+<p><span style="font-family:Microsoft YaHei"></span></p>
+<pre name="code" class="cpp">/* 在'cls'中取出优先级最高的匹配'flow'.
+ * 如果'cls'中无匹配'flow'则返回空指针.  如果多条rule
+ * 匹配'flow'且优先级相同, 随便拿一条. */
+struct cls_rule *
+classifier_lookup(const struct classifier *cls, const struct flow *flow)
+{
+    struct cls_table *table;
+    struct cls_rule *best;
+    best = NULL;
+    HMAP_FOR_EACH (table, hmap_node, &amp;cls-&gt;tables) {
+        struct cls_rule *rule = find_match(table, flow);
+        if (rule &amp;&amp; (!best || rule-&gt;priority &gt; best-&gt;priority)) {
+            best = rule;
+        }
+    }
+    return best;
+}</pre><pre name="code" class="cpp">static struct cls_rule *
+find_match(const struct cls_table *table, const struct flow *flow)
+{
+    struct cls_rule *rule;
+    //如果cls_table是获取所有流的（掩码全0），那么直接尝试匹配
+    if (table-&gt;is_catchall) {
+        HMAP_FOR_EACH (rule, hmap_node, &amp;table-&gt;rules) {
+            return rule;
+        }
+    } else {
+        struct flow f;
+
+        f = *flow;
+        //将table掩码对应的flow位置0（相当于被mask了）
+        flow_zero_wildcards(&amp;f, &amp;table-&gt;wc);
+        //取出hash一致的flow进行迭代
+        HMAP_FOR_EACH_WITH_HASH (rule, hmap_node, flow_hash(&amp;f, 0),
+                                 &amp;table-&gt;rules) {
+            //尝试匹配hash对得上的flow，效率不高（里面就是memcmp）
+            if (flow_equal(&amp;f, &amp;rule-&gt;flow)) {
+                return rule;
+            }
+        }
+    }
+
+    return NULL;
+}</pre><span style="font-family:Microsoft YaHei"><br>
+</span>
+<p><span style="font-family:Microsoft YaHei">报文匹配流程图：</span></p>
+<p><span style="font-family:Microsoft YaHei"><img src="http://img.blog.csdn.net/20130503002441689" alt=""><br>
+</span></p>
+<p><span style="font-family:Microsoft YaHei"><br>
+</span></p>
+<p></p>
+
+</div>
+
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.1.236-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/alex0/article/details/8579961">Python 一些奇怪的实现</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen">
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "117306";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<script type="text/javascript">
+    //new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '8871711';
+    var commentscount = 1;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/alex0" target="_blank">
+    <img src="http://avatar.csdn.net/6/6/4/1_alex0.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/alex0" class="user_name" target="_blank">alex0</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>1575次</span></li>
+    <li>积分：<span>112分</span></li>
+    <li>排名：<span>千里之外</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>9篇</span></li>
+    <li>转载：<span>2篇</span></li>
+    <li>译文：<span>0篇</span></li>
+    <li>评论：<span>3条</span></li>
+</ul>
+</ul>
+</div>
+
+
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/alex0/article/category/1294758">链表</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/alex0/article/category/1334303">OpenvSwitch</a><span>(2)</span>
+</li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/alex0/article/month/2013/05">2013年05月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/alex0/article/month/2013/02">2013年02月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/alex0/article/month/2013/01">2013年01月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/alex0/article/month/2012/12">2012年12月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/alex0/article/month/2012/10">2012年10月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/alex0/article/month/2012/09">2012年09月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/alex0/article/month/2012/08">2012年08月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/alex0/article/month/2012/04">2012年04月</a><span>(1)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/alex0/article/details/8096591" title="diary 2012/10/21">diary 2012/10/21</a><span>(332)</span>
+</li>
+<li>
+<a href="/alex0/article/details/8539657" title="【OpenvSwitch】0-对象">【OpenvSwitch】0-对象</a><span>(270)</span>
+</li>
+<li>
+<a href="/alex0/article/details/7947175" title="shell脚本笔记">shell脚本笔记</a><span>(187)</span>
+</li>
+<li>
+<a href="/alex0/article/details/7959259" title="一个有点新鲜的想法。遗传算法的改进思路？">一个有点新鲜的想法。遗传算法的改进思路？</a><span>(184)</span>
+</li>
+<li>
+<a href="/alex0/article/details/7485779" title="蜂群算法_原始版本">蜂群算法_原始版本</a><span>(164)</span>
+</li>
+<li>
+<a href="/alex0/article/details/8250020" title="移植linux内核(3.0.13)的链表实现进windows下，VS编译通过。">移植linux内核(3.0.13)的链表实现进windows下，VS编译通过。</a><span>(136)</span>
+</li>
+<li>
+<a href="/alex0/article/details/8511427" title="函数式编程。λ演算。LISP。">函数式编程。λ演算。LISP。</a><span>(73)</span>
+</li>
+<li>
+<a href="/alex0/article/details/7947246" title="删除代码前的行数与空格">删除代码前的行数与空格</a><span>(65)</span>
+</li>
+<li>
+<a href="/alex0/article/details/7919644" title="tmp">tmp</a><span>(47)</span>
+</li>
+<li>
+<a href="/alex0/article/details/8579961" title="Python 一些奇怪的实现">Python 一些奇怪的实现</a><span>(42)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/alex0/article/details/7485779" title="蜂群算法_原始版本">蜂群算法_原始版本</a><span>(1)</span>
+</li>
+<li>
+<a href="/alex0/article/details/8871711" title="【OpenvSwitch】1-匹配流程">【OpenvSwitch】1-匹配流程</a><span>(1)</span>
+</li>
+<li>
+<a href="/alex0/article/details/7959259" title="一个有点新鲜的想法。遗传算法的改进思路？">一个有点新鲜的想法。遗传算法的改进思路？</a><span>(1)</span>
+</li>
+<li>
+<a href="/alex0/article/details/7947246" title="删除代码前的行数与空格">删除代码前的行数与空格</a><span>(0)</span>
+</li>
+<li>
+<a href="/alex0/article/details/7947175" title="shell脚本笔记">shell脚本笔记</a><span>(0)</span>
+</li>
+<li>
+<a href="/alex0/article/details/7919644" title="tmp">tmp</a><span>(0)</span>
+</li>
+<li>
+<a href="/alex0/article/details/8250020" title="移植linux内核(3.0.13)的链表实现进windows下，VS编译通过。">移植linux内核(3.0.13)的链表实现进windows下，VS编译通过。</a><span>(0)</span>
+</li>
+<li>
+<a href="/alex0/article/details/8511427" title="函数式编程。λ演算。LISP。">函数式编程。λ演算。LISP。</a><span>(0)</span>
+</li>
+<li>
+<a href="/alex0/article/details/8539657" title="【OpenvSwitch】0-对象">【OpenvSwitch】0-对象</a><span>(0)</span>
+</li>
+<li>
+<a href="/alex0/article/details/8579961" title="Python 一些奇怪的实现">Python 一些奇怪的实现</a><span>(0)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/alex0/article/details/8871711#comments">【OpenvSwitch】1-匹配流程</a>
+    <p style="margin:0px;"><a href="/Roring" class="user_name">Roring</a>:
+您好，最近我也在看Open vSwitch的代码，想请教一下：最后的报文匹配流程图是您画的吗，还是O...
+    </p>
+    </li>
+    <li>
+    <a href="/alex0/article/details/7959259#comments">一个有点新鲜的想法。遗传算法的改进思路？</a>
+    <p style="margin:0px;"><a href="/alex0" class="user_name">alex0</a>:
+这个东西可能没法根本性的革新除非是先 能预估样本落入区域的概率这题就大了
+    </p>
+    </li>
+    <li>
+    <a href="/alex0/article/details/7485779#comments">蜂群算法_原始版本</a>
+    <p style="margin:0px;"><a href="/alex0" class="user_name">alex0</a>:
+这个煞笔玩意放在C里写至少写一千行
+    </p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=1156831"></script>
+
+<script type="text/javascript">
+document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date()/120000).toString(36) + '="></'+'script>');
+</script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js?v=1"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+
+</div>
+</body>
+</html>

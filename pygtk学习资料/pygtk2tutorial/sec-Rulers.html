@@ -1,0 +1,125 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>9.7. Rulers</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-MiscellaneousWidgets.html" title="Chapter 9. Miscellaneous Widgets"><link rel="prev" href="sec-Images.html" title="9.6. Images"><link rel="next" href="sec-Statusbars.html" title="9.8. Statusbars"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9.7. Rulers</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-Images.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Miscellaneous Widgets</th><td width="20%" align="right"> <a accesskey="n" href="sec-Statusbars.html">Next</a></td></tr></table><hr></div><div class="sect1" title="9.7. Rulers"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-Rulers"></a>9.7. Rulers</h2></div></div></div><p><code class="classname">Ruler</code> widgets are used to indicate the
+location of the mouse pointer in a given window. A window can have a
+horizontal ruler spanning across the width and a vertical ruler spanning
+down the height. A small triangular indicator on the ruler shows the exact
+location of the pointer relative to the ruler.</p><p>A ruler must first be created. Horizontal and vertical rulers are
+created using the functions:</p><pre class="programlisting">
+  hruler = gtk.HRuler()    # horizontal ruler
+
+  vruler = gtk.VRuler()    # vertical ruler
+</pre><p>Once a ruler is created, we can define the unit of measurement.
+Units of measure for rulers can be <code class="varname">PIXELS</code>,
+<code class="varname">INCHES</code> or <code class="varname">CENTIMETERS</code>. This is set
+using the method:</p><pre class="programlisting">
+  ruler.set_metric(<strong class="parameter"><code>metric</code></strong>)
+</pre><p>The default measure is <code class="varname">PIXELS</code>.</p><pre class="programlisting">
+  ruler.set_metric(gtk.PIXELS)
+</pre><p>Other important characteristics of a ruler are how to mark the
+units of scale and where the position indicator is initially placed. These
+are set for a ruler using the method:</p><pre class="programlisting">
+  ruler.set_range(<strong class="parameter"><code>lower</code></strong>, <strong class="parameter"><code>upper</code></strong>, <strong class="parameter"><code>position</code></strong>,<strong class="parameter"><code> max_size</code></strong>)
+</pre><p>The <em class="parameter"><code>lower</code></em> and
+<em class="parameter"><code>upper</code></em> arguments define the extent of the ruler, and
+<em class="parameter"><code>max_size</code></em> is the largest possible number that will be
+displayed.  <em class="parameter"><code>Position</code></em> defines the initial position of
+the pointer indicator within the ruler.</p><p>A vertical ruler can span an 800 pixel wide window thus:</p><pre class="programlisting">
+  vruler.set_range(0, 800, 0, 800)
+</pre><p>The markings displayed on the ruler will be from 0 to 800, with
+a number for every 100 pixels. If instead we wanted the ruler to range from
+7 to 16, we would code:</p><pre class="programlisting">
+  vruler.set_range(7, 16, 0, 20)
+</pre><p>The indicator on the ruler is a small triangular mark that
+indicates the position of the pointer relative to the ruler. If the ruler is
+used to follow the mouse pointer, the "motion_notify_event" signal should be
+connected to the "motion_notify_event" method of the ruler. We need to setup
+a "motion_notify_event" callback for the area and use
+<code class="methodname">connect_object</code>() to get the ruler to emit a
+"motion_notify_signal":</p><pre class="programlisting">
+  def motion_notify(ruler, event):
+      return ruler.emit("motion_notify_event", event)
+
+  area.connect_object("motion_notify_event", motion_notify, ruler)
+</pre><p>The <a class="ulink" href="examples/rulers.py" target="_top"><span class="command"><strong>rulers.py</strong></span></a> example
+program creates a drawing area with a horizontal ruler above it and a
+vertical ruler to the left of it. The size of the drawing area is 600 pixels
+wide by 400 pixels high. The horizontal ruler spans from 7 to 13 with a mark
+every 100 pixels, while the vertical ruler spans from 0 to 400 with a mark
+every 100 pixels. Placement of the drawing area and the rulers is done using
+a table. <a class="xref" href="sec-Rulers.html#rulersfig" title="Figure 9.8. Rulers Example">Figure 9.8, “Rulers Example”</a> illustrates the result:</p><div class="figure"><a name="rulersfig"></a><p class="title"><b>Figure 9.8. Rulers Example</b></p><div class="figure-contents"><div class="mediaobject" align="center"><img src="figures/rulers.png" align="middle" alt="Rulers Example"></div></div></div><br class="figure-break"><p>The <a class="ulink" href="examples/rulers.py" target="_top"><span class="command"><strong>rulers.py</strong></span></a> source code
+is:</p><pre class="programlisting">
+    1	#!/usr/bin/env python
+    2	
+    3	# example rulers.py
+    4	
+    5	import pygtk
+    6	pygtk.require('2.0')
+    7	import gtk
+    8	
+    9	class RulersExample:
+   10	    XSIZE = 400
+   11	    YSIZE = 400
+   12	
+   13	    # This routine gets control when the close button is clicked
+   14	    def close_application(self, widget, event, data=None):
+   15	        gtk.main_quit()
+   16	        return False
+   17	
+   18	    def __init__(self):
+   19	        window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+   20	        window.connect("delete_event", self.close_application)
+   21	        window.set_border_width(10)
+   22	
+   23	        # Create a table for placing the ruler and the drawing area
+   24	        table = gtk.Table(3, 2, False)
+   25	        window.add(table)
+   26	
+   27	        area = gtk.DrawingArea()
+   28	        area.set_size_request(self.XSIZE, self.YSIZE)
+   29	        table.attach(area, 1, 2, 1, 2,
+   30	                     gtk.EXPAND|gtk.FILL, gtk.FILL, 0, 0 )
+   31	        area.set_events(gtk.gdk.POINTER_MOTION_MASK |
+   32	                        gtk.gdk.POINTER_MOTION_HINT_MASK )
+   33	
+   34	        # The horizontal ruler goes on top. As the mouse moves across the
+   35	        # drawing area, a motion_notify_event is passed to the
+   36	        # appropriate event handler for the ruler.
+   37	        hrule = gtk.HRuler()
+   38	        hrule.set_metric(gtk.PIXELS)
+   39	        hrule.set_range(7, 13, 0, 20)
+   40	        def motion_notify(ruler, event):
+   41	            return ruler.emit("motion_notify_event", event)
+   42	        area.connect_object("motion_notify_event", motion_notify, hrule)
+   43	        table.attach(hrule, 1, 2, 0, 1,
+   44	                     gtk.EXPAND|gtk.SHRINK|gtk.FILL, gtk.FILL, 0, 0 )
+   45	    
+   46	        # The vertical ruler goes on the left. As the mouse moves across
+   47	        # the drawing area, a motion_notify_event is passed to the
+   48	        # appropriate event handler for the ruler.
+   49	        vrule = gtk.VRuler()
+   50	        vrule.set_metric(gtk.PIXELS)
+   51	        vrule.set_range(0, self.YSIZE, 10, self.YSIZE)
+   52	        area.connect_object("motion_notify_event", motion_notify, vrule)
+   53	        table.attach(vrule, 0, 1, 1, 2,
+   54	                     gtk.FILL, gtk.EXPAND|gtk.SHRINK|gtk.FILL, 0, 0 )
+   55	
+   56	        # Now show everything
+   57	        area.show()
+   58	        hrule.show()
+   59	        vrule.show()
+   60	        table.show()
+   61	        window.show()
+   62	
+   63	def main():
+   64	    gtk.main()
+   65	    return 0
+   66	
+   67	if __name__ == "__main__":
+   68	    RulersExample()
+   69	    main()
+</pre><p>Lines 42 and 52 connect the
+<code class="methodname">motion_notify</code>() callback to the area but passing
+<em class="parameter"><code>hrule</code></em> in line 42 and <em class="parameter"><code>vrule</code></em> in
+line 52 as user data. The <code class="methodname">motion_notify</code>() callback
+will be called twice each time the mouse moves - once with
+<em class="parameter"><code>hrule</code></em> and once with
+<em class="parameter"><code>vrule</code></em>.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-Images.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-MiscellaneousWidgets.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="sec-Statusbars.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">9.6. Images </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 9.8. Statusbars</td></tr></table></div></body></html>

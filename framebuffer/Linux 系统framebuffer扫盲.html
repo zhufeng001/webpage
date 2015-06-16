@@ -1,0 +1,670 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<title>Linux 系统framebuffer扫盲_Cisco技术 无忧网客联盟</title>
+<meta name="keywords" content="系统,framebuffer,设备,可以,显示,驱动,内存," />
+<meta name="description" content="这两天看了一些关于Linux下Gui的介绍，但是对Framebuffer有一些疑问，请高人帮忙解答一下： 1.framebuffer在操作系统中处于什么位置呢？驱动和应用中间？和framebuffer一级的还有什么技术？ 也就是说在开发一个系统的时候除了framebuffer还有什么别的选择？" />
+<link href="/templets/style/dedecms.css" rel="stylesheet" media="screen" type="text/css" />
+<script language="javascript" type="text/javascript" src="/include/dedeajax2.js"></script>
+<script language="javascript" type="text/javascript">
+<!--
+function CheckLogin(){
+	  var taget_obj = document.getElementById('_ajax_feedback');
+	  myajax = new DedeAjax(taget_obj,false,false,'','','');
+	  myajax.SendGet2("/member/ajax_feedback.php");
+	  DedeXHTTP = null;
+}
+function postBadGood(ftype,fid)
+{
+	var taget_obj = document.getElementById(ftype+fid);
+	var saveid = GetCookie('badgoodid');
+	if(saveid != null)
+	{
+		var saveids = saveid.split(',');
+		var hasid = false;
+		saveid = '';
+		j = 1;
+		for(i=saveids.length-1;i>=0;i--)
+		{
+			if(saveids[i]==fid && hasid) continue;
+			else {
+				if(saveids[i]==fid && !hasid) hasid = true;
+				saveid += (saveid=='' ? saveids[i] : ','+saveids[i]);
+				j++;
+				if(j==10 && hasid) break;
+				if(j==9 && !hasid) break;
+			}
+		}
+		if(hasid) { alert('您刚才已表决过了喔！'); return false;}
+		else saveid += ','+fid;
+		SetCookie('badgoodid',saveid,1);
+	}
+	else
+	{
+		SetCookie('badgoodid',fid,1);
+	}
+	myajax = new DedeAjax(taget_obj,false,false,'','','');
+	myajax.SendGet2("/plus/feedback.php?aid="+fid+"&action="+ftype+"&fid="+fid);
+}
+function postDigg(ftype,aid)
+{
+	var taget_obj = document.getElementById('newdigg');
+	var saveid = GetCookie('diggid');
+	if(saveid != null)
+	{
+		var saveids = saveid.split(',');
+		var hasid = false;
+		saveid = '';
+		j = 1;
+		for(i=saveids.length-1;i>=0;i--)
+		{
+			if(saveids[i]==aid && hasid) continue;
+			else {
+				if(saveids[i]==aid && !hasid) hasid = true;
+				saveid += (saveid=='' ? saveids[i] : ','+saveids[i]);
+				j++;
+				if(j==20 && hasid) break;
+				if(j==19 && !hasid) break;
+			}
+		}
+		if(hasid) { alert("您已经顶过该帖，请不要重复顶帖 ！"); return; }
+		else saveid += ','+aid;
+		SetCookie('diggid',saveid,1);
+	}
+	else
+	{
+		SetCookie('diggid',aid,1);
+	}
+	myajax = new DedeAjax(taget_obj,false,false,'','','');
+	var url = "/plus/digg_ajax.php?action="+ftype+"&id="+aid;
+	myajax.SendGet2(url);
+}
+function getDigg(aid)
+{
+	var taget_obj = document.getElementById('newdigg');
+	myajax = new DedeAjax(taget_obj,false,false,'','','');
+	myajax.SendGet2("/plus/digg_ajax.php?id="+aid);
+	DedeXHTTP = null;
+}
+-->
+</script>
+</head>
+<body class="articleview">
+<div class="header">
+	<div class="top w960 center">
+      <div class="title">
+        <h1> <a href="http://www.net527.cn">Cisco技术 无忧网客联盟</a> </h1>
+      </div>
+      <div class="banner"><script src='/plus/ad_js.php?aid=1' language='javascript'></script></div>
+      <div class="rlink">
+        <ul>
+          <li class="r1"><a href="/member">会员中心</a></li>
+          <li class="r2"><a href="/tags.php">TAG标签</a></li>
+          <li class="r3"><a href="/data/sitemap.html">网站地图</a></li>
+          <li class="r4"><a href="/data/rssmap.html">RSS订阅</a></li>
+        </ul>
+      </div>
+	</div><!-- //top -->
+	<!-- //菜单 -->
+	<div class="module blue mT10 wrapper w963">
+  	<div class="top">
+    	<div class="t_l"></div>
+    	<div class="t_r"></div>
+    	<!-- //如果不使用currentstyle，可以在channel标签加入 cacheid='channeltoplist' 属性提升性能 -->
+    <div id="navMenu">
+    	<ul>
+      	<li><a href='/'>主页</a></li>
+      	
+      	<li><a href='/a/ITyejiepinglun/' >IT业界评论</a></li>
+      	
+      	<li><a href='/a/ITrenzheng/'  rel='dropmenu2'>IT认证</a></li>
+      	
+      	<li><a href='/a/Ciscomoniqi/'  rel='dropmenu10'>Cisco模拟器</a></li>
+      	
+      	<li><a href='/a/luyoujiaohuan/'  rel='dropmenu13'>路由交换</a></li>
+      	
+      	<li><a href='/a/anquan/'  rel='dropmenu19'>安全</a></li>
+      	<li class='hover'><a href='/a/caozuoxitong/'  rel='dropmenu25'>操作系统</a></li>
+      	<li><a href='http://www.net527.cn/special/' >专题</a></li>
+      	
+      	<li><a href='/ziliaoxiazai/'  rel='dropmenu171'>资料下载</a></li>
+      	
+      	<li><a href='/shujukuguanli/'  rel='dropmenu36'>数据库</a></li>
+      	
+      	<li><a href='http://bbs.net527.cn' >论坛</a></li>
+      	
+    	</ul>
+    </div>	
+    <div class="search">
+      <form action="/plus/search.php" name="formsearch">
+        <div class="form">
+          <h4>搜索</h4>
+           <input type="hidden" name="kwtype" value="0" />
+           <input name="keyword" type="text" class="search-keyword" id="search-keyword" />
+           <select name="searchtype" class="search-option" id="search-option">
+               <option value="titlekeyword" selected='1'>智能模糊搜索</option>
+               <option value="title">仅搜索标题</option>
+           </select>
+          <button type="submit" class="search-submit">搜索</button>
+        </div>
+        </form>
+        <div class="tags">
+          <h4>热门标签</h4>
+          <ul>
+          <li><a href='/tags.php?/Tcpdump/'>Tcpdump</a></li>
+          <li><a href='/tags.php?/VPN/'>VPN</a></li>
+          <li><a href='/tags.php?/vsftp+roftp/'>vsftp roftp</a></li>
+          <li><a href='/tags.php?/OSPF/'>OSPF</a></li>
+          <li><a href='/tags.php?/HSRP/'>HSRP</a></li>
+          <li><a href='/tags.php?/vtp/'>vtp</a></li>
+          <li><a href='/tags.php?/ppp/'>ppp</a></li>
+          <li><a href='/tags.php?/BGP/'>BGP</a></li>
+          
+          </ul>
+        </div>
+    </div><!-- //search -->
+		</div>
+	</div>
+</div><!-- //header -->
+
+<!-- /header -->
+<div class="w960 center clear"><script src='/plus/ad_js.php?aid=19' language='javascript'></script></div>
+<div class="channel-nav w960 center clear">
+	<div class='sonnav'>
+	<span><a href='/a/caozuoxitong/Linux/' class='thisclass'>Linux</a></span>
+		<span><a href='/a/caozuoxitong/Unix/'>Unix</a></span>
+		<span><a href='/a/caozuoxitong/windows/'>windows</a></span>
+		<span><a href='/a/anquan/Backtrack/'>Backtrack</a></span>
+	</div>
+	<span class="back">
+		<a href="/">返回首页</a>
+	</span>
+</div><!-- /channel-nav -->
+
+<div class="w960 center clear mt1">
+	<div class="pleft">
+		<div class="place">
+			<strong>当前位置:</strong> <a href='http://www.net527.cn/'>无忧网客联盟</a> > <a href='/a/caozuoxitong/'>操作系统</a> > <a href='/a/caozuoxitong/Linux/'>Linux</a> > 
+		</div><!-- /place -->
+		<div class="viewbox">
+			<div class="title">
+				<h2>Linux 系统framebuffer扫盲</h2>
+			</div><!-- /title -->
+			<div class="info">
+				<small>时间:</small>2012-12-01 20:53<small>来源:</small>未知 <small>作者:</small>admin <small>点击:</small><script src="/plus/count.php?view=yes&aid=25131&mid=1" type='text/javascript' language="javascript"></script>次</div><!-- /info -->
+
+            	<div class="intro">这两天看了一些关于Linux下Gui的介绍，但是对Framebuffer有一些疑问，请高人帮忙解答一下： 1.framebuffer在操作系统中处于什么位置呢？驱动和应用中间？和framebuffer一级的还有什么技术？ 也就是说在开发一个系统的时候除了framebuffer还有什么别的选择？</div>
+			<div class="intro">
+
+			<table width='100%'>
+				<tr><td><SPAN style="FLOAT: right">
+<script src='/plus/ad_js.php?aid=6' language='javascript'></script> 
+</SPAN><p>这两天看了一些关于Linux下Gui的介绍，但是对Framebuffer有一些疑问，请高人帮忙解答一下：<br />
+1.framebuffer在操作<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>系统</u></a>中处于什么位置呢？驱动和应用中间？和framebuffer一级的还有什么技术？&nbsp;&nbsp; <br />
+也就是说在开发一个系统的时候除了framebuffer还有什么别的选择？<br />
+2.我们在开发一个新系统的时候如果想要用framebuffer的话，是否还需要自己写相关<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>显示</u></a>芯片基于framebuffer的驱动呢？<br />
+那么如果我的芯片本身支持一些加速的特殊处理，在freambuffer中怎么体现？<br />
+3.如何知道显示芯片是否支持framebuffer的操作？选择framebuffer时候需要注意什么？怎样知道自己的系统是否适合使用framebuffer呢？</p>
+<p>在这里先谢谢啦 :)</p>
+<p>帧缓冲<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>设备</u></a>提供了显卡的抽象描述。他同时代表了显卡上的显存，应用程序通过定义好的接口<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>可以</u></a>访问显卡，而不需要知道底层的任何操作。该<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>设备</u></a>使用特殊的设备节点，通常位于/dev目录，如/dev/fb*.</p>
+<p>1.用户角度的/dev/fb*<br />
+从用户的角度看，帧缓冲设备和其他位于/dev下面的设备类似。他是一个字符设备，通常主设备号是29，次设备号定义帧缓冲的个数。<br />
+通常，使用如下方式（前面的数字代码次设备号）</p>
+<p>0 = /dev/fb0 First frame buffer<br />
+1 = /dev/fb1 Second frame buffer<br />
+...<br />
+31 = /dev/fb31 32nd frame buffer&nbsp;&nbsp;</p>
+<p>考虑到向下兼容，你可以创建符号链接：</p>
+<p>/dev/fb0current -&gt; fb0<br />
+/dev/fb1current -&gt; fb1</p>
+<p>and so on...</p>
+<p>帧缓冲设备也是一种普通的内存设备，你可以读写其内容。例如，对屏幕抓屏：</p>
+<p>cp /dev/fb0 myfile</p>
+<p>你也可以同时有多个显示设备，例如你的主板上出了内置的显卡还有另一独立的显卡。对应的帧缓冲设备(/dev/fb0 and /dev/fb1 etc.)可以独立工作。<br />
+应用程序如 X server一般使用/dev/fb0作为默认的显示帧缓冲区。你可以自定把某个设备作为默认的帧缓冲设备，设置$FRAMEBUFFER环境变量即可。在sh/bash：</p>
+<p>export FRAMEBUFFER=/dev/fb1</p>
+<p>在csh中：</p>
+<p>setenv FRAMEBUFFER /dev/fb1</p>
+<p>设定后，X server将使用第二个帧缓冲区设备。</p>
+<p>2.程序员角度看/dev/fb*<br />
+正如你所知，一个帧缓冲设备和内存设备类似/dev/mem，并且有许多共性。你可以read,write,seek以及mmap()。不同仅仅是帧缓冲的内存不是所有的内存区，而是显卡专用的那部分内存。<br />
+/dev/fb*也允许尽行ioctl操作，通过ioctl可以读取或设定设备参数。颜色映射表也是通过Ioctl设定。查看&lt;linux/fb.h&gt;就知道有多少ioctl应用以及相关数据结构。</p>
+<p>这里给出摘要：<br />
+- 你可以获取设备一些不变的信息，如设备名，屏幕的组织（平面，象素,...)对应内存区 的长度和起始地址。<br />
+- 也可以获取能够发生变化的信息，例如位深，颜色格式，时序等。如果你改变这些值， 驱动程序将对值进行优化，以满足设备特性（返回EINVAL，如果你的设定，设备不支持）<br />
+- 你也可以获取或设定部分颜色表。&nbsp;&nbsp;</p>
+<p>所有这些特性让应用程序十分容易的使用设备。X server可以使用/dev/fb*而不需知道硬件的寄存器是如何组织的。 XF68_FBDev是一个用于位映射（单色）X server，唯一要做的就是在应用程序在相应的位置设定是否显示。</p>
+<p>在新内核中，帧缓冲设备可以工作于模块中，允许动态加载。这类驱动必须调用register_framebuffer()在系统中注册。使用模块更方便！</p>
+<p><br />
+FrameBuffer<br />
+FrameBuffer 是出现在 2.2.xx 内核当中的一种驱动程序接口。这种接口将显示设<br />
+备抽象为帧缓冲区。用户可以将它看成是显示内存的一个映像，将其映射到进程地<br />
+址空间之后，就可以直接进行读写操作，而写操作可以立即反应在屏幕上。该驱动<br />
+程序的设备文件一般是 /dev/fb0、/dev/fb1 等等。比如，假设现在的显示模式是<br />
+1024x768-8 位色，则可以通过如下的命令清空屏幕：<br />
+$ dd if=/dev/zero of=/dev/fb0 bs=1024 count=768</p>
+<p>在应用程序中，一般通过将 FrameBuffer 设备映射到进程地址空间的方式使用，<br />
+比如下面的程序就打开 /dev/fb0 设备，并通过 mmap 系统调用进行地址映射，随<br />
+后用 memset 将屏幕清空（这里假设显示模式是 1024x768-8 位色模式，线性内存<br />
+模式）：<br />
+int fb;<br />
+unsigned char* fb_mem;<br />
+fb = open (&quot;/dev/fb0&quot;, O_RDWR);<br />
+fb_mem = mmap (NULL, 1024*768, PROT_READ|PROT_WRITE,MAP_SHARED,fb,0);<br />
+memset (fb_mem, 0, 1024*768);<br />
+FrameBuffer 设备还提供了若干 ioctl 命令，通过这些命令，可以获得显示设备<br />
+的一些固定信息（比如显示内存大小）、与显示模式相关的可变信息（比如分辨<br />
+率、象素结构、每扫描线的字节宽度），以及伪彩色模式下的调色板信息等等。</p>
+<p>通过 FrameBuffer 设备，还可以获得当前内核所支持的加速显示卡的类型（通过<br />
+固定信息得到），这种类型通常是和特定显示芯片相关的。比如目前最新的内核<br />
+（2.4.9）中，就包含有对 S3、Matrox、nVidia、3Dfx 等等流行显示芯片的加速<br />
+支持。在获得了加速芯片类型之后，应用程序就可以将 PCI 设备的内存I/O<br />
+（memio）映射到进程的地址空间。这些 memio 一般是用来控制显示卡的寄存器，<br />
+通过对这些寄存器的操作，应用程序就可以控制特定显卡的加速功能。<br />
+PCI 设备可以将自己的控制寄存器映射到物理内存空间，而后，对这些控制寄存器<br />
+的访问，给变成了对物理内存的访问。因此，这些寄存器又被称为&quot;memio&quot;。一旦<br />
+被映射到物理内存，Linux 的普通进程就可以通过 mmap 将这些内存 I/O 映射到<br />
+进程地址空间，这样就可以直接访问这些寄存器了。<br />
+当然，因为不同的显示芯片具有不同的加速能力，对memio 的使用和定义也各自不<br />
+同，这时，就需要针对加速芯片的不同类型来编写实现不同的加速功能。比如大多<br />
+数芯片都提供了对矩形填充的硬件加速支持，但不同的芯片实现方式不同，这时，<br />
+就需要针对不同的芯片类型编写不同的用来完成填充矩形的函数。<br />
+说到这里，读者可能已经意识到 FrameBuffer 只是一个提供显示内存和显示芯片<br />
+寄存器从物理内存映射到进程地址空间中的设备。所以，对于应用程序而言，如果<br />
+希望在 FrameBuffer 之上进行图形编程，还需要完成其他许多工作。举个例子来<br />
+讲，FrameBuffer 就像一张画布，使用什么样子的画笔，如何画画，还需要你自己<br />
+动手完成。</p>
+<p>&nbsp;</p>
+<p>1.framebuffer在操作系统中处于什么位置呢？framebuffer属于驱动层<br />
+驱动和应用中间？ 同上<br />
+和framebuffer一级的还有什么技术？<br />
+也就是说在开发一个系统的时候除了framebuffer还有什么别的选择？<br />
+独一无二,其他的选择功能就不完全一样了, 当然看你具体要实现什么, 可能你要实现的那个功能也是用其他方法可以实现的.</p>
+<p>2.我们在开发一个新系统的时候如果想要用framebuffer的话，是否还需要自己写相关显示芯片基于framebuffer的驱动呢？ <br />
+在Linux系统中有通用framebuffer驱动vesafb, 也有各自芯片的framebuffer, 芯片的framebuffer一般都有其加速功能, 当然vesafb对某些显示芯片也有加速功能. 自己写你必须要有技术资料,否则写出来的就是类似vesafb了.</p>
+<p>那么如果我的芯片本身支持一些加速的特殊处理，在freambuffer中怎么体现？<br />
+根据技术资料来处理, 一般都是些寄存器的操作吧.<br />
+<br />
+3.如何知道显示芯片是否支持framebuffer的操作？<br />
+一般都支持<br />
+选择framebuffer时候需要注意什么？<br />
+有相应的则使用相应的, 如果没有选择vesafb<br />
+怎样知道自己的系统是否适合使用framebuffer呢？ <br />
+在内核中可以看到有没有你显卡型号的framebuffer,在 make menuconfig中查找, 如果有看到选上就是, 对应的内核目录为linux-2.6.*/drivers/video/ .</p>
+<p>framebuffer就相当于一个中间层，对驱动和硬件进行一个封装和管理，便于用户开发图形界面或进行视频输出操作。</p>
+<p>自从Linux支持了framebuffer以后，很多GUI开发都是基于framebuffer而进行的</p>
+<p>简单的说就是 你写到fb里面的数据会立刻以像素的方式显示到屏幕上，<br />
+你可以把一个位图文件copy到fb里面然后这个图像就会立刻显示到屏幕上。<br />
+很多图像库就是基于framebuffer的。<br />
+除了framebuffer还有xwindow 也可以做gui。</p>
+<p>设备文件：/dev/fb0 ...</p>
+<p>&nbsp;</p>
+<p>想再问一下，那framebuffer和Xserver是什么关系呢？ <br />
+我们现在很多的GUI也有直接建立在Xserver上的。我想问这类的选择都有那些？？</p>
+<p>Linux 下的显卡驱动有两层, 一个是kernel层的也就是framebuffer驱动, 另一个是Xserver层驱动, 在进入X-windows之前是由framebuffer来驱动, 进入X-windows之后由XSERVER层的驱动作用(/etc/X11/xorg.conf中可以设置显卡等驱动), 当然如果你想要在X-WINDOWS上用framebuffer驱动也可以, 可以使用Xserver中的fbdev驱动, 这个驱动可以指定你要使用kernel层的framebuffer, 比如在xorg.conf中这样写</p>
+<p>Section &quot;Device&quot;<br />
+Identifier &quot;Videocard0&quot;<br />
+Driver &quot;fbdev&quot;<br />
+VendorName &quot;Videocard vendor&quot;<br />
+BoardName &quot;VESA driver (generic)&quot;<br />
+BusID &quot;PCI:0:14:0&quot;<br />
+Option &quot;fbdev&quot; &quot;/dev/fb1&quot; #使用/dev/fb1这个framebuffer驱动<br />
+EndSection</p>
+<p>framebuffer 是一块显示内存，相当于存放着一桢视频数据当然是I桢。硬件会将这块内存中的数据以事先设定好的格式以及一定的刷新速率来进行显示。格式中规定了一个像素所占的字节，是否有透明等。所有的图形库都是在framebuffer之上的，将数据写入framebuffer让硬件显示出来。</p>
+<p>那我要是想在Framebuffer上搭建自己的Gui的话，那么是不是事件相关的事情就要自己处理了？？ <br />
+Framebuffer有这方面的封装么？</p>
+<p>顺便再问一下，在看Framebuffer的时候都说他是基于控制台驱动程序，不太明白是什么意思？ <br />
+能说明一控制台驱动程序是什么呢？</p>
+<p><br />
+framebuffer驱动有提供很多硬件接口, 比如DirectFB, QT等都是基于这些硬件接口来工作的.<br />
+应该说控制台程序是基于framebuffer的, <br />
+控制台驱动程序指的应该就是framebuffer驱动吧.</p>(责任编辑：admin)</td></tr>
+			</table>
+
+			</div><!-- /content -->
+<div align="center" style="padding-bottom:0px; padding-top:10px;">
+
+<script src='/plus/ad_js.php?aid=3' language='javascript'></script> </div>
+			<div class="dede_pages">
+				<ul class="pagelist">
+          
+				</ul>
+			</div><!-- /pages -->
+
+			 <!-- //顶踩 -->
+  <div class="newdigg" id="newdigg">
+   <div class="diggbox digg_good" onmousemove="this.style.backgroundPosition='left bottom';" onmouseout="this.style.backgroundPosition='left top';" onclick="javascript:postDigg('good',25131)">
+    <div class="digg_act">顶一下</div>
+    <div class="digg_num">(0)</div>
+    <div class="digg_percent">
+     <div class="digg_percent_bar"><span style="width:0%"></span></div>
+     <div class="digg_percent_num">0%</div>
+    </div>
+   </div>
+   <div class="diggbox digg_bad" onmousemove="this.style.backgroundPosition='right bottom';" onmouseout="this.style.backgroundPosition='right top';" onclick="javascript:postDigg('bad',25131)">
+    <div class="digg_act">踩一下</div>
+    <div class="digg_num">(0)</div>
+    <div class="digg_percent">
+     <div class="digg_percent_bar"><span style="width:0%"></span></div>
+     <div class="digg_percent_num">0%</div>
+    </div>
+   </div>
+  </div>
+			<script language="javascript" type="text/javascript">getDigg(25131);</script>
+			<!-- //顶踩部份的源码结束 -->
+			
+			<div class="boxoff">
+				<strong>------分隔线----------------------------</strong>
+			</div>
+			<div class="handle">
+				<div class="context">
+					<ul>
+						<li>上一篇：<a href='/a/caozuoxitong/Linux/2012/1201/25130.html'>Linux 系统设置OpenGL编程环境的方法</a> </li>
+						<li>下一篇：<a href='/a/caozuoxitong/Linux/2012/1201/25132.html'>Linux 系统 使用FrameBuffer直接写屏</a> </li>
+					</ul>
+				</div><!-- /context -->
+				<div class="actbox">
+					<ul>
+						<li id="act-fav"><a href="/plus/stow.php?aid=25131" target="_blank">收藏</a></li>
+						<li id="act-err"><a href="/plus/erraddsave.php?aid=25131&title=Linux 系统framebuffer扫盲" target="_blank">挑错</a></li>
+						<li id="act-pus"><a href="/plus/recommend.php?aid=25131" target="_blank">推荐</a></li>
+						<li id="act-pnt"><a href="#" onClick="window.print();">打印</a></li>
+					</ul>
+				</div><!-- /actbox -->
+			</div><!-- /handle -->
+		</div><!-- /viewbox -->
+
+<!-- //AJAX评论区 -->
+<!-- //主模板必须要引入/include/dedeajax2.js -->
+<a name='postform'></a>
+<div class="mt1">
+		<dl class="tbox">
+			<dt>
+				<strong>发表评论</strong>
+				<span class="more"></span>
+			</dt>
+			<dd>
+				<div class="dede_comment_post">
+          <form action="#" method="post" name="feedback">
+          <input type="hidden" name="dopost" value="send" />
+          <input type="hidden" name="comtype" value="comments">
+          <input type="hidden" name="aid" value="25131" />
+          <input type="hidden" name="fid" id='feedbackfid' value="0" />
+          <div class="dcmp-title">
+						<small>请自觉遵守互联网相关的政策法规，严禁发布色情、暴力、反动的言论。</small>
+					</div><!-- /dcmp-title -->
+					<div class="dcmp-stand">
+						<strong>评价:</strong>
+							<input type="radio" name="feedbacktype" checked="1" value="feedback" id="dcmp-stand-neu" /><label for="dcmp-stand-neu"><img src="/templets/images/cmt-neu.gif" />中立</label>
+							<input type="radio" name="feedbacktype" value="good" id="dcmp-stand-good" /><label for="dcmp-stand-good"><img src="/templets/images/cmt-good.gif" />好评</label>
+							<input type="radio" name="feedbacktype" value="bad" id="dcmp-stand-bad" /><label for="dcmp-stand-bad"><img src="/templets/images/cmt-bad.gif" />差评</label>
+					</div><!-- /dcmp-stand -->
+					<div class="dcmp-content">
+						<textarea cols="60" name="msg" rows="5" class="ipt-txt"></textarea>
+					</div><!-- /dcmp-content -->
+					<div class="dcmp-mood">
+						<strong>表情:</strong>
+						<ul>
+								<li><input type="radio" name='face' value='6' checked="1" /><img src="/templets/images/mood/ico-mood-6.gif" /></li>
+								<li><input type="radio" name='face' value='4'/><img src="/templets/images/mood/ico-mood-4.gif" /></li>
+								<li><input type="radio" name='face' value='3'/><img src="/templets/images/mood/ico-mood-3.gif" /></li>
+								<li><input type="radio" name='face' value='5'/><img src="/templets/images/mood/ico-mood-5.gif" /></li>
+								<li><input type="radio" name='face' value='2'/><img src="/templets/images/mood/ico-mood-2.gif" /></li>
+								<li><input type="radio" name='face' value='1'/><img src="/templets/images/mood/ico-mood-1.gif" /></li>
+								<li><input type="radio" name='face' value='7'/><img src="/templets/images/mood/ico-mood-7.gif" /></li>
+						</ul>
+					</div><!-- /dcmp-mood -->
+					<div class="dcmp-post"><!--未登陆-->
+							<div class="dcmp-userinfo" id="_ajax_feedback">
+								
+								验证码:<input type='text' name='validate' size='4' class='ipt-txt' /><img src="/include/vdimgck.php" id="validateimg" style="cursor:pointer" onclick="this.src=this.src+'?'" title="点击我更换图片" alt="点击我更换图片" />
+                <input type="checkbox" name="notuser" id="dcmp-submit-guest" /><label for="dcmp-submit-guest" />匿名? </label>
+							</div>
+              
+							<div class="dcmp-submit">
+								<button type="button" onClick='PostComment()'>发表评论</button>
+							</div>
+						</div>
+        </form>
+				</div>
+			</dd>
+		</dl>
+	</div><!-- //评论表单区结束 -->
+
+<!-- //评论内容区 -->
+	<a name='commettop'></a>
+	<div class="mt1">
+			<dl class="tbox">
+				<dt>
+					<strong>最新评论</strong>
+					<span class="more"><a href="/plus/feedback.php?aid=25131">进入详细评论页&gt;&gt;</a></span>
+				</dt>
+				<!-- //这两个ID的区块必须存在，否则JS会出错 -->
+				<dd id='commetcontentNew'></dd>
+				<dd id='commetcontent'></dd>
+			</dl>
+	</div>
+<!--
+//由于评论载入时使用异步传输，因此必须在最后一步加载（DIGG和评论框须放在评论内容前面）
+//如果一定需要提前的把myajax.SendGet改为myajax.SendGet2，但可能会引起页面阻滞
+-->
+<script language='javascript'>
+function LoadCommets(page)
+{
+		var taget_obj = document.getElementById('commetcontent');
+		var waithtml = "<div style='line-height:50px'><img src='/images/loadinglit.gif' />评论加载中...</div>";
+		var myajax = new DedeAjax(taget_obj, true, true, '', 'x', waithtml);
+		myajax.SendGet2("/plus/feedback_ajax.php?dopost=getlist&aid=25131&page="+page);
+		DedeXHTTP = null;
+}
+function PostComment()
+{
+		var f = document.feedback;
+		var nface = '6';
+		var nfeedbacktype = 'feedback';
+		var nvalidate = '';
+		var nnotuser = '';
+		var nusername = '';
+		var npwd = '';
+		var taget_obj = $DE('commetcontentNew');
+		var waithtml = "<div style='line-height:30px'><img src='/images/loadinglit.gif' />正在发送中...</div>";
+		if(f.msg.value=='')
+		{
+			alert("评论内容不能为空！");
+			return;
+		}
+		if(f.validate)
+		{
+			if(f.validate.value=='') {
+				alert("请填写验证码！");
+				return;
+			}
+			else {
+				nvalidate = f.validate.value;
+			}
+		}
+		if(f.msg.value.length > 500)
+		{
+			alert("你的评论是不是太长了？请填写500字以内的评论。");
+			return;
+		}
+		if(f.feedbacktype) {
+			for(var i=0; i < f.feedbacktype.length; i++)
+				if(f.feedbacktype[i].checked) nfeedbacktype = f.feedbacktype[i].value;
+		}
+		if(f.face) {
+			for(var j=0; j < f.face.length; j++)
+				if(f.face[j].checked) nface = f.face[j].value;
+		}
+		if(f.notuser.checked) nnotuser = '1';
+		if(f.username) nusername = f.username.value;
+		if(f.pwd) npwd = f.pwd.value;
+		
+		var myajax = new DedeAjax(taget_obj, false, true, '', '', waithtml);
+		myajax.sendlang = 'gb2312';
+		myajax.AddKeyN('dopost', 'send');
+		myajax.AddKeyN('aid', '25131');
+		myajax.AddKeyN('fid', f.fid.value);
+		myajax.AddKeyN('face', nface);
+		myajax.AddKeyN('feedbacktype', nfeedbacktype);
+		myajax.AddKeyN('validate', nvalidate);
+		myajax.AddKeyN('notuser', nnotuser);
+		myajax.AddKeyN('username', nusername);
+		myajax.AddKeyN('pwd', npwd);
+		myajax.AddKeyN('msg', f.msg.value);
+		myajax.SendPost2('/plus/feedback_ajax.php');
+		f.msg.value = '';
+		f.fid.value = 0;
+		if(f.validate)
+		{
+			if($DE('validateimg')) $DE('validateimg').src = "/include/vdimgck.php?"+f.validate.value;
+			f.validate.value = '';
+		}
+}
+function quoteCommet(fid)
+{
+	document.feedback.fid.value = fid;
+}
+LoadCommets(1);
+</script><!-- //评论内容区结束 -->
+
+
+</div><!-- //左边内容结束 -->
+
+<!-- //右边内容开始 -->
+<div class="pright">
+ 		
+		<div class="commend mt1">
+			<dl class="tbox light">
+<script src='/plus/ad_js.php?aid=5' language='javascript'></script>
+				<dt class='light'><strong>推荐内容</strong></dt>
+				<dd class='light'>
+					<ul class="d4">
+           <li><a href="/a/caozuoxitong/Linux/2012/1117/25063.html">Linux 运维 Puppet 安装配置实录</a>
+            	<p>前言： 系统管理员经常陷入一系列的重复任务中：如升级软件包、管理配置文件、系统服...</p>
+            </li>
+<li><a href="/a/caozuoxitong/Linux/2012/1117/25047.html">Linux 搭建DNS服务器配置</a>
+            	<p>Linux DNS服务器 1 DNS简介 2 使用域名服务 3 安装和配置Linux域名服务器 4 用解析工...</p>
+            </li>
+<li><a href="/a/caozuoxitong/Linux/2012/0531/23208.html">XP硬盘安装Ubuntu 10.10系统</a>
+            	<p>XP硬盘安装Ubuntu 10.10系统 以前都是用wubi方式来安装Ubuntu，感觉反应速度太慢，而...</p>
+            </li>
+<li><a href="/a/caozuoxitong/Linux/2012/0528/23141.html">使用PXE网络环境</a>
+            	<p>在独辟蹊径的前面的文章中已经介绍了基于 PXE 的网络环境安装 Redhat/Centos 和 Debia...</p>
+            </li>
+<li><a href="/a/caozuoxitong/Linux/2012/0522/23063.html">LINUX 破解Root密码</a>
+            	<p>最后一步键入ＥＸＩＴ回车后，电脑会自动重新启动，到这里就破解了根用户的密码。...</p>
+            </li>
+<li><a href="/a/caozuoxitong/Linux/2012/0426/22722.html">VM安装CentOS 图文教程</a>
+            	<p>1. 在桌面和面板上建立软件的启动器，有点像windows下的快捷方式。 最常用的应用程序...</p>
+            </li>
+
+					</ul>
+				</dd>
+			</dl>
+		</div><!-- /commend -->
+
+
+<script src='/plus/ad_js.php?aid=20' language='javascript'></script>
+
+
+		<div class="hot mt1">
+			<dl class="tbox light">
+				<dt class='light'><strong>热点内容</strong></dt>
+				<dd class='light'>
+					<ul class="c1 ico2">
+             <li><a href="/a/caozuoxitong/Linux/2010/0123/4380.html">apache启动报错(98)Address alre</a></li>
+<li><a href="/a/caozuoxitong/Linux/2011/0226/16752.html">Nagios+Centreon+Nrpe+NSClient+</a></li>
+<li><a href="/a/caozuoxitong/Linux/2010/0308/7134.html">Ubuntu 10.04 的Grub引导文件</a></li>
+<li><a href="/a/caozuoxitong/Linux/2010/0209/5504.html">ubuntu下设置PATH环境变量</a></li>
+<li><a href="/a/caozuoxitong/Linux/2010/0209/5552.html">alsa ubuntu声卡驱动重新安装</a></li>
+<li><a href="/a/caozuoxitong/Linux/2010/0422/9834.html">passwd: Authentication token m</a></li>
+<li><a href="/a/caozuoxitong/Linux/2010/0224/6330.html">Ubuntu的桌面死机后重启桌面方法</a></li>
+<li><a href="/a/caozuoxitong/Linux/2009/1201/964.html">VMware 7.0 虚拟机工具的安装方</a></li>
+<li><a href="/a/caozuoxitong/Linux/2009/1126/743.html">linux下配置ip地址四种方法</a></li>
+<li><a href="/a/caozuoxitong/Linux/2010/0326/8620.html">ubuntu下成功运行pplive（非wine</a></li>
+
+					</ul>
+				</dd>
+			</dl>
+		</div>
+
+
+
+
+	</div><!-- /pright -->
+</div>
+
+<!-- //二级子类下拉菜单，考虑SEO原因放置于底部  -->
+<script type='text/javascript' src='/images/js/dropdown.js'></script>
+<ul id="dropmenu1" class="dropMenu">
+  
+</ul><ul id="dropmenu2" class="dropMenu">
+    <li><a href="/a/ITrenzheng/sikekaoshizhanbao/">思科考试战报</a></li>
+    <li><a href="/a/ITrenzheng/CCNAdianzishu/">CCNA电子书</a></li>
+    <li><a href="/a/ITrenzheng/CCSPdianzishu/">CCSP电子书</a></li>
+    <li><a href="/a/ITrenzheng/CCNPdianzishu/">CCNP电子书</a></li>
+    <li><a href="/a/ITrenzheng/CCIEdianzishu/">CCIE电子书</a></li>
+    <li><a href="/a/ITrenzheng/ITwangluoshiyanshi/">IT网络实验室</a></li>
+    <li><a href="/a/ITrenzheng/luntanzixun/">论坛咨询</a></li>
+  
+</ul><ul id="dropmenu10" class="dropMenu">
+    <li><a href="/a/Ciscomoniqi/Cisco_ios_xiazai/">Cisco ios 下载</a></li>
+    <li><a href="/a/Ciscomoniqi/Ciscomoniqiruanjian/">Cisco模拟器软件</a></li>
+  
+</ul><ul id="dropmenu13" class="dropMenu">
+    <li><a href="/a/luyoujiaohuan/Ciscojishu/">Cisco技术</a></li>
+    <li><a href="/a/luyoujiaohuan/huaweijishu/">华为技术</a></li>
+    <li><a href="/a/luyoujiaohuan/Juniperjishu/">Juniper技术</a></li>
+    <li><a href="/a/luyoujiaohuan/dianzishu/">电子书</a></li>
+    <li><a href="/a/luyoujiaohuan/peizhishili/">配置实例</a></li>
+  
+</ul><ul id="dropmenu19" class="dropMenu">
+    <li><a href="/a/anquan/Ciscoanquan/">Cisco安全</a></li>
+    <li><a href="/a/anquan/Juniperanquan/">Juniper安全</a></li>
+    <li><a href="/a/anquan/huaweianquan/">华为安全</a></li>
+    <li><a href="/a/anquan/kaiyuanfanghuoqiang/">开源防火墙</a></li>
+    <li><a href="/a/anquan/dianzishu/">电子书</a></li>
+    <li><a href="/a/anquan/xitonganquan/">系统安全</a></li>
+  
+</ul><ul id="dropmenu25" class="dropMenu">
+    <li><a href="/a/caozuoxitong/Linux/">Linux</a></li>
+    <li><a href="/a/caozuoxitong/Unix/">Unix</a></li>
+    <li><a href="/a/caozuoxitong/windows/">windows</a></li>
+    <li><a href="/a/anquan/Backtrack/">Backtrack</a></li>
+  
+</ul><ul id="dropmenu171" class="dropMenu">
+    <li><a href="/ziliaoxiazai/sikeziliaoxiazai/">思科</a></li>
+    <li><a href="/ziliaoxiazai/Linux/">Linux</a></li>
+    <li><a href="/ziliaoxiazai/ITdianzishuxiazai/">IT电子书下载</a></li>
+    <li><a href="/ziliaoxiazai/shujukuziliaoxiazai/">数据库资料下载</a></li>
+    <li><a href="/ziliaoxiazai/weiruanziliaoxiazai/">微软下载</a></li>
+    <li><a href="/ziliaoxiazai/shipinxiazai/">视频下载</a></li>
+  
+</ul><ul id="dropmenu36" class="dropMenu">
+    <li><a href="/shujukuguanli/Oracle/">Oracle</a></li>
+    <li><a href="/shujukuguanli/Mysql/">Mysql</a></li>
+    <li><a href="/shujukuguanli/Mssql/">Mssql</a></li>
+  
+</ul>
+<script type="text/javascript">cssdropdown.startchrome("navMenu")</script>
+
+<!-- //底部模板 -->
+<div class="footer w960 center mt1 clear">
+	<!-- 
+		为了支持织梦团队的发展,请您保留织梦内容管理系统的链接信息.
+		我们对支持织梦团队发展的朋友表示真心的感谢!织梦因您更精彩!
+	-->
+	<p class="copyright">
+		本站为了方便大家学习，资料全部都是从网络上搜集来的，如果作者觉得侵犯了自己的利益，请和我们联系。Powered by  &#169; 2004-2009 </p>
+
+<!-- /powered -->
+	<p class="copyright">
+		Copyright &copy; 2002-2011 <b><a href="http://www.net527.cn/">Cisco 论坛</a></b><script language="javascript" type="text/javascript" src="http://js.users.51.la/3434535.js"></script><br />
+  </p>
+</div>
+<!-- /footer -->
+
+</body>
+</html>

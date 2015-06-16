@@ -1,0 +1,982 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>GlusterFS学习手记（转自Tim的Blog） - Stone的专栏 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="对于分布式存储已经被越来越多的公司所应用，对于这方面的学习自然不能忽略，之前就也看过相关的内容，像红帽的GFS，google的googlefs，开源的现在也越来越多，像Fastdfs，ZFS，Lustre，Hadoop，GlusterFS。大概的也都接触了一下，Fastdfs号称小巧，速度快占用资源小，但据我了解他是提供api来进行操作的，而目前我还是希望可以像NFS一样，直接mount来使用，并且提供高的可用性，和文件的容错功能，一路扫下来，瞄准了glusterfs。&lt;" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/njchenyi/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="http://blog.csdn.net/njchenyi">Stone的专栏</a></h1>
+            <h2>个人主页：http://njchenyi.googlepages.com/</h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="http://blog.csdn.net/njchenyi?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="http://blog.csdn.net/njchenyi?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="http://blog.csdn.net/njchenyi/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "njchenyi";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/njchenyi";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/9819385" target="_blank">
+<font color=red>《这些年，我们读过的技术经典图书》主题有奖征文</font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2013-08-06/2816471" target="_blank"><font color=blue>专访李铁军：从医生到金山首席安全专家的转变 
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+
+<a href="http://blog.csdn.net/adali/article/details/9813651"target="_blank">
+<font color=blue>独一无二的职位：开源社区经理 
+ </font></a>
+
+
+
+
+</div>
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Repost"></span>
+    <h3>
+        <span class="link_title"><a href="/njchenyi/article/details/6392770">
+        GlusterFS学习手记（转自Tim的Blog）
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/njchenyi/article/category/681954">分布式文件系统</a> 
+            <a href="/njchenyi/article/category/495421">预研</a> 
+        </span>
+    <span class="link_postdate">2011-05-04 09:18</span>
+    <span class="link_view" title="阅读次数">5998人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(1)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('GlusterFS学习手记（转自Tim的Blog）','6392770');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(6392770,2);return false;" title="举报">举报</a></span>
+    
+</div>
+<div class="tag2box"><a href='http://blog.csdn.net/tag/details.html?tag=blog' target=_blank>blog</a><a href='http://blog.csdn.net/tag/details.html?tag=server' target=_blank>server</a><a href='http://blog.csdn.net/tag/details.html?tag=network' target=_blank>network</a><a href='http://blog.csdn.net/tag/details.html?tag=%e6%b5%8b%e8%af%95' target=_blank>测试</a><a href='http://blog.csdn.net/tag/details.html?tag=access' target=_blank>access</a><a href='http://blog.csdn.net/tag/details.html?tag=%e5%ad%98%e5%82%a8' target=_blank>存储</a></div>
+
+
+    
+<div id="article_content" class="article_content">
+<p><span>
+<div id="blog_text">
+<p>对于分布式存储已经被越来越多的公司所应用，对于这方面的学习自然不能忽略，之前就也看过相关的内容，像红帽的GFS，google的googlefs，开源的现在也越来越多，像Fastdfs，ZFS，Lustre，Hadoop，GlusterFS。<br />大概的也都接触了一下，Fastdfs号称小巧，速度快占用资源小，但据我了解他是提供api来进行操作的，而目前我还是希望可以像NFS一样，直接mount来使用，并且提供高的可用性，和文件的容错功能，一路扫下来，瞄准了glusterfs。<br />Glusterfs是一个具有可以扩展到几个PB数量级的集群文件系统。它可以把多个不同类型的存储块通过Infiniband RDMA或者TCP/IP汇聚成一个大的并行网络文件系统。<br />在<a href="http://www.gluster.org/">http://www.gluster.org/</a>可以了解到更多并可以下载到最新的安装包，glusterfs使用了fuse，fuse可以到<a href="http://fuse.sourceforge.net/">http://fuse.sourceforge.net/</a>进行下载</p>
+<p>首先是fuse的安�<br />wget&nbsp;<a href="http://ftp.zresearch.com/pub/gluster/glusterfs/fuse/fuse-2.7.4glfs11.tar.gz">http://ftp.zresearch.com/pub/gluster/glusterfs/fuse/fuse-2.7.4glfs11.tar.gz</a><br />tar zxvf fuse-2.7.4glfs11.tar.gz<br />cd fuse-2.7.4glfs11<br />./configure &ndash;enable-dependency-tracking &ndash;enable-lib &ndash;enable-util &ndash;enable-kernel-module &ndash;prefix=/usr<br />make<br />make install</p>
+<p>如果没有什么错误，就是安装完毕了，接下来是glusterfs的安�<br />wget&nbsp;<a href="http://ftp.gluster.com/pub/gluster/glusterfs/2.0/2.0.1/glusterfs-2.0.1.tar.gz">http://ftp.gluster.com/pub/gluster/glusterfs/2.0/2.0.1/glusterfs-2.0.1.tar.gz</a><br />tar -zxvf glusterfs-2.0.1.tar.gz<br />cd glusterfs-2.0.1<br />[wget&nbsp;<a href="http://ftp.gluster.com/pub/gluster/gluster-platform/3.0/3.0.3/glusterfs-client/3.0.2/glusterfs-3.0.2.tar.gz">http://ftp.gluster.com/pub/gluster/gluster-platform/3.0/3.0.3/glusterfs-client/3.0.2/glusterfs-3.0.2.tar.gz</a><br />tar zxvf glusterfs-3.0.2.tar.gz<br />cd glusterfs-3.0.2]注：gluster3不支持unify<br />./configure &ndash;prefix=<br />make<br />make install</p>
+<p>如果没有报错就是安装完毕了<br />然后执行ldconfig<br />执行完毕后执行<br />glusterfs &ndash;version 可以看到</p>
+<p>glusterfs 2.0.0rc1 built on Feb 10 2009 11:39:40<br />Repository revision: glusterfs&ndash;mainline&ndash;3.0&ndash;patch-844<br />Copyright (c) 2006, 2007, 2008 Z RESEARCH Inc. &lt;<a href="http://www.zresearch.com/">http://www.zresearch.com/</a>&gt;<br />GlusterFS comes with ABSOLUTELY NO WARRANTY.<br />You may redistribute copies of GlusterFS under the terms of the GNU General Public License.</p>
+<p>说明glusterfs已经正确安装完毕了</p>
+<p>下面来做个简单的配置，类似NFS的配置</p>
+<p>环境：vmware6.0 模拟两个linux，ip分别Server：192.168.0.160 client：192.168.0.161，软件都已经安装完毕</p>
+<p>server端的配置</p>
+<p>先建立需要share的文件夹<br />mkdir -p /home/dir1<br />chmod 1777 /home/dir1<br />然后建立配置文件<br />vi /etc/glusterfs/server.vol<br />### file: server-volume.vol.sample</p>
+<p>#####################################<br />### GlusterFS Server Volume File ##<br />#####################################</p>
+<p>#### CONFIG FILE RULES:<br />### &ldquo;#&rdquo; is comment character.<br />### &ndash; Config file is case sensitive<br />### &ndash; Options within a volume block can be in any order.<br />### &ndash; Spaces or tabs are used as delimitter within a line.<br />### &ndash; Multiple values to options will be : delimitted.<br />### &ndash; Each option should end within a line.<br />### &ndash; Missing or commented fields will assume default values.<br />### &ndash; Blank/commented lines are allowed.<br />### &ndash; Sub-volumes should already be defined above before referring.</p>
+<p>### Export volume &ldquo;brick&rdquo; with the contents of &ldquo;/home/export&rdquo; directory.<br />volume brick<br />type storage/posix # POSIX FS translator<br />option directory /home/dir1 # Export this directory<br />end-volume</p>
+<p>### Add network serving capability to above brick.<br />volume server<br />type protocol/server<br />option transport-type tcp/server<br />option bind-address 192.168.0.160 # Default is to listen on all interfaces<br />option listen-port 6996 # Default is 6996<br />subvolumes brick<br />option auth.addr.brick.allow * # Allow access to &ldquo;brick&rdquo; volume<br />end-volume</p>
+<p>client端的配置</p>
+<p>modprobe -i fuse<br />vi /usr/local/etc/glusterfs/client.vol</p>
+<p>### file: client-volume.vol.sample</p>
+<p>#####################################<br />### GlusterFS Client Volume File ##<br />#####################################</p>
+<p>#### CONFIG FILE RULES:<br />### &ldquo;#&rdquo; is comment character.<br />### &ndash; Config file is case sensitive<br />### &ndash; Options within a volume block can be in any order.<br />### &ndash; Spaces or tabs are used as delimitter within a line.<br />### &ndash; Each option should end within a line.<br />### &ndash; Missing or commented fields will assume default values.<br />### &ndash; Blank/commented lines are allowed.<br />### &ndash; Sub-volumes should already be defined above before referring.</p>
+<p>### Add client feature and attach to remote subvolume<br />volume client0<br />type protocol/client<br />option transport-type tcp/client<br />option remote-host 192.168.0.160 # IP address of the remote brick<br />option remote-port 6996 # default server port is 6996<br />option remote-subvolume brick # name of the remote volume<br />end-volume</p>
+<p>这样两台机器就都配置完毕了</p>
+<p>首先在server上启动服务<br />glusterfsd -f /usr/local/etc/glusterfs/server.vol</p>
+<p>[root@contos5-1-1 etc]# ps ax|grep -v grep |grep gluster<br />2028 ? Ssl 0:00 glusterfsd -f ./server.vol</p>
+<p>看到这个证明服务器端就启动了</p>
+<p>接下来是client端的启动<br />glusterfs -l /tmp/glustfs.log -f /etc/glusterfs/client.vol /mnt/</p>
+<p>[root@contos5-1-4 glusterfs]# df -h<br />Filesystem Size Used Avail Use% Mounted on<br />/dev/sda3 7.1G 2.5G 4.3G 37% /<br />/dev/sda1 190M 11M 170M 7% /boot<br />tmpfs 125M 0 125M 0% /dev/shm<br />glusterfs 7.1G 2.9G 3.9G 43% /mnt</p>
+<p>看到这个了，就说明client端mount正常，如果没有请查看/tmp/glusterfs.log文件.我刚开始在df的时候出现&ldquo;/mnt&rdquo;: 传输端点尚未连接 的错误，umount /mnt然后再挂glustergfs就可以了。</p>
+<p>到此，一个简单的1存储1客户端的配置就完成了，这篇文章仅仅是个开始，glusterfs还有很多的功能，我也会在以后的时间进行深入的研究，希望有相同兴趣的朋友一起讨论。</p>
+<p>上 次的学习已经对glusterfs这个系统有了初步的认识，这次继续，上次只是简单的实现了一个类似NFS的配置，但这个并不是glusterfs出现的 主要目的，而且也不是我们应用glusterfs的主要目的，我们要是实现的是分布式存储，另外一个最简单的想法就是，如何能把多台server目前空余 的硬盘空间利用起来。这其实就是glusterfs最主要的功能之一，多存储空间的聚合。</p>
+<p>实现目的：3存储节点，1clinet，3存储节点使用round-robin的方式进行存储<br />试验环境：vmware6.0 linux2个，分别server：192.168.211.128 client：192.168.211.129</p>
+<p>软件安装这里不在概述<br />先来看看server端的配置<br />首先在home目录下建立4个用于共享出来的文件夹，其中一个是用于namespace的</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>mkdir -p /home/{dir1,dir2,dir3,dir4}<br />chmod 1777 /home/dir[1-4]</td>
+</tr>
+</tbody>
+</table>
+<p>然后看下3个glusterfs-server的配置文件<br />cat /etc/glusterfs/server1.vol</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>### Export volume &ldquo;brick&rdquo; with the contents of &ldquo;/home/export&rdquo; directory.<br />volume brick<br />type storage/posix # POSIX FS translator<br />option directory /home/dir1 # Export this directory<br />end-volume
+<p>&nbsp;</p>
+<p>### Add network serving capability to above brick.<br />volume server<br />type protocol/server<br />option transport-type tcp/server<br />option bind-address 192.168.211.128 # Default is to listen on all interfaces<br />option listen-port 6996 # Default is 6996<br />subvolumes brick<br />option auth.addr.brick.allow * # Allow access to &ldquo;brick&rdquo; volume<br />end-volume</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>cat /etc/glusterfs/server2.vol</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>### Export volume &ldquo;brick&rdquo; with the contents of &ldquo;/home/export&rdquo; directory.<br />volume brick<br />type storage/posix # POSIX FS translator<br />option directory /home/dir2 # Export this directory<br />end-volume
+<p>&nbsp;</p>
+<p>### Add network serving capability to above brick.<br />volume server<br />type protocol/server<br />option transport-type tcp/server<br />option bind-address 192.168.211.128 # Default is to listen on all interfaces<br />option listen-port 6997 # Default is 6996<br />subvolumes brick<br />option auth.addr.brick.allow * # Allow access to &ldquo;brick&rdquo; volume<br />end-volume</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>cat /etc/glusterfs/server3.vol</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>### Export volume &ldquo;brick&rdquo; with the contents of &ldquo;/home/export&rdquo; directory.<br />volume brick<br />type storage/posix # POSIX FS translator<br />option directory /home/dir3 # Export this directory<br />end-volume
+<p>&nbsp;</p>
+<p>### Add network serving capability to above brick.<br />volume server<br />type protocol/server<br />option transport-type tcp/server<br />option bind-address 192.168.211.128 # Default is to listen on all interfaces<br />option listen-port 6998 # Default is 6996<br />subvolumes brick<br />option auth.addr.brick.allow * # Allow access to &ldquo;brick&rdquo; volume<br />end-volume</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>cat /etc/glusterfs/server4.vol</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>### Export volume &ldquo;brick&rdquo; with the contents of &ldquo;/home/export&rdquo; directory.<br />volume brick<br />type storage/posix # POSIX FS translator<br />option directory /home/dir4 # Export this directory<br />end-volume
+<p>&nbsp;</p>
+<p>### Add network serving capability to above brick.<br />volume server<br />type protocol/server<br />option transport-type tcp/server<br />option bind-address 192.168.211.128 # Default is to listen on all interfaces<br />option listen-port 6999 # Default is 6996<br />subvolumes brick<br />option auth.addr.brick.allow * # Allow access to &ldquo;brick&rdquo; volume<br />end-volume</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>接下来看下client的配置<br />cat /etc/glusterfs/client.vol</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>### Add client feature and attach to remote subvolume<br />volume client1<br />type protocol/client<br />option transport-type tcp/client<br />option remote-host 192.168.211.128 # IP address of the remote brick<br />option remote-port 6996 # default server port is 6996<br />option remote-subvolume brick # name of the remote volume<br />end-volume
+<p>&nbsp;</p>
+<p>volume client2<br />type protocol/client<br />option transport-type tcp/client<br />option remote-host 192.168.211.128<br />option remote-port 6997<br />option remote-subvolume brick<br />end-volume</p>
+<p>volume client3<br />type protocol/client<br />option transport-type tcp/client<br />option remote-host 192.168.211.128<br />option remote-port 6998<br />option remote-subvolume brick<br />end-volume</p>
+<p>volume namespacenode<br />type protocol/client<br />option transport-type tcp<br />option remote-host 192.168.211.128<br />option remote-port 6999<br />option remote-subvolume brick<br />end-volume</p>
+<p>volume bricks<br />type cluster/unify<br />subvolumes client1 client2 client3<br />option scheduler rr<br />option namespace namespcenode<br />end-volume</p>
+<p>### Add writeback feature<br />volume writeback<br />type performance/write-behind<br />option block-size 1MB<br />option cache-size 2MB<br />option flush-behind off<br />subvolumes bricks<br />end-volume</p>
+<p>### Add readahead feature<br />volume readahead<br />type performance/read-ahead<br />option page-size 1MB # unit in bytes<br />option page-count 2 # cache per file = (page-count x page-size)<br />subvolumes writeback<br />end-volume</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>这样所有准备工作就做完了，接下来启动服务<br />server端</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>glusterfsd -f /etc/glusterfs/server1.vol<br />glusterfsd -f /etc/glusterfs/server2.vol<br />glusterfsd -f /etc/glusterfs/server3.vol<br />glusterfsd -f /etc/glusterfs/server4.vol<br />如果启动没有报错，可以执行<br />ps fax|grep gluseterfs进行查看<br />1762 tty6 Ss+ 0:00 /sbin/mingetty tty6<br />1858 ? Ssl 0:00 glusterfsd -f ./server1.vol<br />1861 ? Ssl 0:00 glusterfsd -f ./server2.vol<br />1864 ? Ssl 0:00 glusterfsd -f ./server3.vol<br />1867 ? Ssl 0:00 glusterfsd -f ./server4.vol<br />当然还可以通过端口进行查看<br />netstat -ln<br />Proto Recv-Q Send-Q Local Address Foreign Address State<br />tcp 0 0 192.168.211.128:6996 0.0.0.0:* LISTEN<br />tcp 0 0 192.168.211.128:6997 0.0.0.0:* LISTEN<br />tcp 0 0 192.168.211.128:6998 0.0.0.0:* LISTEN<br />tcp 0 0 192.168.211.128:6999 0.0.0.0:* LISTEN</td>
+</tr>
+</tbody>
+</table>
+<p>到此，服务器端启动完毕<br />然后启动client端</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>modprobe fuse 先挂着fuse模块<br />glusterfs -l /tmp/glusterfs.log -f /etc/glusterfs/client.vol /mnt<br />执行完毕后可以使用df -h进行查看是否mount成功，如果成功结果如下<br />[root@contos5-1-4 glusterfs]# df -h<br />Filesystem Size Used Avail Use% Mounted on<br />/dev/sda3 7.1G 2.5G 4.3G 37% /<br />/dev/sda1 190M 11M 170M 7% /boot<br />tmpfs 125M 0 125M 0% /dev/shm<br />glusterfs 22G 8.7G 12G 43% /mnt<br />如果没有如上显示，则说明挂载没有成功，可以查看tmp下建立的日志进行排错</td>
+</tr>
+</tbody>
+</table>
+<p>接下来就准备进行测试工作了<br />测试目的很简单，就是对round-robin进行测试，主要使用touch命令</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>在client端的/mnt目录下<br />touch {1,2,3,4,5,6,7,8,9}<br />然后执行ls查看结果如下<br />[root@contos5-1-4 mnt]# ls<br />1 2 3 4 5 6 7 8 9<br />现在在到server端去查看<br />cd到/home目录<br />执行ls *进行查看，结果如下<br />[root@contos5-1-1 home]# ls *<br />dir1:<br />1 4 7
+<p>&nbsp;</p>
+<p>dir2:<br />2 5 8</p>
+<p>dir3:<br />3 6 9</p>
+<p>dir4:<br />1 2 3 4 5 6 7 8 9</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>由上面看到，9个新的文件是依次创建到了dir1 dir2 dir3中，dir4就是我们配置的namespace，用于交换空间</p>
+<p>到此，我的试验就算完成了，而且试验目的也达成了<br />但到此我却发现了几个问题<br />1，交换空间也就是namespace需要设置多大，是应该每个存储空间之和还是和一个空间大小一样就行<br />2，如果其中一个节点down机，上面的数据如何处理</p>
+<p>对于以上几个问题，我会再之后的学习中进行研究，并实现glusterfs的其他功能，对于其中的参数下次一并讨论吧</p>
+</div>
+<div>
+<p>今天主要把我学习的文件复制功能写出来</p>
+<p>Replicate</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>type cluster/replicate</td>
+</tr>
+</tbody>
+</table>
+<p>Replicate（前身是AFR）为glusterfs提供了类似RAID-1的功能。Replicate会复制文件或者文件夹到各个 subvolumes里。因此，如果replicate部分设置了4个subvolume，那就会4分的文件或者文件夹的拷贝副本。replicate同 样提供了高可用，比如如果其中的一个subvolume down掉了（或者说一台存储服务器坏了，网络连接出现问题）replicate依然可以使用冗余的拷贝副本来提供服务。<br />Replicate同样提供了自动修复功能，比如，如果一台crash掉的服务器恢复了，这台服务器上存储的过期的文件或者文件夹就会被更新成最新的版本。Replicate使用了后端文件系统的扩展功能来跟踪文件或者文件夹的版本来提供自动恢复的功能</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>volume replicate-example<br />type cluster/replicate<br />subvolumes brick1 brick2 brick3<br />end-volume</td>
+</tr>
+</tbody>
+</table>
+<p>上面的例子将会把所有文件都复制到brick1 brick2 brick3中</p>
+<p>所有读的操作都会从第一台活着的sbuvolume进行。如果三个sub-volume都是启用的状态，就从brick1读；如果brick1 down了，就从brick2读。如果读的操作刚刚完成brick1就down了，复制就会传递给brick2.</p>
+<p>概念讲完了，下面就来说下配置吧</p>
+<p>模拟环境：<br />vmware6.0 两个linux server：192.168.211.128 client：192.168.211.129<br />两个存储node，一个client</p>
+<p>先来看看server上的配置<br />cat /etc/glusterfs/glusterfs-server0.vol</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>### Export volume &ldquo;brick&rdquo; with the contents of &ldquo;/home/export&rdquo; directory.
+<p>&nbsp;</p>
+<p>volume brick<br />type storage/posix # POSIX FS translator<br />option directory /home/dir1 # Export this directory<br />end-volume</p>
+<p>volume locker<br />type features/posix-locks<br />subvolumes brick<br />end-volume</p>
+<p>### Add network serving capability to above brick.<br />volume server<br />type protocol/server<br />option transport-type tcp/server<br />option bind-address 192.168.211.128 # Default is to listen on all interfaces<br />option listen-port 6996 # Default is 6996<br />subvolumes locker<br />option auth.addr.brick.allow * # Allow access to &ldquo;brick&rdquo; volume<br />option auth.addr.locker.allow *<br />end-volume</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>cat /etc/glusterfs/glusterfs-server1.vol</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>### Export volume &ldquo;brick&rdquo; with the contents of &ldquo;/home/export&rdquo; directory.<br />volume brick<br />type storage/posix # POSIX FS translator<br />option directory /home/dir2 # Export this directory<br />end-volume
+<p>&nbsp;</p>
+<p>volume locker<br />type features/posix-locks<br />subvolumes brick<br />end-volume</p>
+<p>### Add network serving capability to above brick.<br />volume server<br />type protocol/server<br />option transport-type tcp/server<br />option bind-address 192.168.211.128 # Default is to listen on all interfaces<br />option listen-port 6997 # Default is 6996<br />subvolumes locker<br />option auth.addr.brick.allow * # Allow access to &ldquo;brick&rdquo; volume<br />option auth.addr.locker.allow *<br />end-volume</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>然后是client端的配置<br />cat /etc/glusterfs/replicate-client.vol</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>### Add client feature and attach to remote subvolume<br />volume client0<br />type protocol/client<br />option transport-type tcp/client<br />option remote-host 192.168.211.128 # IP address of the remote brick<br />option remote-port 6996 # default server port is 6996<br />option remote-subvolume locker # name of the remote volume<br />end-volume
+<p>&nbsp;</p>
+<p>volume client1<br />type protocol/client<br />option transport-type tcp/client<br />option remote-host 192.168.211.128<br />option remote-port 6997<br />option remote-subvolume locker<br />end-volume</p>
+<p>volume bricks<br />type cluster/replicate<br />subvolumes client0 client1<br />end-volume</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>到此，配置就都完成了<br />接下来启动服务<br />server端</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>glusterfsd -f /etc/glusterfs/glusterfs-server0.vol<br />glusterfsd -f /etc/glusterfs/glusterfs-server1.vol<br />当然启动的时候可以加上-l /dir/glusterfs.log参数，把日志加入<br />然后通过ps fax查看进程如下<br />2206 ? Ssl 0:00 glusterfsd -f /etc/glusterfs/glusterfs-server1.vol<br />2396 ? Ssl 0:00 glusterfsd -f /etc/glusterfs/glusterfs-server0.vol<br />说明，服务正常启动起来了</td>
+</tr>
+</tbody>
+</table>
+<p>client端</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>modprobe fuse<br />glusterfs -l /tmp/glustfs.log -f /etc/glusterfs/replicate-client.vol /mnt<br />通过df -h查看是否服务正常启动，如下<br />[root@contos5-1-4 mnt]# df -h<br />Filesystem Size Used Avail Use% Mounted on<br />/dev/sda3 7.1G 2.5G 4.3G 37% /<br />/dev/sda1 190M 11M 170M 7% /boot<br />tmpfs 125M 0 125M 0% /dev/shm<br />glusterfs 7.1G 2.9G 3.9G 43% /mnt<br />如果没有如上红色标记的，请查看日志然后进行排查</td>
+</tr>
+</tbody>
+</table>
+<p>接下来就是测试阶段<br />首先在/mnt目录下touch 1空文件<br />然后在server端ls /home/*查看如下</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>[root@contos5-1-1 home]# ls *<br />dir1:<br />1
+<p>&nbsp;</p>
+<p>dir2:<br />1</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>可以看到dir2中已经同步了1这个文件<br />然后现在我么在server上把dir1这个进程kill掉</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>2206 ? Ssl 0:00 glusterfsd -f /etc/glusterfs/glusterfs-server1.vol<br />2396 ? Ssl 0:00 glusterfsd -f /etc/glusterfs/glusterfs-server0.vol<br />kill -9 2396<br />这时client端/mnt应该只会挂载dir2了</td>
+</tr>
+</tbody>
+</table>
+<p>这是/mnt中的文件是0字节的</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>[root@contos5-1-4 mnt]# ll<br />total 0<br />-rw-r&ndash;r&ndash; 1 root root 0 Feb 17 12:42 1
+<p>&nbsp;</p>
+<p>现在我们echo &ldquo;123456789&Prime; &gt;1中<br />cat 1返回如下<br />[root@contos5-1-4 mnt]# cat 1<br />123456789</p>
+<p>再来看下server上dir1中的1<br />[root@contos5-1-1 home]# ll /home/dir1<br />total 8<br />-rw-r&ndash;r&ndash; 1 root root 0 Feb 17 12:42 1<br />可以发现是0字节</p>
+<p>dir2中的1<br />[root@contos5-1-1 home]# ll /home/dir2/<br />total 8<br />-rw-r&ndash;r&ndash; 1 root root 10 Feb 17 12:42 1<br />可以看到是10字节</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>如此看来，dir1被我们模拟down机后，修改等请求都已经传送到dir2上了，现在让我们来恢复dir1，看下效果</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>glusterfsd -f /etc/glusterfs/glusterfs-server0.vol<br />在client上cat 1的内容<br />[root@contos5-1-4 mnt]# cat 1<br />123456789<br />然后看下server上dir1的情况<br />[root@contos5-1-1 home]# ll /home/dir1/<br />total 8<br />-rw-r&ndash;r&ndash; 1 root root 10 Feb 17 12:42 1<br />dir1上已经同步成10字节了</td>
+</tr>
+</tbody>
+</table>
+<p>由以上测试可以证明，复制操作是正常进行的，至于性能方面还需要进一步的测试，这个放到稍后进行</p>
+<p>开头概念解释属于自己翻译的官方文档</p>
+<p>具体请参看&nbsp;<a href="http://www.gluster.org/docs/index.php/User_Guide" target="_blank">http://www.gluster.org/docs/index.php/User_Guide</a>中的replicate部分</p>
+<div id="blog_text">
+<p>performance translaters(高性能转换器)</p>
+<p>Read Ahead 预读</p>
+<p>配置文件写法 预读转换器在每次</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>type performace/read-ahead</td>
+</tr>
+</tbody>
+</table>
+<p>读取操作前就预先抓取数据。这个有利于应用频繁持续性的访问文件，当应用完成当前数据块读取的时候，下一个数据块就已经准备好了。<br />额外的，预读转换器也可以扮演读聚合器，许多小的读操作被绑定起来，当成一个大的读请求发送给服务器<br />预读处理有page-size和page-count来定义，page-size定义了，一次预读取的数据块大小，page-count定义的是被预读取的块的数量<br />预读最好被使用在使用InfiniBand卡（或使用ib-verbs传输）的系统上。在快速以太网或者千兆以太网络环境中，就算不使用预读，Glusterfs也可以达到网卡最大连接的吞吐量，所以使用预读配置就是多余的</p>
+<p>需要注意的是，预读操作只会发生在读的请求是完全连续的。如果应用访问数据很随机，那使用预读实际上将造成性能的损失，因为预读操作会拿一些应用并不会用到的数据块。</p>
+<p>Options：<br />page-size &lt;n&gt; (256KB) #每次预读取的数据块大小<br />page-count &lt;n&gt; (2) #每次预读取数据块的数量<br />force-atime-update [on|off|yes|no] (off|no)<br />#是否强制在每次读操作时更新文件的访问时间，不设置这个，访问时间将有些不精确，这个将影响预读转换器读取数据时的那一时刻而不是应用真实读到数据的那一时刻。</p>
+<p>Write Behind（后写）</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>type performance/write-behind</td>
+</tr>
+</tbody>
+</table>
+<p>后写转换器改善了了写操作的延时。它会先把写操作发送到后端存储，同时返回给应用写操作完毕，而实际上写的操作还正在执行。使用后写转换器就可以像流水线一样把写请求持续发送。这个后写操作模块更适合使用在client端，以期减少应用的写延迟。</p>
+<p>后写转换器同样可以聚合写请求。如果aggregate-size选项设置了的话，当连续的写入大小累积起来达到了设定的值，就通过一个写操作写入到存储上。这个操作模式适合应用在服务器端，以为这个可以在多个文件并行被写入磁盘时降低磁头动作。</p>
+<p>aggregate-size选项的默认值是128KB。尽管这个默认值对于大多数的用户来讲已经可以很好的工作了，但还是希望你根据实际环境经过不断调整数值试验，以达到最大的性能。这是因为后写的性能依赖于你的连接情况，RAM的大小以及工作的负载情况</p>
+<p>aggregate-size &lt;n&gt; (128KB) #当累积达到这个值才进行实际的写操作<br />flush-behind [on|yes|off|no] (off|no)</p>
+<p>IO Threads(IO 线程）</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>type performance/io-threads</td>
+</tr>
+</tbody>
+</table>
+<p>IO线程转换器试图增加服务器后台进程对文件元数据读写I/O的处理能力。由于GlusterFS服务是单线程的，使用IO线程转换器可以较大的提高性能。这个转换器最好是被用于服务器端，而且是在服务器协议转换器后</p>
+<p>面被加载。</p>
+<p>IO线程操作会将读和写操作分成不同的线程。同一时刻存在的总线程是恒定的并且是可以配置的</p>
+<p>thread-cout &lt;n&gt; (1) #线程使用的数量<br />cache-size &lt;n&gt; (64MB) #被允许放置在一个线程中的最大数据量</p>
+<p>IO Cache（IO缓存）</p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>type performance/io-cache</td>
+</tr>
+</tbody>
+</table>
+<p>IO缓存转换器可以缓存住已经被读过的数据。这个对于多个应用对同一个数据多次访问，并且如果读的操作远远大于写的操作的话是很有用的（比如，IO缓存很适合用于提供web服务的环境，大量的客户端只会进行简单的读取文件的操作，只有很少一部分会去写文件）。</p>
+<p>IO缓存转换器读数据一次读page-size设置的大小的数据，并把读到的数据缓存起来指到cache-size设置的大小。缓存以以最新近被访问的列表来作为优先保持的，cache文件的优先级是可以通过user-specified参数来配置的。</p>
+<p>当IO缓存转换器检测到有写操作的时候，它就会把相应的文件从缓存中删除。</p>
+<p>IO缓存转换器会定期的根据文件的修改时间来验证缓存中相应文件的一致性。验证超时时间是可以配置的。</p>
+<p>page-size &lt;n&gt; (128KB) #一条记录的大小<br />cache-size (n) (32MB) #可以缓存的最大数据量<br />force-revalidate-timeout &lt;n&gt; (1) #强制缓存一致性检测超时时间，单位秒<br />priority &lt;pattern&gt; (*:0) #文件匹配列表及其设置的优先级</p>
+<p><strong>Booster（加速器）</strong></p>
+<table style="width: 500px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>type performance/booster</td>
+</tr>
+</tbody>
+</table>
+<p>加速器给应用和GlusterFS间的对写请求提供了一个快速通道。不适用加速器的情况，应用到GlusterFS的所有请求都会先经过FUSE。 使用加速器模块之后使得Glusterfs和加速器的共享库相结合，应用就可以直接把读写的请求发给Glusterfs的子进程而跳过FUSE。</p>
+<p>Booster结构由两部分组成：Booster translator和booster共享库，bootster translator最好是在客户端加载，通常被配置在translator树的根上。booster共享库被应用以LD_PRELOADed的方式使用。</p>
+<p>以上翻译均来自Glusterfs user guide，本人水平有限，请参考原文<a href="http://www.gluster.org/docs/index.php/User_Guide">http://www.gluster.org/docs/index.php/User_Guide</a>中相应的部分</p>
+<p>对于Glusterfs学习也有了几天了，但对于性能上的评价目前关注的比较少，今天主要才测测Glusterfs和NFS的性能比，但由于手头上条件有限，只能通过虚拟机来测试，数据仅供参考，如有人可以在真实环境测试，还希望发出来供大家参考</p>
+<p>我的环境<br />vmware6.0模拟两个linux</p>
+<p>linux01 256MB内存，8G硬盘，centos5，ip：192.168.211.128，用作NFSserver端和Glusterfs的server端<br />linux02 256MB内存，8G硬盘，centos5，ip：192.168.211.129，用作client</p>
+<p>下面就来看下我的测试结果</p>
+<p>这张图是NFS的读取测试结果<br /><img src="http://farm4.static.flickr.com/3448/3348805272_664fcb2b8d.jpg" alt="" width="606" height="582" /></p>
+<p>下面这张是NFS的写入测试结果<br /><img src="http://farm4.static.flickr.com/3461/3348805368_f07e832fde.jpg" alt="" width="598" height="435" /></p>
+<p>然后我把两台虚拟机重启，并启用Glusterfs模式</p>
+<p>第一张图是Glusterfs的读取结果<br /><img src="http://farm4.static.flickr.com/3548/3347970561_9d815b6c81.jpg" alt="" width="670" height="579" /></p>
+<p>第二张图是写入的测试结果<br /><img src="http://farm4.static.flickr.com/3429/3347970671_94153e0577.jpg" alt="" width="659" height="433" /></p>
+<p>由上面的结果看，Glusterfs仅仅用于NFS这种模式的情况下，写入速度并不太理想</p>
+<p>但Glusterfs的功能不仅仅提供共享存储来用，而是一个存储的聚合，当然以上测试结果未必就很准确，毕竟我的测试条件不行，不过也仅仅是给各位一个启示，请有条件的同志继续完成测试工作吧</p>
+<p>官方的glusterfs和NFS的测试结果请看<br /><a href="http://www.gluster.org/docs/index.php/GlusterFS_1.2.1-BENKI_Aggregated_I/O_vs_NFSv4_Benchmark">http://www.gluster.org/docs/index.php/GlusterFS_1.2.1-BENKI_Aggregated_I/O_vs_NFSv4_Benchmark</a></p>
+<p>看glusterfs的东西也有段时间了，不过一直一来也是停留在对这个分布式系统的学习，当然对于一个软件的学习不能仅仅停留在对这个软件的熟 悉，还要考虑它所适用的范围。最近就在思考，到底对于我们的什么应用合适，我这边接触的比较多的结构就是N台Web+单个NFS。我就再想，既然 glusterfs是个聚合分布式文件系统，而且支持HA的功能，是不是可以使用glusterfs来替换NFS，既可以达到共享文件的用途，有可以解决 了单点的问题。</p>
+<p>先来看下我预计的拓扑结构</p>
+<p><a rel="lightbox[37]" href="http://farm4.static.flickr.com/3651/3377930171_7efefb6036_o.png"><img src="http://farm4.static.flickr.com/3651/3377930171_7efefb6036_o.png" border="0" alt="" width="337" height="226" /></a></p>
+<p>下面来解释一下这个拓扑，前端的web应用，每台web上的应用都放置在glusterfs共享出来的硬盘上，尽管我图上画的是一个 diskpool，但实际的容量大小是几台web中glusterfs共享空间最小的那个大小。而且对于上面这个拓扑的应用，我并不需要独立的NAS来做 共享，完全可以使用每台web服务器上未用的硬盘空间（注：当然你可以选择使用NAS来进行存储，在存储量很大的情况下）。</p>
+<p>接下来就来看下实现的方式：<br />web01：192.168.220.128 共享出来的地址：/var/app<br />web02：192.168.220.129 共享出来的地址：/var/app<br />两台机器都事先安装好glusterfs和fuse（安装方法可以参考我前几篇文章）<br />首先来配置web01的server端</p>
+<p>cat /etc/glusterfs/server.vol</p>
+<div>
+<table style="width: 500px;" border="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr valign="top">
+<td width="450">volume brick<br />type storage/posix # POSIX FS translator<br />option directory /var/app # Export this directory<br />end-volume
+<p>&nbsp;</p>
+<p>volume locker<br />type features/posix-locks<br />subvolumes brick<br />end-volume</p>
+<p>### Add network serving capability to above brick.<br />volume server<br />type protocol/server<br />option transport-type tcp/server<br />option listen-port 6996 # Default is 6996<br />subvolumes locker<br />option auth.addr.brick.allow * # Allow access to &ldquo;brick&rdquo; volume<br />option auth.addr.locker.allow *<br />end-volume</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div>web02上的server端配置相同</div>
+<div>cat /etc/glusterfs/server.vol</div>
+<div>
+<table style="width: 500px;" border="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr valign="top">
+<td width="450">volume brick<br />type storage/posix # POSIX FS translator<br />option directory /var/app # Export this directory<br />end-volume
+<p>&nbsp;</p>
+<p>volume locker<br />type features/posix-locks<br />subvolumes brick<br />end-volume</p>
+<p>### Add network serving capability to above brick.<br />volume server<br />type protocol/server<br />option transport-type tcp/server<br />option listen-port 6996 # Default is 6996<br />subvolumes locker<br />option auth.addr.brick.allow * # Allow access to &ldquo;brick&rdquo; volume<br />option auth.addr.locker.allow *<br />end-volume</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div>服务器端配置完毕，接下来就是client端的配置，因为两台机器互为对方的sever又同时是自己的server所以两台上都需要配置client端。</div>
+<div>首先看下web01上的配置</div>
+<div>cat /etc/glusterfs/replicate.vol
+<p>&nbsp;</p>
+<div>
+<table style="width: 500px;" border="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr valign="top">
+<td width="450">volume client0<br />type protocol/client<br />option transport-type tcp/client<br />option remote-host 127.0.0.1 # IP address of the remote brick<br />option remote-port 6996 # default server port is 6996<br />option remote-subvolume locker # name of the remote volume<br />end-volume
+<p>&nbsp;</p>
+<p>volume client1<br />type protocol/client<br />option transport-type tcp/client<br />option remote-host 192.168.211.129<br />option remote-port 6996<br />option remote-subvolume locker<br />end-volume</p>
+<p>volume bricks<br />type cluster/replicate<br />subvolumes client0 client1<br />option read-subvolume client0<br />end-volume</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div>再来看下web02上的配置</div>
+<div>cat /etc/glusterfs/replicate.vol</div>
+</div>
+<div>
+<table style="width: 500px;" border="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr valign="top">
+<td width="450">volume client0<br />type protocol/client<br />option transport-type tcp/client<br />option remote-host 127.0.0.1 # IP address of the remote brick<br />option remote-port 6996 # default server port is 6996<br />option remote-subvolume locker # name of the remote volume<br />end-volume
+<p>&nbsp;</p>
+<p>volume client1<br />type protocol/client<br />option transport-type tcp/client<br />option remote-host 192.168.211.128<br />option remote-port 6996<br />option remote-subvolume locker<br />end-volume</p>
+<p>volume bricks<br />type cluster/replicate<br />subvolumes client0 client1<br />option read-subvolume client0<br />end-volume</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div>到此，配置就已经完成了，接下来就可以测试咯，首先两台机器上需要加载fuse</div>
+<div>
+<table style="width: 500px;" border="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr valign="top">
+<td width="450">modprobe fuse</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div>如果没有报错，说明fuse模块加载完毕，然后在两台机器上启动server端和client端</div>
+<div>web01上执行</div>
+<div>
+<table style="width: 500px;" border="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr valign="top">
+<td width="450">启动服务端<br />glusterfsd -f /etc/glusterfs/server.vol
+<p>&nbsp;</p>
+<p>启动client端<br />glusterfs -f /etc/glusterfs/replicate.vol /usr/local/nginx/html/blog</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div>web02上如法炮制</div>
+<div>然后就可以在web01上的/mnt上放置web的内容了，web02上可以自动的看到相应的内容，并不需要人为的干预，没台机器上都会有一份 web应用的拷贝，这样无论那台web宕机，web的提供的服务是不会中断，也不会受到影响的，从而避免了，单点NFS故障导致服务中断，同时避免了，双 NFS数据同步的问题。同时每台web优先读取自己硬盘上的copy，所以可以减少网络负载。</div>
+<p>但这个方案还不是最完美的，因为这种方案对于写频繁的应用来说是存在问题的，如果出现同时写一个文件的情况，就会造成数据的不一致，所以如果 web应用是读频繁的话，还是很有优势的，而且如果后台人员需要对应用进行更新，只需要更新第一台server的就行，默认情况下replicate的应 用，subvolumes client0 client1 中的一个就是主server，这里只要对于client0上的数据进行更新就可以做到同步了。</p>
+</div>
+</div>
+</span></p>
+</div>
+
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.100.33-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/njchenyi/article/details/6386333">NoSQL数据库笔谈（原作者：颜开）</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/njchenyi/article/details/6400921">OpenDMTP介绍</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen">
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "117306";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<script type="text/javascript">
+    //new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '6392770';
+    var commentscount = 1;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/njchenyi" target="_blank">
+    <img src="http://avatar.csdn.net/8/6/F/1_njchenyi.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/njchenyi" class="user_name" target="_blank">njchenyi</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>703989次</span></li>
+    <li>积分：<span>9552分</span></li>
+    <li>排名：<span>第317名</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>274篇</span></li>
+    <li>转载：<span>164篇</span></li>
+    <li>译文：<span>20篇</span></li>
+    <li>评论：<span>371条</span></li>
+</ul>
+</ul>
+</div>
+
+<div class="panel">
+<ul class="panel_body" style="padding:0;">
+<script type="text/javascript" src="http://cbjs.baidu.com/js/m.js"></script> 
+<script type="text/javascript"> 
+BAIDU_CLB_preloadSlots("724643","117306"); 
+</script>
+<script type="text/javascript">BAIDU_CLB_fillSlot("724643");</script> 
+</ul>
+</div>
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/653293">Android</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/642742">Apache Camel</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/797572">Arduino</a><span>(8)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/334578">Corba</a><span>(17)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/671959">DRBD</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/123197">eclipse</a><span>(13)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/763590">Fosstrak</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/645814">Hadoop</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/288844">J2EE</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/136163">J2ME</a><span>(19)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/111649">JAVA</a><span>(156)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/776483">JNA</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/142849">JSP</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/137212">LINUX</a><span>(53)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/111652">manager</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/146018">middleware</a><span>(7)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/111667">OOP</a><span>(4)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/818634">OpenDMTP</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/285307">OPENGL</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/360843">OpenLDAP</a><span>(14)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/694642">OSGi</a><span>(5)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/652674">PLC</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/700405">RIFIDI</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/814047">串口通信</a><span>(4)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/282621">作业</a><span>(10)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/111650">其他</a><span>(22)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/681954">分布式文件系统</a><span>(5)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/111809">数据库</a><span>(39)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/324565">智能手机</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/310554">知识管理</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/308287">算法</a><span>(6)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/287095">网络</a><span>(5)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/154585">认证</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/683489">负载均衡</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/111802">集锦</a><span>(21)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/373435">面试</a><span>(7)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/495421">预研</a><span>(19)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/666599">高性能分布式系统</a><span>(4)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/905837">CRM</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/937817">PCC</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/947883">SSH</a><span>(10)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/1061291">JPA</a><span>(5)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/1069900">OpenXava</a><span>(6)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/1127444">报表</a><span>(6)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/1133207">Portal</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/1166964">ASN.1</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/1236327">NoSQL</a><span>(9)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/1283776">期刊</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/1292592">交通</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/1411995">Thrift</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/1445973">项目管理</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/njchenyi/article/category/1488343">erlang</a><span>(1)</span>
+</li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/njchenyi/article/month/2013/08">2013年08月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2013/07">2013年07月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2013/06">2013年06月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2013/05">2013年05月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2013/04">2013年04月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2013/03">2013年03月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2013/02">2013年02月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2013/01">2013年01月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2012/12">2012年12月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2012/11">2012年11月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2012/10">2012年10月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2012/09">2012年09月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2012/08">2012年08月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2012/07">2012年07月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2012/06">2012年06月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2012/05">2012年05月</a><span>(11)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2012/04">2012年04月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2012/03">2012年03月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2012/02">2012年02月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2012/01">2012年01月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2011/12">2011年12月</a><span>(12)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2011/11">2011年11月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2011/10">2011年10月</a><span>(15)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2011/09">2011年09月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2011/08">2011年08月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2011/07">2011年07月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2011/05">2011年05月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2011/04">2011年04月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2011/03">2011年03月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2011/01">2011年01月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2010/12">2010年12月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2010/11">2010年11月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2010/09">2010年09月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2010/08">2010年08月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2010/07">2010年07月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2010/06">2010年06月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2010/05">2010年05月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2010/04">2010年04月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2010/03">2010年03月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2010/02">2010年02月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2010/01">2010年01月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2009/11">2009年11月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2009/07">2009年07月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2009/03">2009年03月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2009/01">2009年01月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2008/12">2008年12月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2008/10">2008年10月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2008/06">2008年06月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2008/05">2008年05月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2008/04">2008年04月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2008/03">2008年03月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2008/02">2008年02月</a><span>(9)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2008/01">2008年01月</a><span>(14)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2007/12">2007年12月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2007/11">2007年11月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2007/10">2007年10月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2007/09">2007年09月</a><span>(9)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2007/08">2007年08月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2007/06">2007年06月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2007/05">2007年05月</a><span>(12)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2007/04">2007年04月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2007/03">2007年03月</a><span>(24)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2006/11">2006年11月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2006/09">2006年09月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2006/08">2006年08月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2006/06">2006年06月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2006/05">2006年05月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2006/04">2006年04月</a><span>(11)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2006/03">2006年03月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2006/02">2006年02月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2006/01">2006年01月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2005/12">2005年12月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2005/11">2005年11月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2005/10">2005年10月</a><span>(12)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2005/09">2005年09月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2005/08">2005年08月</a><span>(21)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2005/07">2005年07月</a><span>(18)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2005/06">2005年06月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2005/05">2005年05月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/njchenyi/article/month/2005/04">2005年04月</a><span>(38)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/njchenyi/article/details/6042760" title="在Eclipse中配置tomcat">在Eclipse中配置tomcat</a><span>(96256)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/489081" title="利用Eclipse和JSmooth生成java EXE可执行文件">利用Eclipse和JSmooth生成java EXE可执行文件</a><span>(19421)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/1540657" title="多个方面比较电路交换、报文交换和分组交换的主要优缺点">多个方面比较电路交换、报文交换和分组交换的主要优缺点</a><span>(11825)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/1520440" title="多态(Polymorphism)">多态(Polymorphism)</a><span>(11517)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/1913073" title="JAVA定时器">JAVA定时器</a><span>(10640)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/1542187" title="Ubuntu安装Skype">Ubuntu安装Skype</a><span>(10448)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/1620939" title="候捷谈Java反射机制 ">候捷谈Java反射机制 </a><span>(8682)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/1521361" title="详解华为java华为面试题（转自suningin，个人补充了部分题目参考答案） ">详解华为java华为面试题（转自suningin，个人补充了部分题目参考答案） </a><span>(8145)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/624671" title="Ubuntu安装输入法">Ubuntu安装输入法</a><span>(8023)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/1614936" title="CSIT 561 Computer Networks: An Internet Perspective Homework2">CSIT 561 Computer Networks: An Internet Perspective Homework2</a><span>(7328)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/njchenyi/article/details/6042760" title="在Eclipse中配置tomcat">在Eclipse中配置tomcat</a><span>(74)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/5674863" title="Rifidi Edge Server安装，使用（一）">Rifidi Edge Server安装，使用（一）</a><span>(15)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/1782252" title="Java Corba实例 （原作者：紫溪）">Java Corba实例 （原作者：紫溪）</a><span>(12)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/2456981" title="java.lang.LinkageError: JAXB 2.0 API is being loaded from the bootstrap classloader... ">java.lang.LinkageError: JAXB 2.0 API is being loaded from the bootstrap classloader... </a><span>(11)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/6042763" title="在Eclipse中建立第一个Servlet程序">在Eclipse中建立第一个Servlet程序</a><span>(11)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/1540657" title="多个方面比较电路交换、报文交换和分组交换的主要优缺点">多个方面比较电路交换、报文交换和分组交换的主要优缺点</a><span>(9)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/3091092" title="使用网上流传的一个数据库连接池在Proxy.newProxyInstance处引起 java.lang.ClassCastException 问题的解决方法">使用网上流传的一个数据库连接池在Proxy.newProxyInstance处引起 java.lang.ClassCastException 问题的解决方法</a><span>(7)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/6126958" title="JacORB安装及配置指南">JacORB安装及配置指南</a><span>(7)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/5769285" title="做OSGi时关于Declarative Service的一点小问题">做OSGi时关于Declarative Service的一点小问题</a><span>(7)</span>
+</li>
+<li>
+<a href="/njchenyi/article/details/525686" title="JAVA画的图">JAVA画的图</a><span>(7)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/njchenyi/article/details/467963#comments">关于Java的RMI编程的一个简单的例子</a>
+    <p style="margin:0px;"><a href="/c2010cplusplus" class="user_name">c2010cplusplus</a>:
+Naming.rebind(&quot;//Fangm:2222/helloObj&quot;,ttt); 中的Fang...
+    </p>
+    </li>
+    <li>
+    <a href="/njchenyi/article/details/6042760#comments">在Eclipse中配置tomcat</a>
+    <p style="margin:0px;"><a href="/twinklingw" class="user_name">twinklingw</a>:
+多谢楼主，简单有效，好方法！
+    </p>
+    </li>
+    <li>
+    <a href="/njchenyi/article/details/6042760#comments">在Eclipse中配置tomcat</a>
+    <p style="margin:0px;"><a href="/gh885471" class="user_name">gh885471</a>:
+谢谢了```我也弄好了```
+    </p>
+    </li>
+    <li>
+    <a href="/njchenyi/article/details/7018976#comments">使用Jacorb创建固定不变的IOR</a>
+    <p style="margin:0px;"><a href="/zmywhhit" class="user_name">zmywhhit</a>:
+这帖子太老了，不知道兄弟你看到后能不能联系我。这个Object绑定的时候固定的主机地址能不能是主机名...
+    </p>
+    </li>
+    <li>
+    <a href="/njchenyi/article/details/6042760#comments">在Eclipse中配置tomcat</a>
+    <p style="margin:0px;"><a href="/yedihu" class="user_name">yedihu</a>:
+感谢楼主
+    </p>
+    </li>
+    <li>
+    <a href="/njchenyi/article/details/6901605#comments">利用poi操作word文档（针对docx格式）</a>
+    <p style="margin:0px;"><a href="/lord_is_layuping" class="user_name">lord_is_layuping</a>:
+@fmcwc:同问
+    </p>
+    </li>
+    <li>
+    <a href="/njchenyi/article/details/5574002#comments">Ubuntu9.10安装MySQL后登陆报错，Mysql ERROR 1045 (28000): Access denied for user &#39;root&#39;@&#39;localhost&#39;</a>
+    <p style="margin:0px;"><a href="/computerchao" class="user_name">computerchao</a>:
+你好，我的密码留空可以进去，输入密码的时候报错：mysql -u root可以进去，但是看不到mys...
+    </p>
+    </li>
+    <li>
+    <a href="/njchenyi/article/details/6042760#comments">在Eclipse中配置tomcat</a>
+    <p style="margin:0px;"><a href="/xxlagain" class="user_name">xxlagain</a>:
+赞，第一次配置就成功了，归功于楼主的总结。
+    </p>
+    </li>
+    <li>
+    <a href="/njchenyi/article/details/6042763#comments">在Eclipse中建立第一个Servlet程序</a>
+    <p style="margin:0px;"><a href="/theking_1991" class="user_name">theking_1991</a>:
+要把那个项目复制到tomcat webapp文件夹下吧
+    </p>
+    </li>
+    <li>
+    <a href="/njchenyi/article/details/6042760#comments">在Eclipse中配置tomcat</a>
+    <p style="margin:0px;"><a href="/melonjilly" class="user_name">melonjilly</a>:
+这个讲的很清楚 赞一个
+    </p>
+    </li>
+</ul>
+</div>
+<div id="custom_column_957429" class="panel">
+<ul class="panel_head"><span>个人链接</span></ul>
+<ul class="panel_body">
+
+<ul>
+<li><a href="http://photo.163.com/njchenyi/">个人相册</a></li></ul>
+
+</ul>
+</div></div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=68450"></script>
+
+<script type="text/javascript">
+document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date()/120000).toString(36) + '="></'+'script>');
+</script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js?v=1"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+
+<script type="text/javascript" src="http://zz.csdn.net/js/count.js"></script>
+
+</div>
+</body>
+</html>

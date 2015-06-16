@@ -1,0 +1,627 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=gbk" />
+
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+<title> 基于Linux源代码及Busybox源代码制作精简可启动内核镜像技术实验方法_XiongHaiquan-ChinaUnix博客</title>
+<meta name="description" content="基于Linux源代码及Busybox源代码制作精简可启动内核镜像技术实验方法总结熊海泉一、需要准备的东西... 1Linux内核源代码... 1Busybox源代码... 1Unetbootin工具... 2二、制作Linux内核镜像及内存虚拟盘根文件系统... 2Linux内核镜像文件bzImage的编译制作... " /><script language="javascript" type="text/javascript" src="/source/script_cookie.js"></script>
+<script language="javascript" type="text/javascript" src="/source/script_common.js"></script>
+<script language="javascript" type="text/javascript" src="/source/script_menu.js"></script>
+<script language="javascript" type="text/javascript" src="/source/script_ajax.js"></script>
+<script language="javascript" type="text/javascript" src="/source/script_face.js"></script>
+<script language="javascript" type="text/javascript" src="/source/script_manage.js"></script>
+<link rel="StyleSheet" href="/theme/default/style.css" type="text/css" media="screen" />
+ 
+<link rel="StyleSheet" href="/css/default.css" type="text/css" media="screen" />
+</head>
+<body>
+
+<style type="text/css">
+@import url(http://blog.chinaunix.net/css/nav.css);
+</style>
+
+<div class="login">
+<div class="Content">
+<div class="l1" id="ll">
+
+<a href="http://www.chinaunix.net" target="_blank">CU首页</a>
+<a href="/link.php?url=http://bbs.chinaunix.net" title="CU论坛" target="_blank">CU论坛首页</a>
+<a href="/link.php?url=http://blog.chinaunix.net" title="CU博客" target="_blank">CU博客首页</a>   ┊ 
+<a href="/do.php?ac=wuxingzypcw213">登录</a>
+<a href="/do.php?ac=8f442ba1e0c79cd3efcd1fd42b8aad8e">注册</a>
+   ┊    
+<a href="/network.php">随便看看</a>
+</div>
+<div class="r1">
+<form action="/cp.php" method="get">
+    <input type="hidden"  name="ac" id="ac" value="search"/>
+<input type="submit" class="btn1" style="margin-bottom:0px;" value=""/>
+<select name="searchType" id="searchType" style="line-height: 13px;margin-bottom:0px;padding:0px;height:21px;">
+<option value="blog" >博文</option>
+<option value="friend" >博主</option>
+<option value="album" >相册</option>
+<option value="poll" >投票</option>
+<option value="event" >活动</option>
+</select>
+<input type="text" class="inp1" name="searchkey" id="searchkey" style="margin-bottom:0px;"/>
+<a href="/cp.php?ac=blog" class="a1">发博文</a>
+</form>
+</div>
+</div>
+</div>
+
+<ul id="ucappmenu_menu" class="dropmenu_drop" style="display:none;">
+<li><a href="/link.php?url=http://bbs.chinaunix.net" title="CU论坛" target="_blank">CU论坛首页</a></li>
+<li><a href="/link.php?url=http://blog.chinaunix.net" title="CU博客" target="_blank">CU博客首页</a></li>
+</ul>
+
+
+<div id="append_parent" style="z-index:99999;"></div>
+<div id="ajaxwaitid" ></div>
+<span id="pageSet"></span>
+<div class="Content" id="Content">
+<div class="top" id="top" style=" position:relative;">
+    <div class="tm"><a href="/link.php?url=http%3A%2F%2Fblog.chinaunix.net%2Fuid-24789255-id-3135976.html%26stats%3Dclick" target="_blank">公告：Android开发征文 即将结束欢迎参与！ </a></div>
+<div class="addr">
+       			<b id="home_title">熊海泉</b>
+   	 <p>
+<a href="/uid/342534.html">http://blog.chinaunix.net/space.php?uid=342534</a>
+</p>
+<span id="blog_brief">
+<span id="blog_b">操作系统，系统级虚拟化，微处理器</span>&nbsp;&nbsp;&nbsp;
+</span>
+<div id="blog_brief_form" style="display:none; height:auto;">
+ 		<form id="brief_form" method="post" action="/do.php?ac=ajax&op=blog_brief">
+              			<input type="text" id="blog_brief" name="blog_brief" value="操作系统，系统级虚拟化，微处理器" size="50" style="margin-bottom:0px;"></input>
+             			<input type="button" onclick="checkBbrief();" value="提交" class="submit" style="height:20px;margin-bottom:0px;"/>&nbsp;
+            			<input type="hidden" name="formhash" value="afbe2f4a" />
+              			<input type="button"  value="取消" class="submit" style="height:20px;margin-bottom:0px;" onclick="s('blog_brief');h('blog_brief_form');"  />
+             		 </form>
+</div>
+             
+<!-- 徽章定位3 -->
+</div>
+<div class="daoh">
+<a href="/uid/342534.html" >首页</a> | 
+<a href="/uid/342534/frmd/-1.html" class='here';>博文目录</a>  |  
+<a href="/space.php?do=album&view=me&uid=342534" >相册</a>  |  
+<a href="/group.php" target="_blank">博客圈</a>  |
+<a href="/space.php?do=profile&uid=342534" >关于我</a>  |
+<a href="/space.php?do=profile&uid=342534#comment" >留言</a>
+</div>
+</div>
+<link href="/blog/image/editor/code/css/fck_editorarea.css" rel="stylesheet" type="text/css" />
+<div class="l2 " >	
+<!-- 个人资料 -->
+<div class="bor1 mt10" id="profile">
+<div class="tit1">个人资料</div>
+<div class="Img dingwei_img1"><a href="/uid/342534.html"><img src="http://passport.ixpub.net/data/avatar/000/34/25/34_avatar_big.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_big.gif'"></a>
+</div>
+<div class="Text">
+<div class="p1">
+<a href="/uid/342534.html">XiongHaiquan</a>
+   		   		</div>
+<div class="p3" style="height:38px;">
+ <a href="/space.php?do=doing&view=me&uid=342534" target="_blank">微博</a>
+ <a href="http://bbs.chinaunix.net/" target="_blank">论坛</a>
+</div>
+<div class="p3"> 
+ <a href="/cp.php?ac=pm&uid=342534" id="a_pm" onclick="ajaxmenu(event, this.id, 1)">发纸条</a> 
+ <a href="/cp.php?ac=poke&op=send&uid=342534" id="a_poke" onclick="ajaxmenu(event, this.id, 1)">打招呼</a>
+ <span id="attention"><a href="javascript:;" onclick="attention(342534 , 'add');">加关注</a></span>
+   <a href="/cp.php?ac=friend&op=add&uid=342534" id="a_friend_li" onclick="ajaxmenu(event, this.id, 1)">加好友</a>
+ </div>
+
+<div class="list1">
+<ul>
+<li>博客访问：418</li>
+<li>博文数量：1</li>
+<li>博客积分：116</li>
+<li>博客等级：<a href="/cp.php?ac=credit&op=usergroup">民兵</a> </li>
+<li>注册时间：2010-12-10 22:39:25</li>
+</ul>
+</div>
+</div>
+</div>
+
+<!-- 文章分类 -->
+<div class="bor1 mt10" id="blist">
+<div class="tit1">文章分类</div>
+<div class="allla">
+<div class="alll"><a href="/uid/342534/frmd/-1.html">全部博文<b>(1)</b></a></div>
+<div class="alll1"><img src="/image/list3.gif"><a href="/uid/342534/frmd/148595.html"   title="BIOS">BIOS(0)</a></div>
+<div style="display:none;" id="DIV_148595" class="alll3">
+</div>
+<div class="alll1"><img src="/image/list3.gif"><a href="/uid/342534/frmd/148589.html"   title="Bochs Emulator">Bochs Emulator(0)</a></div>
+<div style="display:none;" id="DIV_148589" class="alll3">
+</div>
+<div class="alll1"><img src="/image/list3.gif"><a href="/uid/342534/frmd/148588.html"   title="Qemu Simulator">Qemu Simulator(0)</a></div>
+<div style="display:none;" id="DIV_148588" class="alll3">
+</div>
+<div class="alll1"><img src="/image/list3.gif"><a href="/uid/342534/frmd/148587.html"   title="KVM Virtual Machine">KVM Virtual Machine(0)</a></div>
+<div style="display:none;" id="DIV_148587" class="alll3">
+</div>
+<div class="alll1"><img src="/image/list3.gif"><a href="/uid/342534/frmd/148586.html"   title="Xen Hypervisor">Xen Hypervisor(0)</a></div>
+<div style="display:none;" id="DIV_148586" class="alll3">
+</div>
+<div class="alll1"><img src="/image/list3.gif"><a href="/uid/342534/frmd/148585.html"   title="Linux OS">Linux OS(1)</a></div>
+<div style="display:none;" id="DIV_148585" class="alll3">
+</div>
+<div class="alll"><a href="/uid/342534/frmd/0.html">未分类博文(0)</a></div>
+</div>
+</div>
+<script>
+function opDIV(id){
+if(document.getElementById('DIV_'+id).style.display=='none'){
+document.getElementById('DIV_'+id).style.display='block';
+document.getElementById(id).src="/image/list4.gif";
+}else{
+document.getElementById('DIV_'+id).style.display='none';
+document.getElementById(id).src="/image/list41.gif";
+}
+}
+</script>
+
+
+<!-- 订阅我的博客 -->
+<div class="bor1 mt10" id="rss">
+<div class="tit1">订阅我的博客</div>
+<ul class="list3">
+<li><a href="/rss.php?uid=342534" ><img alt="订阅" src="/image/feedsky.gif" width="49" height="16"  /></a></li>
+<li><a target="_blank" href="http://www.xianguo.com/subscribe.php?url=http://home.chinaunix.com/rss.php?uid=342534"><img border="0" alt="订阅到鲜果" src="/image/d2.png"  /></a></li>
+<li><a target="_blank" href="http://www.zhuaxia.com/add_channel.php?url=http://home.chinaunix.com/rss.php?uid=342534"><img src="/image/d3.png" width="103" height="16" border="0" alt="订阅到抓虾" /></a></li>
+<li><a target="_blank" href="http://fusion.google.com/add?feedurl=http://home.chinaunix.com/rss.php?uid=342534"><img src="/image/d4.png" width="103" height="16" border="0" alt="订阅到Google"/></a></li>
+</ul>
+</div>
+
+
+<!-- 好友 -->
+
+<!-- 最近来访 -->
+</div>
+<div class="r2"  id="blog_center" style="position:relative">
+<!-- 博文 -->
+<div class="bor1 mt10">
+<div class="tit5"><span>字体大小：<a href="javascript:;" onclick="doZoom('16');" id="font_16">大</a> <a  href="javascript:;" onclick="doZoom('14');" id="font_14">中</a> <a  href="javascript:;" onclick="doZoom('12');" id="font_12">小</a></span>博文</div>
+<div class="text">
+<div class="tit6">
+<a href="javascript:;">基于Linux源代码及Busybox源代码制作精简可启动内核镜像技术实验方法</a> 
+(2011-12-02 16:16)
+	
+</div>
+<div class="tit7">
+<a href="/space.php?uid=342534&do=tag">标签</a>:&nbsp;
+<a href="/space.php?uid=342534&do=tag&id=215778">Linux</a>&nbsp;
+<a href="/space.php?uid=342534&do=tag&id=203438">Busybox</a>&nbsp;
+<a href="/space.php?uid=342534&do=tag&id=7729">Qemu</a>&nbsp;
+<a href="/space.php?uid=342534&do=tag&id=215786">Bochs</a>&nbsp;
+分类： <a href="/space.php?uid=342534&do=blog&frmd=0&classid=148585&view=me">Linux OS</a>
+</div>
+<br/>
+<br/>
+<div id="detail" class="detail" style="line-height: 1.3;"><p><DIV>
+<P style="TEXT-ALIGN: center; MARGIN: 0cm 0cm 0pt" class=MsoNormal align=center><SPAN style="FONT-FAMILY: 宋体; FONT-SIZE: 16pt; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'"><a href="http://blog.chinaunix.net/attachment/201112/2/342534_1322814245m88m.jpg" target=_blank></A><a href="http://blog.chinaunix.net/attachment/201112/2/342534_1322814348wz7U.jpg" target=_blank></A><a href="http://blog.chinaunix.net/attachment/201112/2/342534_1322814457Q7JI.jpg" target=_blank></A>基于</SPAN><SPAN style="FONT-SIZE: 16pt" lang=EN-US><FONT face="Times New Roman">Linux</FONT></SPAN><SPAN style="FONT-FAMILY: 宋体; FONT-SIZE: 16pt; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">源代码及</SPAN><SPAN style="FONT-SIZE: 16pt" lang=EN-US><FONT face="Times New Roman">Busybox</FONT></SPAN><SPAN style="FONT-FAMILY: 宋体; FONT-SIZE: 16pt; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">源代码制作精简可启动内核镜像技术实验方法总结</SPAN><SPAN style="FONT-SIZE: 16pt" lang=EN-US></SPAN></P>
+<P style="TEXT-ALIGN: center; MARGIN: 0cm 0cm 0pt" class=MsoNormal align=center><SPAN style="FONT-FAMILY: 宋体; FONT-SIZE: 16pt; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">熊海泉</SPAN><SPAN style="FONT-SIZE: 16pt" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt; tab-stops: right dotted 419.5pt" class=MsoToc1><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210282" target=_blank><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US><FONT color=#0000ff>一、需要准备的东西</FONT></SPAN></SPAN><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">1</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210283" target=_blank><FONT color=#0000ff><FONT face="Times New Roman">Linux</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>内核源代码</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">1</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210284" target=_blank><FONT color=#0000ff><FONT face="Times New Roman">Busybox</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>源代码</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">1</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210285" target=_blank><FONT color=#0000ff><FONT face="Times New Roman">Unetbootin</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>工具</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">2</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt; tab-stops: right dotted 419.5pt" class=MsoToc1><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210286" target=_blank><FONT color=#0000ff><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>二、制作</SPAN></SPAN><FONT face="Times New Roman">Linux</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>内核镜像及内存虚拟盘根文件系统</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">2</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210287" target=_blank><FONT color=#0000ff><FONT face="Times New Roman">Linux</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>内核镜像<SPAN lang=EN-US>文件</SPAN></SPAN></SPAN><FONT face="Times New Roman">bzImage</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>的编译制作</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">2</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210288" target=_blank><FONT color=#0000ff><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>基于</SPAN></SPAN><FONT face="Times New Roman">Busybox</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>的根文件系统虚拟盘</SPAN></SPAN><FONT face="Times New Roman">initrd.gz</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>的制作</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">3</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt; tab-stops: right dotted 419.5pt" class=MsoToc1><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210289" target=_blank><FONT color=#0000ff><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>三、利用</SPAN></SPAN><FONT face="Times New Roman">unetbootin</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>工具制作可启动</SPAN></SPAN><FONT face="Times New Roman">U</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>盘</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">5</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210290" target=_blank><FONT color=#0000ff><FONT face="Times New Roman">unetbootin</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>工具的获取与安装</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">5</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210291" target=_blank><FONT color=#0000ff><FONT face="Times New Roman">unetbootin</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>使用</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">5</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt; tab-stops: right dotted 419.5pt" class=MsoToc1><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210292" target=_blank><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US><FONT color=#0000ff>四、制作可启动的光盘镜像与磁盘镜像</FONT></SPAN></SPAN><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">6</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210293" target=_blank><FONT color=#0000ff><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>制作一个基于</SPAN></SPAN><FONT face="Times New Roman">grub</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>引导的</SPAN></SPAN><FONT face="Times New Roman">ttylinux LiveCD</FONT></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">.. </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">6</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210294" target=_blank><FONT color=#0000ff><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>制作一个基于</SPAN></SPAN><FONT face="Times New Roman">grub</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>引导的</SPAN></SPAN><FONT face="Times New Roman">ttylinux </FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>磁盘镜像</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">8</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt; tab-stops: right dotted 419.5pt" class=MsoToc1><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210295" target=_blank><FONT color=#0000ff><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>五、基于</SPAN></SPAN><FONT face="Times New Roman">Qemu</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>模拟器的运行</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">8</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210296" target=_blank><FONT color=#0000ff><FONT face="Times New Roman">1</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>，基于如下命令运行刚才制作的</SPAN></SPAN><FONT face="Times New Roman">ttylinux</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>可启动光盘镜像</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">8</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210297" target=_blank><FONT color=#0000ff><FONT face="Times New Roman">2</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>，以下为启动界面</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">8</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210298" target=_blank><FONT color=#0000ff><FONT face="Times New Roman">3</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>，以下为基于</SPAN></SPAN><FONT face="Times New Roman">Qemu</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>模拟器的</SPAN></SPAN><FONT face="Times New Roman">ttylinux</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>运行界面</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">9</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt; tab-stops: right dotted 419.5pt" class=MsoToc1><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210299" target=_blank><FONT color=#0000ff><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>六、基于</SPAN></SPAN><FONT face="Times New Roman">Bochs X86 PC</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>模拟器的运行</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">9</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210300" target=_blank><FONT color=#0000ff><FONT face="Times New Roman">1</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>，基于如下命令运行刚才制作的</SPAN></SPAN><FONT face="Times New Roman">ttylinux</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>可启动光盘镜像</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">9</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210301" target=_blank><FONT color=#0000ff><FONT face="Times New Roman">2</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>，以下为在</SPAN></SPAN><FONT face="Times New Roman">Bochs</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>模拟器中的启动界面</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">10</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt 21pt; tab-stops: right dotted 419.5pt" class=MsoToc2><SPAN class=MsoHyperlink><SPAN style="mso-no-proof: yes" lang=EN-US><a href="http://blog.chinaunix.net/chinaunixeditor.php?op=blank&amp;charset=gbk#_Toc280210302" target=_blank><FONT color=#0000ff><FONT face="Times New Roman">3</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>，以下为基于</SPAN></SPAN><FONT face="Times New Roman">Bochs</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>模拟器的</SPAN></SPAN><FONT face="Times New Roman">ttylinux</FONT><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'" lang=EN-US><SPAN lang=EN-US>运行界面</SPAN></SPAN></FONT><FONT face="Times New Roman"><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"><SPAN style="mso-tab-count: 1 dotted">... </SPAN></SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen">10</SPAN><SPAN style="DISPLAY: none; COLOR: windowtext; TEXT-DECORATION: none; text-underline: none; mso-hide: screen"></SPAN></FONT></A></SPAN></SPAN><SPAN style="mso-no-proof: yes" lang=EN-US></SPAN></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt; mso-outline-level: 1"><SPAN style="LINE-HEIGHT: 150%; FONT-SIZE: 16pt" lang=EN-US><FONT face=宋体></FONT></SPAN>&nbsp;</P><A name=_Toc280210282><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">一、需要准备的东西</SPAN></A><SPAN lang=EN-US></SPAN> <A name=_Toc280210283><SPAN lang=EN-US><FONT face=Arial>Linux</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210283"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">内核源代码</SPAN></SPAN><SPAN lang=EN-US></SPAN> 
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>下载地址 <SPAN lang=EN-US><a href="http://www.kernel.org/pub/linux/kernel/v2.6/" target=_blank><SPAN style="COLOR: #0066ff">http://www.kernel.org/pub/linux/kernel/v2.6/</SPAN></A></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><FONT size=3>这里下载的是</FONT><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>linux-2.6.38.tar.bz</SPAN><SPAN lang=EN-US></SPAN></B></FONT></P><A name=_Toc280210284><SPAN lang=EN-US><FONT face=Arial>Busybox</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210284"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">源代码</SPAN></SPAN><SPAN lang=EN-US></SPAN> 
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>下载地址<SPAN lang=EN-US><A title=http://www.busybox.net/ href="http://www.busybox.net/" target=_blank><SPAN style="COLOR: #0066ff">http://www.busybox.net/</SPAN></A></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><FONT size=3>这里下载的是</FONT><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>busybox-1.18.4.tar.bz2</SPAN></B><SPAN style="LINE-HEIGHT: 150%; FONT-SIZE: 10.5pt" lang=EN-US></SPAN></FONT></P><A name=_Toc280210285><SPAN lang=EN-US><FONT face=Arial>Unetbootin</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210285"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">工具</SPAN></SPAN><SPAN lang=EN-US></SPAN> 
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>下载地址<SPAN lang=EN-US><a href="http://unetbootin.sourceforge.net/" target=_blank><FONT color=#0000ff>http://unetbootin.sourceforge.net/</FONT></A></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>这里可以在<SPAN lang=EN-US>Fedora 13</SPAN>中直接用下面的命令行安装：<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#yum install unetbootin</FONT></SPAN></B></P><A name=_Toc280210286><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">二、制作</SPAN><SPAN lang=EN-US><FONT face="Times New Roman">Linux</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210286"><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">内核镜像及内存虚拟盘根文件系统</SPAN></SPAN><SPAN lang=EN-US></SPAN> <A name=_Toc280210287><SPAN lang=EN-US><FONT face=Arial>Linux</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210287"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">内核镜像文件</SPAN><SPAN lang=EN-US><FONT face=Arial>bzImage</FONT></SPAN></SPAN><SPAN style="mso-bookmark: _Toc280210287"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">的编译制作</SPAN></SPAN><FONT face=Arial> <SPAN lang=EN-US></SPAN></FONT>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体><SPAN lang=EN-US>1</SPAN>、<SPAN lang=EN-US>bzImage</SPAN>的制作<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>将下载下来的内核源代码压缩包拷贝到<B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: red" lang=EN-US>/study/</SPAN></B>目录下，然后进入到这个目录将其解压<SPAN lang=EN-US>,</SPAN>命令如下<SPAN lang=EN-US>:</SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#tar jxvf linux-2.6.38.tar.bz2</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>然后创建一个目录，用来保存编译内核产生的目标文件<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#mkdir linux-2.6.38-obj</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体><SPAN lang=EN-US>linux-2.6.36.2-obj</SPAN>现在是一个空目录，在编译内核时会将目标文件输出保存到这个目录下。<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>然后我们开始编译<SPAN lang=EN-US>linux</SPAN>内核编译配置<SPAN lang=EN-US>,</SPAN>输入如下所示的命令<SPAN lang=EN-US>:</SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#cd /study/linux-2.6.38(</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">进入到内核源码树目录<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#make O=/study/linux-2.6.38-obj menuconfig (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">配置内核<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; TEXT-INDENT: 21pt; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>这里首先将宿主机的<SPAN lang=EN-US>/boot</SPAN>目录下的<SPAN lang=EN-US>config-2.6.33.3-85.fc13.PAE</SPAN>这个配置文件拷贝到<SPAN lang=EN-US>/study/linux-2.6.38-obj/.config</SPAN>，作为下面内核编译配置的基础。<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; TEXT-INDENT: -5.25pt; MARGIN: 0cm 0cm 0pt 5.25pt; mso-char-indent-count: -.5"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#cp /boot/config-2.6.33.3-85.fc13.PAE /study/linux-2.6.38 -obj/.config</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; TEXT-INDENT: 21pt; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>配置内核时，里面的选项有很多<SPAN lang=EN-US>,</SPAN>如果不确定的话就将所有选项都编译进内核，当然最好能针对性的配置内核，这样产生出的内核镜像不至于太大。还有一点就是配置时一定要将选定的选项编译进内核，而不要编译成模块，也就是说在前面带有<SPAN lang=EN-US>M</SPAN>选项时，要么直接静态编译进内核，要么去掉。同时，为了支持<SPAN lang=EN-US>initrd</SPAN>内存盘文件系统，有两个选项是必须的。<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>一个是<B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: blue" lang=EN-US>General Setup –&gt; Initial RAM filesystem and RAM disk support</SPAN></B><SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>另一个是<SPAN style="COLOR: blue"> <B style="mso-bidi-font-weight: normal"><SPAN lang=EN-US>Device Drivers –&gt; Block Devices –&gt; RAM block device support</SPAN></B><SPAN lang=EN-US></SPAN></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>这个选项的子选项保持默认就可以了，如下图所示<SPAN lang=EN-US>:</SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体><SPAN lang=EN-US><a href="http://blog.chinaunix.net/attachment/201112/2/342534_13228144799QY4.jpg" target=_blank><IMG border=0 src="http://blog.chinaunix.net/attachment/201112/2/342534_13228144799QY4.jpg" ; .load="imgResize(this, 650);"></A></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><SPAN lang=EN-US><a href="http://images.cnblogs.com/cnblogs_com/yangnas/WindowsLiveWriter/busyboxlinux_12F58/ramdisk1_2.png" target=_blank><SPAN style="TEXT-DECORATION: none; text-underline: none"></SPAN></A></SPAN></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; TEXT-INDENT: 21pt; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>然后退出配置界面，在退出时会提示你是否保存刚才的配置，选择<SPAN lang=EN-US>yes</SPAN>就可以了<SPAN lang=EN-US>(</SPAN>因为我们在配置时指明了<SPAN lang=EN-US>O=/study/linux-2.6.38-obj </SPAN>目录，所以配置文件会保存到这个目录下，文件名为<SPAN lang=EN-US>.config)</SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>然后在<SPAN lang=EN-US>linux-2.6.38</SPAN>目录下执行<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: red" lang=EN-US><FONT size=3><FONT face=宋体>#make mrproper</FONT></FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>接下来我们开始编译内核<SPAN lang=EN-US>:</SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#make O=/study/linux-2.6.38-obj –j 16 (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">生成内核镜像，采用多线程编译，<SPAN lang=EN-US>4</SPAN>核八线程故开启<SPAN lang=EN-US>-j 16</SPAN>选项，加快编译速度<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; TEXT-INDENT: 21pt; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>通常，我们编译内核是为了更新内核，但这里我们只是为了编译出一个内核镜像，所以就不调用<SPAN lang=EN-US>make install</SPAN>命令来安装内核了。<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; TEXT-INDENT: 21pt; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>好！内核编译完成，我们将编译好的内核镜像拷贝到主目录下，以供后面使用。<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体># cp /study/linux-2.6.38-obj/arch/x86/boot/bzImage /study/tiny-linux </FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>/livecd/ttylinux (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">拷贝到此目录下将来由<SPAN lang=EN-US>unetbootin</SPAN>制作启动盘<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P><A name=_Toc280210288><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">基于</SPAN><SPAN lang=EN-US><FONT face=Arial>Busybox</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210288"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">的根文件系统虚拟盘</SPAN><SPAN lang=EN-US><FONT face=Arial>initrd.gz</FONT></SPAN></SPAN><SPAN style="mso-bookmark: _Toc280210288"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">的制作</SPAN></SPAN><SPAN lang=EN-US></SPAN> 
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>接下来我们开始编译<SPAN lang=EN-US>busybox</SPAN>。（我的<SPAN lang=EN-US>busybox-1.18.4.tar.bz2</SPAN>存放到了<SPAN lang=EN-US>/study/tiny-linux</SPAN>目录下）<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#tar jxvf busybox-1.18.4.tar.bz2 (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">解压<SPAN lang=EN-US>busybox</SPAN>压缩包<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#cd busybox-1.18.4 (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">进入到解压后的<SPAN lang=EN-US>busybox</SPAN>源码目录<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#make menuconfig (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">配置<SPAN lang=EN-US>busybox)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>注意配置时，一定要选择静态链接选项，该选项位于<SPAN lang=EN-US>:</SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: blue" lang=EN-US><FONT size=3><FONT face=宋体>Busybox Settings –&gt; Build Options –&gt; Build Busybox as a static binary</FONT></FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#yum install libselinux-static libsepol-static glibc-static(</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">具体根据系统可能还需要其它的包，这是我的系统中需要安装的几个包，是链接<SPAN lang=EN-US>busybox</SPAN>所需要的<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>接下来，我们安装<SPAN lang=EN-US>busybox</SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#make install (busybox</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">默认安装到了其源码树目录的名字为<SPAN lang=EN-US>_install</SPAN>的目录中<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#cd _install (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">进入安装了<SPAN lang=EN-US>busybox</SPAN>的目录<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>当我们进入了<SPAN lang=EN-US>busybox</SPAN>后发现了熟悉的<SPAN lang=EN-US>linux</SPAN>目录结构，但只有这些是不够的还需要手工添加一些基本的配置文件。<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>这时，我们处在<SPAN lang=EN-US>/tiny-linux/busybox-1.18.4/_install </SPAN>目录下。<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>好了，开始我们的配置<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#mkdir proc sys etc dev (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">创建四个空目录，<SPAN lang=EN-US>linux</SPAN>内核需要<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#cd dev</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#mknod console c 5 1 (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">创建一个控制台字符设备文件<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#mknod null c 1 3 (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">创建一个<SPAN lang=EN-US>0</SPAN>设备文件<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#cd ..</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#cd etc</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US># vim fstab (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">输入如下图内容<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: blue; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>proc<SPAN style="mso-tab-count: 1">&nbsp;&nbsp; </SPAN>/proc<SPAN style="mso-tab-count: 1">&nbsp; </SPAN>proc<SPAN style="mso-tab-count: 1">&nbsp;&nbsp; </SPAN>defaults<SPAN style="mso-tab-count: 1">&nbsp;&nbsp; </SPAN>0<SPAN style="mso-tab-count: 1">&nbsp;&nbsp; </SPAN>0</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: blue; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>sysfs<SPAN style="mso-tab-count: 1">&nbsp; </SPAN>/sys<SPAN style="mso-tab-count: 1">&nbsp;&nbsp; </SPAN>sysfs<SPAN style="mso-tab-count: 1">&nbsp; </SPAN>defaults<SPAN style="mso-tab-count: 1">&nbsp;&nbsp; </SPAN>0<SPAN style="mso-tab-count: 1">&nbsp;&nbsp; </SPAN>0</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体></FONT></SPAN></B>&nbsp;</P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#mkdir init.d</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US># vim init.d/rcS (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">输入如下内容<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: blue; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#!/bin/sh</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: blue; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>Mount -a</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#chmod +x init.d/rcS (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">给<SPAN lang=EN-US>rcS</SPAN>文件加上可执行权限<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#vim inittab (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">输入如下内容<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: blue; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>::sysinit:/etc/init.d/rcS</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: blue; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>console::respawn:-/bin/sh</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: blue; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>::ctrlaltdel:/sbin/reboot</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: blue; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>::shutdown:/bin/umount –a -r</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#cd ..</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#pwd (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">打印当前目录<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体>/study/tiny-linux/busybox-1.18.4/_install</FONT></FONT></SPAN></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>此时表明我们处在<SPAN lang=EN-US>busybox</SPAN>安装文件的根目录下<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT face=宋体><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US>#rm linuxrc (</SPAN></B><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt">删除<SPAN lang=EN-US>linuxrc</SPAN>链接文件<SPAN lang=EN-US>)</SPAN></SPAN></B></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>然后新创建一个指向<SPAN lang=EN-US>busybox</SPAN>文件的链接文件，如下图所示：<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#ln –sv bin/busybox init</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体>‘init’-&gt;‘bin/busybox’</FONT></FONT></SPAN></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>我们输入如下图所示命令来创建<SPAN lang=EN-US>initrd</SPAN>镜像<SPAN lang=EN-US>.</SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#find .| cpio --quiet –H newc –o |gzip -9 –n &gt;/study/tiny-linux/livecd/cd/ttylinux/initrd.gz</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>至此就得到了两个镜像文件：<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体><SPAN lang=EN-US>bzImage : linux</SPAN>内核镜像文件<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体><SPAN lang=EN-US>initrd.gz : </SPAN>内存盘根文件系统镜像文件<SPAN lang=EN-US></SPAN></FONT></FONT></P><A name=_Toc280210289><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">三、利用</SPAN><SPAN lang=EN-US><FONT face="Times New Roman">unetbootin</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210289"><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">工具制作可启动</SPAN><SPAN lang=EN-US><FONT face="Times New Roman">U</FONT></SPAN></SPAN><SPAN style="mso-bookmark: _Toc280210289"><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">盘</SPAN></SPAN><SPAN lang=EN-US></SPAN> <A name=_Toc280210290><SPAN lang=EN-US><FONT face=Arial>unetbootin</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210290"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">工具的获取与安装</SPAN></SPAN><SPAN lang=EN-US></SPAN> <A name=_Toc280210291><SPAN lang=EN-US><FONT face=Arial>unetbootin</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210291"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">使用</SPAN></SPAN><SPAN lang=EN-US></SPAN> 
+<P style="MARGIN: 0cm 0cm 0pt" class=MsoNormal><SPAN lang=EN-US><FONT face="Times New Roman"></FONT></SPAN>&nbsp;</P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; TEXT-INDENT: 21pt; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>通过下面的命令打开<SPAN lang=EN-US>unetbootin</SPAN>，一定要加<B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: red" lang=EN-US>-showcustom=y</SPAN></B>选项，否则不会出现自定义那个选项<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US><FONT face=宋体>#unetboot -showcustom=y</FONT></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><B style="mso-bidi-font-weight: normal"><SPAN style="LINE-HEIGHT: 150%; COLOR: red; FONT-SIZE: 10.5pt" lang=EN-US></SPAN></B></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><SPAN lang=EN-US><FONT size=3 face=宋体><a href="http://blog.chinaunix.net/attachment/201112/2/342534_13228143134cx9.jpg" target=_blank><IMG border=0 src="http://blog.chinaunix.net/attachment/201112/2/342534_13228143134cx9.jpg" ; .load="imgResize(this, 650);"></A>&nbsp;</FONT></SPAN></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; TEXT-INDENT: 21pt; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>在自定义里面选择内核为刚才我们制作的<SPAN lang=EN-US>bzImage</SPAN>，<SPAN lang=EN-US>initrd</SPAN>为刚才制作的<SPAN lang=EN-US>initrd.gz</SPAN>。我这里是把它们安装在了<SPAN lang=EN-US>U</SPAN>盘上，这样方便携带。<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; TEXT-INDENT: 21pt; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>然后确定，就会把我们刚才的东西装在<SPAN lang=EN-US>U</SPAN>盘上，最后会出现一个重启的画面，你就可以重新启动，把启动项改为从<SPAN lang=EN-US>U</SPAN>盘启动，就可以进入自己制作的<SPAN lang=EN-US>linux</SPAN>了。<SPAN lang=EN-US></SPAN></FONT></FONT></P><A name=_Toc280210292><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">四、制作可启动的光盘镜像与磁盘镜像</SPAN></A><SPAN lang=EN-US></SPAN> <A name=_Toc280210293><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">制作一个基于</SPAN><SPAN lang=EN-US><FONT face=Arial>grub</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210293"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">引导的</SPAN><SPAN lang=EN-US><FONT face=Arial>ttylinux LiveCD</FONT></SPAN></SPAN><SPAN lang=EN-US></SPAN> 
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><FONT size=3><FONT face=宋体><SPAN lang=EN-US>1</SPAN>、创建<SPAN lang=EN-US>livecd</SPAN>目录作为制作<SPAN lang=EN-US>LiveCD</SPAN>的根的目录，并在其中创建<SPAN lang=EN-US>grub</SPAN>所需的目录<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体># mkdir -pv /study/tiny-linux/livecd/{ttylinux,boot/grub}</FONT></FONT></SPAN></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><FONT size=3><FONT face=宋体><SPAN lang=EN-US>2</SPAN>、复制<SPAN lang=EN-US>grub</SPAN>可引导的光盘所需的引导程序<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体># cp -rv /usr/share/grub/x86_64-redhat/*<SPAN style="mso-spacerun: yes">&nbsp; </SPAN>/study/ tiny-linux/livecd/boot/grub</FONT></FONT></SPAN></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><FONT size=3><FONT face=宋体><SPAN lang=EN-US>3</SPAN>、将编译制作好的内核镜像<SPAN lang=EN-US>bzImage</SPAN>以及内存虚拟盘根文件系统<SPAN lang=EN-US>initrd.gz</SPAN>复制到<SPAN lang=EN-US>/study/live/ttylinux</SPAN>目录下<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><FONT size=3><FONT face=宋体><SPAN lang=EN-US>4</SPAN>、为<SPAN lang=EN-US>grub</SPAN>建立配置文件<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体># vim /study/livecd/boot/grub/grub.conf</FONT></FONT></SPAN></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><FONT size=3><FONT face=宋体>添加如下内容：<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体>default<SPAN style="mso-spacerun: yes">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </SPAN>0</FONT></FONT></SPAN></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体>timeout<SPAN style="mso-spacerun: yes">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </SPAN>10</FONT></FONT></SPAN></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体>title<SPAN style="mso-spacerun: yes">&nbsp;&nbsp; </SPAN>ttylinux for Bochs &amp; Qemu (Made by Xiong Haiquan)</FONT></FONT></SPAN></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体>root (cd)</FONT></FONT></SPAN></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体>kernel<SPAN style="mso-spacerun: yes">&nbsp; </SPAN>/ttylinux/bzImage load_ramdisk=1 prompt_ramdisk=0</FONT></FONT></SPAN></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体>ramdisk_size=8192 ro root=/dev/ram0</FONT></FONT></SPAN></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体>initrd<SPAN style="mso-spacerun: yes">&nbsp; </SPAN>/ttylinux/initrd.gz</FONT></FONT></SPAN></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3 face=宋体></FONT></SPAN>&nbsp;</P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><FONT size=3><FONT face=宋体><SPAN lang=EN-US>5</SPAN>、在<SPAN lang=EN-US>/study</SPAN>目录下执行如下命令，创建<SPAN lang=EN-US>livecd</SPAN>镜像：<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体># mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4</FONT></FONT></SPAN></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3><FONT face=宋体>-boot-info-table -o ttylinux.iso<SPAN style="mso-spacerun: yes">&nbsp; </SPAN>livecd</FONT></FONT></SPAN></P>
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><FONT size=3><FONT face=宋体>好了，到此为止一个<SPAN lang=EN-US>grub</SPAN>引导的<SPAN lang=EN-US>ttylinux.iso</SPAN>光盘镜像，可以在<SPAN lang=EN-US>Bochs</SPAN>和<SPAN lang=EN-US>Qemu</SPAN>中运行启动。<SPAN lang=EN-US></SPAN></FONT></FONT></P><A name=_Toc280210294><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">制作一个基于</SPAN><SPAN lang=EN-US><FONT face=Arial>grub</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210294"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">引导的</SPAN><SPAN lang=EN-US><FONT face=Arial>ttylinux </FONT></SPAN></SPAN><SPAN style="mso-bookmark: _Toc280210294"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">磁盘镜像</SPAN></SPAN><SPAN lang=EN-US></SPAN> 
+<P style="LINE-HEIGHT: 150%; TEXT-INDENT: 21pt"><SPAN lang=EN-US><FONT size=3 face=宋体></FONT></SPAN>&nbsp;</P><A name=_Toc280210295><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">五、基于</SPAN><SPAN lang=EN-US><FONT face="Times New Roman">Qemu</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210295"><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">模拟器的运行</SPAN></SPAN><SPAN lang=EN-US></SPAN> <A name=_Toc280210296><SPAN lang=EN-US><FONT face=Arial>1</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210296"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">，基于如下命令运行刚才制作的</SPAN><SPAN lang=EN-US><FONT face=Arial>ttylinux</FONT></SPAN></SPAN><SPAN style="mso-bookmark: _Toc280210296"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">可启动光盘镜像</SPAN></SPAN><SPAN lang=EN-US></SPAN> 
+<P style="MARGIN: 0cm 0cm 0pt" class=MsoNormal><SPAN lang=EN-US><FONT face="Times New Roman">../qemu-0.13.0/x86_64-softmmu/qemu-system-x86_64 –cdrom ttylinux.iso –boot d</FONT></SPAN></P><A name=_Toc280210297><SPAN lang=EN-US><FONT face=Arial>2</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210297"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">，以下为启动界面</SPAN></SPAN> <SPAN style="mso-bookmark: _Toc280210297"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial"></SPAN></SPAN><SPAN lang=EN-US><a href="http://blog.chinaunix.net/attachment/201112/2/342534_1322814348wz7U.jpg" target=_blank><IMG border=0 src="http://blog.chinaunix.net/attachment/201112/2/342534_1322814348wz7U.jpg" ; .load="imgResize(this, 650);"></A></SPAN> 
+<P style="MARGIN: 0cm 0cm 0pt" class=MsoNormal><SPAN lang=EN-US></SPAN></P><A name=_Toc280210298><SPAN lang=EN-US><FONT face=Arial>3</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210298"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">，以下为基于</SPAN><SPAN lang=EN-US><FONT face=Arial>Qemu</FONT></SPAN></SPAN><SPAN style="mso-bookmark: _Toc280210298"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">模拟器的</SPAN><SPAN lang=EN-US><FONT face=Arial>ttylinux</FONT></SPAN></SPAN><SPAN style="mso-bookmark: _Toc280210298"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">运行界面</SPAN></SPAN><SPAN lang=EN-US></SPAN> 
+<P style="MARGIN: 0cm 0cm 0pt" class=MsoNormal><SPAN lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt" class=MsoNormal><SPAN lang=EN-US><FONT face="Times New Roman"><a href="http://blog.chinaunix.net/attachment/201112/2/342534_13228144223wFy.jpg" target=_blank><IMG border=0 src="http://blog.chinaunix.net/attachment/201112/2/342534_13228144223wFy.jpg" ; .load="imgResize(this, 650);"></A>&nbsp;</FONT></SPAN></P><A name=_Toc280210299><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">六、基于</SPAN><SPAN lang=EN-US><FONT face="Times New Roman">Bochs X86 PC</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210299"><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">模拟器的运行</SPAN></SPAN><SPAN lang=EN-US></SPAN> <A name=_Toc280210300><SPAN lang=EN-US><FONT face=Arial>1</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210300"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">，基于如下命令运行刚才制作的</SPAN><SPAN lang=EN-US><FONT face=Arial>ttylinux</FONT></SPAN></SPAN><SPAN style="mso-bookmark: _Toc280210300"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">可启动光盘镜像</SPAN></SPAN><SPAN lang=EN-US></SPAN> 
+<P style="MARGIN: 0cm 0cm 0pt" class=MsoNormal><SPAN lang=EN-US><FONT face="Times New Roman">../bochs-2.4.5/bochs –f bochsrc.txt</FONT></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt" class=MsoNormal><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">其中配置文件</SPAN><SPAN lang=EN-US><FONT face="Times New Roman">bochsrc.txt</FONT></SPAN><SPAN style="FONT-FAMILY: 宋体; mso-ascii-font-family: 'Times New Roman'; mso-hansi-font-family: 'Times New Roman'">的主要内容为，关键是光盘启动，颜色为红色部分</SPAN><SPAN lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0" class=MsoNormal><B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: blue" lang=EN-US><FONT face="Times New Roman">memory:guest=512,host=256</FONT></SPAN></B></P>
+<P style="MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0" class=MsoNormal><B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: blue" lang=EN-US><FONT face="Times New Roman">romimage: file=$BXSHARE/BIOS-bochs-latest</FONT></SPAN></B></P>
+<P style="MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0" class=MsoNormal><B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: blue" lang=EN-US><FONT face="Times New Roman">vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest</FONT></SPAN></B></P>
+<P style="MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0" class=MsoNormal><B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: blue" lang=EN-US><FONT face="Times New Roman">ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14</FONT></SPAN></B></P>
+<P style="MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0" class=MsoNormal><B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: red" lang=EN-US><FONT face="Times New Roman">ata0-master: type=cdrom, path="ttylinux.iso", status=inserted</FONT></SPAN></B></P>
+<P style="MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0" class=MsoNormal><B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: red" lang=EN-US><FONT face="Times New Roman">boot: cdrom</FONT></SPAN></B></P>
+<P style="MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0" class=MsoNormal><B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: blue" lang=EN-US><FONT face="Times New Roman">log: out.txt</FONT></SPAN></B></P>
+<P style="MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0" class=MsoNormal><B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: blue" lang=EN-US><FONT face="Times New Roman">mouse: enabled=0</FONT></SPAN></B></P>
+<P style="MARGIN: 0cm 0cm 0pt; BACKGROUND: #e0e0e0" class=MsoNormal><B style="mso-bidi-font-weight: normal"><SPAN style="COLOR: blue" lang=EN-US><FONT face="Times New Roman">keyboard_mapping: enabled=1, map=$BXSHARE/keymaps/x11-pc-us.map</FONT></SPAN></B></P><A name=_Toc280210301><SPAN lang=EN-US><FONT face=Arial>2</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210301"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">，以下为在</SPAN><SPAN lang=EN-US><FONT face=Arial>Bochs</FONT></SPAN></SPAN><SPAN style="mso-bookmark: _Toc280210301"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">模拟器中的启动界面</SPAN></SPAN><SPAN lang=EN-US></SPAN> 
+<P style="MARGIN: 0cm 0cm 0pt" class=MsoNormal><SPAN lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt" class=MsoNormal><SPAN lang=EN-US><FONT face="Times New Roman">&nbsp;<a href="http://blog.chinaunix.net/attachment/201112/2/342534_1322814445ntHY.jpg" target=_blank><IMG border=0 src="http://blog.chinaunix.net/attachment/201112/2/342534_1322814445ntHY.jpg" ; .load="imgResize(this, 650);"></A></FONT></SPAN></P><A name=_Toc280210302><SPAN lang=EN-US><FONT face=Arial>3</FONT></SPAN></A><SPAN style="mso-bookmark: _Toc280210302"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">，以下为基于</SPAN><SPAN lang=EN-US><FONT face=Arial>Bochs</FONT></SPAN></SPAN><SPAN style="mso-bookmark: _Toc280210302"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">模拟器的</SPAN><SPAN lang=EN-US><FONT face=Arial>ttylinux</FONT></SPAN></SPAN><SPAN style="mso-bookmark: _Toc280210302"><SPAN style="FONT-FAMILY: 黑体; mso-ascii-font-family: Arial; mso-hansi-font-family: Arial">运行界面</SPAN></SPAN><SPAN lang=EN-US></SPAN> 
+<P style="MARGIN: 0cm 0cm 0pt" class=MsoNormal><SPAN lang=EN-US></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt" class=MsoNormal><SPAN lang=EN-US><FONT face="Times New Roman">&nbsp;<a href="http://blog.chinaunix.net/attachment/201112/2/342534_1322819337171Z.jpg" target=_blank><IMG border=0 src="http://blog.chinaunix.net/attachment/201112/2/342534_1322819337171Z.jpg" ; .load="imgResize(this, 650);"></A><a href="http://blog.chinaunix.net/attachment/201112/2/342534_1322819173o764.jpg" target=_blank></A><a href="http://blog.chinaunix.net/attachment/201112/2/342534_1322814457Q7JI.jpg" target=_blank></A></FONT></SPAN></P>
+<P style="MARGIN: 0cm 0cm 0pt" class=MsoNormal><SPAN lang=EN-US><FONT face="Times New Roman"></FONT></SPAN>&nbsp;</P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><SPAN lang=EN-US><FONT size=3 face=宋体></FONT></SPAN>&nbsp;</P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体>参考资料：<SPAN lang=EN-US></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体><SPAN lang=EN-US>1</SPAN>、<SPAN lang=EN-US><a href="http://www.cnblogs.com/yangnas/archive/2010/04/26/1721607.html" target=_blank><FONT color=#0000ff>http://www.cnblogs.com/yangnas/archive/2010/04/26/1721607.html</FONT></A></SPAN></FONT></FONT></P>
+<P style="TEXT-JUSTIFY: inter-ideograph; TEXT-ALIGN: justify; LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt"><FONT size=3><FONT face=宋体><SPAN lang=EN-US>2</SPAN>、<SPAN lang=EN-US><a href="http://www.ibm.com/developerworks/cn/linux/l-k26initrd/" target=_blank><FONT color=#0000ff>http://www.ibm.com/developerworks/cn/linux/l-k26initrd/</FONT></A></SPAN></FONT></FONT></P>
+<P style="LINE-HEIGHT: 150%; MARGIN: 0cm 0cm 0pt" class=MsoPlainText><SPAN style="mso-hansi-font-family: 宋体; mso-bidi-font-family: 宋体" lang=EN-US><FONT face=宋体></FONT></SPAN>&nbsp;</P></DIV></p></div>
+</div>
+<div class="cont5">
+<div class="t">博客推荐文章</div>
+<ul>
+<li><a href="/uid-25077949-id-37092.html">linux</a>  (2010-12-13 11:15:49)</li>
+<li><a href="/uid-25909329-id-1995067.html">linux</a>  (2011-08-03 13:43:13)</li>
+<li><a href="/uid-24939910-id-282648.html">Linux</a>  (2011-05-02 21:28:13)</li>
+<li><a href="/uid-25770163-id-327661.html">Linux</a>  (2011-05-19 21:35:31)</li>
+<li><a href="/uid-25770294-id-370987.html">Linux</a>  (2011-06-13 21:04:30)</li>
+	
+</ul>
+</div>
+
+<div class="cont6">
+<!-- 分享 -->
+<div class="fx">
+<div class="icon">										 
+<!-- JiaThis Button BEGIN -->
+<div id="ckepop">
+<a href="http://www.jiathis.com/share/" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank">分享到：</a>
+<a class="jiathis_button_tsina">新浪微博</a>
+<a class="jiathis_button_qzone">QQ空间</a>
+<a class="jiathis_button_kaixin001">开心网</a>
+<a class="jiathis_button_douban">豆瓣</a>
+<a class="jiathis_button_renren">人人网</a>
+<a class="jiathis_button_twitter">twitter</a>
+<a class="jiathis_button_fb">fb</a>
+</div>
+<script type="text/javascript" src="http://v2.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+</div>
+
+<span  style="cursor:pointer;">
+<a id="support">0</a>
+<br />
+<a onclick="ajaxmenu(event, this.id,0, 2000, 'doSupport')" id="click_blogid_3032921" href="/cp.php?ac=click&op=add&clickid=4&idtype=blogid&id=3032921&hash=bab38820b1ec149c65c95ac937ec7188">
+&nbsp;&nbsp;&nbsp;<b>顶</b>
+</a>
+</span>
+<div class="clear"></div>
+</div>
+
+                <DIV class=clear></DIV>
+<style>
+.bor0223{ width:708px; margin:0 auto 20px; height:90px;}
+.bor0223_tit{ height:28px; line-height:28px; border-bottom:1px dashed #ccc; font-size:14px; font-weight:bold; padding-left:12px;}
+.list0223{ width:698px; margin:10px 0 0 12px;}
+.list0223 li{ float:left; width:174px; line-height:20px; height:20px;}
+</style><div class="bor0223"><div class="bor0223_tit">热门产品推荐</div><ul class="list0223"><li><a href="http://product.it168.com/detail/doc/447696/index.shtml"target="_blank" title="HTC G14 Sensation(Z710e)">HTC G14 Sensation(Z7...</a></li><li><a href="http://product.it168.com/detail/doc/452573/index.shtml"target="_blank" title="中兴 U880">中兴 U880</a></li><li><a href="http://product.it168.com/detail/doc/469098/index.shtml"target="_blank" title="小米手机 M1(电信版)">小米手机 M1(电信版)</a></li><li><a href="http://product.it168.com/detail/doc/453322/index.shtml"target="_blank" title="现代博恩 XB-D04">现代博恩 XB-D04</a></li><li><a href="http://product.it168.com/detail/doc/390558/index.shtml"target="_blank" title="尼康 D800">尼康 D800</a></li><li><a href="http://product.it168.com/detail/doc/445223/index.shtml"target="_blank" title="三星 盖世 S5660">三星 盖世 S5660</a></li><li><a href="http://product.it168.com/detail/doc/448730/index.shtml"target="_blank" title="HTC EVO 3D(GSM版)">HTC EVO 3D(GSM版)</a></li><li><a href="http://product.it168.com/detail/doc/475141/index.shtml"target="_blank" title="OPPO R803">OPPO R803</a></li></ul></div><!-- 阅读 -->
+
+<div class="read">
+<a href="javascript:;">阅读<b>(232)</b></a>┊ <a href="/space.php?uid=342534&do=blog&id=3032921#comment">评论 <b>(<span id="comm_num">1</span>)</b></a>┊<a href="/cp.php?ac=favorites&op=addfavorites&blogid=3032921" id="a_favorite" onclick="ajaxmenu(event, this.id, 1)">收藏(1)</a>┊<a href="/cp.php?ac=common&op=report&idtype=blogid&id=3032921" id="a_report" onclick="ajaxmenu(event, this.id, 1)">举报</a>┊<a href="javascript:window.print();">打印</a>
+</div>
+
+<div class="next1">前一篇：<a href="/uid-342534-id-3032921.html">基于Linux源代码及Busybox源代码制作精简可启动内核镜像技术实验方法</a></div>
+
+<!-- 评论 -->
+<div class="tit8" id="comment_dv" >
+<span><a href="#comment">[发评论]</a></span>
+<b>评论</b>&nbsp;重要提示：警惕虚假中奖信息!
+</div>
+<div id="comment" class="comments_list">
+<div class="box_content">
+<ul class="post_list a_list justify_list" id="comment_ul">
+<a name="558530"></a>
+<li id="comment_558530_li" class="space cont7 "><div class="avatar48"><a href="/uid/14720887.html"><img src="http://passport.ixpub.net/data/avatar/014/72/08/87_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'"></a></div>
+<div class="title">
+<a href="/uid/14720887.html" id="author_558530">147189385</a> 
+<span class="gray">2011-12-04 02:00</span>
+
+</div>
+
+<div class="detail" id="comment_558530">进来看看，收藏了</div>
+
+</li></ul>
+</div>
+</div>
+<div class="clear"></div>
+
+<!-- 发评论 -->
+<div class="logins">亲，您还没有登录,请<a href="/do.php?ac=wuxingzypcw213">[登录]</a>或<a href="/do.php?ac=8f442ba1e0c79cd3efcd1fd42b8aad8e">[注册]</a>后再进行评论</div>
+</div>
+</div>
+ <!-- 徽章定位1 -->
+ </div>
+
+<div class="clear"></div>
+</div>
+<script type="text/javascript">
+<!--
+var blogid = 3032921;
+var bloguid = 0;
+function doSupport(){
+var x = new Ajax();
+x.get('do.php?ac=ajax&op=support&id='+blogid , function(s){
+document.getElementById('support').innerHTML = s;
+});
+}
+
+function code_hide(id){
+var code = document.getElementById(id).style.display;
+if(code == 'none'){
+document.getElementById(id).style.display = 'block';
+}else{
+document.getElementById(id).style.display = 'none';
+}
+}
+
+
+function checkComment(id){
+
+//	if(bloguid < 1 &&  ($('nim').checked == false) ){
+//		alert('请选择匿名发表评论！');
+//		return false;
+//	}
+if(trim($('seccode').value) == ''){
+alert('验证码不能为空！');
+return false;
+}
+s('comment_dv');
+ajaxpost('quickcommentform_'+id, 'comment_add');
+$('seccode').value = '';
+
+var img = '/do.php?ac=seccode&rand='+Math.random();
+$('img_seccode').src = img;
+}
+$('font_14').style.fontWeight='bold';
+function doZoom(s){
+$('font_12').style.fontWeight='normal';
+$('font_14').style.fontWeight='normal';
+$('font_16').style.fontWeight='normal';
+$('font_'+s).style.fontWeight='bold';
+s = s + 'px';
+$('detail').style.fontSize = s;
+}
+function setTop(t , id)
+{
+var x = new Ajax();
+x.get('/admin.php?ac=blog&op='+ t +'&id='+id , function(s){
+if(t == 'retop'){
+document.getElementById('top_' + id).innerHTML = "<a href=\"javascript:;\" onclick=\"setTop('top', '"+id+"');\">&nbsp;置顶首页</a>";
+}else{
+document.getElementById('top_' + id).innerHTML = "<a href=\"javascript:;\" onclick=\"setTop('retop', '"+id+"');\">&nbsp;取消置顶</a>";
+}
+});
+}
+
+var FmId = 2;
+
+function attention(uid , t){
+if(uid){
+var x = new Ajax();
+x.get('/cp.php?ac=attention&op='+ t +'&uid=' + uid , function(s){
+if(t == 'add'){
+
+var h = "<a href='javascript:;' onclick='attention(\""+ uid +"\" , \"delete\");'>取消关注</a>";
+document.getElementById('attention').innerHTML = h;
+}else{
+var h = "<a href='javascript:;' onclick='attention(\""+ uid +"\" , \"add\");'>加关注</a>";
+document.getElementById('attention').innerHTML = h;
+}
+});
+}
+}
+//-->
+</script>
+<div id="footer">
+<div class="l">
+<a href="http://www.chinaunix.net/about/index.shtml" rel="nofollow">关于我们</a> | 
+<a href="http://www.it168.com/bottomfile/it168.shtml" rel="nofollow">关于IT168</a> | 
+<a href="http://www.chinaunix.net/about/connect.html" rel="nofollow">联系方式</a> | 
+<a href="http://www.chinaunix.net/about/service.html" rel="nofollow">广告合作</a> | 
+<a href="http://blog.chinaunix.net/about/fl.html" rel="nofollow">法律声明</a> | 
+<a href="http://blog.chinaunix.net/register.php" rel="nofollow">免费注册</a> 
+<address>
+Copyright &copy; 2001-2010 ChinaUnix.net All Rights Reserved 北京皓辰网域网络信息技术有限公司. 版权所有 
+</address>
+</div>
+<div class="r">
+感谢所有关心和支持过ChinaUnix的朋友们<br />京ICP证041476号 京ICP证060528号
+</div>
+<div class="clear"></div>
+</div>
+<div id="dialogBoxShadow" style="display:none;z-index:49;"></div>
+<input id="dot" value="" type="hidden"></input>
+<script type="text/javascript">
+
+<!--
+if($('dot').value == 'theme')  getPageSet();
+function checkHtitle(){
+var tt = $('spacetitle').value;
+if(ttlen(trim(tt)) > 48){
+alert('博客宣言不能超过48个字符！');
+return false;
+}
+ajaxpost('home_from','homeTitle');
+}
+function checkBbrief(){
+var tt = $('blog_brief').value;
+if(ttlen(trim(tt)) > 200){
+alert('个性签名不能超过200个字符！');
+return false;
+}
+ajaxpost('brief_form','blogBrief');
+}
+function homeTitle()
+{
+var spacetitle_value = $('spacetitle').value;
+if(!spacetitle_value){
+spacetitle_value = '还没有博客宣言';
+}
+var x = new Ajax();
+x.get('/do.php?ac=ajax&op=htl', function(s){
+document.getElementById('home_t').innerHTML = s
+});
+s('home_title');
+h('home_title_form');
+}
+function blogBrief()
+{
+var spacetitle_value = $('blog_brief').value;
+if(!spacetitle_value){
+spacetitle_value = '还没有个性签名';
+}
+var x = new Ajax();
+x.get('/do.php?ac=ajax&op=bbf', function(s){
+document.getElementById('blog_b').innerHTML = s
+});
+s('blog_brief');
+h('blog_brief_form');
+}
+//-->
+</script>
+<script language="javascript" src="http://stat.it168.com/pv.js"></script>
+<script type="text/javascript">
+    function sendPV(){
+        var pvTrack = new PvTrack();
+        pvTrack.type = 35; // 频道类别ID
+        pvTrack.channel = 189; // 频道ID
+        pvTrack.pageType = 0;
+        pvTrack.track();
+    }
+    window.setTimeout("sendPV()", 0); 
+
+</script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-20237423-2']);
+  _gaq.push(['_setDomainName', '.chinaunix.net']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+<div style='display:none'>
+<script type="text/javascript"> 
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F0ee5e8cdc4d43389b3d1bfd76e83216b' type='text/javascript'%3E%3C/script%3E"));
+</script>
+</div>
+
+ </body>
+</html>

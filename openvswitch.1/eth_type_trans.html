@@ -1,0 +1,718 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" />
+    <meta content="360doc" name="classification" />
+    
+    <meta content="Linux协议栈中UDP数据报从网卡到用户空间流程总结" name=keywords>
+    <meta content="Linux协议栈中UDP数据报从网卡到用户空间流程总结" name=description>
+    <meta content="www.360doc.com" name="author" />
+    
+    <title>
+        Linux协议栈中UDP数据报从网卡到用户空间流程总结
+    </title>
+    <script type="text/javascript" src="/js/jquery.js"></script>
+    <script type="text/javascript" src="http://www.360doc.com/js/jQuery.md5.js"></script>
+    <script type="text/javascript" src="/js/flexpaper_flash.js"></script>
+    <script type="text/javascript" language="javascript">
+        window.onerror = ignoreError;
+        function ignoreError() {
+            return true;
+        }  
+    </script>
+ <link href="http://css.360doc.com/wz.css?t=2013041801" rel="stylesheet" type="text/css" />
+   <link href="http://css.360doc.com/wzhead.css?t=2013041701" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="/js/indexhead.js?t=2013040704"></script>
+
+
+    <script type="text/javascript" src="/js/showarticlefollow.js?t=2012111601"></script>
+</head>
+<body  style="font-family: Arial, Helvetica, sans-serif;"   onmouseup="setDragEnd()" onmousemove="DragDiv();" onclick="delAllDiv(event)">
+   <div class="mainnav">
+        <div class="mainnav1">
+            <div class="lf360" style="padding-top: 5px; padding-left: 10px; position: relative;">
+                <a href="/index.html">
+                    <img src="http://pubimage.360doc.com/index/sy-8.gif" /></a></div>
+            <div style="position: absolute; padding-top: 12px; padding-left: 4px; width: 525px;">
+                <table border="0" cellpadding="0" cellspacing="0" height="34">
+                    <tbody>
+                        <tr>
+                            <td style="width: 110px; *width: 0px; _width: 0px;">
+                            </td>
+                            <td width="100px" class="  navwz1">
+                                <a href="/index.html">首&nbsp;页</a>
+                            </td>
+                            <td width="100px" class="  navwz1">
+                                <a href="/readroom.html">阅览室</a>
+                            </td>
+                            <td width="88px" class="  navwz1">
+                                <a href="/weekstar.html">馆友</a>
+                            </td>
+                            <td width="132px" class="  navwz1">
+                                <a href="http://www.360doc.com/my360doc.aspx">我的图书馆</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="rt360" style="padding-top: 18px; width: 200px;" id="outerdiv">
+            </div>
+            <div class=" rt360" style="padding-top: 17px; padding-right: 0px;">
+                <div class="lf360 serch">
+                    <input id="txtSearchword" onkeyup="showIntelliSense()" name="input2" type="text" class="serchpt"
+                        value="搜文章 找馆友" onblur="if(!this.value) {this.value='搜文章 找馆友';this.style.color='#b2b2b2';}"
+                        onfocus="if(this.value=='搜文章 找馆友') this.value='';this.style.color='#272727'"
+                        onkeydown="ongosearch()" onpaste="showIntelliSense1();" /></div>
+                <div class="lf360 ssuo" style="position: relative;">
+                    <a href="javascript:gosearch();" id="searchlinkid"></a>
+                </div>
+                <div id="divsearch" style="position: absolute; margin-top: 25px; margin-left: 1px; *margin-left: -223px;
+                    z-index: 100; display: block;">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="navxt">
+    </div>
+
+ 
+
+  <div class="both"></div>
+  <div class="mainzt">
+<table class="index_main" border="0" cellpadding="0" cellspacing="0">
+<tbody>
+<tr>
+<td align="left" valign="top" width="727px">
+ <div id='ADAboveArtContent'></div>
+ <div style=" height:7px;"></div>
+<table border="0" cellpadding="0" cellspacing="0" class="mainbj"  id="docArtClass">
+<tbody>
+<tr>
+<td>
+<div style=" padding-top:8px; color:#797b7a; padding-left:6px;">
+<div class=" lf360">来自：<span class="name" onclick="wzhit(1)"><A href="http://www.360doc.com/userhome/61151" target="_blank">vavava</A></span> > <span id="cname" onclick="wzhit(2)"></span></div>
+
+<div class=" rt360">
+<table border="0" cellpadding="0" cellspacing="0" style=" vertical-align: text-bottom;">
+<tbody>
+<tr >
+<td width="40">配色：</td>
+<td width="21"><img src="http://pubimage.360doc.com/wz/cr1.gif" id="docArtC1"  onclick="ChangeArtClass(1,this)"  style="cursor:pointer;"/></td>
+<td width="21"><img src="http://pubimage.360doc.com/wz/cr2.gif" id="docArtC2"   onclick="ChangeArtClass(2,this)"  style="cursor:pointer;"/></td>
+<td width="21"><img src="http://pubimage.360doc.com/wz/cr3.gif"  id="docArtC3"  onclick="ChangeArtClass(3,this)"  style="cursor:pointer;"/></td>
+<td width="21"><img src="http://pubimage.360doc.com/wz/cr4.gif"  id="docArtC4"  onclick="ChangeArtClass(4,this)"  style="cursor:pointer;"/></td>
+<td width="21"><img src="http://pubimage.360doc.com/wz/cr5.gif"   id="docArtC5"  onclick="ChangeArtClass(5,this)"  style="cursor:pointer;"/></td>
+<td width="28"><img src="http://pubimage.360doc.com/wz/cr6.gif"  id="docArtC6"  onclick="ChangeArtClass(6,this)"  style="cursor:pointer;"/></td>
+<td width="95" class="zihao">字号：<span style="cursor:pointer;" onclick="ChangeArtSize(3,this)" >大</span><span  style="cursor:pointer;"  onclick="ChangeArtSize(2,this)" >中</span><span  style="cursor:pointer;"  onclick="ChangeArtSize(1,this)" >小</span></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</td>
+</tr>
+<tr>
+<td>
+<table border="0" cellpadding="0" cellspacing="0" style=" width:100%; text-align:center;">
+<tbody>
+<tr> 
+<td class="biaoti">Linux协议栈中UDP数据报从网卡到用户空间流程总结</td>
+</tr>
+<tr> 
+<td class="biaoqian">
+
+
+<table cellpadding="0" cellspacing="0" style="text-align:center;margin: 0px auto;" ><tbody><tr><td>
+
+
+<div class="lf360">2011-02-22&nbsp;|&nbsp;阅：<span id="360doc_Readnum"></span>&nbsp;&nbsp;<span style=" position:relative;">转：<span id="360doc_saverNum"></span><span id="360doc_saverUser"></span></span>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="#" onclick=" setTimeout(showShareLayer, 10);">分享</a>&nbsp;</div>
+
+<div class="lf360" ><div style=" padding-top:3px;"><img style="cursor:pointer;" src="http://pubimage.360doc.com/wz/tb10.gif"  onclick="  setTimeout(showShareLayer, 10);"/></div>
+
+<div class="fenxiang" id="fenxiangLayer" style="display:none;">
+
+
+</div>
+<div id="AlertArt1" style="display:none; position:absolute;"></div>
+<div id="SendToFriends1" style="display:none;position:absolute;"></div>
+<div id="resavelayer1" class="lf360 zcbutton" style=" margin-left:100px;"></div>
+</div>
+
+<div class="lf360">&nbsp;&nbsp;<span id="savestatus"></span></div>
+
+
+</td></tr></tbody></table>
+
+
+
+</td>
+</tr>
+<tr>
+<td>
+<table class="wenzhangcss" border="0" cellpadding="0" cellspacing="0" width="100%">
+                                        <tbody>
+                                        <tr><td style="height:29px;">
+                                        <div class="xiantao"></div>
+                                        </td></tr>
+                                            <tr>
+                                                <td align="left" valign="top" width="670px" style=" height:200px;">
+                                                    <span id="articlecontent" onmouseup="NewHighlight(event)"><table>
+                                                        <tbody><tr><td width="670px"><font style="font-size: 14pt;" color="#02368d"><strong>Linux协议栈中UDP数据报从网卡到用户空间流程总结</strong></font><br>
+
+
+
+
+<table style="border-collapse: collapse; word-wrap: break-word;" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tbody><tr><td width="100%">
+<div id="art" width="100%" style="margin: 15px;">
+<div id="message7111480" class="t_msgfont"><font color="Blue">NAPI驱动流程：</font><br>
+&nbsp; &nbsp; 中断发生<br>
+&nbsp; &nbsp; --&gt;确定中断原因是数据接收完毕（中断原因也可能是发送完毕，DMA完毕，甚至是中断通道上的其他设备中断）<br>
+&nbsp; &nbsp; --&gt;通过netif_rx_schedule将驱动自己的napi结构加入softnet_data的poll_list链表，禁用网卡中断，并发出软中断<br>
+&nbsp; &nbsp;
+--&gt;中断返回时触发软中断net_rx_action，从softnet_data的poll_list上取下刚挂入的napi结构，并且调用其
+poll函数，这个poll函数也是驱动自己提供的，比如rtl8139网卡驱动中的rtl8139_poll等。<br>
+&nbsp; &nbsp; --&gt;在poll函数中进行轮询，直到接受完所有的数据或者预算(budget)耗尽。每接收一个报文要分配skb，用eth_type_trans处理并交给netif_receive_skb。<br>
+&nbsp; &nbsp; --&gt;如果数据全部接收完(预算没有用完)，则重新使能中断并将napi从链表中取下。如果数据没接收完，则什么也不作，等待下一次poll函数被调度。<br>
+<font color="Blue">非NAPI流程：</font><br>
+&nbsp; &nbsp; 中断发生<br>
+&nbsp; &nbsp; --&gt;确定中断发生的原因是接收完毕。分配skb，读入数据，用eth_type_trans处理并且将skb交给netif_rx<br>
+&nbsp; &nbsp;
+--&gt;在netif_rx中，将packet加入到softnet_data的input_pkt_queue末尾（NAPI驱动不使用这个
+input_pkt_queue），再通过napi_schedule将softnet_data中的backlog(这也是个napi结构)加入
+softnet_data的poll_list，最后发出软中断<br>
+&nbsp; &nbsp; --&gt;软中断net_rx_action从poll_list上取下softnet_data的backlog，调用其poll函数，这个poll函数是内核提供的process_backlog<br>
+&nbsp; &nbsp; --&gt;函数process_backlog从softnet_data的input_pkt_queue末尾取下skb，并且直接交给netif_receive_skb处理。<br>
+&nbsp; &nbsp; --&gt;如果input_pkt_queue中所有skb都处理完则将backlog从队列中除去(注意input_pkt_queue中可能有多个网卡加入的报文，因为它是每cpu公用的)并退出循环;如果预算用完后也跳出循环。最后返回接受到的包数<br>
+<font color="Red">总结：</font><br>
+NAPI和非NAPI的区别<br>
+&nbsp; &nbsp; 1.NAPI使用中断＋轮询的方式，中断产生之后暂时关闭中断然后轮询接收完所有的数据包，接着再开中断。而非NAPI采用纯粹中断的方式，一个中断接收一个数据包<br>
+&nbsp; &nbsp; 2.NAPI都有自己的struct napi结构，非NAPI没有<br>
+&nbsp; &nbsp; 3.NAPI有自己的poll函数，而且接收数据都是在软中断调用poll函数时做的，而非NAPI使用公共的process_backlog函数作为其poll函数，接收数据是在硬件中断中做的<br>
+&nbsp; &nbsp;
+4.NAPI在poll函数中接收完数据之后直接把skb发给netif_receive_skb，而非NAPI在硬件中断中接收了数据通过
+netif_rx把skb挂到公共的input_pkt_queue上，最后由软中断调用的process_backlog函数来将其发送给
+netif_receive_skb<br>
+驱动以及软中断这块对skb仅仅做了以下简单处理：<br>
+&nbsp; &nbsp; 1.调用skb_reserve预留出2个字节的空间，这是为了让ip首部对齐，因为以太网首部是14字节<br>
+&nbsp; &nbsp; 2.调用skb_put将tail指向数据末尾<br>
+&nbsp; &nbsp; 3.调用eth_type_trans进行如下处理：<br>
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;(1)将skb-&gt;dev指向接收设备<br>
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;(2)将skb-&gt;mac_header指向data(此时data就是指向mac起始地址)<br>
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;(3)调用skb_pull(skb, ETH_HLEN)将skb-&gt;data后移14字节指向ip首部<br>
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;(4)通过比较目的mac地址判断包的类型，并将skb-&gt;pkt_type赋值PACKET_BROADCAST或PACKET_MULTICAST或者PACKET_OTHERHOST，因为PACKET_HOST为0，所以是默认值<br>
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;(5)最后判断协议类型，并返回（大部分情况下直接返回eth首部的protocol字段的值），这个返回值被存在skb-&gt;protocol字段中<br>
+<font color="Red">总结，</font>结束后，skb-&gt;data指向ip首部，skb-&gt;mac_header指向
+mac首部,skb-&gt;protocol储存L3的协议代码，skb-&gt;pkt_type已被设置，skb-&gt;len等于接收到的报文
+长度减去eth首部长度，也就是整个ip报文的总长。其余字段基本上还是默认值。<br>
+<br>
+<font color="Blue">netif_receive_skb</font><br>
+&nbsp; &nbsp;
+1.将skb-&gt;iif赋值为skb-&gt;dev-&gt;ifindex，将skb-&gt;network_header和
+skb-&gt;transport_header都指向skb-&gt;data，也就是ip首部，然后skb-&gt;mac_len=skb-&amp;
+gt;network_header-skb-&gt;mac_header，正常情况下应该等于ETH_HLEN吧<br>
+&nbsp; &nbsp; 2.向ptype_all中注册(通过dev_add_pack)的每一个packet_type调用一次deliver_skb,这里没有拷贝skb，只是先增加了一下skb-&gt;users<br>
+&nbsp; &nbsp; 3.调用handle_bridge处理桥报文，如果该dev不是一个桥端口则直接返回<br>
+&nbsp; &nbsp; 4.调用handle_macvlan处理vlan<br>
+&nbsp; &nbsp; 5.对于每一个在ptype_base中注册的packet_type(也是用dev_add_pack),调用deliver_skb<br>
+&nbsp; &nbsp; 6.如果没有任何一个注册的packet_type接受skb则直接kfree_skb并且返回NET_RX_DROP。否则返回最后一个pkt_type-&gt;func返回的值<br>
+<font color="Red">总结，</font>需要说一下dev_add_pack，这个函数根据传入的packet_type的type字
+段决定加入哪个队列，如果是ETH_P_ALL就加入ptype_all，否则计算哈希值并加入ptype_base，通过这个函数注册的都是L3层的协
+议，比如ip,arp,rarp,bootp等，其实还有packet协议族套接字的监听函数（除了ETH_P_ALL之外都加入ptype_base，
+它们对应的接收函数是packet_rcv），这里对于ip来说，接受函数就是ip_rcv。<br>
+经过这个函数，又有几个字段发生变化：<br>
+network_header和transport_header都指向ip首部,mac_len为mac首部长度<br>
+<br>
+<font color="Blue">ip_rcv:</font><br>
+&nbsp; &nbsp; 1.丢弃所有pkt_type为OTHER_HOST的包，注意对于将网卡设为混杂模式的监听进程来说，这个包已经在netif_receive_skb中给它们发送了一份拷贝<br>
+&nbsp; &nbsp; 2.检查skb是否被共享，如果被共享需要用skb_clone拷贝一份，因为后面要对skb的内容进行变更<br>
+&nbsp; &nbsp;
+3.常规检测：如果报文的长度小于ip首部最小长度，丢弃；如果ip协议字段不等于4丢弃；若ip首部长度字段小于5，丢弃；若ip首部长度小于ip首部
+长度字段*4，丢弃；如果ip首部校验和出错，丢弃；如果skb-&gt;len(此时len为整个ip报文长度)小于ip首部总长字段，丢弃；如果ip
+首部总长字段小于ip首部长度字段，丢弃；<br>
+&nbsp; &nbsp;
+4.注意第三步中skb-&gt;len是可以小于ip首部的总长字段的，因为根据代码注释，传输介质有可能在末尾添加了padding，在这种情况下，
+会调用pskb_trim_rcsum将多余的结尾部分砍掉（通过把skb-&gt;tail往前移），并且还要将检查和无效化<br>
+&nbsp; &nbsp; 5.此处调用NF_INET_PRE_ROUTING钩子函数<br>
+<font color="Red">总结，</font>ip_rcv主要进行的常规检查，唯一对skb进行操作的就是将结尾的填充字段砍掉。<br>
+<br>
+<font color="Blue">ip_rcv_finish：</font><br>
+&nbsp; &nbsp; 1.首先，如果skb-&gt;dst为空，说明还不确定这个ip报文的目的地是本机还是别的机器，这时通过ip_route_input来找到rtable并且赋给skb-&gt;rtable<br>
+&nbsp; &nbsp;
+2.如果ip首部长度字段大于5则调用ip_rcv_options处理ip选项。该函数调用ip_options_compile将选项全部处理放在
+skb的cb字段中，作为一个struct
+ip_options（还要详细看ip_options_compile）。如果有源站路由选项则检查设备是否支持源站路由（软件支持，可配置），则调用
+ip_options_rcv_srr（此函数也还需认真看）填写源站路由。<br>
+&nbsp; &nbsp;
+3.添加统计信息并调用dst_input，dst_input只是调用skb-&gt;dst-&gt;input函数，这个skb-&gt;dst就
+是前面用ip_route_input确定的，而根据dst类型的不同，这个input函数可能是ip_local_deliver或者
+ip_forward，这里我们看ip_local_deliver。<br>
+<font color="Red">总结，</font>ip_rcv_finish改变了skb-&gt;dst字段（如果本来
+skb-&gt;dst字段已经有值则不改变）和skb-&gt;cb字段（在ip_rcv_options中将ip首部选项编译之后放入cb）。
+ip_options_compile可以改变报文内容，比如填写路由记录选项，填写时间戳选项等<br>
+<br>
+<font color="Blue">ip_local_deliver</font><br>
+&nbsp; &nbsp;
+1.如果ip首部offset或者MF不为0，则调用ip_defrag进行ip分片的重组，ip_defrag只在成功完全重组了一个报文之后才会返回
+0，其他情况都是返回非0，如果返回非0就会从ip_local_deliver返回。ip_defrag也比较复杂，需要细看，总体来说就是将分片放在
+一个哈希表中，开启定时器，来一个分片就与前面属于同一ip报文的分片合并（两个分片是否属于同一个ip报文是通过ip的id字段，源目的地址，L4协议
+等多个参数确定的，可参考ip4_frag_match）<br>
+&nbsp; &nbsp; 2.钩子NF_INET_LOCAL_IN，并调用ip_local_deliver_finish<br>
+<font color="Red">总结，</font>从上两个函数可以看出NF_INET_PRE_ROUTING和
+NF_INET_LOCAL_IN之间的区别，前者还没有经过路由处理，即skb-&gt;dst一般还没有确定，而后者是已经确定了
+skb-&gt;dst且dst为本地地址，假如skb-&gt;dst不是本地地址则会调用ip_forward，这就不会触发
+NF_INET_LOCAL_IN了。另外NF_INET_PRE_ROUTING尚未对ip分片进行合并处理，而NF_INET_LOCAL_IN抓到
+的数据包是已经合并成的ip报文了<br>
+<br>
+<font color="Blue">ip_local_deliver_finish</font><br>
+&nbsp; &nbsp; 1.将skb-&gt;data继续移动指向传输层首部，并且将skb-&gt;transport_header也指向传输层首部，接下来开始处理<br>
+&nbsp; &nbsp; 2.首先从ip首部取得传输层协议号，然后用这个协议号调用raw_local_deliver将skb传给raw_v4_hashinfo哈希表中的原始套接字协议<br>
+&nbsp; &nbsp;
+3.再利用protocol值作为下标取得inet_protos全局数组中的注册协议（对于tcp,udp,icmp分别是
+tcp_protocol，udp_protocol，icmp_protocol）。如果找到了对应的协议处理结构，就把skb交给该结构的
+handler函数处理（对于tcp,udp,icmp分别是tcp_v4_rcv，udp_rcv，icmp_rcv）。如果没找到对应的处理结构，则
+回发一个icmp协议不可达的目的不可达报文，并释放skb。<br>
+<font color="Red">总结：</font>这里又一次移动了skb-&gt;data指针，将其指向传输层首部，同时设置了
+transport_header也指向传输层首部。raw_v4_hashinfo和inet_protos都是一个256项的全局数组，以协议号为下
+标保存了各个协议的处理结构。这两个数组就像是L4层的ptype_base，根据本层的协议号来决定处理函数<br>
+注意区别raw_v4_hashinfo和上面的ptype_all，前者是AF_INET的SOCK_RAW套接字注册的接收结构，而后者是
+AF_PACKET套接字注册的接收结构，可见raw套接字是经过了ip层处理的而packet是在netif_receive_skb中接收的，尚未经
+过任何处理，其中一个显著区别就是raw经过了ip_defrag而packet没有<br>
+<br>
+<br>
+对于udp来说，inet_protos中的结构是全局变量udp_protocol，它的handler函数是udp_rcv<br>
+udp_rcv所做的就是直接调用__udp4_lib_rcv(skb, udp_hash, IPPROTO_UDP);<br>
+<br>
+<br>
+<font color="Blue">__udp4_lib_rcv</font><br>
+&nbsp; &nbsp; 此函数中会调用__udp4_lib_lookup_skb--&gt;()__udp4_lib_lookup()来查找此udp包对应的socket，主要是查找源目的地址和端口号都符合的socket。<br>
+&nbsp; &nbsp; 如果查找到了对应的socket，则调用udp_queue_rcv_skb将skb放入udp的接收队列，然后返回0<br>
+&nbsp; &nbsp; 如果没有查找到对应的socket，要向源地址发送一个ICMP端口不可达消息<br>
+<br>
+<br>
+<font color="Blue">udp_queue_rcv_skb</font><br>
+&nbsp; &nbsp; 它经过__udp_queue_rcv_skb(sk,
+skb)--&gt;__udp_queue_rcv_skb--&gt;skb_queue_tail一系列调用过程将skb加入socket的接收队
+列sk-&gt;sk_receive_queuek末尾。其中还要检测接收缓冲区是否已经满。<br>
+&nbsp; &nbsp; 接着调用sk-&gt;sk_data_ready(sk, skb_len)通知socket有数据就绪，可以读了。一般情况下这个函数对应sock_def_readable，这个函数的功能就是唤醒在sk-&gt;sk_sleep上睡眠的进程<br>
+<br>
+<br>
+<br>
+&nbsp; &nbsp; 那么是谁在这里睡眠呢？在调用recvfrom系统调用接收报文的时候，会经过这样一个流程<br>
+&nbsp; &nbsp; sys_socketcall<br>
+&nbsp; &nbsp; --&gt;sys_recvfrom<br>
+&nbsp; &nbsp; --&gt;sock_recvmsg<br>
+&nbsp; &nbsp; --&gt;__sock_recvmsg<br>
+&nbsp; &nbsp; --&gt;sock-&gt;ops-&gt;recvmsg，这个sock-&gt;ops对应全局变量inet_dgram_ops，里面的recvmsg对应sock_common_recvmsg<br>
+&nbsp; &nbsp; --&gt;sock_common_recvmsg<br>
+&nbsp; &nbsp; --&gt;sk-&gt;sk_prot-&gt;recvmsg，这个sk-&gt;sk_prot对应全局变量udp_prot，里面的recvmsg对应udp_recvmsg<br>
+&nbsp; &nbsp; --&gt;udp_recvmsg<br>
+&nbsp; &nbsp; --&gt;__skb_recv_datagram<br>
+&nbsp; &nbsp;
+在__skb_recv_datagram中，会首先尝试从sk-&gt;sk_receive_queue上取下数据包，如果发现队列中没有数据包，则
+开始在sk-&gt;sk_skeep上睡眠。而上面sock_def_readable唤醒的就是这里睡眠的进程。<br>
+&nbsp; &nbsp;
+可以看到，在__skb_recv_datagram中被唤醒后，函数又尝试从sk-&gt;sk_receive_queue上取下数据包，这时当然会
+成功，成功之后返回到udp_recvmsg。udp_recvmsg再进行一些简单的检测之后就调用copy_to_user将数据拷贝到用户空间了
+（其实这里并不是简单调用copy_to_user，还要处理很多情况，比如用户使用的msghdr可能包含多个iovec，skb可能有多个frags
+等等）<br>
+<br>
+这样，一个udp数据包就从网卡到达了用户的缓冲区</div></div></td></tr></tbody></table></td></tr></tbody></table>
+                                                        <div id="viewerPlaceHolder" style="width: 717px; height: 700px; display: none;">
+                                                        </div>
+                                                   
+                                                     </span>
+
+
+                                                    
+                                                    <table>
+                                                        <tbody><tr>
+                                                            <td>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody></table>
+                                                </td>
+                                                </tr>
+                                                <tr><td><div class="lf360 list" style=" text-align:left; font-size:14px;"><div id='lastart'></div>
+                                        <div id='nextart'></div></div></td></tr>
+                                              <tr><td style="height:29px;">
+                                        <div style=" padding-top:20px;"><table style="  width:100%; " cellpadding="0" cellspacing="0">
+                                        <tbody>
+                                        <tr>
+                                        <td width="31%"></td>    
+                                        <td>
+                                         <table cellpadding="0" cellspacing="0" style=" margin:0px auto; ">
+                                        <tbody>
+                                        <tr>
+                                       <td><div class=" lf360" style='cursor:pointer'  ><a href="javascript:void(0);" onclick="wzhit(22);SaveArt();"><img src="http://pubimage.360doc.com/wz/tb11.gif" /></a></div>    
+
+  <div class=" lf360 xianhua" id="sendFlowerToUser" style='cursor:pointer' onclick='Showflowerlayer("sendedLayer1");' >献花(<span id="articleflowernum"  >0</span>)<div id='flowernumadd' class="addtionone">+1</div></div>
+
+                                        
+
+                                       
+                                        </td>
+                                        </tr></tbody>
+                                        </table>
+                                        </td>
+                                         <td width="31%" style=" vertical-align:bottom;font-size:12px;">
+                                         <div class="rt360" id="sharediv2">
+                                     
+
+
+                                        </div>
+                                        
+                                        </td>  
+                                        </tr>
+                                        </tbody>
+                                        </table>
+
+
+                                    
+                                                                               </div>
+                                        </td></tr>
+                                                
+                                                <tr><td >
+                                                <div class="xiantao" style=" padding-top:5px;">
+                                        
+                                        </div>
+                                        </td></tr>
+                                            <tr><td class="xgiambox" style=" vertical-align:top; height:30px;padding-top:10px;"><div class="rt360">(本文系<span class="name"><a target="_blank" href="http://www.360doc.com/userhome/61151">vavava</a></span>首藏<span id="docsource"></span>)</div></td></tr>
+                                                </tbody>
+                                                </table>
+</td>
+</tr>
+
+</tbody>
+</table>
+
+
+</td>
+</tr>
+</tbody>
+</table>
+<div class="lswzbox">
+<div>
+<table cellpadding="0" cellspacing="0">
+<tbody>
+<tr>
+<td width="370"><div class="titwx">类似文章</div>
+ <div class="modlist lf360 list" style=" width:310px;">
+   <ul >
+        
+                <li><span>
+                    <a href=http://www.360doc.com/content/09/0518/15/36491_3551831.shtml target=_blank onclick='wzhit(37)'>TCP的prequeue分析 - Kernel and Driv...</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/10/0107/15/36491_12898102.shtml target=_blank onclick='wzhit(37)'>linux 内核tcp接收数据的实现 - 但行好事 ...</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/08/1226/11/36491_2201521.shtml target=_blank onclick='wzhit(37)'>Linux内核napi机制分析 - 我的文章 - unix...</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/07/0422/14/17255_460855.shtml target=_blank onclick='wzhit(37)'>深入linux网络核心堆栈</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/09/0518/14/36491_3551674.shtml target=_blank onclick='wzhit(37)'>TCP包处理的后备队列(backlog)和预备队列(...</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/10/0107/16/36491_12907579.shtml target=_blank onclick='wzhit(37)'>tcp的输入段的处理 - 但行好事 莫问前程 -...</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/09/0708/11/36491_4185327.shtml target=_blank onclick='wzhit(37)'>git.kernel.org - linux/kernel/gi...</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/09/0413/22/26398_3123054.shtml target=_blank onclick='wzhit(37)'>linux 内核和用户空间通信之netlink使用方...</a></span></li>
+            
+  </ul> 
+  <div class=" rt360"><a href=http://www.360doc.com/relevant/95207848_more.shtml  target='_blank'  onclick='wzhit(38)'>更多</a></div>
+  </div></td>
+<td><script type="text/javascript"><!--
+        google_ad_client = "ca-pub-5687840453193141";
+        /* 文章页正文下方广告 */
+        google_ad_slot = "0341528988";
+        google_ad_width = 300;
+        google_ad_height = 250;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js"> 
+</script>
+</td>
+
+</tr>
+</tbody>
+</table>
+
+  <script type="text/javascript" id="wumiiRelatedItems"></script>
+ 
+
+
+   <div id="Reflction">
+                                    <div id="360docRefTN" >
+                                    </div>
+                                    <div id="360docRefCT">
+                                    </div>
+                                    <div id="360docRefPB" align="center">
+                                    </div>
+                                </div>
+                                <a name="sf"></a>
+                              
+
+
+
+  <div id="ReflectionPart" >
+ 
+  <div class="mainbottom">
+  <div class=" lf360"><img src="http://pubimage.360doc.com/wz/tb22.gif"  /></div>
+  <div class="plbox lf360">
+  <div class="plmain">
+   <div class="titwx" >发表评论：</div>
+   <div>
+     <textarea name="SendRefTB" class="pltxt" id="SendRefTB"   onfocus="testContent(1);"
+                                                        onblur="testContent(2)"></textarea>
+   </div>
+   <div class="rt360"><img id="ImgSendPL" src="http://pubimage.360doc.com/wz/tb24.gif"   style="cursor: pointer;"  onclick="SubmitReflection()" width="75" height="28" /></div> 
+  </div>
+  </div>
+   <div class=" lf360"><img src="http://pubimage.360doc.com/wz/tb23.gif"  /></div> 
+  </div>
+
+
+  </div>
+  
+  </div>
+</div>
+
+
+
+
+
+</td>
+<td align="center" valign="top" width="18px">
+ 
+</td>
+<td align="left" valign="top" width="252px">
+
+
+<div style="background-color: #f5f5f5;">
+    <div style="padding: 11px 14px;text-align:left;">
+       <table cellpadding="0" cellspacing="0">
+       <tr>
+       <td valign="top">
+ <div class=" lf360 head">
+                <a id="ArticleRight1_HyperLink2" onclick="wzhit(40);" href="http://www.360doc.com/userhome/61151" target="_blank"><img src="http://pubimage.360doc.com/head/001.gif" alt="" style="border-width:0px;" /></a></div>
+       </td>
+       <td valign="top">
+       <div style="padding-left: 10px; padding-top: 3px; color: #6d6d6d; text-align:left; ">
+                <div class="nametit name">
+                    <a id="ArticleRight1_HyperLink1" onclick="wzhit(39);" href="http://www.360doc.com/userhome/61151" target="_blank">vavava</a></div>
+                <div style="height: 24px;">
+                    馆藏：<a href="http://www.360doc.com/userhome.aspx?userid=61151&app=1" target=_blank onclick="javascript:wzhit(41);">333</a></div>
+                <div>
+                    关注我：<a href="http://www.360doc.com/userhome.aspx?userid=61151&app=2" target=_blank onclick="javascript:wzhit(42);">6</a></div>
+            </div>
+       </td>
+       </tr></table>
+           
+            
+       
+        <div class="gxqianm both">
+            </div>
+        <div style="padding-top: 5px;">
+            <span id="spanfollowstatus"><script>isfollow(61151);</script></span>&nbsp;<a href="javascript:void(0);" onclick="showMsDiv();wzhit(44);"><img src="http://pubimage.360doc.com/wz/tb21.gif" /></a></div>
+    </div>
+</div>
+<div class="pageqh">
+<div class="both">
+    <script type="text/javascript">
+        alimama_pid = "mm_11220363_1101997_10218757";
+        alimama_width = 250;
+        alimama_height = 250;
+    </script>
+    <script src="http://a.alimama.cn/inf.js" type="text/javascript"></script>
+    <div style="height:15px;"></div>
+</div>
+    <div id="qh" class="nav">
+        <span style="margin-left: 9px" class="checked" onclick="change('qh',0)">
+            最新文章</span>
+        
+    </div>
+    <div class="mokuaicontent">
+    </div>
+    <div style="clear: both;">
+        <div id="qh_ul_0" style="">
+            <div class="modlist lf360 list rightlist">
+                <ul>
+                    
+                            <li><span>
+                                <a href=http://www.360doc.com/content/10/0330/22/2633_20944303.shtml target=_blank onclick='wzhit(45)'>内存数据库FastDB和SQLite性能...</a></span></li>
+                        
+                            <li><span>
+                                <a href=http://www.360doc.com/content/10/0322/17/2633_19805334.shtml target=_blank onclick='wzhit(45)'>推荐：嵌入式数据库sqlite</a></span></li>
+                        
+                            <li><span>
+                                <a href=http://www.360doc.com/content/10/0330/22/2633_20945439.shtml target=_blank onclick='wzhit(45)'>SQLite B+树实现代码</a></span></li>
+                        
+                            <li><span>
+                                <a href=http://www.360doc.com/content/09/0620/15/61497_3971843.shtml target=_blank onclick='wzhit(45)'>发现瓶颈 - Profiling(程序剖析...</a></span></li>
+                        
+                            <li><span>
+                                <a href=http://www.360doc.com/content/11/1219/02/61151_173288694.shtml target=_blank onclick='wzhit(45)'>养成一个SQL好习惯带来一笔大财...</a></span></li>
+                        
+                            <li><span>
+                                <a href=http://www.360doc.com/content/11/1219/02/61151_173288634.shtml target=_blank onclick='wzhit(45)'>如何选择合适的MySQL存储引擎</a></span></li>
+                        
+                            <li><span>
+                                <a href=http://www.360doc.com/content/11/1204/03/61151_169511896.shtml target=_blank onclick='wzhit(45)'>MySQL性能调优与架构设计-架构篇</a></span></li>
+                        
+                            <li><span>
+                                <a href=http://www.360doc.com/content/11/1203/10/61151_169327118.shtml target=_blank onclick='wzhit(45)'>关于Mysql的性能调优</a></span></li>
+                        
+                            <li><span>
+                                <a href=http://www.360doc.com/content/11/1203/10/61151_169326057.shtml target=_blank onclick='wzhit(45)'>mysql - EXPLAIN语法</a></span></li>
+                        
+                            <li><span>
+                                <a href=http://www.360doc.com/content/11/1203/10/61151_169325670.shtml target=_blank onclick='wzhit(45)'>Mysql Explain 详解及Extended...</a></span></li>
+                        
+                            <li><span>
+                                <a href=http://www.360doc.com/content/11/1202/17/61151_169197864.shtml target=_blank onclick='wzhit(45)'>MySQL性能优化的最佳20+条经验</a></span></li>
+                        
+                            <li><span>
+                                <a href=http://www.360doc.com/content/11/1129/15/61151_168376473.shtml target=_blank onclick='wzhit(45)'>揭开正则表达式的神秘面纱</a></span></li>
+                        
+                </ul>
+                <div class=" rt360">
+                    <a href="http://www.360doc.com/userhome/61151" target="_blank">更多>></a></div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+<div class="both" style="padding-top: 9px;">
+    <script type="text/javascript">        var cpro_id = 'u1041292';</script>
+    <script src="http://cpro.baidustatic.com/cpro/ui/c.js" type="text/javascript"></script>
+</div>
+
+<div class="titwx" style="padding-top: 12px;text-align:left;">
+    热门文章</div>
+<div class="modlist lf360 list rightlist">
+    <ul>
+        
+                <li><span>
+                    <a href=http://www.360doc.com/content/13/0423/18/0_280411042.shtml target=_blank onclick='wzhit(47)'>夏季开胃小凉菜--糖醋白萝卜片</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/13/0124/19/0_262196656.shtml target=_blank onclick='wzhit(47)'>Win7系统自带光盘刻录功能使用...</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/13/0227/10/0_268161863.shtml target=_blank onclick='wzhit(47)'>受用一生的感冒特效穴，一次而...</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/12/1217/09/0_254508984.shtml target=_blank onclick='wzhit(47)'>中国考古古墓探秘 （34集）</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/13/0408/13/0_276889829.shtml target=_blank onclick='wzhit(47)'>能工巧匠，水泥版整体厨房超实...</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/12/1129/22/0_251072144.shtml target=_blank onclick='wzhit(47)'>百家讲坛人物大全，绝对值得收...</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/13/0114/16/0_260126424.shtml target=_blank onclick='wzhit(47)'>唯美摄影:裸露</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/12/1101/14/0_245094518.shtml target=_blank onclick='wzhit(47)'>幽默无比的流行语句，让你感同...</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/13/0103/17/0_257884496.shtml target=_blank onclick='wzhit(47)'>我看金瓶梅，9，朋友西门庆</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/13/0127/16/0_262683286.shtml target=_blank onclick='wzhit(47)'>六集系列片：《野人之迷》</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/13/0323/10/0_273372407.shtml target=_blank onclick='wzhit(47)'>中国十大最佳宗教寺院</a></span></li>
+            
+                <li><span>
+                    <a href=http://www.360doc.com/content/12/1220/21/0_255368552.shtml target=_blank onclick='wzhit(47)'>情感名言语录大全</a></span></li>
+            
+    </ul>
+    <div class=" rt360">
+        <a href="http://www.360doc.com/readroom.html" target="_blank">更多>></a></div>
+</div>
+
+<p>
+    &nbsp;
+</p>
+<p>
+    <script>
+        function change(pro_name, i) {
+            var pro = document.getElementById(pro_name);
+            var pro_arr = pro.getElementsByTagName("span");
+            for (var m = 0; m < pro_arr.length; m++) {
+                pro_arr[m].className = "unclecked link_black";
+                if (document.getElementById(pro_name + "_ul_" + m) != null) {
+                    document.getElementById(pro_name + "_ul_" + m).style.display = "none";
+                }
+            }
+            pro_arr[i].className = "checked link_bai";
+            if (document.getElementById(pro_name + "_ul_" + i) != null) {
+                document.getElementById(pro_name + "_ul_" + i).style.display = "block";
+            }
+        }
+    </script>
+</p>
+
+<div class="both" id="divad5" style="padding-top: 11px;*padding-top: 0px !important;">
+    <div id="divad4" style="display: none;">
+        <div>
+            <script type="text/javascript">
+                alimama_pid = "mm_11220363_1101997_10415986";
+                alimama_width = 250;
+                alimama_height = 250;
+            </script>
+            <script src="http://a.alimama.cn/inf.js" type="text/javascript"></script>
+        </div>
+        <div  class="ggwz">
+            <a href="javascript:void(0);" onclick="closead(2);">关闭</a>
+        </div>
+        <div style="height:13px;"></div>
+    </div>
+    
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+ </div>
+
+ <script language="javascript" type="text/javascript">
+     var appName = navigator.appName.toLowerCase();
+     if (appName.indexOf("microsoft internet explorer") > -1) {
+         document.write("<scr" + "ipt type='text/javascript' src='http://www.360doc.com/js/StickySystemIENewVersion.js?t=2013041601'></sc" + "ript>");
+        
+      
+     }
+     else {
+         document.write("<scr" + "ipt type='text/javascript' src='http://www.360doc.com/js/StickySystemOtherNewVersion.js?t=2013041601'></sc" + "ript>");
+       
+     }
+         
+</script>
+
+
+
+<span id="LayerLogin"></span>
+<script>GerLookingUserInfo(1,61151,1,1,'-1',-1,10,0);OutputSource('http://www.cublog.cn/u3/94479/showart_2067564.html');OutputCategory(61151,24,'Network');OutputLastNextArt('多进程共享socket（Linux，Win32）','http://www.360doc.com/content/11/0217/13/61151_93779217.shtml',0);OutputLastNextArt('TCP/UDP包大小','http://www.360doc.com/content/11/0316/16/61151_101687040.shtml',1);var wumiiPermaLink = "";var wumiiTitle = "Linux协议栈中UDP数据报从网卡到用户空间流程总结";var wumiiTags = "";var wumiiSitePrefix = "http://www.360doc.com/";var wumiiParams = "&num=5&mode=2&pf=JAVASCRIPT";</script>
+
+
+<script type="text/javascript" src="http://widget.wumii.com/ext/relatedItemsWidget"></script>
+<script type="text/javascript">
+    var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+    document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3Fd86954201130d615136257dde062a503' type='text/javascript'%3E%3C/script%3E"));
+</script>
+</body>
+</html>

@@ -1,0 +1,2983 @@
+<!doctype html>
+<!--[if lt IE 7]>  <html xmlns:og="http://opengraphprotocol.org/schema/" xmlns:fb="http://www.facebook.com/2008/fbml" itemscope itemtype="http://schema.org/Thing" lang="en-US" class="ie ie6 lte9 lte8 lte7"> <![endif]-->
+<!--[if IE 7]>     <html xmlns:og="http://opengraphprotocol.org/schema/" xmlns:fb="http://www.facebook.com/2008/fbml" itemscope itemtype="http://schema.org/Thing" lang="en-US" class="ie ie7 lte9 lte8 lte7"> <![endif]-->
+<!--[if IE 8]>     <html xmlns:og="http://opengraphprotocol.org/schema/" xmlns:fb="http://www.facebook.com/2008/fbml" itemscope itemtype="http://schema.org/Thing" lang="en-US" class="ie ie8 lte9 lte8"> <![endif]-->
+<!--[if IE 9]>     <html xmlns:og="http://opengraphprotocol.org/schema/" xmlns:fb="http://www.facebook.com/2008/fbml" itemscope itemtype="http://schema.org/Thing" lang="en-US" class="ie ie9 lte9"> <![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!--> <html xmlns:og="http://opengraphprotocol.org/schema/" xmlns:fb="http://www.facebook.com/2008/fbml" itemscope itemtype="http://schema.org/Thing" lang="en-US"> <!--<![endif]-->
+
+  <head>
+    <meta name="viewport" content="width=device-width">
+    <!-- This is Squarespace. --><!-- jessenoller -->
+<base href="">
+<meta charset="utf-8" />
+<title>Python Threads and the Global Interpreter Lock — jesse noller - a blog</title>
+<link rel="canonical" href="http://jessenoller.com/blog/2009/02/01/python-threads-and-the-global-interpreter-lock"/>
+<meta property="og:site_name" content="jesse noller - a blog"/>
+<meta property="og:title" content="Python Threads and the Global Interpreter Lock"/>
+<meta itemprop="name" content="Python Threads and the Global Interpreter Lock"/>
+<meta property="og:url" content="http://jessenoller.com/blog/2009/02/01/python-threads-and-the-global-interpreter-lock"/>
+<meta itemprop="url" content="http://jessenoller.com/blog/2009/02/01/python-threads-and-the-global-interpreter-lock"/>
+<meta property="og:type" content="article"/>
+<meta property="og:description" content="    There are a plethora of mechanisms and technologies surrounding
+    concurrent programming -- Python has support for many of them. In this
+    article we will explain, examine, and benchmark Python's threading
+    support, and discuss the much maligned Global Interpreter Lock (GIL).
+
+This is a reprint of a featured article I wrote for Python Magazine that 
+was published in the December 2007 issue. This article assisted in 
+inspiring me to write PEP 371.
+
+Introduction
+
+For many years, and especially within the last year, there has been an 
+ongoing discussion about the concepts of concurrent and parallel 
+programming, and how Python as a language might fit into both of these. The 
+discussion ranges from complaints about the global interpreter lock, to a 
+discussion on the validity of threaded programming in general.
+
+Blog posts, open letters, and articles beleaguer the fact that Python and 
+other languages are not truly &quot;concurrent&quot; and can not scale to tens of 
+cores on the modern processor. They all discuss the myriad selection of 
+programming paradigms, solutions (both old and new) and comparisons to 
+other languages.
+
+Of special note, given that this is a Python magazine, is the discussion 
+around the validity of Python within a highly parallel and concurrent 
+environment, due to the current structure of the CPython interpreter, the 
+global interpreter lock, and a lack of &quot;Erlang-like&quot; concurrency.
+
+What is concurrency? That's an easy thing to answer. Concurrency, when 
+applied to application/program logic, is the simultaneous execution of 
+tasks. For the most part, these tasks interact and pass information to and 
+from each other and the parent. Generally speaking, anything worth doing 
+is, sooner or later, worth doing concurrently.
+
+While concurrency defines the problem (or rather, the theory behind a 
+solution), parallelism defines the implementation. Parallelism, when 
+applied to applications, generally refers to the actual implementation of 
+concurrent programming. Specifically, it refers to the simultaneous 
+execution of tasks in such a way as to take advantage of multiple 
+processors, multiple processor cores, or even multiple machines within a 
+computing grid.
+
+There are, as with all things in computing, a myriad selection of 
+&quot;solutions&quot; or paradigms to address the challenges of both concurrent and 
+parallel computing. These include options ranging from the focus of this 
+article (standard threading or pthreads) to micro-threads, asynchronous 
+programming (a la Twisted), process forking, et cetera. Some languages, 
+like Erlang, eschew many of these to build the concept of concurrency and 
+communication deep into the language itself, making it a fundamental truth 
+and assumption.
+
+Each one of these paradigms,technologies, or solutions has it's own pros, 
+cons, and intricacies that have to be understood before you as a programmer 
+can really choose one to use. Questions have to be answered:
+
+    * Do you need shared state?
+    * Do you need to scale across machines/clusters?
+    * Are you willing to use message-passing, IPC, or memory mapping?
+
+Most people won't, or don't have to, answer these questions, as they will 
+simply approach the problem with what is now the near ubiquitous solution 
+to the concurrency &quot;problem&quot;: Threads, and threaded programming.
+
+A brief description of Threads
+
+A Thread is simply an agent spawned by the application to perform work 
+independent of the parent process. While the term Thread and threading have 
+referred to the concept of spawning (forking) multiple processes, more 
+frequently they refer specifically to a pthread, or a worker which is 
+spawned by the parent process, and which shares that parent's resources.
+
+Both processes and threads are created within a given programming language 
+and then scheduled to run, either by the interpreter itself (commonly known 
+as &quot;green threads&quot;), or by the operating system (&quot;native threads&quot;). Threads 
+which are scheduled by the operating system are governed by the operating 
+system's scheduler, which dictates many things. Among them is the usage and 
+allocation of multiple processor resources for the execution of the child 
+threads.
+
+Now, what's the difference between a thread and a process which you can 
+create if both are simply workers spawned by the parent and scheduled by 
+the operating system or interpreter? Threads fundamentally differ from 
+processes in that they are light weight and share memory. The term &quot;light 
+weight&quot; refers to the up-front cost of performing the operating system 
+level process creation (and the requirement of passing a large amount of 
+information and state to the spawned process). Sharing memory speaks to one 
+of the benefits of using threads over processes. Namely, threads can share 
+state, objects, and other information with each other and the main thread 
+of execution (this is normally called shared context). Threads, as they 
+live within the space of a single process, share all of the parent's 
+address space.
+
+The very fact that threads share the same address space is one of their key 
+and most lauded features. When a program spawns twenty threads, all twenty 
+of those threads can have unfettered access to data within both themselves, 
+each other, and the parent. This &quot;simplifies&quot; data sharing; everyone has 
+everything.
+
+With shared memory you sidestep most, if not all, of the inter-child 
+communications questions and issues. The catch? You sacrifice your ability 
+to easily jump from a single memory space on one machine to many machines 
+(without a lot of work, that is).
+
+Threads, just like processes, are designed to be passed off to the 
+operating system scheduler, which dictates which CPU a given process is run 
+on, when it is run on that CPU which means that not only do you gain shared 
+memory with threads, you can leverage all of the local machine's resources 
+(in theory) including multiple cores and/or CPUs.
+
+Threads are also, as mentioned before, ubiquitous. Most modern languages, 
+along with some of the old crusty ones like, say, C (I kid!) have support 
+for threads. Java has the concurrency package, Ruby has the thread struct, 
+Perl, well perl has some thing(s). C, C++, etc., they all support threads.
+
+Another benefit of threaded programming, which is frequently understated, 
+is organization and design. Take,for example, any system which follows the 
+classical Producer/Consumer model, in which you have a group of producer 
+threads which fill a shared queue with work items and the consumer threads 
+work off of that shared queue, concurrently or asynchronously. Threads are 
+a natural fit for this pattern because they lend themselves to the clear 
+and clean encapsulation of logic for all of the objects, while also 
+leveraging the shared nature of threads themselves via the work queue. This 
+separation/encapsulation of logic (and duties) within threaded applications 
+can frequently make them easier to read, maintain, and understand.
+
+Great, right?
+
+Well, not everything is happy-fun-time in Thread land. Many a great 
+programmer has been stymied by the one thing that brought people running to 
+Thread's dinner-table: Shared Memory. Take, for instance, the 
+synchronization error.
+
+Synchronization errors occur when you have two threads accessing a common 
+mutable chunk of data, whether it's a function that in turn modifies or 
+calls something else, or something like a shared dictionary where the two 
+attempt to alter the same key at once (more on this later). Synchronization 
+errors are generally hanging out behind the school smoking with... Race 
+conditions! Take the example in Listing 1:
+
+
+#!/usr/bin/python
+from threading import Thread
+
+class myObject(object):
+    def __init__(self):
+        self._val = 1
+    def get(self):
+        return self._val
+    def increment(self):
+        self._val += 1
+
+def t1(ob):
+    ob.increment()
+    print 't1:', ob.get() == 2
+
+def t2(ob):
+    ob.increment()
+    print 't2:', ob.get() == 2
+
+ob = myObject()
+
+# Create two threads modifying the same ob instance
+thread1 = Thread(target=t1, args=(ob,))
+thread2 = Thread(target=t2, args=(ob,))
+
+# Run the threads
+thread1.start()
+thread2.start()
+thread1.join()
+thread2.join()
+
+The banality of the code notwithstanding, one of the two tests will always 
+fail. This is because both threads are incrementing an unlocked, global 
+value. This is a simple example of a synchronization error, one of the 
+threads beats the other to access a shared resource, and the assertion 
+fails. Errors such as this are common. Alarmingly so, given that when 
+people begin exploring threaded programming, their first instinct is to 
+share everything (whereas many concurrency solutions are referred to as 
+&quot;shared-nothing&quot;).
+
+This banal example shows a fundamental truth when applied to threaded 
+programming in general: with great shared memory comes great 
+responsibility. It's so easy to have threads throwing around objects and 
+data that programmers frequently over share. Threaded programming requires 
+that the programmer be very, very mindful of what data needs to be shared 
+amongst workers, how to protect (i.e. lock) that data so that you do not 
+run into the dreaded race-condition (as the code above would) or the even 
+more dreadful Deadlock.
+
+A quick note for those of you unfamiliar with the concept: deadlocks occur 
+when your application seizes up while any number of threads lock-up waiting 
+for the other threads to free required resources, never to return. 
+Deadlocks and synchronization errors in threaded applications are not only 
+painful to debug, they're also insidious, hard to find, and easy to make.
+
+The rise of threaded programming in modern languages really brings 
+concurrent programs to everyone. They are the commoditization of 
+concurrency and parallelism; everyone can (and sooner or later does) write 
+a program with threads. The modern thread is the de facto concurrent 
+programming solution to many modern programmers. They have truly become 
+ubiquitous.
+
+Everyone who writes applications (or even a simple script) will write an 
+application that does more than one thing at once, whether it's calculating 
+prime numbers or downloading pictures of cats on the internet. And sooner 
+or later, they're being yelled at by their spouse to come to bed because 
+they're up at 3 am and have been chasing synchronization issues for the 
+past twelve hours. 3 am is also when deadlocks jump out of the closet and 
+lock up your applications, right after your 3 month old spits up on your 
+keyboard.
+
+Python Thread Support
+
+To quote the Python thread module documentation:
+
+    &quot;The design of this module is loosely based on Java's threading model.
+    However, where Java makes locks and condition variables basic behavior
+    of every object, they are separate objects in Python. Python's Thread 
+    class supports a subset of the behavior of Java's Thread class.
+    Currently, there are no priorities, no thread groups, and threads
+    cannot be destroyed, stopped, suspended, resumed, or interrupted. The
+    static methods of Java's Thread, when implemented, are mapped to
+    module-level functions.&quot;
+
+Python's thread support, obviously, is loosely based off of Java's 
+(something many a Java-to-Python convert has been happy for, and stymied 
+by). Python's thread implementation is very simple at it's core, and builds 
+easily on the concept of individualized workers and shared state. It 
+provides all of the threaded programming primitives: locks, semaphores, and 
+all the normal goodies that come with a good threaded implementation.
+
+Let's look at the simplest thread example:
+
+
+from threading import Thread
+
+def myfunc():
+    print &quot;hello, world!&quot;
+
+thread1 = Thread(target=myfunc)
+thread1.start()
+thread1.join()
+
+There, you've got a multi-threaded application in seven lines of code. This 
+little script has two threads: the main thread, and the ''thread1'' object 
+we created. Obviously, here, I'm not sharing anything. Heck, I'm hardly 
+doing anything at all! What we are doing is simple: I am creating a new 
+Thread object and passing it a function to run. We are then calling 
+''start()'', which sends the thread off to be executed. The ''join()'' 
+method blocks the main application execution until the thread that we've 
+called ''join()'' on exits, this prevents a generic &quot;poll the thread until 
+it is done&quot; loop one might otherwise construct.
+
+Python's library has &quot;two&quot; threading-related modules: thread and threading
+. Two is in quotation marks because really it's only got one that most 
+people would care about, and that's threading. The threading module builds 
+on the primitives from the thread module that we mentioned earlier. 
+Threading is built using thread, and there are few, if any, reasons for 
+most developers to use the thread module directly.
+
+Let's take a moment to revisit the statement that Python's thread support 
+is a Java-Like implementation. Let's set a basic Python example next to a 
+simple Java example. First Java,
+
+MyThread.java:
+
+
+package com.demo.threads;
+public class MyThread implements Runnable &#123;
+    public void run() &#123;
+        System.out.println(&quot;I am a thread!&quot;);
+    &#125;
+&#125;
+
+MyThreadDemo.java:
+
+
+package com.demo.threads;
+public class MyThreadDemo &#123;
+    public static void main( String[] args ) &#123;
+        MyThread foobar = new MyThread();
+        Thread1 = new Thread(foobar);
+        Thread1.start();
+    &#125;
+&#125;
+
+Now, let's do the same thing, with Python:
+
+
+from threading import Thread
+
+class MyThread(Thread):
+    def run(self):
+        print &quot;I am a thread!&quot;
+
+foobar = MyThread()
+foobar.start()
+foobar.join()
+
+As you can see, the two are not that far off (albeit the Python example is 
+shorter). Both MyThread classes extend a superclass Runnable or Thread. 
+These superclasses provide the basic interfaces which dictate that the 
+object is a valid &quot;thread object&quot;. In both cases, we can skip over defining 
+the constructor for the object, as it's already been handled by the 
+superclass (but we could make a new one if we wanted to).
+
+Both MyThread objects have a common method, though: ''run()''. When making 
+an object a thread this is the only method which really needs to be 
+defined. Once a valid ''run()'' method has been defined, the object is now 
+threadable. A thread object may have any number of methods, callbacks, 
+decorators, etc. We have, in wandering around the Python Cheeseshop, seen 
+some modules simply extend thread so that an object can support threaded 
+implementations out of the box. The implementation that's provided may not 
+be threaded itself.
+
+Now, as mentioned before, synchronization errors plague threaded programs. 
+Unless access to a shared resource has proper controls (locks) applied to 
+it, multiple threads accessing the same resource will contend for that 
+resource. Contention leads to deadlocks, deadlocks lead to suffering, and 
+all that jazz.
+
+Let's take a look at another simple example commonly used to explain 
+threading -- the Bank example, in Listing 2. This is a simple thing really; 
+the Bank is a shared object which is manipulated simultaneously by the 
+threads we spawn. In this example, we spawn a Bank with 100 accounts, and a 
+1000 &quot;dollar&quot; balance. This means that the Bank should only ever contain 
+$100,000. The bank accounts should never lose money, nor should they ever 
+gain money above what was in the accounts to begin with.
+
+Listing 2:
+
+
+from threading import Thread
+from operator import add
+import random
+
+class Bank(object):
+    def __init__(self, naccounts, ibalance):
+        self._naccounts = naccounts
+        self._ibalance = ibalance
+
+        self.accounts = []
+        for n in range(self._naccounts):
+            self.accounts.append(self._ibalance)
+
+    def size(self):
+        return len(self.accounts)
+
+    def getTotalBalance(self):
+        return reduce(add, self.accounts)
+
+    def transfer(self, name, afrom, ato, amount):
+
+        if self.accounts[afrom] &lt; amount: return
+
+        self.accounts[afrom] -= amount
+        self.accounts[ato] += amount
+
+        print &quot;%-9s %8.2f from %2d to %2d Balance: %10.2f&quot; % \
+            (name, amount, afrom, ato, self.getTotalBalance())
+
+class transfer(Thread):
+    def __init__(self, bank, afrom, maxamt):
+        Thread.__init__(self)
+        self._bank = bank
+        self._afrom = afrom
+        self._maxamt = maxamt
+    def run(self):
+        for i in range(0, 3000):
+            ato = random.choice(range(b.size()))
+            amount = round((self._maxamt * random.random()), 2)
+            self._bank.transfer(self.getName(), self._afrom, ato, amount)
+
+naccounts = 100
+initial_balance = 1000
+
+b = Bank(naccounts, initial_balance)
+
+threads = []
+for i in range(0, naccounts):
+    threads.append(transfer(b, i, 100))
+    threads[i].start()
+
+for i in range(0, naccounts):
+    threads[i].join()
+
+In the normal example, the ''for i in range(0, 3000):'' would be a ''while 
+True:'', but we don't need forever, baby. Go ahead, run it. You'll notice 
+something within a few thousand transactions: the Bank balance goes awry. 
+It may not always happen, though. I've run this successfully four times in 
+a row now with zero corruption. However, the fifth time is the charm:
+
+
+...
+Thread-88     1.26 from 87 to 41 Balance:  100000.00
+Thread-88     0.65 from 87 to 23 Balance:  100000.00
+Thread-88     0.47 from 87 to  8 Balance:  100000.00
+Thread-88     0.04 from 87 to 28 Balance:  100000.00
+Thread-83    30.14 from 82 to  9 Balance:   99948.90
+Thread-83    35.70 from 82 to 67 Balance:   99948.90
+Thread-80     0.11 from 79 to 98 Balance:   99948.90
+Thread-83    30.82 from 82 to 89 Balance:   99948.90
+Thread-83    40.51 from 82 to 95 Balance:   99948.90
+Thread-83     5.20 from 82 to 52 Balance:   99948.90
+...
+
+That's the beauty of synchronization errors and race conditions. They won't 
+always happen. They may not even happen fifty percent of the time. But they 
+will happen. They good news? the fix is a few lines:
+
+
+from threading import Thread, Lock
+...
+lock = Lock()
+class bank(object):
+    def __init__(self, naccounts, ibalance):
+...
+    def transfer(self, name, afrom, ato, amount):
+        if self.accounts[afrom] &lt; amount: return
+        lock.acquire()
+        try:
+            self.accounts[afrom] -= amount
+            self.accounts[ato] += amount
+        finally:
+            lock.release()
+
+There. Problem fixed! See, Python, much like Java, allows the broken 
+version of this example to have one thread performing the account decrement 
+while another performs the increment. Both threads are in the same code 
+block of the shared object at once, and while one has already decremented 
+an account another thread may be decrementing the same account again.
+
+Wait what? What did we do? I've added a Lock, one of those nice 
+fundamentals that threading support needs. &quot;Wrapping&quot; a resource (whether 
+it is a variable, method or some other object) in a lock as I've done above 
+makes execution of that resource (in this case the accounts being modified) 
+thread safe, which is to say multiple threads can be running, but only one 
+can be modifying that particular resource at a time. In order to run the 
+code, a thread has to first get the lock.
+
+Locks and their management are the fix for the problem threading introduces 
+when accessing shared memory and objects. But don't think all's well that 
+ends well; lock management can also drive you bonkers.
+
+So, Python has all of the nice bits of threading, right? Well, one thing a 
+Java programmer might be missing is the magic of the ''synchronized'' 
+keyword. In Java, the ''synchronized'' keyword, applied to a method or 
+variable, turns access to that method, or modification of the variable, 
+into an instantly thread safe action.
+
+For example, the Java version of the transfer code:
+
+
+public synchronized void transfer(int afrom, 
+                                  int ato, 
+                                  double amount) &#123;
+	...
+&#125;
+
+The ''synchronized'' keyword basically manages the locks and conditions 
+automagically. When the method is entered, the lock is acquired. When it is 
+exited, the lock is released. The good news for Python is that with 
+decorators we can at least fudge out a synchronized keyword, so instead of 
+peppering our code with lock calls, we can do this:
+
+
+from threading import Lock
+from __future__ import with_statement
+def synchronized():
+    the_lock = Lock()
+    def fwrap(function):
+        def newFunction(*args, **kw):
+            with the_lock:
+                return function(*args, **kw)
+        return newFunction
+    return fwrap
+
+...
+    @synchronized()
+    def transfer(self, name, afrom, ato, amount):
+        if self.accounts[afrom] &lt; amount: return
+...
+
+Now, in this code example we used a bit of Python 2.5: the ''with'' 
+statement, which allows you to condense some amount of 
+''try''/''except''/''finally'' code via context managers. Since the inner 
+workings of ''with'' are out of scope, take a look at PEP 343 (
+http://docs.python.org/whatsnew/pep-343.html).
+
+For easy recipes with implementations of synchronized decorators see:
+
+    * http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/533135 and
+    * http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/502291
+
+So, now that you've got all of the basic lock support, and magical 
+decorators, and you've been warned to carefully think about what to share, 
+all's fun and games and you're going to run off and promptly write an 
+application with 1000 threads and do cool stuff, right? Well, there's 
+something else you need to know about: the Global Interpreter Lock.
+
+The Global Interpreter Lock
+
+&quot;Nevertheless, you're right the GIL is not as bad as you would initially 
+think: you just have to undo the brainwashing you got from Windows and Java 
+proponents who seem to consider threads as the only way to approach 
+concurrent activities.&quot; Guido Van Rossum 
+http://mail.python.org/pipermail/python-3000/2007-May/007414.html
+
+This is the part of the article where we take some air out of your threaded 
+sails. It's unfortunate this responsibility must be mine, but let us not 
+dwell on it. First let me describe what the GIL is.
+
+The GIL is an interpreter-level lock. This lock prevents execution of 
+multiple threads at once in the Python interpreter. Each thread that wants 
+to run must wait for the GIL to be released by the other thread, which 
+means your multi-threaded Python application is essentially single 
+threaded, right? Yes. Not exactly. Sort of.
+
+CPython uses what's called &quot;operating system&quot; threads under the covers, 
+which is to say each time a request to make a new thread is made, the 
+interpreter actually calls into the operating system's libraries and kernel 
+to generate a new thread. This is the same as Java, for example. So in 
+memory you really do have multiple threads and normally the operating 
+system controls which thread is scheduled to run. On a multiple processor 
+machine, this means you could have many threads spread across multiple 
+processors, all happily chugging away doing work.
+
+However, while CPython does use operating system threads (in theory 
+allowing multiple threads to execute within the interpreter 
+simultaneously), the interpreter also forces the GIL to be acquired by a 
+thread before it can access the interpreter and stack and can modify Python 
+objects in memory all willy-nilly. The latter point is why the GIL exists: 
+The GIL prevents simultaneous access to Python objects by multiple threads. 
+But this does not save you (as illustrated by the Bank example) from being 
+a lock-sensitive creature; you don't get a free ride. The GIL is there to 
+protect the interpreters memory, not your sanity.
+
+The GIL also keeps garbage collection (the reason you don't have to worry 
+about memory management, you bum) working. It prevents one thread from 
+decrementing the counters for an object and letting the object go into the 
+ether while another object is working with that object. Python's garbage 
+collection (deallocating unused objects to free memory) utilizes the 
+concept of reference counting. This is where all references to a given 
+object (integer, string or ''YourCat(object)'') are tracked. When the 
+number of references reaches zero, the object is deleted. The GIL prevents 
+any two threads from decrementing the reference count to any object to 0 
+while another thread is working on that object. Remember, only one thread 
+can access a Python object at a time.
+
+In reality, the CPython GIL is designed with an eye towards a simpler 
+interpreter implementation and single threaded execution speed. It makes 
+the maintenance of the interpreter (and by definition, the writing of 
+extension modules) easier by removing the need to worry about many memory 
+management and concurrency issues that otherwise might be problematic to 
+maintainers and extension authors. It keeps the reference interpreter 
+simple. It is not, ultimately, an &quot;end user&quot; feature unless you're writing 
+C code for Python.
+
+Python has had threading support, and the GIL, since as far back as version 
+1.5, so it's not new. In 1999 Greg Stein created a patch set for the 
+interpreter that removed the GIL, but added granular locking around 
+sensitive interpreter operations. This patch set had the direct effect of 
+speeding up threaded execution, but made single threaded execution two 
+times slower.
+
+So you may be wondering, &quot;if we have the GIL, and a thread must own it to 
+execute within the interpreter, what decides if the GIL should be 
+released?&quot; Delicious byte code instructions. When a Python application is 
+executed, it is compiled down to byte code, the actual instructions that 
+the interpreter uses for execution of the application. Normally, byte code 
+files end with a name like &quot;.pyc&quot; or &quot;.pyo&quot;. A given line of a Python 
+application might be a single byte code, while others, such as an import 
+statement, may ultimately expand into many byte code instructions for the 
+interpreter.
+
+That all being said, the CPython interpreter, when working with pure Python 
+code (more on this in a moment) will force the GIL to be released every 
+hundred byte code instructions. This means that if you have a complex line 
+of code like a complex math function that in reality acts as a single byte 
+code the GIL will not be released for the period that that statement takes 
+to run.
+
+There is an exception though: C modules! C extension modules (and built in 
+C modules) can be built in such a way that they release the GIL voluntarily 
+and do their own magic. Take for instance the time module (''timemodule.c'' 
+in the Python source tree). The ''sleep()'' function looks something like 
+this:
+
+
+
+    ...
+    Py_BEGIN_ALLOW_THREADS
+        sleep((int)secs);
+    Py_END_ALLOW_THREADS
+    ....
+
+In a C extension, the ''Py_BEGIN_ALLOW_THREADS'' and 
+''Py_END_ALLOW_THREADS'' macros signal the interpreter and basically state 
+&quot;hey, I'm entering some blocking operation, here's the GIL back&quot; and &quot;hey, 
+I'm returning, I need the GIL&quot;. This means that anything in your 
+application that uses a blocking I/O function (network/socket manipulation, 
+file manipulation) or a thread-safe C extension (most of the built-in ones 
+are) can &quot;bypass&quot; the GIL. This means you can get closer to having multiple 
+threads running at concurrently.
+
+Take for a moment, the ''timemodule.c'' code we pasted above. This means 
+that if you have a threaded application, and want the GIL to be released 
+regularly by your threads, you can call ''time.sleep(.0001)'' or some other 
+tiny amount, and the GIL will be magically released, and your other 
+thread(s) will run. Most application developers wouldn't like this 
+solution, but it is a common &quot;work around&quot; for the GIL limitation.
+
+There are other macros and a lot more details about the C API and the GIL. 
+The newer macros ''PyGILState_STATE_Ensure'' and 
+''PyGILState_STATE_Release'' do all of the low level state and GIL 
+manipulation for you. we recommend reading section 8.1 of the Python/C API 
+Reference Manual. http://docs.python.org/api/threads.html
+
+From a programming standpoint, the GIL is equivalent to wrapping all of 
+your code in a ''synchronize'' keyword (without the memory safety). No two 
+threads can run at once, they can only seem to via GIL 
+acquisition/releasing tricks.
+
+There are other ways to accelerate the GIL manipulation or avoid it:
+
+- call ''time.sleep()'' - set ''sys.setcheckinterval()'' - run Python in 
+optimized mode - dump process-intensive tasks into C-extensions - use the 
+subprocess module to execute commands
+
+The fact is, the GIL does prevent you as a programmer from using multiple 
+CPUs simultaneously. Python as a language, however, does not. If the 
+CPython interpreter had the GIL removed, the operating system's pthread 
+system would be free to run everything in parallel. The GIL does not 
+prevent a process from running on a different processor of a machine. It 
+simply only allows one thread to run at once within the interpreter.
+
+The real question you have to ask yourself is: does the GIL actually affect 
+you and your application? Is it really harming you or is it simply a 
+convenient excuse for people to dismiss Python? Let's examine code and 
+numbers.
+
+Benchmarking Python Threads
+
+Let's get our hands dirty with more code. First, a word on these 
+benchmarks: Benchmarks are handy excuses for people to get offended, or to 
+tweak them to make an argument. I do not intend either of these with these 
+numbers; run the code yourself and make your own assumptions.
+
+All tests are being run on a MacBook Pro, 2.33 GHz Intel Core 2 Duo with 
+3GB of ram and a 7200 RPM hard drive running Leopard and CPython 2.5.1 from 
+http://www.python.org. For the process tests, we're using the processing 
+module, previously covered in this magazine. 
+http://pypi.python.org/pypi/processing/
+
+The following tests will call a given function one time, in one hundred 
+loops. I then display the best of 100 calls. I cycle between a non-threaded 
+iteration based call, a threaded call, and finally a processing module 
+(fork and exec) call. I iterate each test for an increasing number of 
+calls/threads. I will go through 1, 2, 4 and finally 8 
+calls/threads/processes.
+
+Why are we adding process results into this? The answer is simple: we know 
+in advance the GIL is going to penalize our execution, and using it 
+sidesteps the GIL entirely, allowing us to see how fast execution could 
+be.
+
+For non-threaded execution, to keep things fair, we simply call the defined 
+function sequentially the same number of times as threads/processes we 
+would otherwise use. All examples use new-style classes to further even the 
+playing field, although we skip explicit ''__init__()'' setup as it's not 
+needed.
+
+To keep things simple, I've delegated all of the timings in this to 
+Python's timeit module. The timeit module is designed to benchmark pieces 
+of Python code -- generally single statements. In our case however, it 
+provides some nice facilities for looping over a given function a set 
+number of times and returning to us the fastest run time.
+
+You can see the timing execution script in Listing 3. In one argument, he 
+script accepts a module to look into for ''function_to_run()'', so for each 
+one we just save the example function to a file. It then iterates over the 
+tests and displays the results. This setup allows us to swap out the test 
+function easily.
+
+Listing 3:
+
+
+#!/usr/bin/python
+
+from threading import Thread
+from processing import Process
+
+class threads_object(Thread):
+    def run(self):
+        function_to_run()
+
+class nothreads_object(object):
+    def run(self):
+        function_to_run()
+
+class process_object(Process):
+    def run(self):
+        function_to_run()
+
+def non_threaded(num_iter):
+    funcs = []
+    for i in range(int(num_iter)):
+        funcs.append(nothreads_object())
+    for i in funcs:
+        i.run()
+
+def threaded(num_threads):
+    funcs = []
+    for i in range(int(num_threads)):
+        funcs.append(threads_object())
+    for i in funcs:
+        i.start()
+    for i in funcs:
+        i.join()
+
+def processed(num_processes):
+    funcs = []
+    for i in range(int(num_processes)):
+        funcs.append(process_object())
+    for i in funcs:
+        i.start()
+    for i in funcs:
+        i.join()
+
+def show_results(func_name, results):
+    print &quot;%-23s %4.6f seconds&quot; % (func_name, results)
+
+if __name__ == &quot;__main__&quot;:
+    import sys
+    from timeit import Timer
+
+    repeat = 100
+    number = 1
+
+    num_threads = [ 1, 2, 4, 8 ]
+
+    if len(sys.argv) &lt; 2:
+        print 'Usage: %s module_name' % sys.argv[0]
+        print '  where module_name contains a function_to_run function'
+        sys.exit(1)
+    module_name = sys.argv[1]
+    if module_name.endswith('.py'):
+        module_name = module_name[:-3]
+    print 'Importing %s' % module_name
+    m = __import__(module_name)
+    function_to_run = m.function_to_run
+
+    print 'Starting tests'
+    for i in num_threads:
+        t = Timer(&quot;non_threaded(%s)&quot; % i, &quot;from __main__ import non_threaded&quot;)
+        best_result = min(t.repeat(repeat=repeat, number=number))
+        show_results(&quot;non_threaded (%s iters)&quot; % i, best_result)
+
+        t = Timer(&quot;threaded(%s)&quot; % i, &quot;from __main__ import threaded&quot;)
+        best_result = min(t.repeat(repeat=repeat, number=number))
+        show_results(&quot;threaded (%s threads)&quot; % i, best_result)
+
+        t = Timer(&quot;processed(%s)&quot; % i, &quot;from __main__ import processed&quot;)
+        best_result = min(t.repeat(repeat=repeat, number=number))
+        show_results(&quot;processes (%s procs)&quot; % i, best_result)
+        print &quot;\n&quot;,
+
+    print 'Iterations complete'
+
+Test one establishes some baseline numbers by executing an empty function. 
+This will show us the overhead associated with each of the mechanisms I am 
+testing as applied to object creation and execution.
+
+
+def function_to_run():
+    pass
+
+Results of the code above:
+
+
+non_threaded (1 iters)  0.000003 seconds
+threaded (1 threads)    0.010256 seconds
+processes (1 procs)     0.004803 seconds
+
+non_threaded (2 iters)  0.000007 seconds
+threaded (2 threads)    0.020478 seconds
+processes (2 procs)     0.012630 seconds
+
+non_threaded (4 iters)  0.000010 seconds
+threaded (4 threads)    0.040831 seconds
+processes (4 procs)     0.010525 seconds
+
+non_threaded (8 iters)  0.000017 seconds
+threaded (8 threads)    0.080949 seconds
+processes (8 procs)     0.017513 seconds
+
+So, we can see that we take a hit just to add the threads and process 
+spawning to the calls. This is expected; besides the fact that Python is 
+optimized for single threaded performance, the simple act of creating the 
+threads and subprocesses adds an up-front cost. Look at the first group of 
+results -- the threaded call has a much higher cost than the non-threaded 
+version. Also of interest is the fact that the cost of adding threads/runs 
+grows parallel to the number of threads added -- 8 threads taking 0.080949, 
+4 threads taking 0.040831, and so on.
+
+Keep in mind that the point of adding threads is not to speed up 
+initialization, but rather to add concurrency to the application. In a less 
+contrived example, we might create a pool of threads once and reuse the 
+workers, allowing us to split up a large data set and run the same function 
+over different parts (a.k.a: the Producer/Consumer model). So while this is 
+not the norm for concurrent applications, these tests are designed to be 
+simple.
+
+One common application of threaded (and non-threaded) programming is to do 
+number crunching. Let's take a simple, brute force approach to doing 
+Fibonacci number crunching, noting of course that we're not sharing state 
+here. I am just trying to have two tasks generate a set number of Fibonacci 
+numbers.
+
+\
+def function_to_run():
+  a, b = 0, 1
+  for i in range(100000):
+    a, b = b, a + b
+
+Results of the code above:
+
+
+non_threaded (1 iters)  0.276594 seconds
+threaded (1 threads)    0.280199 seconds
+processes (1 procs)     0.290740 seconds
+
+non_threaded (2 iters)  0.559094 seconds
+threaded (2 threads)    0.564981 seconds
+processes (2 procs)     0.299791 seconds
+
+non_threaded (4 iters)  1.117339 seconds
+threaded (4 threads)    1.133981 seconds
+processes (4 procs)     0.580096 seconds
+
+non_threaded (8 iters)  2.235245 seconds
+threaded (8 threads)    2.275226 seconds
+processes (8 procs)     1.159978 seconds
+
+As you can see from this data, adding the additional threads doesn't buy us 
+anything -- you would expect that the threaded examples would run in 
+parallel -- but we can see that the threaded example runs at the same speed 
+(slightly slower) than the single-threaded examples. Adding threads in this 
+case actively harms us. The function executed is pure Python, and due to 
+the simple overhead of creating the threads and the GIL, the threaded runs 
+could never be faster than the single threaded or process-based examples. 
+Again, remember that the GIL only allows one thread to be active in the 
+interpreter at any given time.
+
+Now, let's do an I/O-bound task, like reading 1000 1-kilobyte chunks off of 
+''/dev/urandom''!
+
+
+def function_to_run():
+    fh = open(&quot;/dev/urandom&quot;, &quot;rb&quot;)
+    for i in range(1000):
+        fh.read(1024)
+
+Results of the code above:
+
+
+non_threaded (1 iters)  0.125532 seconds
+threaded (1 threads)    0.125908 seconds
+processes (1 procs)     0.140314 seconds
+
+non_threaded (2 iters)  0.251784 seconds
+threaded (2 threads)    0.250818 seconds
+processes (2 procs)     0.261338 seconds
+
+non_threaded (4 iters)  0.503835 seconds
+threaded (4 threads)    0.501558 seconds
+processes (4 procs)     0.511969 seconds
+
+non_threaded (8 iters)  1.006956 seconds
+threaded (8 threads)    1.003003 seconds
+processes (8 procs)     1.009011 seconds
+
+We're starting to see threads pass by the single threaded approach with the 
+file I/O task, but not by much. However, it is at least neck-and-neck with 
+the single threaded implementation and faster than the processing example. 
+The latter is an interesting point, too. This means that if you can &quot;dodge&quot; 
+the GIL you can potentially hit process speeds.
+
+Keep in mind that you would not really use threads like the benchmark 
+script we've put together does. Generally speaking, you'd be appending 
+things to a queue, taking them off, and doing other shared-state tasks. 
+Having a bunch of threads off running the same function, while useful, is 
+not a common use-case for a concurrent program, unless you're splitting up 
+and processing large data sets.
+
+For a quick final example let's look at the results when using the socket 
+module. This is the module that all network I/O goes through, it's in C, 
+and it's thread safe. To exclude network latency issues we will connect to 
+another computer's Apache web server on the LAN (not optimized for load) 
+and we'll use urllib2 instead of the raw socket library -- urllib2 uses the 
+socket library under the covers. Grabbing URLs is a common enough use case, 
+rather than just connecting to a socket over and over. I will also lower 
+the count of the requests since, generally speaking, jackhammering your web 
+server makes your web server the bottleneck. Given that this one is not 
+tuned, we will keep it simple. All that is being pulled down from Apache is 
+the default welcome-page.
+
+
+def function_to_run():
+    import urllib
+    for i in range(10):
+        f = urllib.urlopen(&quot;http://10.0.1.197&quot;)
+        f.read()
+
+Results of the code above:
+
+
+non_threaded (1 iters)  0.123033 seconds
+threaded (1 threads)    0.121244 seconds
+processes (1 procs)     0.141433 seconds
+
+non_threaded (2 iters)  0.250751 seconds
+threaded (2 threads)    0.223357 seconds
+processes (2 procs)     0.242443 seconds
+
+non_threaded (4 iters)  0.486189 seconds
+threaded (4 threads)    0.438107 seconds
+processes (4 procs)     0.448466 seconds
+
+non_threaded (8 iters)  0.986121 seconds
+threaded (8 threads)    0.881546 seconds
+processes (8 procs)     0.859714 seconds
+
+Take a look at the last two sets of numbers, minus the processing examples:
+
+
+non_threaded (4 iters)  0.486189 seconds
+threaded (4 threads)    0.438107 seconds
+
+non_threaded (8 iters)  0.986121 seconds
+threaded (8 threads)    0.881546 seconds
+
+As you can see, doing I/O does, in fact, release the GIL. The threaded 
+examples are obviously getting faster than the single-threaded execution. 
+Given that most applications do perform a certain amount of I/O (most 
+applications spend a large amount of their time in I/O) the GIL does not 
+prevent users from creating multi-threaded applications that can act in a 
+concurrent manner and add speed to their applications.
+
+Does the GIL block those people who are working in pure Python from truly 
+taking advantage of multiple cores? Simply put: Yes, it does. While threads 
+themselves are a language construct, the interpreter is the gatekeeper to 
+the mapping between threads and the OS. This is why Jython and IronPython 
+have no GIL. It was simply not needed and left out of the implementation of 
+the interpreter.
+
+Obviously, based on the numbers above, switching to processes side-steps 
+the entire GIL issue, allowing all of the children to run concurrently. 
+It's something to think about and it's been pointed out quite a bit.
+
+In Summary
+
+Threaded programming is the concurrency solution for the &quot;common&quot; man, but 
+the problems one runs into when delving into threaded programming are not 
+for the faint of heart, and they are not easy to overcome. Threading is the 
+first solution to the concurrency problem that many people run to when they 
+first get the urge to begin doing tasks in parallel.
+
+Python itself has good threading support, including all of the locking 
+primitives, queues, events and semaphores. That's everything Java and many 
+other languages have, including some higher-level &quot;cool&quot; thread things. Can 
+CPython take advantage of multiple threads for concurrency? Yes, with 
+caveats. The caveats applied hamper a particular segment of application 
+developers for sure, but for most of us working in high I/O environments, 
+CPython's thread system with the GIL works out fine. Even in those 
+environments though, threads may not be the fastest option.
+
+The GIL is something that's been debated, and continues to be debated 
+amongst many. Some call it a feature, some call it a mistake. Some people 
+will be quick to say that threaded programming is too difficult for a large 
+swath of the population, and that, in and of itself is a true statement.
+
+An important point to remember: The GIL is an interpreter issue. This means 
+that, again, other interpreters, such as Jython and IronPython do not 
+suffer the &quot;penalty&quot; of the GIL. In the same vein, there are a few people 
+out there currently working with the Python code base to experiment with 
+the removal of the GIL in the CPython interpreter.
+
+Guido (the BDFL) has already expressed openness to accepting a patch set to 
+the CPython tree that could optionally enable or disable the GIL or, if 
+some enterprising individual wanted to, to implement the interpreter in 
+such a way as to remove the GIL entirely without sacrificing single 
+threaded performance.
+
+There continues to be a large swath of people that state that threads are 
+not a true solution to the concurrency problem, despite many hundreds of 
+thousands of threaded applications currently in production. These people 
+yearn for something cleaner, less prone to the dark and sordid 
+synchronization problems too much shared-state brings to the table.
+
+Threading is ubiquitous, but it is only a single solution for concurrency 
+and we hope that this article helps you think about it's pitfalls, 
+potential and its state in the Python language.
+
+For more thoughts on the GIL, see Guido's blog (read the comments): 
+http://www.artima.com/weblogs/index.jsp?blogger=guido
+
+For another excellent comparison of threads/processes/etc., see the recent 
+effbot posting on the Tim Bray wide finder project: 
+http://effbot.org/zone/wide-finder.htm
+
+Note, for a producer/consumer threading example, see the threading.py 
+module's _test() method."/>
+<meta itemprop="description" content="    There are a plethora of mechanisms and technologies surrounding
+    concurrent programming -- Python has support for many of them. In this
+    article we will explain, examine, and benchmark Python's threading
+    support, and discuss the much maligned Global Interpreter Lock (GIL).
+
+This is a reprint of a featured article I wrote for Python Magazine that 
+was published in the December 2007 issue. This article assisted in 
+inspiring me to write PEP 371.
+
+Introduction
+
+For many years, and especially within the last year, there has been an 
+ongoing discussion about the concepts of concurrent and parallel 
+programming, and how Python as a language might fit into both of these. The 
+discussion ranges from complaints about the global interpreter lock, to a 
+discussion on the validity of threaded programming in general.
+
+Blog posts, open letters, and articles beleaguer the fact that Python and 
+other languages are not truly &quot;concurrent&quot; and can not scale to tens of 
+cores on the modern processor. They all discuss the myriad selection of 
+programming paradigms, solutions (both old and new) and comparisons to 
+other languages.
+
+Of special note, given that this is a Python magazine, is the discussion 
+around the validity of Python within a highly parallel and concurrent 
+environment, due to the current structure of the CPython interpreter, the 
+global interpreter lock, and a lack of &quot;Erlang-like&quot; concurrency.
+
+What is concurrency? That's an easy thing to answer. Concurrency, when 
+applied to application/program logic, is the simultaneous execution of 
+tasks. For the most part, these tasks interact and pass information to and 
+from each other and the parent. Generally speaking, anything worth doing 
+is, sooner or later, worth doing concurrently.
+
+While concurrency defines the problem (or rather, the theory behind a 
+solution), parallelism defines the implementation. Parallelism, when 
+applied to applications, generally refers to the actual implementation of 
+concurrent programming. Specifically, it refers to the simultaneous 
+execution of tasks in such a way as to take advantage of multiple 
+processors, multiple processor cores, or even multiple machines within a 
+computing grid.
+
+There are, as with all things in computing, a myriad selection of 
+&quot;solutions&quot; or paradigms to address the challenges of both concurrent and 
+parallel computing. These include options ranging from the focus of this 
+article (standard threading or pthreads) to micro-threads, asynchronous 
+programming (a la Twisted), process forking, et cetera. Some languages, 
+like Erlang, eschew many of these to build the concept of concurrency and 
+communication deep into the language itself, making it a fundamental truth 
+and assumption.
+
+Each one of these paradigms,technologies, or solutions has it's own pros, 
+cons, and intricacies that have to be understood before you as a programmer 
+can really choose one to use. Questions have to be answered:
+
+    * Do you need shared state?
+    * Do you need to scale across machines/clusters?
+    * Are you willing to use message-passing, IPC, or memory mapping?
+
+Most people won't, or don't have to, answer these questions, as they will 
+simply approach the problem with what is now the near ubiquitous solution 
+to the concurrency &quot;problem&quot;: Threads, and threaded programming.
+
+A brief description of Threads
+
+A Thread is simply an agent spawned by the application to perform work 
+independent of the parent process. While the term Thread and threading have 
+referred to the concept of spawning (forking) multiple processes, more 
+frequently they refer specifically to a pthread, or a worker which is 
+spawned by the parent process, and which shares that parent's resources.
+
+Both processes and threads are created within a given programming language 
+and then scheduled to run, either by the interpreter itself (commonly known 
+as &quot;green threads&quot;), or by the operating system (&quot;native threads&quot;). Threads 
+which are scheduled by the operating system are governed by the operating 
+system's scheduler, which dictates many things. Among them is the usage and 
+allocation of multiple processor resources for the execution of the child 
+threads.
+
+Now, what's the difference between a thread and a process which you can 
+create if both are simply workers spawned by the parent and scheduled by 
+the operating system or interpreter? Threads fundamentally differ from 
+processes in that they are light weight and share memory. The term &quot;light 
+weight&quot; refers to the up-front cost of performing the operating system 
+level process creation (and the requirement of passing a large amount of 
+information and state to the spawned process). Sharing memory speaks to one 
+of the benefits of using threads over processes. Namely, threads can share 
+state, objects, and other information with each other and the main thread 
+of execution (this is normally called shared context). Threads, as they 
+live within the space of a single process, share all of the parent's 
+address space.
+
+The very fact that threads share the same address space is one of their key 
+and most lauded features. When a program spawns twenty threads, all twenty 
+of those threads can have unfettered access to data within both themselves, 
+each other, and the parent. This &quot;simplifies&quot; data sharing; everyone has 
+everything.
+
+With shared memory you sidestep most, if not all, of the inter-child 
+communications questions and issues. The catch? You sacrifice your ability 
+to easily jump from a single memory space on one machine to many machines 
+(without a lot of work, that is).
+
+Threads, just like processes, are designed to be passed off to the 
+operating system scheduler, which dictates which CPU a given process is run 
+on, when it is run on that CPU which means that not only do you gain shared 
+memory with threads, you can leverage all of the local machine's resources 
+(in theory) including multiple cores and/or CPUs.
+
+Threads are also, as mentioned before, ubiquitous. Most modern languages, 
+along with some of the old crusty ones like, say, C (I kid!) have support 
+for threads. Java has the concurrency package, Ruby has the thread struct, 
+Perl, well perl has some thing(s). C, C++, etc., they all support threads.
+
+Another benefit of threaded programming, which is frequently understated, 
+is organization and design. Take,for example, any system which follows the 
+classical Producer/Consumer model, in which you have a group of producer 
+threads which fill a shared queue with work items and the consumer threads 
+work off of that shared queue, concurrently or asynchronously. Threads are 
+a natural fit for this pattern because they lend themselves to the clear 
+and clean encapsulation of logic for all of the objects, while also 
+leveraging the shared nature of threads themselves via the work queue. This 
+separation/encapsulation of logic (and duties) within threaded applications 
+can frequently make them easier to read, maintain, and understand.
+
+Great, right?
+
+Well, not everything is happy-fun-time in Thread land. Many a great 
+programmer has been stymied by the one thing that brought people running to 
+Thread's dinner-table: Shared Memory. Take, for instance, the 
+synchronization error.
+
+Synchronization errors occur when you have two threads accessing a common 
+mutable chunk of data, whether it's a function that in turn modifies or 
+calls something else, or something like a shared dictionary where the two 
+attempt to alter the same key at once (more on this later). Synchronization 
+errors are generally hanging out behind the school smoking with... Race 
+conditions! Take the example in Listing 1:
+
+
+#!/usr/bin/python
+from threading import Thread
+
+class myObject(object):
+    def __init__(self):
+        self._val = 1
+    def get(self):
+        return self._val
+    def increment(self):
+        self._val += 1
+
+def t1(ob):
+    ob.increment()
+    print 't1:', ob.get() == 2
+
+def t2(ob):
+    ob.increment()
+    print 't2:', ob.get() == 2
+
+ob = myObject()
+
+# Create two threads modifying the same ob instance
+thread1 = Thread(target=t1, args=(ob,))
+thread2 = Thread(target=t2, args=(ob,))
+
+# Run the threads
+thread1.start()
+thread2.start()
+thread1.join()
+thread2.join()
+
+The banality of the code notwithstanding, one of the two tests will always 
+fail. This is because both threads are incrementing an unlocked, global 
+value. This is a simple example of a synchronization error, one of the 
+threads beats the other to access a shared resource, and the assertion 
+fails. Errors such as this are common. Alarmingly so, given that when 
+people begin exploring threaded programming, their first instinct is to 
+share everything (whereas many concurrency solutions are referred to as 
+&quot;shared-nothing&quot;).
+
+This banal example shows a fundamental truth when applied to threaded 
+programming in general: with great shared memory comes great 
+responsibility. It's so easy to have threads throwing around objects and 
+data that programmers frequently over share. Threaded programming requires 
+that the programmer be very, very mindful of what data needs to be shared 
+amongst workers, how to protect (i.e. lock) that data so that you do not 
+run into the dreaded race-condition (as the code above would) or the even 
+more dreadful Deadlock.
+
+A quick note for those of you unfamiliar with the concept: deadlocks occur 
+when your application seizes up while any number of threads lock-up waiting 
+for the other threads to free required resources, never to return. 
+Deadlocks and synchronization errors in threaded applications are not only 
+painful to debug, they're also insidious, hard to find, and easy to make.
+
+The rise of threaded programming in modern languages really brings 
+concurrent programs to everyone. They are the commoditization of 
+concurrency and parallelism; everyone can (and sooner or later does) write 
+a program with threads. The modern thread is the de facto concurrent 
+programming solution to many modern programmers. They have truly become 
+ubiquitous.
+
+Everyone who writes applications (or even a simple script) will write an 
+application that does more than one thing at once, whether it's calculating 
+prime numbers or downloading pictures of cats on the internet. And sooner 
+or later, they're being yelled at by their spouse to come to bed because 
+they're up at 3 am and have been chasing synchronization issues for the 
+past twelve hours. 3 am is also when deadlocks jump out of the closet and 
+lock up your applications, right after your 3 month old spits up on your 
+keyboard.
+
+Python Thread Support
+
+To quote the Python thread module documentation:
+
+    &quot;The design of this module is loosely based on Java's threading model.
+    However, where Java makes locks and condition variables basic behavior
+    of every object, they are separate objects in Python. Python's Thread 
+    class supports a subset of the behavior of Java's Thread class.
+    Currently, there are no priorities, no thread groups, and threads
+    cannot be destroyed, stopped, suspended, resumed, or interrupted. The
+    static methods of Java's Thread, when implemented, are mapped to
+    module-level functions.&quot;
+
+Python's thread support, obviously, is loosely based off of Java's 
+(something many a Java-to-Python convert has been happy for, and stymied 
+by). Python's thread implementation is very simple at it's core, and builds 
+easily on the concept of individualized workers and shared state. It 
+provides all of the threaded programming primitives: locks, semaphores, and 
+all the normal goodies that come with a good threaded implementation.
+
+Let's look at the simplest thread example:
+
+
+from threading import Thread
+
+def myfunc():
+    print &quot;hello, world!&quot;
+
+thread1 = Thread(target=myfunc)
+thread1.start()
+thread1.join()
+
+There, you've got a multi-threaded application in seven lines of code. This 
+little script has two threads: the main thread, and the ''thread1'' object 
+we created. Obviously, here, I'm not sharing anything. Heck, I'm hardly 
+doing anything at all! What we are doing is simple: I am creating a new 
+Thread object and passing it a function to run. We are then calling 
+''start()'', which sends the thread off to be executed. The ''join()'' 
+method blocks the main application execution until the thread that we've 
+called ''join()'' on exits, this prevents a generic &quot;poll the thread until 
+it is done&quot; loop one might otherwise construct.
+
+Python's library has &quot;two&quot; threading-related modules: thread and threading
+. Two is in quotation marks because really it's only got one that most 
+people would care about, and that's threading. The threading module builds 
+on the primitives from the thread module that we mentioned earlier. 
+Threading is built using thread, and there are few, if any, reasons for 
+most developers to use the thread module directly.
+
+Let's take a moment to revisit the statement that Python's thread support 
+is a Java-Like implementation. Let's set a basic Python example next to a 
+simple Java example. First Java,
+
+MyThread.java:
+
+
+package com.demo.threads;
+public class MyThread implements Runnable &#123;
+    public void run() &#123;
+        System.out.println(&quot;I am a thread!&quot;);
+    &#125;
+&#125;
+
+MyThreadDemo.java:
+
+
+package com.demo.threads;
+public class MyThreadDemo &#123;
+    public static void main( String[] args ) &#123;
+        MyThread foobar = new MyThread();
+        Thread1 = new Thread(foobar);
+        Thread1.start();
+    &#125;
+&#125;
+
+Now, let's do the same thing, with Python:
+
+
+from threading import Thread
+
+class MyThread(Thread):
+    def run(self):
+        print &quot;I am a thread!&quot;
+
+foobar = MyThread()
+foobar.start()
+foobar.join()
+
+As you can see, the two are not that far off (albeit the Python example is 
+shorter). Both MyThread classes extend a superclass Runnable or Thread. 
+These superclasses provide the basic interfaces which dictate that the 
+object is a valid &quot;thread object&quot;. In both cases, we can skip over defining 
+the constructor for the object, as it's already been handled by the 
+superclass (but we could make a new one if we wanted to).
+
+Both MyThread objects have a common method, though: ''run()''. When making 
+an object a thread this is the only method which really needs to be 
+defined. Once a valid ''run()'' method has been defined, the object is now 
+threadable. A thread object may have any number of methods, callbacks, 
+decorators, etc. We have, in wandering around the Python Cheeseshop, seen 
+some modules simply extend thread so that an object can support threaded 
+implementations out of the box. The implementation that's provided may not 
+be threaded itself.
+
+Now, as mentioned before, synchronization errors plague threaded programs. 
+Unless access to a shared resource has proper controls (locks) applied to 
+it, multiple threads accessing the same resource will contend for that 
+resource. Contention leads to deadlocks, deadlocks lead to suffering, and 
+all that jazz.
+
+Let's take a look at another simple example commonly used to explain 
+threading -- the Bank example, in Listing 2. This is a simple thing really; 
+the Bank is a shared object which is manipulated simultaneously by the 
+threads we spawn. In this example, we spawn a Bank with 100 accounts, and a 
+1000 &quot;dollar&quot; balance. This means that the Bank should only ever contain 
+$100,000. The bank accounts should never lose money, nor should they ever 
+gain money above what was in the accounts to begin with.
+
+Listing 2:
+
+
+from threading import Thread
+from operator import add
+import random
+
+class Bank(object):
+    def __init__(self, naccounts, ibalance):
+        self._naccounts = naccounts
+        self._ibalance = ibalance
+
+        self.accounts = []
+        for n in range(self._naccounts):
+            self.accounts.append(self._ibalance)
+
+    def size(self):
+        return len(self.accounts)
+
+    def getTotalBalance(self):
+        return reduce(add, self.accounts)
+
+    def transfer(self, name, afrom, ato, amount):
+
+        if self.accounts[afrom] &lt; amount: return
+
+        self.accounts[afrom] -= amount
+        self.accounts[ato] += amount
+
+        print &quot;%-9s %8.2f from %2d to %2d Balance: %10.2f&quot; % \
+            (name, amount, afrom, ato, self.getTotalBalance())
+
+class transfer(Thread):
+    def __init__(self, bank, afrom, maxamt):
+        Thread.__init__(self)
+        self._bank = bank
+        self._afrom = afrom
+        self._maxamt = maxamt
+    def run(self):
+        for i in range(0, 3000):
+            ato = random.choice(range(b.size()))
+            amount = round((self._maxamt * random.random()), 2)
+            self._bank.transfer(self.getName(), self._afrom, ato, amount)
+
+naccounts = 100
+initial_balance = 1000
+
+b = Bank(naccounts, initial_balance)
+
+threads = []
+for i in range(0, naccounts):
+    threads.append(transfer(b, i, 100))
+    threads[i].start()
+
+for i in range(0, naccounts):
+    threads[i].join()
+
+In the normal example, the ''for i in range(0, 3000):'' would be a ''while 
+True:'', but we don't need forever, baby. Go ahead, run it. You'll notice 
+something within a few thousand transactions: the Bank balance goes awry. 
+It may not always happen, though. I've run this successfully four times in 
+a row now with zero corruption. However, the fifth time is the charm:
+
+
+...
+Thread-88     1.26 from 87 to 41 Balance:  100000.00
+Thread-88     0.65 from 87 to 23 Balance:  100000.00
+Thread-88     0.47 from 87 to  8 Balance:  100000.00
+Thread-88     0.04 from 87 to 28 Balance:  100000.00
+Thread-83    30.14 from 82 to  9 Balance:   99948.90
+Thread-83    35.70 from 82 to 67 Balance:   99948.90
+Thread-80     0.11 from 79 to 98 Balance:   99948.90
+Thread-83    30.82 from 82 to 89 Balance:   99948.90
+Thread-83    40.51 from 82 to 95 Balance:   99948.90
+Thread-83     5.20 from 82 to 52 Balance:   99948.90
+...
+
+That's the beauty of synchronization errors and race conditions. They won't 
+always happen. They may not even happen fifty percent of the time. But they 
+will happen. They good news? the fix is a few lines:
+
+
+from threading import Thread, Lock
+...
+lock = Lock()
+class bank(object):
+    def __init__(self, naccounts, ibalance):
+...
+    def transfer(self, name, afrom, ato, amount):
+        if self.accounts[afrom] &lt; amount: return
+        lock.acquire()
+        try:
+            self.accounts[afrom] -= amount
+            self.accounts[ato] += amount
+        finally:
+            lock.release()
+
+There. Problem fixed! See, Python, much like Java, allows the broken 
+version of this example to have one thread performing the account decrement 
+while another performs the increment. Both threads are in the same code 
+block of the shared object at once, and while one has already decremented 
+an account another thread may be decrementing the same account again.
+
+Wait what? What did we do? I've added a Lock, one of those nice 
+fundamentals that threading support needs. &quot;Wrapping&quot; a resource (whether 
+it is a variable, method or some other object) in a lock as I've done above 
+makes execution of that resource (in this case the accounts being modified) 
+thread safe, which is to say multiple threads can be running, but only one 
+can be modifying that particular resource at a time. In order to run the 
+code, a thread has to first get the lock.
+
+Locks and their management are the fix for the problem threading introduces 
+when accessing shared memory and objects. But don't think all's well that 
+ends well; lock management can also drive you bonkers.
+
+So, Python has all of the nice bits of threading, right? Well, one thing a 
+Java programmer might be missing is the magic of the ''synchronized'' 
+keyword. In Java, the ''synchronized'' keyword, applied to a method or 
+variable, turns access to that method, or modification of the variable, 
+into an instantly thread safe action.
+
+For example, the Java version of the transfer code:
+
+
+public synchronized void transfer(int afrom, 
+                                  int ato, 
+                                  double amount) &#123;
+	...
+&#125;
+
+The ''synchronized'' keyword basically manages the locks and conditions 
+automagically. When the method is entered, the lock is acquired. When it is 
+exited, the lock is released. The good news for Python is that with 
+decorators we can at least fudge out a synchronized keyword, so instead of 
+peppering our code with lock calls, we can do this:
+
+
+from threading import Lock
+from __future__ import with_statement
+def synchronized():
+    the_lock = Lock()
+    def fwrap(function):
+        def newFunction(*args, **kw):
+            with the_lock:
+                return function(*args, **kw)
+        return newFunction
+    return fwrap
+
+...
+    @synchronized()
+    def transfer(self, name, afrom, ato, amount):
+        if self.accounts[afrom] &lt; amount: return
+...
+
+Now, in this code example we used a bit of Python 2.5: the ''with'' 
+statement, which allows you to condense some amount of 
+''try''/''except''/''finally'' code via context managers. Since the inner 
+workings of ''with'' are out of scope, take a look at PEP 343 (
+http://docs.python.org/whatsnew/pep-343.html).
+
+For easy recipes with implementations of synchronized decorators see:
+
+    * http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/533135 and
+    * http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/502291
+
+So, now that you've got all of the basic lock support, and magical 
+decorators, and you've been warned to carefully think about what to share, 
+all's fun and games and you're going to run off and promptly write an 
+application with 1000 threads and do cool stuff, right? Well, there's 
+something else you need to know about: the Global Interpreter Lock.
+
+The Global Interpreter Lock
+
+&quot;Nevertheless, you're right the GIL is not as bad as you would initially 
+think: you just have to undo the brainwashing you got from Windows and Java 
+proponents who seem to consider threads as the only way to approach 
+concurrent activities.&quot; Guido Van Rossum 
+http://mail.python.org/pipermail/python-3000/2007-May/007414.html
+
+This is the part of the article where we take some air out of your threaded 
+sails. It's unfortunate this responsibility must be mine, but let us not 
+dwell on it. First let me describe what the GIL is.
+
+The GIL is an interpreter-level lock. This lock prevents execution of 
+multiple threads at once in the Python interpreter. Each thread that wants 
+to run must wait for the GIL to be released by the other thread, which 
+means your multi-threaded Python application is essentially single 
+threaded, right? Yes. Not exactly. Sort of.
+
+CPython uses what's called &quot;operating system&quot; threads under the covers, 
+which is to say each time a request to make a new thread is made, the 
+interpreter actually calls into the operating system's libraries and kernel 
+to generate a new thread. This is the same as Java, for example. So in 
+memory you really do have multiple threads and normally the operating 
+system controls which thread is scheduled to run. On a multiple processor 
+machine, this means you could have many threads spread across multiple 
+processors, all happily chugging away doing work.
+
+However, while CPython does use operating system threads (in theory 
+allowing multiple threads to execute within the interpreter 
+simultaneously), the interpreter also forces the GIL to be acquired by a 
+thread before it can access the interpreter and stack and can modify Python 
+objects in memory all willy-nilly. The latter point is why the GIL exists: 
+The GIL prevents simultaneous access to Python objects by multiple threads. 
+But this does not save you (as illustrated by the Bank example) from being 
+a lock-sensitive creature; you don't get a free ride. The GIL is there to 
+protect the interpreters memory, not your sanity.
+
+The GIL also keeps garbage collection (the reason you don't have to worry 
+about memory management, you bum) working. It prevents one thread from 
+decrementing the counters for an object and letting the object go into the 
+ether while another object is working with that object. Python's garbage 
+collection (deallocating unused objects to free memory) utilizes the 
+concept of reference counting. This is where all references to a given 
+object (integer, string or ''YourCat(object)'') are tracked. When the 
+number of references reaches zero, the object is deleted. The GIL prevents 
+any two threads from decrementing the reference count to any object to 0 
+while another thread is working on that object. Remember, only one thread 
+can access a Python object at a time.
+
+In reality, the CPython GIL is designed with an eye towards a simpler 
+interpreter implementation and single threaded execution speed. It makes 
+the maintenance of the interpreter (and by definition, the writing of 
+extension modules) easier by removing the need to worry about many memory 
+management and concurrency issues that otherwise might be problematic to 
+maintainers and extension authors. It keeps the reference interpreter 
+simple. It is not, ultimately, an &quot;end user&quot; feature unless you're writing 
+C code for Python.
+
+Python has had threading support, and the GIL, since as far back as version 
+1.5, so it's not new. In 1999 Greg Stein created a patch set for the 
+interpreter that removed the GIL, but added granular locking around 
+sensitive interpreter operations. This patch set had the direct effect of 
+speeding up threaded execution, but made single threaded execution two 
+times slower.
+
+So you may be wondering, &quot;if we have the GIL, and a thread must own it to 
+execute within the interpreter, what decides if the GIL should be 
+released?&quot; Delicious byte code instructions. When a Python application is 
+executed, it is compiled down to byte code, the actual instructions that 
+the interpreter uses for execution of the application. Normally, byte code 
+files end with a name like &quot;.pyc&quot; or &quot;.pyo&quot;. A given line of a Python 
+application might be a single byte code, while others, such as an import 
+statement, may ultimately expand into many byte code instructions for the 
+interpreter.
+
+That all being said, the CPython interpreter, when working with pure Python 
+code (more on this in a moment) will force the GIL to be released every 
+hundred byte code instructions. This means that if you have a complex line 
+of code like a complex math function that in reality acts as a single byte 
+code the GIL will not be released for the period that that statement takes 
+to run.
+
+There is an exception though: C modules! C extension modules (and built in 
+C modules) can be built in such a way that they release the GIL voluntarily 
+and do their own magic. Take for instance the time module (''timemodule.c'' 
+in the Python source tree). The ''sleep()'' function looks something like 
+this:
+
+
+
+    ...
+    Py_BEGIN_ALLOW_THREADS
+        sleep((int)secs);
+    Py_END_ALLOW_THREADS
+    ....
+
+In a C extension, the ''Py_BEGIN_ALLOW_THREADS'' and 
+''Py_END_ALLOW_THREADS'' macros signal the interpreter and basically state 
+&quot;hey, I'm entering some blocking operation, here's the GIL back&quot; and &quot;hey, 
+I'm returning, I need the GIL&quot;. This means that anything in your 
+application that uses a blocking I/O function (network/socket manipulation, 
+file manipulation) or a thread-safe C extension (most of the built-in ones 
+are) can &quot;bypass&quot; the GIL. This means you can get closer to having multiple 
+threads running at concurrently.
+
+Take for a moment, the ''timemodule.c'' code we pasted above. This means 
+that if you have a threaded application, and want the GIL to be released 
+regularly by your threads, you can call ''time.sleep(.0001)'' or some other 
+tiny amount, and the GIL will be magically released, and your other 
+thread(s) will run. Most application developers wouldn't like this 
+solution, but it is a common &quot;work around&quot; for the GIL limitation.
+
+There are other macros and a lot more details about the C API and the GIL. 
+The newer macros ''PyGILState_STATE_Ensure'' and 
+''PyGILState_STATE_Release'' do all of the low level state and GIL 
+manipulation for you. we recommend reading section 8.1 of the Python/C API 
+Reference Manual. http://docs.python.org/api/threads.html
+
+From a programming standpoint, the GIL is equivalent to wrapping all of 
+your code in a ''synchronize'' keyword (without the memory safety). No two 
+threads can run at once, they can only seem to via GIL 
+acquisition/releasing tricks.
+
+There are other ways to accelerate the GIL manipulation or avoid it:
+
+- call ''time.sleep()'' - set ''sys.setcheckinterval()'' - run Python in 
+optimized mode - dump process-intensive tasks into C-extensions - use the 
+subprocess module to execute commands
+
+The fact is, the GIL does prevent you as a programmer from using multiple 
+CPUs simultaneously. Python as a language, however, does not. If the 
+CPython interpreter had the GIL removed, the operating system's pthread 
+system would be free to run everything in parallel. The GIL does not 
+prevent a process from running on a different processor of a machine. It 
+simply only allows one thread to run at once within the interpreter.
+
+The real question you have to ask yourself is: does the GIL actually affect 
+you and your application? Is it really harming you or is it simply a 
+convenient excuse for people to dismiss Python? Let's examine code and 
+numbers.
+
+Benchmarking Python Threads
+
+Let's get our hands dirty with more code. First, a word on these 
+benchmarks: Benchmarks are handy excuses for people to get offended, or to 
+tweak them to make an argument. I do not intend either of these with these 
+numbers; run the code yourself and make your own assumptions.
+
+All tests are being run on a MacBook Pro, 2.33 GHz Intel Core 2 Duo with 
+3GB of ram and a 7200 RPM hard drive running Leopard and CPython 2.5.1 from 
+http://www.python.org. For the process tests, we're using the processing 
+module, previously covered in this magazine. 
+http://pypi.python.org/pypi/processing/
+
+The following tests will call a given function one time, in one hundred 
+loops. I then display the best of 100 calls. I cycle between a non-threaded 
+iteration based call, a threaded call, and finally a processing module 
+(fork and exec) call. I iterate each test for an increasing number of 
+calls/threads. I will go through 1, 2, 4 and finally 8 
+calls/threads/processes.
+
+Why are we adding process results into this? The answer is simple: we know 
+in advance the GIL is going to penalize our execution, and using it 
+sidesteps the GIL entirely, allowing us to see how fast execution could 
+be.
+
+For non-threaded execution, to keep things fair, we simply call the defined 
+function sequentially the same number of times as threads/processes we 
+would otherwise use. All examples use new-style classes to further even the 
+playing field, although we skip explicit ''__init__()'' setup as it's not 
+needed.
+
+To keep things simple, I've delegated all of the timings in this to 
+Python's timeit module. The timeit module is designed to benchmark pieces 
+of Python code -- generally single statements. In our case however, it 
+provides some nice facilities for looping over a given function a set 
+number of times and returning to us the fastest run time.
+
+You can see the timing execution script in Listing 3. In one argument, he 
+script accepts a module to look into for ''function_to_run()'', so for each 
+one we just save the example function to a file. It then iterates over the 
+tests and displays the results. This setup allows us to swap out the test 
+function easily.
+
+Listing 3:
+
+
+#!/usr/bin/python
+
+from threading import Thread
+from processing import Process
+
+class threads_object(Thread):
+    def run(self):
+        function_to_run()
+
+class nothreads_object(object):
+    def run(self):
+        function_to_run()
+
+class process_object(Process):
+    def run(self):
+        function_to_run()
+
+def non_threaded(num_iter):
+    funcs = []
+    for i in range(int(num_iter)):
+        funcs.append(nothreads_object())
+    for i in funcs:
+        i.run()
+
+def threaded(num_threads):
+    funcs = []
+    for i in range(int(num_threads)):
+        funcs.append(threads_object())
+    for i in funcs:
+        i.start()
+    for i in funcs:
+        i.join()
+
+def processed(num_processes):
+    funcs = []
+    for i in range(int(num_processes)):
+        funcs.append(process_object())
+    for i in funcs:
+        i.start()
+    for i in funcs:
+        i.join()
+
+def show_results(func_name, results):
+    print &quot;%-23s %4.6f seconds&quot; % (func_name, results)
+
+if __name__ == &quot;__main__&quot;:
+    import sys
+    from timeit import Timer
+
+    repeat = 100
+    number = 1
+
+    num_threads = [ 1, 2, 4, 8 ]
+
+    if len(sys.argv) &lt; 2:
+        print 'Usage: %s module_name' % sys.argv[0]
+        print '  where module_name contains a function_to_run function'
+        sys.exit(1)
+    module_name = sys.argv[1]
+    if module_name.endswith('.py'):
+        module_name = module_name[:-3]
+    print 'Importing %s' % module_name
+    m = __import__(module_name)
+    function_to_run = m.function_to_run
+
+    print 'Starting tests'
+    for i in num_threads:
+        t = Timer(&quot;non_threaded(%s)&quot; % i, &quot;from __main__ import non_threaded&quot;)
+        best_result = min(t.repeat(repeat=repeat, number=number))
+        show_results(&quot;non_threaded (%s iters)&quot; % i, best_result)
+
+        t = Timer(&quot;threaded(%s)&quot; % i, &quot;from __main__ import threaded&quot;)
+        best_result = min(t.repeat(repeat=repeat, number=number))
+        show_results(&quot;threaded (%s threads)&quot; % i, best_result)
+
+        t = Timer(&quot;processed(%s)&quot; % i, &quot;from __main__ import processed&quot;)
+        best_result = min(t.repeat(repeat=repeat, number=number))
+        show_results(&quot;processes (%s procs)&quot; % i, best_result)
+        print &quot;\n&quot;,
+
+    print 'Iterations complete'
+
+Test one establishes some baseline numbers by executing an empty function. 
+This will show us the overhead associated with each of the mechanisms I am 
+testing as applied to object creation and execution.
+
+
+def function_to_run():
+    pass
+
+Results of the code above:
+
+
+non_threaded (1 iters)  0.000003 seconds
+threaded (1 threads)    0.010256 seconds
+processes (1 procs)     0.004803 seconds
+
+non_threaded (2 iters)  0.000007 seconds
+threaded (2 threads)    0.020478 seconds
+processes (2 procs)     0.012630 seconds
+
+non_threaded (4 iters)  0.000010 seconds
+threaded (4 threads)    0.040831 seconds
+processes (4 procs)     0.010525 seconds
+
+non_threaded (8 iters)  0.000017 seconds
+threaded (8 threads)    0.080949 seconds
+processes (8 procs)     0.017513 seconds
+
+So, we can see that we take a hit just to add the threads and process 
+spawning to the calls. This is expected; besides the fact that Python is 
+optimized for single threaded performance, the simple act of creating the 
+threads and subprocesses adds an up-front cost. Look at the first group of 
+results -- the threaded call has a much higher cost than the non-threaded 
+version. Also of interest is the fact that the cost of adding threads/runs 
+grows parallel to the number of threads added -- 8 threads taking 0.080949, 
+4 threads taking 0.040831, and so on.
+
+Keep in mind that the point of adding threads is not to speed up 
+initialization, but rather to add concurrency to the application. In a less 
+contrived example, we might create a pool of threads once and reuse the 
+workers, allowing us to split up a large data set and run the same function 
+over different parts (a.k.a: the Producer/Consumer model). So while this is 
+not the norm for concurrent applications, these tests are designed to be 
+simple.
+
+One common application of threaded (and non-threaded) programming is to do 
+number crunching. Let's take a simple, brute force approach to doing 
+Fibonacci number crunching, noting of course that we're not sharing state 
+here. I am just trying to have two tasks generate a set number of Fibonacci 
+numbers.
+
+\
+def function_to_run():
+  a, b = 0, 1
+  for i in range(100000):
+    a, b = b, a + b
+
+Results of the code above:
+
+
+non_threaded (1 iters)  0.276594 seconds
+threaded (1 threads)    0.280199 seconds
+processes (1 procs)     0.290740 seconds
+
+non_threaded (2 iters)  0.559094 seconds
+threaded (2 threads)    0.564981 seconds
+processes (2 procs)     0.299791 seconds
+
+non_threaded (4 iters)  1.117339 seconds
+threaded (4 threads)    1.133981 seconds
+processes (4 procs)     0.580096 seconds
+
+non_threaded (8 iters)  2.235245 seconds
+threaded (8 threads)    2.275226 seconds
+processes (8 procs)     1.159978 seconds
+
+As you can see from this data, adding the additional threads doesn't buy us 
+anything -- you would expect that the threaded examples would run in 
+parallel -- but we can see that the threaded example runs at the same speed 
+(slightly slower) than the single-threaded examples. Adding threads in this 
+case actively harms us. The function executed is pure Python, and due to 
+the simple overhead of creating the threads and the GIL, the threaded runs 
+could never be faster than the single threaded or process-based examples. 
+Again, remember that the GIL only allows one thread to be active in the 
+interpreter at any given time.
+
+Now, let's do an I/O-bound task, like reading 1000 1-kilobyte chunks off of 
+''/dev/urandom''!
+
+
+def function_to_run():
+    fh = open(&quot;/dev/urandom&quot;, &quot;rb&quot;)
+    for i in range(1000):
+        fh.read(1024)
+
+Results of the code above:
+
+
+non_threaded (1 iters)  0.125532 seconds
+threaded (1 threads)    0.125908 seconds
+processes (1 procs)     0.140314 seconds
+
+non_threaded (2 iters)  0.251784 seconds
+threaded (2 threads)    0.250818 seconds
+processes (2 procs)     0.261338 seconds
+
+non_threaded (4 iters)  0.503835 seconds
+threaded (4 threads)    0.501558 seconds
+processes (4 procs)     0.511969 seconds
+
+non_threaded (8 iters)  1.006956 seconds
+threaded (8 threads)    1.003003 seconds
+processes (8 procs)     1.009011 seconds
+
+We're starting to see threads pass by the single threaded approach with the 
+file I/O task, but not by much. However, it is at least neck-and-neck with 
+the single threaded implementation and faster than the processing example. 
+The latter is an interesting point, too. This means that if you can &quot;dodge&quot; 
+the GIL you can potentially hit process speeds.
+
+Keep in mind that you would not really use threads like the benchmark 
+script we've put together does. Generally speaking, you'd be appending 
+things to a queue, taking them off, and doing other shared-state tasks. 
+Having a bunch of threads off running the same function, while useful, is 
+not a common use-case for a concurrent program, unless you're splitting up 
+and processing large data sets.
+
+For a quick final example let's look at the results when using the socket 
+module. This is the module that all network I/O goes through, it's in C, 
+and it's thread safe. To exclude network latency issues we will connect to 
+another computer's Apache web server on the LAN (not optimized for load) 
+and we'll use urllib2 instead of the raw socket library -- urllib2 uses the 
+socket library under the covers. Grabbing URLs is a common enough use case, 
+rather than just connecting to a socket over and over. I will also lower 
+the count of the requests since, generally speaking, jackhammering your web 
+server makes your web server the bottleneck. Given that this one is not 
+tuned, we will keep it simple. All that is being pulled down from Apache is 
+the default welcome-page.
+
+
+def function_to_run():
+    import urllib
+    for i in range(10):
+        f = urllib.urlopen(&quot;http://10.0.1.197&quot;)
+        f.read()
+
+Results of the code above:
+
+
+non_threaded (1 iters)  0.123033 seconds
+threaded (1 threads)    0.121244 seconds
+processes (1 procs)     0.141433 seconds
+
+non_threaded (2 iters)  0.250751 seconds
+threaded (2 threads)    0.223357 seconds
+processes (2 procs)     0.242443 seconds
+
+non_threaded (4 iters)  0.486189 seconds
+threaded (4 threads)    0.438107 seconds
+processes (4 procs)     0.448466 seconds
+
+non_threaded (8 iters)  0.986121 seconds
+threaded (8 threads)    0.881546 seconds
+processes (8 procs)     0.859714 seconds
+
+Take a look at the last two sets of numbers, minus the processing examples:
+
+
+non_threaded (4 iters)  0.486189 seconds
+threaded (4 threads)    0.438107 seconds
+
+non_threaded (8 iters)  0.986121 seconds
+threaded (8 threads)    0.881546 seconds
+
+As you can see, doing I/O does, in fact, release the GIL. The threaded 
+examples are obviously getting faster than the single-threaded execution. 
+Given that most applications do perform a certain amount of I/O (most 
+applications spend a large amount of their time in I/O) the GIL does not 
+prevent users from creating multi-threaded applications that can act in a 
+concurrent manner and add speed to their applications.
+
+Does the GIL block those people who are working in pure Python from truly 
+taking advantage of multiple cores? Simply put: Yes, it does. While threads 
+themselves are a language construct, the interpreter is the gatekeeper to 
+the mapping between threads and the OS. This is why Jython and IronPython 
+have no GIL. It was simply not needed and left out of the implementation of 
+the interpreter.
+
+Obviously, based on the numbers above, switching to processes side-steps 
+the entire GIL issue, allowing all of the children to run concurrently. 
+It's something to think about and it's been pointed out quite a bit.
+
+In Summary
+
+Threaded programming is the concurrency solution for the &quot;common&quot; man, but 
+the problems one runs into when delving into threaded programming are not 
+for the faint of heart, and they are not easy to overcome. Threading is the 
+first solution to the concurrency problem that many people run to when they 
+first get the urge to begin doing tasks in parallel.
+
+Python itself has good threading support, including all of the locking 
+primitives, queues, events and semaphores. That's everything Java and many 
+other languages have, including some higher-level &quot;cool&quot; thread things. Can 
+CPython take advantage of multiple threads for concurrency? Yes, with 
+caveats. The caveats applied hamper a particular segment of application 
+developers for sure, but for most of us working in high I/O environments, 
+CPython's thread system with the GIL works out fine. Even in those 
+environments though, threads may not be the fastest option.
+
+The GIL is something that's been debated, and continues to be debated 
+amongst many. Some call it a feature, some call it a mistake. Some people 
+will be quick to say that threaded programming is too difficult for a large 
+swath of the population, and that, in and of itself is a true statement.
+
+An important point to remember: The GIL is an interpreter issue. This means 
+that, again, other interpreters, such as Jython and IronPython do not 
+suffer the &quot;penalty&quot; of the GIL. In the same vein, there are a few people 
+out there currently working with the Python code base to experiment with 
+the removal of the GIL in the CPython interpreter.
+
+Guido (the BDFL) has already expressed openness to accepting a patch set to 
+the CPython tree that could optionally enable or disable the GIL or, if 
+some enterprising individual wanted to, to implement the interpreter in 
+such a way as to remove the GIL entirely without sacrificing single 
+threaded performance.
+
+There continues to be a large swath of people that state that threads are 
+not a true solution to the concurrency problem, despite many hundreds of 
+thousands of threaded applications currently in production. These people 
+yearn for something cleaner, less prone to the dark and sordid 
+synchronization problems too much shared-state brings to the table.
+
+Threading is ubiquitous, but it is only a single solution for concurrency 
+and we hope that this article helps you think about it's pitfalls, 
+potential and its state in the Python language.
+
+For more thoughts on the GIL, see Guido's blog (read the comments): 
+http://www.artima.com/weblogs/index.jsp?blogger=guido
+
+For another excellent comparison of threads/processes/etc., see the recent 
+effbot posting on the Tim Bray wide finder project: 
+http://effbot.org/zone/wide-finder.htm
+
+Note, for a producer/consumer threading example, see the threading.py 
+module's _test() method."/>
+<meta property="og:image" content="http://static.squarespace.com/static/50b76babe4b05c3cd8bab78a/t/52f6d3c3e4b0b0787cdf2bf8/1391924533428/?format=1000w"/>
+<meta itemprop="thumbnailUrl" content="http://static.squarespace.com/static/50b76babe4b05c3cd8bab78a/t/52f6d3c3e4b0b0787cdf2bf8/1391924533428/?format=1000w"/>
+<link rel="image_src" href="http://static.squarespace.com/static/50b76babe4b05c3cd8bab78a/t/52f6d3c3e4b0b0787cdf2bf8/1391924533428/?format=1000w" />
+<script type="text/javascript" src="//static.squarespace.com/universal/scripts-compressed/common-3b1f43136a780f38121fd1b2b5f1c3e3-min.js"></script><script type="text/javascript" src="//static.squarespace.com/universal/scripts-compressed/commerce-d91f9bd2f55f750869b87ba892ed62a2-min.js"></script><link rel="stylesheet" type="text/css" href="//static.squarespace.com/universal/styles-compressed/commerce-2082f70dd9a0d848262a016bd75949a4-min.css"/><link rel="shortcut icon" type="image/x-icon" href="/favicon.ico"/>
+<link rel="alternate" type="application/rss+xml" title="RSS Feed" href="http://feeds.feedburner.com/Jessenollercom" />
+
+<script> Static.SQUARESPACE_CONTEXT = {"templateTweakable":true,"website":{"id":"50b76babe4b05c3cd8bab78a","identifier":"jessenoller","contentModifiedOn":1391924533428,"cloneable":false,"siteStatus":{},"language":"en-US","timeZone":"America/Monterrey","machineTimeZoneOffset":-18000000,"timeZoneOffset":-18000000,"timeZoneAbbr":"CDT","siteTitle":"jesse noller - a blog","siteTagLine":"python, programming, technology & stuff.","siteDescription":"<p>Python Programmer &amp; core developer, <a target=\"_blank\" href=\"http://www.python.org/psf/\">Python Software Foundation Director</a>. Chair of PyCon <a target=\"_blank\" href=\"http://us.pycon.org\">2012 &amp; 201</a><a target=\"_blank\" href=\"http://us.pycon.org\"><u>3</u></a>. Many other numerous Python community &amp; advocacy projects as well.&nbsp;Involved in Developer Experience, developer outreach &amp; marketing and OpenStack development.&nbsp;Proud father of two girls and husband, Principle Engineer/Developer Advocate at <a href=\"#\">Rackspace</a>.</p>","location":{"mapZoom":11.0,"mapLat":29.4241219,"mapLng":-98.49362819999999,"markerLat":29.4241219,"markerLng":-98.49362819999999,"addressTitle":"Where am I?","addressLine1":"","addressLine2":"San Antonio, Texas","addressCountry":"United States"},"logoImageId":"52f6d3c3e4b0b0787cdf2bf8","shareButtonOptions":{"2":true,"3":true,"1":true,"6":true},"logoImageUrl":"//static.squarespace.com/static/50b76babe4b05c3cd8bab78a/t/52f6d3c3e4b0b0787cdf2bf8/1391924533428/","authenticUrl":"http://jessenoller.com","baseUrl":"http://jessenoller.com","primaryDomain":"jessenoller.com","socialAccounts":[{"serviceId":2,"userId":"638520199","userName":"jessenoller","screenname":"Jesse Noller","addedOn":1354198256316,"profileUrl":"http://www.facebook.com/638520199","iconUrl":"http://graph.facebook.com/638520199/picture?type=square","metaData":{"service":"facebook"},"iconEnabled":true,"serviceName":"facebook"},{"serviceId":4,"userId":"14100497","userName":"jessenoller","screenname":"jessenoller","addedOn":1354198265104,"profileUrl":"https://twitter.com/jessenoller","iconUrl":"http://a0.twimg.com/profile_images/2290396043/tyd6sk9rxwjz4cabirqq_normal.jpeg","collectionId":"50b76cf9e4b05c3cd8baba61","iconEnabled":true,"serviceName":"twitter"},{"serviceId":5,"userId":"115662513673837016240","userName":"Jesse Noller","screenname":"Jesse Noller","addedOn":1354198277258,"profileUrl":"https://plus.google.com/115662513673837016240","iconUrl":"http://www.google.com/ig/c/photos/private/AIbEiAIAAABECLDpg9a-ppuu2QEiC3ZjYXJkX3Bob3RvKigzMjQyNjM0MWMyYzE1Y2QzZTFmOGMxMDRiMGZjMzA1YjFlYjE2YzgxMAEmc7H2wfuu5DHXRPg8s3DbQMWRdQ","iconEnabled":true,"serviceName":"google"},{"serviceId":10,"userId":"14993635","userName":"jessenoller","screenname":"jessenoller","addedOn":1354198318822,"profileUrl":"http://instagram.com/jessenoller","iconUrl":"http://images.instagram.com/profiles/profile_14993635_75sq_1323476427.jpg","collectionId":"50b76d2ee4b05c3cd8babaab","iconEnabled":true,"serviceName":"instagram"},{"serviceId":14,"userId":"gNDIXJa3VW","userName":"jessenoller","screenname":"Jesse Noller","addedOn":1354198347310,"profileUrl":"http://www.linkedin.com/in/jessenoller","iconUrl":"http://m3.licdn.com/mpr/mprx/0_9G8uJ82xPQmxBPxGZFPPJioxP_VjzvOGqQN1JiSauLaDoAdCsXK8B_JhgmsGnt0ac3Ct9k0zgCux","iconEnabled":true,"serviceName":"linkedin"},{"serviceId":20,"userId":"jnoller@gmail.com","screenname":"jnoller@gmail.com","addedOn":1354198361002,"profileUrl":"mailto:jnoller@gmail.com","iconEnabled":true,"serviceName":"email"}],"statsMigrated":true,"imageMetadataProcessingEnabled":false},"tzData":{"zones":[[-360,"Mexico","C%sT",null]],"rules":{"Mexico":[[2002,"max",null,"Apr","Sun>=1","2:00","1:00","D"],[2002,"max",null,"Oct","lastSun","2:00","0","S"]]}},"websiteCloneable":false,"isSystemPage":false,"collection":{"title":"Blog","id":"50b7714be4b0192bc2226c59","fullUrl":"/","publicCommentCount":1567},"subscribed":false,"appDomain":"squarespace.com","templateId":"4fdf4f21c4aad4a72790bd9b","rollups":{"squarespace-audio-player":{"css":"//static.squarespace.com/universal/styles-compressed/audio-player-dc5b33fb885ed7dd5b630a37f5d5579c-min.css","js":"//static.squarespace.com/universal/scripts-compressed/audio-player-fd7d648ba6d9a15e7ffb82d1be409cb0-min.js"},"squarespace-calendar-block-renderer":{"css":"//static.squarespace.com/universal/styles-compressed/calendar-block-renderer-d41d8cd98f00b204e9800998ecf8427e-min.css","js":"//static.squarespace.com/universal/scripts-compressed/calendar-block-renderer-4bea0541dc8c1df12b108d3b4c8a9226-min.js"},"squarespace-comments":{"css":"//static.squarespace.com/universal/styles-compressed/comments-272ec23991ba6271a6e2c576487570ef-min.css","js":"//static.squarespace.com/universal/scripts-compressed/comments-2b7569a4c8385d42e8225e23d4d053aa-min.js"},"squarespace-dialog":{"css":"//static.squarespace.com/universal/styles-compressed/dialog-b4692a83920763264aecef92eafaaa63-min.css","js":"//static.squarespace.com/universal/scripts-compressed/dialog-4992ef7b8f0245538b0e1f36b5c05039-min.js"},"squarespace-pinterest":{"css":"//static.squarespace.com/universal/styles-compressed/pinterest-d41d8cd98f00b204e9800998ecf8427e-min.css","js":"//static.squarespace.com/universal/scripts-compressed/pinterest-f622da19fd8dbf157caf5aa4208b9f2e-min.js"}},"tweakJSON":{"aspect-ratio":"Auto","gallery-arrow-style":"Round Corners","gallery-aspect-ratio":"3:2 Standard","gallery-auto-crop":"true","gallery-autoplay":"false","gallery-design":"Slideshow","gallery-info-overlay":"Always Show","gallery-loop":"false","gallery-navigation":"Thumbnails","gallery-show-arrows":"true","gallery-transitions":"Fade","galleryArrowBackground":"rgba(34,34,34,1)","galleryArrowColor":"rgba(255,255,255,1)","galleryAutoplaySpeed":"3","galleryCircleColor":"rgba(255,255,255,1)","galleryInfoBackground":"rgba(0, 0, 0, .7)","galleryThumbnailSize":"100px","gridSize":"350px","gridSpacing":"20px","product-gallery-auto-crop":"true","product-image-auto-crop":"true"},"websiteSettings":{"id":"50b76babe4b05c3cd8bab78b","websiteId":"50b76babe4b05c3cd8bab78a","type":"Personal","subject":"Personal","country":"","state":"","markdownMode":true,"simpleLikingEnabled":true,"lastAgreedTermsOfService":2,"defaultPostFormat":"%y/%m/%d/%t","commentLikesAllowed":false,"commentAnonAllowed":false,"commentThreaded":false,"commentApprovalRequired":false,"commentAvatarsOn":false,"commentSortType":2,"commentFlagThreshold":0,"commentFlagsAllowed":false,"commentEnableByDefault":false,"commentDisableAfterDaysDefault":10,"disqusShortname":"pyjesse","notFoundPageId":"50b7714de4b0192bc2226d52","homepageTitleFormat":"%s","collectionTitleFormat":"%c \u2014 %s","itemTitleFormat":"%i \u2014 %s","commentsEnabled":true,"contactEmail":"jnoller@gmail.com","allowSquarespacePromotion":true,"storeSettings":{"returnPolicy":null,"termsOfService":null,"privacyPolicy":null,"expressCheckout":false,"useLightCart":false,"showNoteField":false,"currenciesSupported":["USD"],"defaultCurrency":"USD","selectedCurrency":"USD","measurementStandard":1,"showCustomCheckoutForm":false,"isLive":false,"stripeConnected":false,"storeState":3},"useEscapeKeyToLogin":true,"ssBadgeType":1,"ssBadgePosition":4,"ssBadgeVisibility":1,"ssBadgeDevices":1},"item":{"title":"Python Threads and the Global Interpreter Lock","id":"50b77259e4b0192bc2227a59","fullUrl":"/blog/2009/02/01/python-threads-and-the-global-interpreter-lock","publicCommentCount":22,"commentState":1,"recordType":1},"secureDomain":"https://jessenoller.squarespace.com"}; SquarespaceFonts.loadViaContext(); Squarespace.load(); </script>
+
+<script type="text/javascript" src="//use.typekit.net/ik/lVI3d2PCq1V2lZleCtY_z9-l-YW1LhsSg3JB8kxZPFMfe7IffFHN4UJLFRbh52jhWD93jRShjcBKZQsKw2mRwhFq5e4yjRStjsTi-cmDShm0dhUCZWJ0jhNlOYiaiko7ZWFDZAozdeU8SKoRdhXC-cmDShm0dhUCZWJ0SaBujW48Sagyjh90jhNlOfG0-cmDShm0dhUCZWJ0SaBujW48Sagyjh90jhNlJ6U3ScNt-AuyOAozicI7fbKnMsMMeMI6MKG4fHvgIMMjgfMfH6qJtKGbMg62JMJ7fbKHMsMMegw6MKG4fHGgIMMjIKMfH6qJKbIbMg64JMJ7fbKwMsMMegI6MKG4fHqgIMMjffMfH6qJn6IbMg6bJMJ7fbKOMsMMeMS6MKG4fHXgIMMjgKMfH6qJCMIbMg65JMJ7fbRRHyMMeMX6M6.js"></script>
+<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans+Condensed:300,300italic,700|Open+Sans:400,300,300italic,400italic,600,600italic,700,700italic,800,800italic"/>
+<!--[if gte IE 9]> <link rel="stylesheet" type="text/css" href="//static.squarespace.com/static/sitecss/50b76babe4b05c3cd8bab78a/12/4fdf4f21c4aad4a72790bd9b/50b76bace4b05c3cd8bab841/789/1391924533425/site.css?"/><![endif]-->
+<!--[if lt IE 9]><script src="//static.squarespace.com/universal/scripts-thirdparty/html5/html5-shiv.js"></script><link rel="stylesheet" type="text/css" href="//static.squarespace.com/static/sitecss/50b76babe4b05c3cd8bab78a/12/4fdf4f21c4aad4a72790bd9b/50b76bace4b05c3cd8bab841/789/1391924533425/site.css?&noMedia=true"/><![endif]-->
+<!--[if !IE]> --> <link rel="stylesheet" type="text/css" href="//static.squarespace.com/static/sitecss/50b76babe4b05c3cd8bab78a/12/4fdf4f21c4aad4a72790bd9b/50b76bace4b05c3cd8bab841/789/1391924533425/site.css?"/> <!-- <![endif]-->
+<link href='http://google-code-prettify.googlecode.com/svn/trunk/src/prettify.css' type='text/css' rel='stylesheet'/>
+
+<script src='http://google-code-prettify.googlecode.com/svn/trunk/src/prettify.js' type='text/javascript'></script><script type="text/javascript"> var _gaq = _gaq || []; _gaq.push(['_setAccount', 'UA-1971220-1']); _gaq.push(['_trackPageview']); (function() { var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true; ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js'; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s); })(); </script><!-- End of Squarespace Headers -->
+  </head>
+
+  <body class="collection-type-blog view-item mobile-style-available collection-50b7714be4b0192bc2226c59 collection-layout-default border-style-solid show-social-icons social-icon-style-square  nav-position-fixed show-promoted-blocks show-author-name show-post-date gallery-design-slideshow aspect-ratio-auto lightbox-style-dark gallery-navigation-thumbnails gallery-info-overlay-always-show gallery-aspect-ratio-32-standard gallery-arrow-style-round-corners gallery-transitions-fade gallery-show-arrows gallery-auto-crop   product-list-titles-under product-list-alignment-center product-item-size-11-square product-image-auto-crop product-gallery-size-11-square product-gallery-auto-crop show-product-price show-product-item-nav product-social-sharing   event-thumbnails event-thumbnail-size-32-standard event-date-label event-date-label-time event-excerpts event-list-date event-list-time event-list-address event-icalgcal-links      opentable-style-light newsletter-style-dark small-button-style-solid small-button-shape-square medium-button-style-solid medium-button-shape-square large-button-style-solid large-button-shape-square button-style-default button-corner-style-square native-currency-code-usd logged-out" id="item-50b77259e4b0192bc2227a59">
+    <div id="canvasWrapper">
+
+      <div id="headerWrapper">
+        <!-- ghost version of the nav. pushes header down the correct amount for the real fixed position version of the header -->
+        <div id="navWrapperGhost">
+          <div id="topNavGhost">
+            
+            
+              <div id="sqs-header-social-ghost">
+                <a href="http://www.facebook.com/638520199" target="_blank" class="social-facebook"></a><a href="https://twitter.com/jessenoller" target="_blank" class="social-twitter"></a><a href="https://plus.google.com/115662513673837016240" target="_blank" class="social-google"></a><a href="http://instagram.com/jessenoller" target="_blank" class="social-instagram"></a><a href="http://www.linkedin.com/in/jessenoller" target="_blank" class="social-linkedin"></a><a href="mailto:jnoller@gmail.com" target="_blank" class="social-email"></a>
+              </div>
+              <a href="#sqs-header-social-ghost" id="mobile-show-social-ghost"></a>
+              
+            
+            <div class="sqs-search-ui-button" boost_title="10">
+              <span class="title">Search</span>
+            </div>
+
+            <div id="navGhost">
+
+<nav class="main-nav dropdown-hover" id="mainNavigation">
+  <ul>
+  
+    
+
+      <li class="blog-collection active-link">
+
+        
+
+          
+            <a href="/">Blog</a>
+          
+
+          
+
+        
+
+      </li>
+
+    
+
+      <li class="page-collection">
+
+        
+
+          
+            <a href="/about/">About</a>
+          
+
+          
+
+        
+
+      </li>
+
+    
+
+      <li class="page-collection">
+
+        
+
+          
+            <a href="/other-writing/">Other Writing</a>
+          
+
+          
+
+        
+
+      </li>
+
+    
+
+      <li class="page-collection">
+
+        
+
+          
+            <a href="/favorite-posts/">Favorite Posts</a>
+          
+
+          
+
+        
+
+      </li>
+
+    
+
+      <li class="page-collection">
+
+        
+
+          
+            <a href="/good-to-great-python-reads/">Good to Great Python reads</a>
+          
+
+          
+
+        
+
+      </li>
+
+    
+
+      <li class="page-collection">
+
+        
+
+          
+            <a href="/python-software-foundation/">Python Software Foundation</a>
+          
+
+          
+
+        
+
+      </li>
+
+    
+
+      <li class="page-collection">
+
+        
+
+          
+            <a href="/contact/">Contact</a>
+          
+
+          
+
+        
+
+      </li>
+
+    
+  
+  </ul>
+</nav>
+            <a href="#closeNavGhost" id="mobile-close-nav-ghost">Close</a></div>
+            <a href="#navGhost" id="mobile-show-nav-ghost">Menu</a>
+          </div>
+        </div>
+        <!-- /ghost nav -->
+
+        <!-- real/visible nav starts here -->
+        <div id="navWrapper">
+          <div id="topNav">
+          
+            
+              <div id="sqs-header-social">
+                <a href="http://www.facebook.com/638520199" target="_blank" class="social-facebook"></a><a href="https://twitter.com/jessenoller" target="_blank" class="social-twitter"></a><a href="https://plus.google.com/115662513673837016240" target="_blank" class="social-google"></a><a href="http://instagram.com/jessenoller" target="_blank" class="social-instagram"></a><a href="http://www.linkedin.com/in/jessenoller" target="_blank" class="social-linkedin"></a><a href="mailto:jnoller@gmail.com" target="_blank" class="social-email"></a>
+              </div>
+              <a href="#sqs-header-social" id="mobile-show-social"></a>
+              
+            
+            <div class="sqs-search-ui-button" boost_title="10">
+              <span class="title">Search</span>
+            </div>
+            
+
+  <div id="nav">
+    <a href="#closeNav" id="mobile-close-nav">Close</a>
+
+    <nav class="main-nav dropdown-hover" id="mainNavigation">
+      <ul>
+      
+        
+
+          <li class="blog-collection active-link">
+
+            
+
+              
+                <a href="/">Blog</a>
+              
+
+              
+
+            
+
+          </li>
+
+        
+
+          <li class="page-collection">
+
+            
+
+              
+                <a href="/about/">About</a>
+              
+
+              
+
+            
+
+          </li>
+
+        
+
+          <li class="page-collection">
+
+            
+
+              
+                <a href="/other-writing/">Other Writing</a>
+              
+
+              
+
+            
+
+          </li>
+
+        
+
+          <li class="page-collection">
+
+            
+
+              
+                <a href="/favorite-posts/">Favorite Posts</a>
+              
+
+              
+
+            
+
+          </li>
+
+        
+
+          <li class="page-collection">
+
+            
+
+              
+                <a href="/good-to-great-python-reads/">Good to Great Python reads</a>
+              
+
+              
+
+            
+
+          </li>
+
+        
+
+          <li class="page-collection">
+
+            
+
+              
+                <a href="/python-software-foundation/">Python Software Foundation</a>
+              
+
+              
+
+            
+
+          </li>
+
+        
+
+          <li class="page-collection">
+
+            
+
+              
+                <a href="/contact/">Contact</a>
+              
+
+              
+
+            
+
+          </li>
+
+        
+      
+      </ul>
+    </nav>
+
+  </div>
+
+  
+    <a href="#nav" id="mobile-show-nav">Menu</a>
+  
+          </div>
+        </div>
+
+    		<header id="header">
+          <div id="logo" data-content-field="site-title">
+          
+            <h1 class="logo image">
+              <a href="/">
+                
+                  <img src="//static.squarespace.com/static/50b76babe4b05c3cd8bab78a/t/52f6d3c3e4b0b0787cdf2bf8/1391924533428/?format=1500w" alt="jesse noller - a blog" />
+                
+              </a>
+            </h1>
+            
+            <p class="logo-subtitle">python, programming, technology & stuff.</p>
+            
+          
+          </div>
+    		</header>
+  		</div> <!-- /#headerWrapper -->
+
+  		<div id="contentWrapper" role="main">
+    		<section id="page">
+    			 <article class="hentry category-programming category-python category-python-magazine author-jesse post-type-text" id="article-50b77259e4b0192bc2227a59" data-item-id="50b77259e4b0192bc2227a59">
+
+  <!--POST HEADER-->
+  <header>
+    <div class="date">
+      <time class="published" datetime="2009-02-01">
+        February  1, 2009
+      </time>
+    </div>
+    
+    <h1 class="entry-title">
+      
+        <a href="/blog/2009/02/01/python-threads-and-the-global-interpreter-lock">Python Threads and the Global Interpreter Lock</a>
+      
+    </h1>
+    
+    <p class="author-categories"><span class="blog-author">by <a href="/?author=50b76e12e4b0cca10d7c421a">jesse</a></span><span class="categories"> in <a href="/?category=Programming" rel="tag">Programming</a>, <a href="/?category=Python" rel="tag">Python</a>, <a href="/?category=python+magazine" rel="tag">python magazine</a></span></p>
+  </header>
+
+  <hr class="short-line" />
+
+  <div class="content-area">
+    <!--SPECIAL CONTENT-->
+    
+
+    <!--POST BODY-->
+    <div class="body entry-content">
+      
+    	<div class="sqs-layout sqs-grid-12 columns-12" data-type="item" id="item-50b77259e4b0192bc2227a59"><div class="row sqs-row"><div class="col sqs-col-12 span-12"><div class="sqs-block html-block sqs-block-html" data-block-type="2" id="block-50b77259e4b0192bc2227a58"><div class="sqs-block-content"><blockquote><p>There are a plethora of mechanisms and technologies surrounding concurrent programming -- Python has support for many of them. In this article we will explain, examine, and benchmark Python's threading support, and discuss the much maligned Global Interpreter Lock (GIL).</p></blockquote>
+<p><em>This is a reprint of a featured article I wrote for <a target="_blank" href="http://static.squarespace.com/static/50b76babe4b05c3cd8bab78a/50b7714be4b0192bc2226c59/50b772fde4b0192bc222822b/1354199805695/?format=original">Python Magazine</a> that was published in the December 2007 issue. This article assisted in inspiring me to write PEP <a href="http://python.org/dev/peps/pep-0371/" target="_blank">371</a>.</em></p>
+<p><!--more--></p>
+<h3>Introduction</h3>
+<p>For many years, and especially within the last year, there has been an ongoing discussion about the concepts of concurrent and parallel programming, and how Python as a language might fit into both of these.  The discussion ranges from complaints about the global interpreter lock, to a discussion on the validity of threaded programming in general.</p>
+<p>Blog posts, open letters, and articles beleaguer the fact that Python and other languages are not truly "concurrent" and can not scale to tens of cores on the modern processor. They all discuss the myriad selection of programming paradigms, solutions (both old and new) and comparisons to other languages.</p>
+<p>Of special note, given that this is a Python magazine, is the discussion around the validity of Python within a highly parallel and concurrent environment, due to the current structure of the CPython interpreter, the global interpreter lock, and a lack of "Erlang-like" concurrency.</p>
+<p>What is concurrency? That's an easy thing to answer. Concurrency, when applied to application/program logic, is the simultaneous execution of tasks. For the most part, these tasks interact and pass information to and from each other and the parent. Generally speaking, anything worth doing is, sooner or later, worth doing concurrently.</p>
+<p>While concurrency defines the problem (or rather, the theory behind a solution), parallelism defines the implementation. Parallelism, when applied to applications, generally refers to the actual implementation of concurrent programming. Specifically, it refers to the simultaneous execution of tasks in such a way as to take advantage of multiple processors, multiple processor cores, or even multiple machines within a computing grid.</p>
+<p>There are, as with all things in computing, a myriad selection of "solutions" or paradigms to address the challenges of both concurrent and parallel computing. These include options ranging from the focus of this article (standard threading or pthreads) to micro-threads, asynchronous programming (a la Twisted), process forking, et cetera.  Some languages, like Erlang, eschew many of these to build the concept of concurrency and communication deep into the language itself, making it a fundamental truth and assumption.</p>
+<p>Each one of these paradigms,technologies, or solutions has it's own pros, cons, and intricacies that have to be understood before you as a programmer can really choose one to use.  Questions have to be answered: </p>
+<ul>
+<li>Do you need shared state?
+<li>Do you need to scale across machines/clusters?
+<li>Are you willing to use message-passing, IPC, or memory mapping?
+</ul>
+<p>Most people won't, or don't have to, answer these questions, as they will simply approach the problem with what is now the near ubiquitous solution to the concurrency "problem": Threads, and threaded programming.</p>
+<h3>A brief description of Threads</h3>
+<p>A <em>Thread</em> is simply an agent spawned by the application to perform work independent of the parent process. While the term Thread and threading have referred to the concept of spawning (forking) multiple processes, more frequently they refer specifically to a <em>pthread</em>, or a worker which is spawned by the parent process, and which shares that parent's resources.</p>
+<p>Both processes and threads are created within a given programming language and then scheduled to run, either by the interpreter itself (commonly known as "green threads"), or by the operating system ("native threads"). Threads which are scheduled by the operating system are governed by the operating system's scheduler, which dictates many things.  Among them is the usage and allocation of multiple processor resources for the execution of the child threads.</p>
+<p>Now, what's the difference between a thread and a process which you can create if both are simply workers spawned by the parent and scheduled by the operating system or interpreter? Threads fundamentally differ from processes in that they are <em>light weight</em> and <em>share memory</em>. The term "light weight" refers to the up-front cost of performing the operating system level process creation (and the requirement of passing a large amount of information and state to the spawned process). Sharing memory speaks to one of the benefits of using threads over processes. Namely, threads can share state, objects, and other information with each other and the main thread of execution (this is normally called shared context). Threads, as they live within the space of a single process, share all of the parent's address space.</p>
+<p>The very fact that threads share the same address space is one of their key and most lauded features. When a program spawns twenty threads, all twenty of those threads can have unfettered access to data within both themselves, each other, and the parent. This "simplifies" data sharing; everyone has everything.</p>
+<p>With shared memory you sidestep most, if not all, of the inter-child communications questions and issues. The catch? You sacrifice your ability to easily jump from a single memory space on one machine to many machines (without a lot of work, that is).</p>
+<p>Threads, just like processes, are designed to be passed off to the operating system scheduler, which dictates which CPU a given process is run on, when it is run on that CPU which means that not only do you gain shared memory with threads, you can leverage all of the local machine's resources (in theory) including multiple cores and/or CPUs.</p>
+<p>Threads are also, as mentioned before, ubiquitous.  Most modern languages, along with some of the old crusty ones like, say, C (I kid!) have support for threads. Java has the concurrency package, Ruby has the thread struct, Perl, well perl has some thing(s). C, C++, etc.,  they all support threads.</p>
+<p>Another benefit of threaded programming, which is frequently understated, is organization and design. Take,for example, any system which follows the classical Producer/Consumer model, in which you have a group of <em>producer threads</em> which fill a shared queue with work items and the <em>consumer threads</em> work off of that shared queue, concurrently or asynchronously. Threads are a natural fit for this pattern because they lend themselves to the clear and clean encapsulation of logic for all of the objects, while also leveraging the shared nature of threads themselves via the work queue. This separation/encapsulation of logic (and duties) within threaded applications can frequently make them easier to read, maintain, and understand.</p>
+<p>Great, right?</p>
+<p>Well, not everything is happy-fun-time in Thread land. Many a great programmer has been stymied by the one thing that brought people running to Thread's dinner-table: Shared Memory. Take, for instance, the synchronization error.</p>
+<p>Synchronization errors occur when you have two threads accessing a common mutable chunk of data, whether it's a function that in turn modifies or calls something else, or something like a shared dictionary where the two attempt to alter the same key at once (more on this later). Synchronization errors are generally hanging out behind the school smoking with... Race conditions! Take the example in Listing 1:</p>
+<pre lang="python" colla="+">
+#!/usr/bin/python
+from threading import Thread
+
+class myObject(object):
+    def __init__(self):
+        self._val = 1
+    def get(self):
+        return self._val
+    def increment(self):
+        self._val += 1
+
+def t1(ob):
+    ob.increment()
+    print 't1:', ob.get() == 2
+
+def t2(ob):
+    ob.increment()
+    print 't2:', ob.get() == 2
+
+ob = myObject()
+
+# Create two threads modifying the same ob instance
+thread1 = Thread(target=t1, args=(ob,))
+thread2 = Thread(target=t2, args=(ob,))
+
+# Run the threads
+thread1.start()
+thread2.start()
+thread1.join()
+thread2.join()
+</pre>
+<p>The banality of the code notwithstanding, one of the two tests will always fail. This is because both threads are incrementing an unlocked, global value. This is a simple example of a synchronization error, one of the threads beats the other to access a shared resource, and the assertion fails. Errors such as this are common.  Alarmingly so, given that when people begin exploring threaded programming, their first instinct is to share everything (whereas many concurrency solutions are referred to as "shared-nothing").  </p>
+<p>This banal example shows a fundamental truth when applied to threaded programming in general: with great shared memory comes great responsibility. It's so easy to have threads throwing around objects and data that programmers frequently over share. Threaded programming requires that the programmer be very, very mindful of what data needs to be shared amongst workers, how to protect (i.e. lock) that data so that you do not run into the dreaded race-condition (as the code above would) or the even more dreadful Deadlock.</p>
+<p>A quick note for those of you unfamiliar with the concept: <em>deadlocks</em> occur when your application seizes up while any number of threads lock-up waiting for the other threads to free required resources, never to return. Deadlocks and synchronization errors in threaded applications are not only painful to debug, they're also insidious, hard to find, and easy to make.</p>
+<p>The rise of threaded programming in modern languages really brings concurrent programs to everyone.  They are the commoditization of concurrency and parallelism; everyone can (and sooner or later does) write a program with threads. The modern thread is the de facto concurrent programming solution to many modern programmers. They have truly become ubiquitous.</p>
+<p>Everyone who writes applications (or even a simple script) will write an application that does more than one thing at once, whether it's calculating prime numbers or downloading pictures of cats on the internet.  And sooner or later, they're being yelled at by their spouse to come to bed because they're up at 3 am and have been chasing synchronization issues for the past twelve hours. 3 am is also when deadlocks jump out of the closet and lock up your applications, right after your 3 month old spits up on your keyboard.</p>
+<p><em>Python Thread Support</em></p>
+<p>To quote the Python <b>thread</b> module documentation:</p>
+<blockquote><p>
+"The design of this module is loosely based on Java's threading model.  However, where Java makes locks and condition variables basic behavior of every object, they are separate objects in Python. Python's <b>Thread</b> class supports a subset of the behavior of Java's <b>Thread</b> class.  Currently, there are no priorities, no thread groups, and threads cannot be destroyed, stopped, suspended, resumed, or interrupted. The static methods of Java's <b>Thread</b>, when implemented, are mapped to module-level functions."</p></blockquote>
+<p>Python's thread support, obviously, is loosely based off of Java's (something many a Java-to-Python convert has been happy for, and stymied by).  Python's thread implementation is very simple at it's core, and builds easily on the concept of individualized workers and shared state.  It provides all of the threaded programming primitives: locks, semaphores, and all the normal goodies that come with a good threaded implementation.</p>
+<p>Let's look at the simplest thread example:</p>
+<pre lang="python">
+from threading import Thread
+
+def myfunc():
+    print "hello, world!"
+
+thread1 = Thread(target=myfunc)
+thread1.start()
+thread1.join()
+</pre>
+<p>There, you've got a multi-threaded application in seven lines of code.  This little script has two threads: the main thread, and the ''thread1'' object we created. Obviously, here, I'm not sharing anything. Heck, I'm hardly doing anything at all! What we are doing is simple: I am creating a new <b>Thread</b> object and passing it a function to run. We are then calling ''start()'', which sends the thread off to be executed.  The ''join()'' method blocks the main application execution until the thread that we've called ''join()'' on exits, this prevents a generic "poll the thread until it is done" loop one might otherwise construct.  </p>
+<p>Python's library has "two" threading-related modules: <b>thread</b> and <b>threading</b>.  Two is in quotation marks because really it's only got one that most people would care about, and that's <b>threading</b>. The <b>threading</b> module builds on the primitives from the <b>thread</b> module that we mentioned earlier. <b>Threading</b> is built using <b>thread</b>, and there are few, if any, reasons for most developers to use the <b>thread</b> module directly.</p>
+<p>Let's take a moment to revisit the statement that Python's thread support is a Java-Like implementation. Let's set a basic Python example next to a simple Java example.  First Java,</p>
+<p>MyThread.java:</p>
+<pre lang="java">
+package com.demo.threads;
+public class MyThread implements Runnable {
+    public void run() {
+        System.out.println("I am a thread!");
+    }
+}
+</pre>
+<p>MyThreadDemo.java:</p>
+<pre lang="java">
+package com.demo.threads;
+public class MyThreadDemo {
+    public static void main( String[] args ) {
+        MyThread foobar = new MyThread();
+        Thread1 = new Thread(foobar);
+        Thread1.start();
+    }
+}
+</pre>
+<p>Now, let's do the same thing, with Python:</p>
+<pre lang="python">
+from threading import Thread
+
+class MyThread(Thread):
+    def run(self):
+        print "I am a thread!"
+
+foobar = MyThread()
+foobar.start()
+foobar.join()
+</pre>
+<p>As you can see, the two are not that far off (albeit the Python example is shorter).  Both <b>MyThread</b> classes extend a superclass <b>Runnable</b> or <b>Thread</b>.  These superclasses provide the basic interfaces which dictate that the object is a valid "thread object". In both cases, we can skip over defining the constructor for the object, as it's already been handled by the superclass (but we could make a new one if we wanted to).</p>
+<p>Both <b>MyThread</b> objects have a common method, though: ''run()''. When making an object a thread this is the only method which really needs to be defined. Once a valid ''run()'' method has been defined, the object is now threadable. A thread object may have any number of methods, callbacks, decorators, etc. We have, in wandering around the Python Cheeseshop, seen some modules simply extend <b>thread</b> so that an object can support threaded implementations out of the box.  The implementation that's provided may not be threaded itself.</p>
+<p>Now, as mentioned before, synchronization errors plague threaded programs.  Unless access to a shared resource has proper controls (locks) applied to it, multiple threads accessing the same resource will contend for that resource. Contention leads to deadlocks, deadlocks lead to suffering, and all that jazz.</p>
+<p>Let's take a look at another simple example commonly used to explain threading -- the Bank example, in Listing 2. This is a simple thing really; the <b>Bank</b> is a shared object which is manipulated simultaneously by the threads we spawn. In this example, we spawn a <b>Bank</b> with 100 accounts, and a 1000 "dollar" balance. This means that the <b>Bank</b> should only ever contain $100,000.  The bank accounts should never lose money, nor should they ever gain money above what was in the accounts to begin with.</p>
+<p>Listing 2:</p>
+<pre lang="python" colla="+">
+from threading import Thread
+from operator import add
+import random
+
+class Bank(object):
+    def __init__(self, naccounts, ibalance):
+        self._naccounts = naccounts
+        self._ibalance = ibalance
+
+        self.accounts = []
+        for n in range(self._naccounts):
+            self.accounts.append(self._ibalance)
+
+    def size(self):
+        return len(self.accounts)
+
+    def getTotalBalance(self):
+        return reduce(add, self.accounts)
+
+    def transfer(self, name, afrom, ato, amount):
+
+        if self.accounts[afrom] < amount: return
+
+        self.accounts[afrom] -= amount
+        self.accounts[ato] += amount
+
+        print "%-9s %8.2f from %2d to %2d Balance: %10.2f" % \
+            (name, amount, afrom, ato, self.getTotalBalance())
+
+class transfer(Thread):
+    def __init__(self, bank, afrom, maxamt):
+        Thread.__init__(self)
+        self._bank = bank
+        self._afrom = afrom
+        self._maxamt = maxamt
+    def run(self):
+        for i in range(0, 3000):
+            ato = random.choice(range(b.size()))
+            amount = round((self._maxamt * random.random()), 2)
+            self._bank.transfer(self.getName(), self._afrom, ato, amount)
+
+naccounts = 100
+initial_balance = 1000
+
+b = Bank(naccounts, initial_balance)
+
+threads = []
+for i in range(0, naccounts):
+    threads.append(transfer(b, i, 100))
+    threads[i].start()
+
+for i in range(0, naccounts):
+    threads[i].join()
+</pre>
+<p>In the normal example, the ''for i in range(0, 3000):'' would be a ''while True:'', but we don't need forever, baby. Go ahead, run it.  You'll notice something within a few thousand transactions: the <b>Bank</b> balance goes awry. It may not always happen, though.  I've run this successfully four times in a row now with zero corruption. However, the fifth time is the charm:</p>
+<pre>
+...
+Thread-88     1.26 from 87 to 41 Balance:  100000.00
+Thread-88     0.65 from 87 to 23 Balance:  100000.00
+Thread-88     0.47 from 87 to  8 Balance:  100000.00
+Thread-88     0.04 from 87 to 28 Balance:  100000.00
+Thread-83    30.14 from 82 to  9 Balance:   99948.90
+Thread-83    35.70 from 82 to 67 Balance:   99948.90
+Thread-80     0.11 from 79 to 98 Balance:   99948.90
+Thread-83    30.82 from 82 to 89 Balance:   99948.90
+Thread-83    40.51 from 82 to 95 Balance:   99948.90
+Thread-83     5.20 from 82 to 52 Balance:   99948.90
+...
+</pre>
+<p>That's the beauty of synchronization errors and race conditions. They won't always happen.  They may not even happen fifty percent of the time. But they <i>will</i> happen. They good news? the fix is a few lines:</p>
+<pre lang="python">
+from threading import Thread, Lock
+...
+lock = Lock()
+class bank(object):
+    def __init__(self, naccounts, ibalance):
+...
+    def transfer(self, name, afrom, ato, amount):
+        if self.accounts[afrom] < amount: return
+        lock.acquire()
+        try:
+            self.accounts[afrom] -= amount
+            self.accounts[ato] += amount
+        finally:
+            lock.release()
+</pre>
+<p>There. Problem fixed! See, Python, much like Java, allows the broken version of this example to have one thread performing the account decrement while another performs the increment. Both threads are in the same code block of the shared object at once, and while one has already decremented an account another thread may be decrementing the same account again.</p>
+<p>Wait what? What did we do? I've added a <b>Lock</b>, one of those nice fundamentals that threading support needs. "Wrapping" a  resource (whether it is a variable, method or some other object) in a lock as I've done above makes execution of that resource (in this case  the accounts being modified) thread safe, which is to say multiple threads can be running, but only one can be modifying that particular resource at a time. In order to run the code, a thread has to first get the lock.  </p>
+<p>Locks and their management are the fix for the problem threading introduces when accessing shared memory and objects. But don't think all's well that ends well; lock management can also drive you bonkers.</p>
+<p>So, Python has all of the nice bits of threading, right? Well, one thing a Java programmer might be missing is the magic of the ''synchronized'' keyword. In Java, the ''synchronized'' keyword, applied to a method or variable, turns access to that method, or modification of the variable, into an instantly thread safe action.</p>
+<p>For example, the Java version of the transfer code:</p>
+<pre lang="java">
+public synchronized void transfer(int afrom, 
+                                  int ato, 
+                                  double amount) {
+	...
+}
+</pre>
+<p>The ''synchronized'' keyword basically manages the locks and conditions automagically.  When the method is entered, the lock is acquired. When it is exited, the lock is released. The good news for Python is that with decorators we can at least fudge out a synchronized keyword, so instead of peppering our code with lock calls, we can do this:</p>
+<pre lang="python">
+from threading import Lock
+from __future__ import with_statement
+def synchronized():
+    the_lock = Lock()
+    def fwrap(function):
+        def newFunction(*args, **kw):
+            with the_lock:
+                return function(*args, **kw)
+        return newFunction
+    return fwrap
+
+...
+    @synchronized()
+    def transfer(self, name, afrom, ato, amount):
+        if self.accounts[afrom] < amount: return
+...
+</pre>
+<p>Now, in this code example we used a bit of Python 2.5: the ''with'' statement, which allows you to condense some amount of ''try''/''except''/''finally'' code via context managers. Since the inner workings of ''with'' are out of scope, take a look at PEP 343 (<a href="http://docs.python.org/whatsnew/pep-343.html" target="_blank">http://docs.python.org/whatsnew/pep-343.html</a>).</p>
+<p>For easy recipes with implementations of synchronized decorators see:</p>
+<ul>
+<li><a href="http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/533135" target="_blank">http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/533135</a> and
+<li><a href="http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/502291" target="_blank">http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/502291</a>
+</ul>
+<p>So, now that you've got all of the basic lock support, and magical decorators, and you've been warned to carefully think about what to share, all's fun and games and you're going to run off and promptly write an application with 1000 threads and do cool stuff, right? Well, there's something else you need to know about: the Global Interpreter Lock.</p>
+<h3>The Global Interpreter Lock</h3>
+<p>"Nevertheless, you're right the GIL is not as bad as you would initially think: you just have to undo the brainwashing you got from Windows and Java proponents who seem to consider threads as the only way to approach concurrent activities." Guido Van Rossum <a href="http://mail.python.org/pipermail/python-3000/2007-May/007414.html" target="_blank">http://mail.python.org/pipermail/python-3000/2007-May/007414.html</a></p>
+<p>This is the part of the article where we take some air out of your threaded sails. It's unfortunate this responsibility must be mine, but let us not dwell on it. First let me describe what the GIL is.  </p>
+<p>The GIL is an interpreter-level lock.  This lock prevents execution of multiple threads at once in the Python interpreter. Each thread that wants to run must wait for the GIL to be released by the other thread, which means your multi-threaded Python application is essentially single threaded, right? Yes. Not exactly. Sort of.</p>
+<p>CPython uses what's called "operating system" threads under the covers, which is to say each time a request to make a new thread is made, the interpreter actually calls into the operating system's libraries and kernel to generate a new thread. This is the same as Java, for example.  So in memory you really do have multiple threads and normally the operating system controls which thread is scheduled to run. On a multiple processor machine, this means you could have many threads spread across multiple processors, all happily chugging away doing work.</p>
+<p>However, while CPython does use operating system threads (in theory allowing multiple threads to execute within the interpreter simultaneously), the interpreter also forces the GIL to be acquired by a thread before it can access the interpreter and stack and can modify Python objects in memory all willy-nilly.  The latter point is why the GIL exists: The GIL prevents simultaneous access to Python objects by multiple threads. But this does not save you (as illustrated by the Bank example) from being a lock-sensitive creature; you don't get a free ride. The GIL is there to protect the interpreters memory, not your sanity.</p>
+<p>The GIL also keeps garbage collection (the reason you don't have to worry about memory management, you bum) working.  It prevents one thread from decrementing the counters for an object and letting the object go into the ether while another object is working with that object.  Python's garbage collection (deallocating unused objects to free memory) utilizes the concept of reference counting. This is where all references to a given object (integer, string or ''YourCat(object)'') are tracked.  When the number of references reaches zero, the object is deleted. The GIL prevents any two threads from decrementing the reference count to any object to 0 while another thread is working on that object.  Remember, only one thread can access a Python object at a time.</p>
+<p>In reality, the CPython GIL is designed with an eye towards a simpler interpreter implementation and single threaded execution speed. It makes the maintenance of the interpreter (and by definition, the writing of extension modules) easier by removing the need to worry about many memory management and concurrency issues that otherwise might be problematic to maintainers and extension authors. It keeps the reference interpreter simple. It is not, ultimately, an "end user" feature unless you're writing C code for Python.</p>
+<p>Python has had threading support, and the GIL, since as far back as version 1.5, so it's not new. In 1999 Greg Stein created a patch set for the interpreter that removed the GIL, but added granular locking around sensitive interpreter operations. This patch set had the direct effect of speeding up threaded execution, but made single threaded execution two times slower.</p>
+<p>So you may be wondering, "if we have the GIL, and a thread must own it to execute within the interpreter, what decides if the GIL should be released?" Delicious byte code instructions. When a Python application is executed, it is compiled down to byte code, the actual instructions that the interpreter uses for execution of the application.  Normally, byte code files end with a name like ".pyc" or ".pyo". A given line of a Python application might be a single byte code, while others, such as an import statement, may ultimately expand into many byte code instructions for the interpreter.</p>
+<p>That all being said, the CPython interpreter, when working with pure Python code (more on this in a moment) will force the GIL to be released every hundred byte code instructions. This means that if you have a complex line of code like a complex math function that in reality acts as a single byte code the GIL will not be released for the period that that statement takes to run.</p>
+<p>There is an exception though: C modules! C extension modules (and built in C modules) can be built in such a way that they release the GIL voluntarily and do their own magic. Take for instance the <b>time</b> module (''timemodule.c'' in the Python source tree).  The ''sleep()'' function looks something like this:</p>
+<pre lang="c">
+
+    ...
+    Py_BEGIN_ALLOW_THREADS
+        sleep((int)secs);
+    Py_END_ALLOW_THREADS
+    ....
+</pre>
+<p>In a C extension, the ''Py_BEGIN_ALLOW_THREADS'' and ''Py_END_ALLOW_THREADS'' macros signal the interpreter and basically state "hey, I'm entering some blocking operation, here's the GIL back" and "hey, I'm returning, I need the GIL". This means that anything in your application that uses a blocking I/O function (network/socket manipulation, file manipulation) or a thread-safe C extension (most of the built-in ones are) can "bypass" the GIL. This means you can get closer to having multiple threads running at concurrently.</p>
+<p>Take for a moment, the ''timemodule.c'' code we pasted above. This means that if you have a threaded application, and want the GIL to be released regularly by your threads, you can call ''time.sleep(.0001)'' or some other tiny amount, and the GIL will be magically released, and your other thread(s) will run. Most application developers wouldn't like this solution, but it is a common "work around" for the GIL limitation.  </p>
+<p>There are other macros and a lot more details about the C API and the GIL. The newer macros ''PyGILState_STATE_Ensure'' and ''PyGILState_STATE_Release'' do all of the low level state and GIL manipulation for you. we recommend reading section 8.1 of the Python/C API Reference Manual.  <a href="http://docs.python.org/api/threads.html" target="_blank">http://docs.python.org/api/threads.html</a></p>
+<p>From a programming standpoint, the GIL is equivalent to wrapping all of your code in a ''synchronize'' keyword (without the memory safety). No two threads can run at once, they can only seem to via GIL acquisition/releasing tricks.</p>
+<p>There are other ways to accelerate the GIL manipulation or avoid it:</p>
+<p>- call ''time.sleep()''
+- set ''sys.setcheckinterval()''
+- run Python in optimized mode
+- dump process-intensive tasks into C-extensions
+- use the <b>subprocess</b> module to execute commands</p>
+<p>The fact is, the GIL does prevent you as a programmer from using multiple CPUs simultaneously. Python as a language, however, <i>does not</i>.  If the CPython interpreter had the GIL removed, the operating system's pthread system would be free to run everything in parallel. The GIL does not prevent a process from running on a different processor of a machine.  It simply only allows one thread to run at once within the interpreter.</p>
+<p>The real question you have to ask yourself is: does the GIL actually affect you and your application? Is it really harming you or is it simply a convenient excuse for people to dismiss Python? Let's examine code and numbers.</p>
+<h3>Benchmarking Python Threads</h3>
+<p>Let's get our hands dirty with more code. First, a word on these benchmarks: Benchmarks are handy excuses for people to get offended, or to tweak them to make an argument.  I do not intend either of these with these numbers; run the code yourself and make your own assumptions.</p>
+<p>All tests are being run on a MacBook Pro, 2.33 GHz Intel Core 2 Duo with 3GB of ram and a 7200 RPM hard drive running Leopard and CPython 2.5.1 from <a target="_blank" href="http://static.squarespace.com/static/50b76babe4b05c3cd8bab78a/50b7714be4b0192bc2226c59/50b772fde4b0192bc222822b/1354199805695/?format=original">http://www.python.org</a>. For the process tests, we're using the <b>processing</b> module, previously covered in this magazine.  <a href="http://pypi.python.org/pypi/processing/" target="_blank">http://pypi.python.org/pypi/processing/</a></p>
+<p>The following tests will call a given function one time, in one hundred loops. I then display the best of 100 calls. I cycle between a non-threaded iteration based call, a threaded call, and finally a processing module (fork and exec) call. I iterate each test for an increasing number of calls/threads. I will go through 1, 2, 4 and finally 8 calls/threads/processes.</p>
+<p>Why are we adding process results into this? The answer is simple: we know in advance the GIL is going to penalize our execution, and using it sidesteps the GIL entirely, allowing us to see how fast execution <i>could</i> be.</p>
+<p>For non-threaded execution, to keep things fair, we simply call the defined function sequentially the same number of times as threads/processes we would otherwise use. All examples use new-style classes to further even the playing field, although we skip explicit ''__init__()'' setup as it's not needed.  </p>
+<p>To keep things simple, I've delegated all of the timings in this to Python's <b>timeit</b> module.  The <b>timeit</b> module is designed to benchmark pieces of Python code -- generally single statements. In our case however, it provides some nice facilities for looping over a given function a set number of times and returning to us the fastest run time.</p>
+<p>You can see the timing execution script in Listing 3.  In one argument, he script accepts a module to look into for ''function_to_run()'', so for each one we just save the example function to a file.  It then iterates over the tests and displays the results. This setup allows us to swap out the test function easily.</p>
+<p>Listing 3:</p>
+<pre lang="python" colla="+">
+#!/usr/bin/python
+
+from threading import Thread
+from processing import Process
+
+class threads_object(Thread):
+    def run(self):
+        function_to_run()
+
+class nothreads_object(object):
+    def run(self):
+        function_to_run()
+
+class process_object(Process):
+    def run(self):
+        function_to_run()
+
+def non_threaded(num_iter):
+    funcs = []
+    for i in range(int(num_iter)):
+        funcs.append(nothreads_object())
+    for i in funcs:
+        i.run()
+
+def threaded(num_threads):
+    funcs = []
+    for i in range(int(num_threads)):
+        funcs.append(threads_object())
+    for i in funcs:
+        i.start()
+    for i in funcs:
+        i.join()
+
+def processed(num_processes):
+    funcs = []
+    for i in range(int(num_processes)):
+        funcs.append(process_object())
+    for i in funcs:
+        i.start()
+    for i in funcs:
+        i.join()
+
+def show_results(func_name, results):
+    print "%-23s %4.6f seconds" % (func_name, results)
+
+if __name__ == "__main__":
+    import sys
+    from timeit import Timer
+
+    repeat = 100
+    number = 1
+
+    num_threads = [ 1, 2, 4, 8 ]
+
+    if len(sys.argv) < 2:
+        print 'Usage: %s module_name' % sys.argv[0]
+        print '  where module_name contains a function_to_run function'
+        sys.exit(1)
+    module_name = sys.argv[1]
+    if module_name.endswith('.py'):
+        module_name = module_name[:-3]
+    print 'Importing %s' % module_name
+    m = __import__(module_name)
+    function_to_run = m.function_to_run
+
+    print 'Starting tests'
+    for i in num_threads:
+        t = Timer("non_threaded(%s)" % i, "from __main__ import non_threaded")
+        best_result = min(t.repeat(repeat=repeat, number=number))
+        show_results("non_threaded (%s iters)" % i, best_result)
+
+        t = Timer("threaded(%s)" % i, "from __main__ import threaded")
+        best_result = min(t.repeat(repeat=repeat, number=number))
+        show_results("threaded (%s threads)" % i, best_result)
+
+        t = Timer("processed(%s)" % i, "from __main__ import processed")
+        best_result = min(t.repeat(repeat=repeat, number=number))
+        show_results("processes (%s procs)" % i, best_result)
+        print "\n",
+
+    print 'Iterations complete'
+</pre>
+<p>Test one establishes some baseline numbers by executing an empty function. This will show us the overhead associated with each of the mechanisms I am testing as applied to object creation and execution.</p>
+<pre lang="python">
+def function_to_run():
+    pass
+</pre>
+<p>Results of the code above:</p>
+<pre>
+non_threaded (1 iters)  0.000003 seconds
+threaded (1 threads)    0.010256 seconds
+processes (1 procs)     0.004803 seconds
+
+non_threaded (2 iters)  0.000007 seconds
+threaded (2 threads)    0.020478 seconds
+processes (2 procs)     0.012630 seconds
+
+non_threaded (4 iters)  0.000010 seconds
+threaded (4 threads)    0.040831 seconds
+processes (4 procs)     0.010525 seconds
+
+non_threaded (8 iters)  0.000017 seconds
+threaded (8 threads)    0.080949 seconds
+processes (8 procs)     0.017513 seconds
+</pre>
+<p>So, we can see that we take a hit just to add the threads and process spawning to the calls. This is expected; besides the fact that Python is optimized for single threaded performance, the simple act of creating the threads and subprocesses adds an up-front cost. Look at the first group of results -- the threaded call has a much higher cost than the non-threaded version. Also of interest is the fact that the cost of adding threads/runs grows parallel to the number of threads added -- 8 threads taking 0.080949, 4 threads taking 0.040831, and so on.  </p>
+<p>Keep in mind that the point of adding threads is not to speed up initialization, but rather to add concurrency to the application. In a less contrived example, we might create a pool of threads once and reuse the workers, allowing us to split up a large data set and run the same function over different parts (a.k.a: the Producer/Consumer model). So while this is not the norm for concurrent applications, these tests are designed to be simple.</p>
+<p>One common application of threaded (and non-threaded) programming is to do number crunching.  Let's take a simple, brute force approach to doing Fibonacci number crunching, noting of course that we're not sharing state here.  I am just trying to have two tasks generate a set number of Fibonacci numbers.</p>
+<pre lang="python">\
+def function_to_run():
+  a, b = 0, 1
+  for i in range(100000):
+    a, b = b, a + b
+</pre>
+<p>Results of the code above:</p>
+<pre>
+non_threaded (1 iters)  0.276594 seconds
+threaded (1 threads)    0.280199 seconds
+processes (1 procs)     0.290740 seconds
+
+non_threaded (2 iters)  0.559094 seconds
+threaded (2 threads)    0.564981 seconds
+processes (2 procs)     0.299791 seconds
+
+non_threaded (4 iters)  1.117339 seconds
+threaded (4 threads)    1.133981 seconds
+processes (4 procs)     0.580096 seconds
+
+non_threaded (8 iters)  2.235245 seconds
+threaded (8 threads)    2.275226 seconds
+processes (8 procs)     1.159978 seconds
+</pre>
+<p>As you can see from this data, adding the additional threads doesn't buy us anything -- you would expect that the threaded examples would run in parallel -- but we can see that the threaded example runs at the same speed (slightly slower) than the single-threaded examples. Adding threads in this case actively harms us. The function executed is pure Python, and due to the simple overhead of creating the threads and the GIL, the threaded runs could never be faster than the single threaded or process-based examples. Again, remember that the GIL only allows one thread to be active in the interpreter at any given time.</p>
+<p>Now, let's do an I/O-bound task, like reading 1000 1-kilobyte chunks off of ''/dev/urandom''!</p>
+<pre lang="python">
+def function_to_run():
+    fh = open("/dev/urandom", "rb")
+    for i in range(1000):
+        fh.read(1024)
+</pre>
+<p>Results of the code above:</p>
+<pre>
+non_threaded (1 iters)  0.125532 seconds
+threaded (1 threads)    0.125908 seconds
+processes (1 procs)     0.140314 seconds
+
+non_threaded (2 iters)  0.251784 seconds
+threaded (2 threads)    0.250818 seconds
+processes (2 procs)     0.261338 seconds
+
+non_threaded (4 iters)  0.503835 seconds
+threaded (4 threads)    0.501558 seconds
+processes (4 procs)     0.511969 seconds
+
+non_threaded (8 iters)  1.006956 seconds
+threaded (8 threads)    1.003003 seconds
+processes (8 procs)     1.009011 seconds
+</pre>
+<p>We're starting to see threads pass by the single threaded approach with the file I/O task, but not by much.  However, it is at least neck-and-neck with the single threaded implementation and faster than the processing example. The latter is an interesting point, too.  This means that if you can "dodge" the GIL you can potentially hit process speeds.</p>
+<p>Keep in mind that you would not really use threads like the benchmark script we've put together does. Generally speaking, you'd be appending things to a queue, taking them off, and doing other shared-state tasks.  Having a bunch of threads off running the same function, while useful, is not a common use-case for a concurrent program, unless you're splitting up and processing large data sets.</p>
+<p>For a quick final example let's look at the results when using the <b>socket</b> module.  This is the module that all network I/O goes through, it's in C, and it's thread safe. To exclude network latency issues we will connect to another computer's Apache web server on the LAN (not optimized for load) and we'll use <b>urllib2</b> instead of the raw <b>socket</b> library -- <b>urllib2</b> uses the <b>socket</b> library under the covers. Grabbing URLs is a common enough use case, rather than just connecting to a socket over and over. I will also lower the count of the requests since, generally speaking, jackhammering your web server makes your web server the bottleneck. Given that this one is not tuned, we will keep it simple. All that is being pulled down from Apache is the default welcome-page.</p>
+<pre lang="python">
+def function_to_run():
+    import urllib
+    for i in range(10):
+        f = urllib.urlopen("http://10.0.1.197")
+        f.read()
+</pre>
+<p>Results of the code above:</p>
+<pre>
+non_threaded (1 iters)  0.123033 seconds
+threaded (1 threads)    0.121244 seconds
+processes (1 procs)     0.141433 seconds
+
+non_threaded (2 iters)  0.250751 seconds
+threaded (2 threads)    0.223357 seconds
+processes (2 procs)     0.242443 seconds
+
+non_threaded (4 iters)  0.486189 seconds
+threaded (4 threads)    0.438107 seconds
+processes (4 procs)     0.448466 seconds
+
+non_threaded (8 iters)  0.986121 seconds
+threaded (8 threads)    0.881546 seconds
+processes (8 procs)     0.859714 seconds
+</pre>
+<p>Take a look at the last two sets of numbers, minus the processing examples:</p>
+<pre>
+non_threaded (4 iters)  0.486189 seconds
+threaded (4 threads)    0.438107 seconds
+
+non_threaded (8 iters)  0.986121 seconds
+threaded (8 threads)    0.881546 seconds
+</pre>
+<p>As you can see, doing I/O does, in fact, release the GIL. The threaded examples are obviously getting faster than the single-threaded execution. Given that most applications do perform a certain amount of I/O (most applications spend a large amount of their time in I/O) the GIL does not prevent users from creating multi-threaded applications that can act in a concurrent manner and add speed to their applications.</p>
+<p>Does the GIL block those people who are working in pure Python from truly taking advantage of multiple cores? Simply put: Yes, it does.  While threads themselves are a language construct, the interpreter is the gatekeeper to the mapping between threads and the OS. This is why Jython and IronPython have no GIL.  It was simply not needed and left out of the implementation of the interpreter.</p>
+<p>Obviously, based on the numbers above, switching to processes side-steps the entire GIL issue, allowing all of the children to run concurrently.  It's something to think about and it's been pointed out quite a bit.</p>
+<h3>In Summary</h3>
+<p>Threaded programming is the concurrency solution for the "common" man, but the problems one runs into when delving into threaded programming are not for the faint of heart, and they are not easy to overcome.  Threading is the first solution to the concurrency problem that many people run to when they first get the urge to begin doing tasks in parallel.</p>
+<p>Python itself has good threading support, including all of the locking primitives, queues, events and semaphores.  That's everything Java and many other languages have, including some higher-level "cool" thread things.  Can CPython take advantage of multiple threads for concurrency?  Yes, with caveats. The caveats applied hamper a particular segment of application developers for sure, but for most of us working in high I/O environments, CPython's thread system with the GIL works out fine.  Even in those environments though, threads may not be the fastest option.  </p>
+<p>The GIL is something that's been debated, and continues to be debated amongst many.  Some call it a feature, some call it a mistake. Some people will be quick to say that threaded programming is too difficult for a large swath of the population, and that, in and of itself is a true statement.</p>
+<p>An important point to remember: The GIL is an interpreter issue. This means that, again, other interpreters, such as Jython and IronPython do not suffer the "penalty" of the GIL. In the same vein, there are a few people out there currently working with the Python code base to experiment with the removal of the GIL in the CPython interpreter.  </p>
+<p>Guido (the BDFL) has already expressed openness to accepting a patch set to the CPython tree that could optionally enable or disable the GIL or, if some enterprising individual wanted to, to implement the interpreter in such a way as to remove the GIL entirely without sacrificing single threaded performance.  </p>
+<p>There continues to be a large swath of people that state that threads are not a true solution to the concurrency problem, despite many hundreds of thousands of threaded applications currently in production. These people yearn for something cleaner, less prone to the dark and sordid synchronization problems too much shared-state brings to the table.</p>
+<p>Threading is ubiquitous, but it is only a single solution for concurrency and we hope that this article helps you think about it's pitfalls, potential and its state in the Python language.  </p>
+<p>For more thoughts on the GIL, see Guido's blog (read the comments): <a href="http://www.artima.com/weblogs/index.jsp?blogger=guido" target="_blank">http://www.artima.com/weblogs/index.jsp?blogger=guido</a></p>
+<p>For another excellent comparison of threads/processes/etc., see the recent effbot posting on the Tim Bray wide finder project: <a href="http://effbot.org/zone/wide-finder.htm" target="_blank">http://effbot.org/zone/wide-finder.htm</a></p>
+<p>Note, for a producer/consumer threading example, see the threading.py module's _test() method.  </p></div></div></div></div></div>
+      
+      <div class="sqs-post-entry"></div>
+    </div>
+  </div>
+
+  <!--POST FOOTER-->
+    <footer>
+      <div class="">
+        <div class="comment-share-like">
+          
+          
+            
+              <a href="/blog/2009/02/01/python-threads-and-the-global-interpreter-lock#comments-50b77259e4b0192bc2227a59" class="comment-link">
+                22 Comments</a>
+              
+            
+          
+          
+          <span class="squarespace-social-buttons inline-style" data-system-data-id="" data-asset-url="http://static.squarespace.com/static/50b76babe4b05c3cd8bab78a/50b7714be4b0192bc2226c59/50b77259e4b0192bc2227a59/1233501695000/" data-record-type="1" data-full-url="/blog/2009/02/01/python-threads-and-the-global-interpreter-lock" data-title="Python Threads and the Global Interpreter Lock"></span>
+
+          <span class="sqs-simple-like" data-item-id="50b77259e4b0192bc2227a59" data-like-count="8"><span class="like-icon"></span><span class="like-count"></span></span>
+
+        </div>
+
+        
+
+      </div>
+    </footer>
+
+  <hr class="short-line" />
+
+</article>
+
+
+<!--PAGINATION-->
+
+<nav class="pagination">
+  <ul>
+    <li class="previous"><a href="/blog/2009/02/02/an-interview-with-adam-olsen-author-of-safe-threading-completely-different"><span class="fs1 arrow-prev" aria-hidden="true" data-icon="&#x0022;"></span>Previous Post<br /><span class="page-title">An Interview With Adam ...</span></a></li>
+    <li class="next"><a href="/blog/2009/01/31/circuits-event-driven-components">Next Post<br /><span class="page-title">Circuits: event driven ...</span><span class="fs1 arrow-next" aria-hidden="true" data-icon="&#x0021;"></span></a></li>
+  </ul>
+</nav>
+
+
+<!-- COMMENTS -->
+
+<section id="comments-50b76babe4b05c3cd8bab78a" class="comments-wrapper">
+  <div class="squarespace-comments" id="disqus_thread"></div>
+</section>
+    		</section>
+  		</div>
+
+      <footer id="pageFooter">
+        <div class="sqs-cart-dropzone"></div>
+        <div class="sqs-layout sqs-grid-12 columns-12" data-type="block-field" data-updated-on="1354245882140" id="footerBlock"><div class="row sqs-row"><div class="col sqs-col-12 span-12"><div class="sqs-block html-block sqs-block-html" data-block-type="2" id="block-5dfb622ffb3ab97eed56"><div class="sqs-block-content"><p class="text-align-center"><em>This work is licensed under a&nbsp;<a href="http://creativecommons.org/licenses/by-nc-nd/3.0/us/deed.en_US" data-link-type="external">Creative Commons Attribution-NonCommercial-NoDerivs 3.0 United States License</a>.</em></p></div></div></div></div></div>
+        <script>(function() {var SQUARESPACE_SIZES=[1500,1E3,750,500,300,100],IMAGE_LOADING_CLASS="loading",ImageLoader=new function(){this.load=function(a,b){function c(a,b,c){var d=new Image;d.onload=b;d.onerror=c;d.src=a}a.getDOMNode&&(a=a.getDOMNode());var d=this._getDataFromNode(a,b),e=!(!d.dimensions||!d.dimensions.width||!d.dimensions.height),l=d.load+"";if("false"===l)return!1;var g=d.mode;if(e&&("fit"==g||"fill"==g)){g=a.parentNode;if(!g)return console.error("Not doing anything, parentNode not found."),!1;if(!this.refresh(a,
+b,g))return!1}var n=this._intendToLoad(a,d);if("string"==typeof n&&"viewport"!==l){var m=this.getUrl(n,d),d=a.getAttribute("data-image-resolution");a.getAttribute("src")!==m&&this.isValidResolution(n,d)&&(a.onload=function(){a.className=a.className.replace(IMAGE_LOADING_CLASS," ").trim();a.setAttribute("data-image-resolution",n)},!a.getAttribute("src")&&-1===a.className.indexOf(IMAGE_LOADING_CLASS)&&(a.className+=(a.className?" ":"")+IMAGE_LOADING_CLASS),!a.getAttribute("src")&&e?a.setAttribute("src",
+m):c(m,function(){e?a.setAttribute("src",m):(a.setAttribute("data-image-dimensions",this.width+"x"+this.height),ImageLoader.load(a,b))},function(){a.className=a.className.replace(IMAGE_LOADING_CLASS," ").trim();a.setAttribute("src",m)}));return!0}return n};this.refresh=function(a,b,c){a.getDOMNode&&(a=a.getDOMNode());c&&c.getDOMNode&&(c=c.getDOMNode());c=c||a.parentNode;if(!c)return console.error("Not doing anything, parentNode not found."),!1;var d=this._getDataFromNode(a,b),e=c.offsetWidth,l=c.offsetHeight;
+b=d.mode;if("none"!=b){var g=d.dimensions.width,n=d.dimensions.height,m=g/n,q=e/l;if(d.fixedRatio)"fill"==b&&q>m||"fit"==b&&q<m?(h=100,k=100*(q/m),r=(100-k)*d.focalPoint.y,p=0):(h=100*(m/q),k=100,r=0,p=(100-h)*d.focalPoint.x),a.style.top=r+"%",a.style.left=p+"%",a.style.width=h+"%",a.style.height=k+"%";else{var f;"fill"===b?f=m>q?l/n:e/g:"fit"===b&&(f=m<q?l/n:e/g);!d.stretch&&("fit"==b&&1<f)&&(f=1);var h=Math.ceil(g*f),k=Math.ceil(n*f);if(0===h||0===k)return!1;var p,r;"fill"===b?(p=Math.min(Math.max(e/
+2-h*d.focalPoint.x,e-h),0),r=Math.min(Math.max(l/2-k*d.focalPoint.y,l-k),0)):"fit"===b&&(f=d.fitAlignment,p=f.left?0:f.right?e-h:h<e?(e-h)/2:0,r=f.top?0:f.bottom?l-k:k<l?(l-k)/2:0,"inline"==this._getStyle(a,"display")&&(a.style.fontSize="0px"),this._resetAlt(a,function(){h-=a.offsetHeight-a.clientHeight;k-=a.offsetWidth-a.clientWidth}));a.style.top=Math.ceil(r)+"px";a.style.left=Math.ceil(p)+"px";a.style.width=Math.ceil(h)+"px";a.style.height=Math.ceil(k)+"px"}p=this._getStyle(c,"position");a.style.position=
+"relative"==p?"absolute":"relative";if("fill"==b&&(b=this._getStyle(c,"overflow"),!b||"hidden"!=b))c.style.overflow="hidden";return!0}};this._intendToLoad=function(a,b){function c(c,d){"none"===b.mode&&(a.style.width=null,a.style.height=null);var e=parseFloat(a.getAttribute(c)),f=parseFloat(e);if(!f||isNaN(f))e=g._getStyle(a,c),f=parseFloat(e);if(!f||isNaN(f))e=g._getStyle(a,"max-"+c,"max"+(c.substr(0,1).toUpperCase()+c.substr(1))),f=parseFloat(e);if(0===d||e)switch(g._stringType(e)){case "percentage":d=
+parseInt(e,10)/100*l["offset"+c.substr(0,1).toUpperCase()+c.substr(1)];break;case "number":d=parseInt(e,10)}!f&&(0!==d&&!a.getAttribute("src"))&&(d=0);return d}b=b||this._getDataFromNode(a);if(!b.source)return!1;var d=a.offsetWidth,e=a.offsetHeight,l=a.parentNode,g=this;this._resetAlt(a,function(){d=c("width",d);e=c("height",e)});0===d&&0===e?(d=b.dimensions.width,e=b.dimensions.height):0===d?d=this.getDimensionForValue("width",e,b):0===e&&(e=this.getDimensionForValue("height",d,b));"viewport"===
+b.load&&(a.style.width=Math.floor(d)+"px",a.style.height=Math.floor(e)+"px");return this.getSquarespaceSize(d,e,b)};this._getDataFromNode=function(a,b){b=b||{};var c={focalPoint:{x:0.5,y:0.5},dimensions:{width:null,height:null},mode:"none",fitAlignment:{center:!0},load:"true",stretch:!0,fixedRatio:!1};if(b.focalPoint)c.focalPoint=b.focalPoint;else{var d=a.getAttribute("data-image-focal-point");if(d&&(d=d.split(","))&&2==d.length)c.focalPoint={x:parseFloat(d[0]),y:parseFloat(d[1])}}if(b.dimensions)c.dimensions=
+b.dimensions;else if((d=a.getAttribute("data-image-dimensions"))&&(d=d.split("x"))&&2==d.length)c.dimensions={width:parseInt(d[0],10),height:parseInt(d[1],10)};b.mode?c.mode=b.mode:(d=a.parentNode.className,-1!==d.indexOf("content-fill")?c.mode="fill":-1!==d.indexOf("content-fit")&&(c.mode="fit"));if("fit"===c.mode&&(d=b.fitAlignment||a.getAttribute("data-alignment")||a.parentNode.getAttribute("data-alignment")))c.fitAlignment={top:-1!==d.indexOf("top"),left:-1!==d.indexOf("left"),center:-1!==d.indexOf("center"),
+right:-1!==d.indexOf("right"),bottom:-1!==d.indexOf("bottom")};if(b.load)c.load=b.load;else if(d=a.getAttribute("data-load"))c.load=d;if("undefined"!==typeof b.stretch)c.stretch=b.stretch;else if(d=a.getAttribute("data-image-stretch"))c.stretch="true"===d?!0:!1;c.source=b.source?b.source:a.getAttribute("data-src");if(c.source&&(-1!==c.source.indexOf("squarespace.com")||-1!==c.source.indexOf("squarespace.net"))&&"http:"===c.source.substr(0,5)&&"https"===window.location.protocol.substr(0,5))c.source=
+c.source.replace("http://","https://");if(b.fixedRatio)c.fixedRatio=b.fixedRatio;else if(d=a.getAttribute("data-fixed-ratio"))c.fixedRatio="true"==d;return c};this._stringType=function(a){return"string"===typeof a&&-1!==a.indexOf("%")?"percentage":isNaN(parseInt(a,10))?NaN:"number"};this._getStyle=function(a,b,c){var d;a.currentStyle?d=a.currentStyle[c||b]:window.getComputedStyle&&(d=document.defaultView.getComputedStyle(a,null).getPropertyValue(b));return d};this._isVisible=function(a){a=a.getBoundingClientRect();
+return 0<=a.left&&0<=a.top||0<=a.bottom&&0<=a.right||0<=a.left&&0<=a.bottom||0<=a.right&&0<=a.top};this.getSquarespaceSize=function(a,b,c){a=Math.max(b/(c.dimensions.height/c.dimensions.width),a);"number"==typeof window.devicePixelRatio&&(a*=window.devicePixelRatio);for(b=1;b<SQUARESPACE_SIZES.length&&!(a>SQUARESPACE_SIZES[b]);b++);return SQUARESPACE_SIZES[b-1]+"w"};this.getDimensionForValue=function(a,b,c){var d=c.dimensions.width;c=c.dimensions.height;return"width"==a?d/c*b:"height"==a?c/d*b:NaN};
+this.getUrl=function(a,b){var c=b.source;return a&&("/"==c[0]||-1!=c.indexOf("squarespace.com")||-1!=c.indexOf("squarespace.net"))?(-1===c.indexOf("format="+a)&&(c=c+(-1!==c.indexOf("?")?"&":"?")+"format="+a),window.Static&&(window.Static.IN_BACKEND&&-1===c.indexOf("storage=local"))&&(c+="&storage=local"),c):b.source};this.isValidResolution=function(a,b){a=parseInt(a,10);b=parseInt(b,10);return isNaN(a)||isNaN(b)?!0:a>b};this._resetAlt=function(a,b){var c=a.getAttribute("alt"),d=c&&0<c.length&&!a.getAttribute("src");
+if(d){var e=a.style.display;a.removeAttribute("alt");a.style.display="none";a.offsetHeight+0;a.style.display=e}b.call(this);d&&a.setAttribute("alt",c)}};window.ImageLoader=ImageLoader;var siteCSSHandle,loopHandle,imagesTimer=50;function ancestorHasClass(a,b){return"undefined"!==typeof a.className&&-1!==a.className.indexOf(b)?!0:a.parentNode?ancestorHasClass(a.parentNode,b):!1}
+var hasAttr=function(a,b){return a.hasAttribute?a.hasAttribute(b):!!a.attributes[b]},getAttr=function(a,b){return a.getAttribute?a.getAttribute(b):a.attributes[b]};function init(){var a=document.images;if(0<a.length)for(var b=0,c=a.length;b<c;b++)(hasAttr(a[b],"data-image")||hasAttr(a[b],"data-src"))&&"false"!==getAttr(a[b],"data-load")+""&&ImageLoader.load(a[b])}init();window.YUI&&YUI.add("squarespace-imageloader",function(a){});
+})();</script>
+<script>Squarespace.afterBodyLoad();</script>
+      </footer>
+
+    </div> <!-- /#canvasWrapper -->
+
+  
+
+  </body>
+</html>

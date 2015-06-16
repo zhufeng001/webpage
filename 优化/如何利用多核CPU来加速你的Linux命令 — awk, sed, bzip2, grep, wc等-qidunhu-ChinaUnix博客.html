@@ -1,0 +1,1536 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="/css/default/style.css" />
+<link rel="stylesheet" type="text/css" href="/css/qqface/qqFace.css" />
+<link rel="stylesheet" type="text/css" href="/css/asyncbox/skins/Chrome/asyncbox.css" />
+<link rel="stylesheet" type="text/css" href="/assets/6d60aeb8/pager.css" />
+<script type="text/javascript" src="/js/jquery.min.js"></script>
+<script type="text/javascript" src="/js/jquery.cookies.min.js"></script>
+<script type="text/javascript" src="/js/AsyncBox.v1.4.5.js"></script>
+<title>如何利用多核CPU来加速你的Linux命令 — awk, sed, bzip2, grep, wc等-qidunhu-ChinaUnix博客</title>
+<meta name="description" content='
+	你是否曾经有过要计算一个非常大的数据(几百GB)的需求？或在里面搜索，或其它操作——一些无法并行的操作。数据专家们，我是在对你们说。你可能有一个16核或更多核的CPU，但我们合适的工具，例如 grep, bzip2, wc, awk,'/>
+<script language="javascript">
+//用户是否在线
+var isOnLine = '';
+$(document).ready(function(){
+	var blog = {'name': '', 'name_url': '', 'brief': ''};
+	//消息通知显示和隐藏控制
+	$('#show_message_slide_button').hover(
+		function(){
+			$('#message_slide_div').slideDown(100);											   
+		},
+		function(){
+			
+		}
+	);
+
+	$('#message_slide_div').hover(
+		function(){
+			
+		},
+		function(){
+			$('#message_slide_div').slideUp(100);
+		}
+	);
+	
+	//编辑博客名
+	$('#editbna').click(function(){
+		blog.name = $('#bnaspan a').text();
+		var val = '<input id="bnainput" type="text" style="float:left" value="" rel="' +$(this).attr('rel') + '" /><input id="bnasub" type="button" style="float:left" class="btn1"><input id="bnacanl" type="button" style="float:left" class="btn2"><div class="clear"></div>';
+		$('#bnaspan').html(val);
+		$('#bnainput').val(blog.name);
+		$(this).parent().hide();
+	});
+	
+	$('#bnasub').live('click', function(){
+	    var rel = eval('({' + $('#bnainput').attr('rel') + '})');
+		var name = $('#bnainput').val();
+		if(name != blog.name){
+	        $.ajax({
+			    type: "POST",
+			    url: rel.url,	
+			    data: {
+				    'name' : name
+			    },
+			    success:function(data){
+				    if(data == 0){
+						$('#bnaspan').html(blog.name);
+						$('#bnaspan').html('<a href="' + rel.href + '">' + $('#bnaspan').html() + '</a>');
+				    }else{
+						$('#bnaspan').html(data);
+						$('#bnaspan').html('<a href="' + rel.href + '">' + $('#bnaspan').html() + '</a>');
+				    }
+					$('#editbna').parent().show();
+				}
+			});
+		}else{
+		    $('#bnaspan').text(blog.name).html();
+			$('#bnaspan').html('<a href="' + rel.href + '">' + $('#bnaspan').html() + '</a>');
+			$('#editbna').parent().show();
+		}
+	});
+	
+	$('#bnacanl').live('click', function(){
+		var rel = eval('({' + $('#bnainput').attr('rel') + '})');
+		$('#bnaspan').html('<a href="' + rel.href + '">' + blog.name + '</a>');
+		$('#editbna').parent().show();
+	});
+	
+	//编辑签名
+	$('#editbrief').click(function(){
+	    blog.brief = $('#briefem').text();
+		var val = '<input id="brfinput" type="text" style="float:left" value="" rel="' + $(this).attr('rel') + '" /><input id="brfsub" style="float:left"  type="button" class="btn1"><input style="float:left"  id="brfcanl" type="button" class="btn2"><div class="clear"></div>';
+		$('#briefem').html(val);
+		$('#brfinput').val(blog.brief);
+		$(this).parent().hide();
+	});
+	
+	$('#brfsub').live('click', function(){
+	    var url = $('#brfinput').attr('rel');
+		var brief = $('#brfinput').val();
+		if(brief != blog.brief){
+	        $.ajax({
+			    type: "POST",
+			    url: url,	
+			    data: {
+				    'brief' : brief
+			    },
+			    success:function(data){
+				    if(data == 0){
+				        $('#briefem').html(blog.brief);
+				    }else{
+						$('#briefem').html(data);
+				    }
+					$('#editbrief').parent().show();
+				}
+			});
+		}else{
+		    $('#briefem').text(blog.brief).html();
+			$('#editbrief').parent().show();
+		}
+	});
+	
+	$('#brfcanl').live('click', function(){
+		$('#briefem').html(blog.brief);
+		$('#editbrief').parent().show();
+	});
+
+});
+</script>
+</head>
+<body>
+<div class="box">
+  <!-- 一级导航 -->
+  <div class="Blog_nav1">
+    <div class="Blog_nav1_2"><a href="/"><img src="/image/default/1.png"></a><a href="http://www.chinaunix.net" class="Blog_a1">Chinaunix首页</a>　| 　<a href="http://bbs.chinaunix.net" target="_blank">论坛</a>　| 　<a href="http://ask.chinaunix.net" target="_blank">问答</a>　| 　<a href="http://blog.chinaunix.net" target="_blank">博客</a><span class="Blog_span1"></span>
+            <a href="/site/login.html" class="Blog_a1">登录</a> | <a href="http://sso.chinaunix.net/Register?return_url=http%3A%2F%2Ft.cublog.com%2F" class="Blog_a1">注册</a>
+          </div>
+	<!--自动提示层-->
+	<style>
+	.bor13221{border:1px #bbb solid;width:206px;position:absolute;top:34px;left:0;background:#fff; z-index:9999;display:none}
+	.bor13221 li{height:26px;line-height:26px;padding-left:6px;color:#555;font-size:14px;cursor:pointer;}
+	.here{background:#f3f3f3;}
+    </style>
+
+	<!--自动提示层-->
+    <div class="Blog_nav1_3" style="position:relative; z-index:9999;">
+	 <div class="bor13221">
+      <ul>
+      </ul>
+    </div>
+	  <form action='/site/search.html' method='post'>
+		<input type="text"  autocomplete="off"  class="Blog_txt1" id='search_input_id' name='keywords'>
+		<select class="Bolg_sel1" name='type' id='search_type_blog'>
+		  <option value='blog'>博文</option>
+		  <option value='author'>博主</option>
+		</select>
+		<input type="submit" value='' name='submit' class="Blog_btn1">
+	 </form>
+    </div>
+    <div class="clear"></div>
+    <div class="Blog_nav1_layer1" id="message_slide_div" style="display:none;">
+	    <ul>
+	    	<li><a href="/message/private.html">私人消息()</a></li>
+	    	<li><a href="/message/system.html">系统消息()</a></li>
+	    	<li><a href="/member/request.html">好友请求()</a></li>
+	    	<li><a href="/member/notification.html">通知管理()</a></li>
+	    </ul>
+    </div>
+  </div>
+   <script type="text/javascript">
+  	$(function(){
+		//点击添加进文本框
+		$(".bor13221 li").live( 'click' , function(e){
+			if ( e && e.stopPropagation )
+			{
+				//因此它支持W3C的stopPropagation()方法
+				e.stopPropagation();
+			}
+			else
+			{
+				//否则，我们需要使用IE的方式来取消事件冒泡
+				window.event.cancelBubble = true; 
+			}
+			$('#search_input_id').val($(this).text());
+			$(".bor13221 ul").html('');
+			$(".bor13221").hide();
+		});
+		$(".bor13221 ul li").live({
+			mouseenter:
+			function()
+			{
+				$(".bor13221 ul li").removeClass("here");
+				$(this).addClass('here');
+			},
+			mouseleave:
+			function()
+			{
+				$(".bor13221 ul li").removeClass("here");
+				$(this).removeClass('here');
+			}
+		});
+		//自动提示
+		$('#search_input_id').keyup(function(event){
+			//取消博主的提示
+			var search_type_blog = $('#search_type_blog').val();
+			if(search_type_blog == 'author') return false;
+
+			var key = $(this).val();
+			//获取键值
+			var keycode = event.which; //38 上 40 下
+			var count = $('.bor13221 ul li').length;
+			if(key != '' && keycode != 38 && keycode != 40)
+			{
+				$.getJSON("http://api.sou.it168.com/autoWenKuCloud?jsoncallback=?",{"ty":"json","offset":"0","limit":"10","q":key}, function(result)
+					{
+						var arr = result.data;
+
+						var html ='';
+						for (i=0;i<arr.length ;i++ )   
+						{   
+							html += '<li>'+arr[i]+'</li>';
+						} 
+						
+						$('.bor13221 ul').html(html);
+						(arr.length > 1) ?  $(".bor13221").show() : $(".bor13221").hide();
+					}
+				);
+			}
+			else if(keycode == 38)
+			{
+				if(count > 0)
+				{
+					//遍历li
+					var curr_li_num;
+					$('.bor13221 ul li').each(function(index , dom){
+						if($(dom).attr('class') == 'here')
+						{
+							curr_li_num = index;
+							return false;
+						}
+					}); 
+					var next_li_num;
+					if(typeof(curr_li_num) == 'undefined')
+					{
+						next_li_num = count - 1;
+					}
+					else
+					{
+						if(curr_li_num == 0)
+						{
+							next_li_num = count - 1;
+						}
+						else
+						{
+							next_li_num = curr_li_num - 1;
+						}
+					}
+					$(".bor13221 ul li").removeClass("here");
+					$(".bor13221 ul li:eq(" + next_li_num + ")").addClass("here");
+					$('#search_input_id').val($(".bor13221 ul li:eq(" + next_li_num + ")").text());
+				}
+			}
+			else if(keycode == 40)
+			{
+				if(count > 0)
+				{
+					//遍历li
+					var curr_li_num;
+					$('.bor13221 ul li').each(function(index , dom){
+						if($(dom).attr('class') == 'here')
+						{
+							curr_li_num = index;
+							return false;
+						}
+					}); 
+					var next_li_num;
+					if(typeof(curr_li_num) == 'undefined')
+					{
+						next_li_num = 0;
+					}
+					else
+					{
+						if(curr_li_num == count - 1)
+						{
+							next_li_num = 0;
+						}
+						else
+						{
+							next_li_num = curr_li_num + 1;
+						}
+					}
+					$(".bor13221 ul li").removeClass("here");
+					$(".bor13221 ul li:eq(" + next_li_num + ")").addClass("here");
+					$('#search_input_id').val($(".bor13221 ul li:eq(" + next_li_num + ")").text());
+				}
+			}
+		});
+		$(document).click(function(e){
+			$(".bor13221").hide();
+		});
+
+	});
+  </script>
+  <!-- 头 -->
+  <!-- 推荐博客-->
+  <div class="Blog_header1">
+	    <div class="Blog_header1_1">
+      <p class="Blog_p1" ><em><a href="/uid/24404943.html">狂奔的蜗牛</a></em><a href="http://qidunhu.blog.chinaunix.net">qidunhu.blog.chinaunix.net</a></p>      <p class="Blog_p2" style="color:#125A94">每天进步一点点.....</p>
+    </div>
+        <div class="Blog_header1_2" id="hide_div1">
+    	<span class="Blog_span3"></span>
+    	<div class="float_div1" style="white-space:nowrap;" onmouseover="javascript:isMove=false" onmouseout="javascript:isMove=true">
+	    <ul id="noticev2">  
+		    		    <li><a href="http://blog.chinaunix.net/uid-24789255-id-4019728.html" target="_blank">【原创评选】12-02月原创博文评选</a></li>
+		    		    <li><a href="http://blog.chinaunix.net/uid-24789255-id-3938601.html" target="_blank">2013第三季度“ChinaUnix博客之星”评选</a></li>
+		    		    <li><a href="http://hadoop.it168.com/index.aspx " target="_blank">2013 Hadoop中国技术峰会（11.22-11.23，北京） </a></li>
+		    	    </ul>
+	    </div>
+    </div>
+            <div class="Blog_header1_3"><a href="/uid/24404943.html">首页</a>　| 　<a href="/uid/24404943/abstract/1.html">博文目录</a>　| 　<a href="/member/profile/uid/24404943.html">关于我</a></div>
+  </div>
+    
+  <!-- 内容部分 -->
+  	<script type="text/javascript" src="/highlight/scripts/XRegExp.js"></script> <!-- XRegExp is bundled with the final shCore.js during build -->
+<script type="text/javascript" src="/highlight/scripts/shCore.js"></script>
+<script type="text/javascript" src="/highlight/scripts/shAutoloader.js"></script>
+<link type="text/css" rel="stylesheet" href="/highlight/styles/shCore.css"/>
+<link type="text/css" rel="Stylesheet" href="/highlight/styles/shThemeDefault.css" />
+<link href="/code/css/fck_editorarea.css" rel="stylesheet" type="text/css" />
+  <div class="Blog_contain"> 
+    <!-- 左 -->
+	<script language="javascript">
+$(document).ready(function(){
+	$('#ConcernBtn').bind('click',function(){
+			var cuid = '24404943';
+			var url =  '/member/concern.html';
+			var type = $(this).attr('rel');
+		
+			if(type == 'addConcern'){
+				$.ajax({
+					type : 'get',
+					url  : url,
+					data : {'op' : 'ajaxadd' , 'cuid' : cuid, 'random' : Math.random()},
+					success : function(msg){	
+					   if(msg == -1){
+						   showErrorMsg('参数错误！');
+					   } else if (msg == 0){
+						   showErrorMsg('关注失败，没有该用户！');
+					   } else if (msg == 1){
+						   showErrorMsg('关注失败，您已经关注了该用户！');
+					   } else if (msg == 2){
+						   $('#ConcernBtn').val('已关注');
+						   $('#ConcernBtn').attr('rel','delConcern');
+						   showSucceedMsg('关注成功!');
+					   } else if (msg == 3){
+						   showErrorMsg('未知错误');
+					   }
+					}
+				});	
+			} else if ( type == 'delConcern'){
+				$.ajax({
+					type : 'get',
+					url  : url,
+					data : {'op' : 'ajaxdel' , 'cuid' : cuid, 'random' : Math.random()},
+					success : function(msg){
+					   if(msg == 0){
+						   showErrorMsg('参数错误！','消息提示');
+					   } else if (msg == 1){
+						   showErrorMsg('操作失败，请尝试刷新页面重试！','消息提示');
+					   } else if (msg == 2){
+						   $('#ConcernBtn').val('加关注');
+						   $('#ConcernBtn').attr('rel','addConcern');
+						   showSucceedMsg('成功取消关注！','消息提示');
+					   } else if (msg == 3){
+						   showErrorMsg('未知错误！','消息提示'); 
+					   }
+					}
+				});	
+			}
+	});					   
+});
+
+//加好友
+function addFriend(fuid, url){
+	if(fuid == '' || fuid.length == 0){
+		showErrorMsg('缺少参数！','信息提示');
+		return false;
+	}
+	$.ajax({
+		   type : 'get',
+		   url : url,
+		   data : {'op' : 'add', 'fuid' : fuid , 'random' : Math.random()},
+		   success : function(msg){
+				if(msg == -1){
+					showErrorMsg('参数错误！','消息提示');
+				} else if (msg == -2){
+					showErrorMsg('添加好友失败,没有该用户的信息！','消息提示');
+				} else if (msg == -3){
+					showErrorMsg('添加好友失败,你不能添加自己为好友！','消息提示');
+				} else if (msg == -4){
+					showErrorMsg('添加好友未知错误,该错误已被记录！','消息提示');
+				} else if (msg == -5){
+					showErrorMsg('添加好友失败,你之前已经发送过好友请求,请耐心等待对方同意申请！','消息提示');
+				} else if (msg == -6){
+					showErrorMsg('添加好友失败,你们已经是好友了！','消息提示');
+				} else {
+					$.cover(true);
+					asyncbox.open({
+						id : 'addFriend',
+						title : '添加好友',
+						url : url,
+						data : {'op' : 'add', 'fuid' : fuid , 'random' : Math.random()},
+						width : 490,
+						height : 180,
+						scroll : 'no',
+						callback : function(action) {
+							if (action == 'close'){
+								$.cover(false);
+							}	
+						}
+					});	
+				}
+		   }
+	});	
+	
+}
+
+//发送短消息
+function postMessage(msguid, url){
+	if(msguid == '' || msguid.length == 0){
+		showErrorMsg('缺少参数！','信息提示');
+		return false;
+	}
+	
+	$.ajax({
+		   type : 'post',
+		   url : url,
+		   data : {'op' : 'ajaxpost', 'msguid' : msguid , 'random' : Math.random()},
+		   success : function(msg){
+				if(msg == -1){
+					showErrorMsg('发送失败，缺少收件人对象！','消息提示');
+				} else if(msg == -2){
+					showErrorMsg('发送失败，自己不能给自己发送短消息！','消息提示');
+				} else {
+					$.cover(true);
+					asyncbox.open({
+						id : 'postMessage',
+						title : '发送短消息',
+						url : url,
+						data : {'op' : 'ajaxpost', 'msguid' : msguid , 'random' : Math.random()},
+						width : 510,
+						height : 255,
+						scroll : 'no',
+						callback : function(action) {
+							if (action == 'close'){
+								$.cover(false);
+							}	
+						}
+					});	
+				}
+		   }
+	});	
+}
+
+</script>
+<div class="Blog_left">
+      <div class="Blog_left1 Blog_bg1">
+        <div class="Blog_left1_1">
+			<!-- 专家博客-->
+			<a href="/uid/24404943.html"><img src="http://passport.ixpub.net/data/avatar/024/40/49/43_avatar_middle.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_middle.gif'" /></a>
+            <p><a href="/uid/24404943.html">qidunhu</a></p>
+        </div>
+        <ul class="Blog_ul1 Blog_noline1">
+          <li>博客访问： 23432 </li>
+          <li>博文数量： 41 </li>
+          <li>博客积分： 528 </li>
+          <!--<li>专家积分： 180</li>-->
+          <li>博客等级： 中士 </li>
+		  <li>技术积分： 388 </li>
+          <li>用  户  组：  普通用户</li>
+          <li>注册时间： 2012-05-20 15:36 </li>
+          <li></li>
+        </ul>  
+        
+                <div class="HT_line3 HT_line3_1"></div>
+        <ul class="Blog_ul2">
+          <li><input type="button" value="加关注" id="ConcernBtn" onclick="showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html')"></li>
+          <li><input type="button" value="短消息" id="postMessageBtn" onclick="showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html')"></li>
+          <li><input type="button" value="论坛" onclick="location.href='http://bbs.chinaunix.net'"></li>
+          <li><input type="button" value="加好友" id="addFriendBtn" onclick="showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html')"></li>
+        </ul>
+              </div>
+        
+         
+      <div class="Blog_left2 Blog_bg1">
+        <div class="Blog_tit1">文章分类</div>
+        <div class="Blog_left2_1">
+          <p class="Blog_p4"><a href="/uid/24404943/list/1.html">全部博文</a>（42）</p>
+          <ul id="blogCla">
+                            <li><a href="/uid/24404943/cid-178056-list-1.html" title="python学习">python学习</a>（5）
+                                </li>
+                            <li><a href="/uid/24404943/cid-159709-list-1.html" title="HPC集群">HPC集群</a>（18）
+                                </li>
+                            <li><a href="/uid/24404943/cid--1-list-1.html" title="未分配的博文">未分配的博文</a>（19）
+                                </li>
+                      </ul>
+        </div>
+      </div>
+      	              <div class="Blog_left2 Blog_bg1">
+        <div class="Blog_tit1">文章存档</div>
+        <div class="Blog_left2_1" id="blogdtr">
+                    <p class="Blog_p4"><span class="Blog_jia1"></span><a href="/uid/24404943/year-2013-list-1.html">2013年</a>（19）</p>
+          <ul style="display:none;" class="Blog_ul3 zk">
+                        <li><a href="/uid/24404943/year-201312-list-1.html">2013年12月</a>（1）</li>
+                        <li><a href="/uid/24404943/year-201310-list-1.html">2013年10月</a>（3）</li>
+                        <li><a href="/uid/24404943/year-201309-list-1.html">2013年09月</a>（1）</li>
+                        <li><a href="/uid/24404943/year-201306-list-1.html">2013年06月</a>（5）</li>
+                        <li><a href="/uid/24404943/year-201304-list-1.html">2013年04月</a>（1）</li>
+                        <li><a href="/uid/24404943/year-201303-list-1.html">2013年03月</a>（1）</li>
+                        <li><a href="/uid/24404943/year-201301-list-1.html">2013年01月</a>（7）</li>
+                      </ul>
+                    <p class="Blog_p4"><span class="Blog_jia1"></span><a href="/uid/24404943/year-2012-list-1.html">2012年</a>（22）</p>
+          <ul style="display:none;" class="Blog_ul3 zk">
+                        <li><a href="/uid/24404943/year-201211-list-1.html">2012年11月</a>（1）</li>
+                        <li><a href="/uid/24404943/year-201210-list-1.html">2012年10月</a>（3）</li>
+                        <li><a href="/uid/24404943/year-201208-list-1.html">2012年08月</a>（2）</li>
+                        <li><a href="/uid/24404943/year-201207-list-1.html">2012年07月</a>（4）</li>
+                        <li><a href="/uid/24404943/year-201206-list-1.html">2012年06月</a>（4）</li>
+                        <li><a href="/uid/24404943/year-201205-list-1.html">2012年05月</a>（8）</li>
+                      </ul>
+                  </div>
+      </div>
+      	  	        <div class="Blog_left2 Blog_bg1">
+        <div class="Blog_tit1">我的朋友</div>
+        <ul class="Blog_ul4">
+                    <li><a href="/uid/22180651.html"><img src="http://passport.ixpub.net/data/avatar/022/18/06/51_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/22180651.html" title="yanyeyy">yanyeyy</a></p>
+          </li>
+                    <li><a href="/uid/27789542.html"><img src="http://passport.ixpub.net/data/avatar/027/78/95/42_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/27789542.html" title="xlm5004">xlm5004</a></p>
+          </li>
+                    <li><a href="/uid/26190993.html"><img src="http://passport.ixpub.net/data/avatar/026/19/09/93_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/26190993.html" title="iniestandroid">iniestan</a></p>
+          </li>
+                    <li><a href="/uid/26440856.html"><img src="http://passport.ixpub.net/data/avatar/026/44/08/56_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/26440856.html" title="CU博客助理">CU博客助</a></p>
+          </li>
+                  </ul>
+      </div>
+	  	        <div class="Blog_left2 Blog_bg1">
+        <div class="Blog_tit1">最近访客</div>
+        <ul class="Blog_ul4">
+                    <li><a href="/uid/20574399.html"><img src="http://passport.ixpub.net/data/avatar/020/57/43/99_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/20574399.html" title="vesli">vesli</a></p>
+          </li>
+                    <li><a href="/uid/24984661.html"><img src="http://passport.ixpub.net/data/avatar/024/98/46/61_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/24984661.html" title="afiua">afiua</a></p>
+          </li>
+                    <li><a href="/uid/20662820.html"><img src="http://passport.ixpub.net/data/avatar/020/66/28/20_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/20662820.html" title="瀚海书香">瀚海书香</a></p>
+          </li>
+                    <li><a href="/uid/29364636.html"><img src="http://passport.ixpub.net/data/avatar/029/36/46/36_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/29364636.html" title="leshuishan">leshuish</a></p>
+          </li>
+                    <li><a href="/uid/20187872.html"><img src="http://passport.ixpub.net/data/avatar/020/18/78/72_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/20187872.html" title="calorique">caloriqu</a></p>
+          </li>
+                    <li><a href="/uid/24700921.html"><img src="http://passport.ixpub.net/data/avatar/024/70/09/21_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/24700921.html" title="houselong">houselon</a></p>
+          </li>
+                    <li><a href="/uid/790887.html"><img src="http://passport.ixpub.net/data/avatar/000/79/08/87_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/790887.html" title="buptldf">buptldf</a></p>
+          </li>
+                    <li><a href="/uid/29242873.html"><img src="http://passport.ixpub.net/data/avatar/029/24/28/73_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/29242873.html" title="linuxnerd">linuxner</a></p>
+          </li>
+                    <li><a href="/uid/8441838.html"><img src="http://passport.ixpub.net/data/avatar/008/44/18/38_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/8441838.html" title="gechunming">gechunmi</a></p>
+          </li>
+                  </ul>
+      </div>
+	        <div class="Blog_left2 Blog_bg1">
+        <div class="Blog_tit1">订阅</div>
+        <ul class="Blog_ul5">
+          <li><a href="/blog/rss/uid/24404943.html" class="Blog_a4"></a></li>
+          <li><a href="http://www.google.com/ig/add?feedurl=http%3A%2F%2Fblog.chinaunix.net%2Fuid%2F24404943.html" class="Blog_a5"></a></li>
+        </ul>
+      </div>
+      <div class="Blog_left2 Blog_left3 Blog_bg1">
+        <div class="Blog_tit1">推荐博文</div>
+        <ul class="Blog_ul6">
+				  			<li>·<a href="/uid-29127426-id-4020811.html" title="JS利用正则配合replace替换指定字符">JS利用正则配合replace替换指...</a></li>
+		  			<li>·<a href="/uid-29127426-id-4020809.html" title="用javascript为页面添加天气显示实现思路及代码">用javascript为页面添加天气...</a></li>
+		  			<li>·<a href="/uid-29362923-id-4020974.html" title="recvmsg与sendmsg函数">recvmsg与sendmsg函数</a></li>
+		  			<li>·<a href="/uid-20680669-id-4021139.html" title="监控指定目录文件,修改日期的变化[UNIX]">监控指定目录文件,修改日期的...</a></li>
+		  			<li>·<a href="/uid-29267932-id-4021932.html" title="驱动学习笔记之初级操作">驱动学习笔记之初级操作...</a></li>
+		  		        </ul>
+      </div>
+      <div class="Blog_left2 Blog_left3 Blog_bg1">
+        <div class="Blog_tit1">热词专题</div>
+        <ul class="Blog_ul6">
+                        <li >·<a href="/zt/1015/linuxjiantaccess_1015810.shtml" target='blank' title='linux目录'>linux目录</a></li>
+                        <li >·<a href="/zt/1004/banin7hunhu_1004998.shtml" target='blank' title='win7系统用笔记本做wifi热点'>win7系统用笔记本做wifi热点...</a></li>
+                        <li >·<a href="/zt/1012/linuxntfs_1012300.shtml" target='blank' title='linux挂载ntfs文件系统'>linux挂载ntfs文件系统</a></li>
+                        <li >·<a href="/zt/1001/linuxkodie_1001390.shtml" target='blank' title='浅析linux 2.6.23下kobject如何生成sysfs目录文件'>浅析linux 2.6.23下kobject如...</a></li>
+                        <li class="no_line1">·<a href="/zt/1013/linuxhunhu_1013429.shtml" target='blank' title='Linux系统编程之管道通信学习'>Linux系统编程之管道通信学习...</a></li>
+                  </ul>
+      </div>
+	  
+
+	</div>
+<script language="javascript">
+$(document).ready(function(){
+    /*目录树JS效果*/
+	$('#blogCla li > span').click(function(){
+		var cla = $(this).attr('class');
+		if(cla == 'Blog_jia1'){
+			//$('#blogCla li > span').removeClass('Blog_jian1').addClass('Blog_jia1');
+			//$('#blogCla li > .zk').css('display', 'none');
+				
+			$(this).removeClass('Blog_jia1').addClass('Blog_jian1');
+            $(this).parent().children('.zk').css('display', 'block');
+		}else{
+			$(this).removeClass('Blog_jian1').addClass('Blog_jia1');
+            $(this).parent().children('.zk').css('display', 'none');
+		}
+	});
+		
+	$('#blogdtr > p > span').click(function(){
+		var cla = $(this).attr('class');
+		if(cla == 'Blog_jia1'){
+			//$('#blogdtr > .Blog_p4 > span').removeClass('Blog_jian1').addClass('Blog_jia1');
+			//$('#blogdtr ul').css('display', 'none');
+				
+			$(this).removeClass('Blog_jia1').addClass('Blog_jian1');
+            $(this).parent().next().css('display', 'block');
+		}else{
+			$(this).removeClass('Blog_jian1').addClass('Blog_jia1');
+            $(this).parent().next().css('display', 'none');
+		}
+	});
+});
+</script>    <!-- 右 -->
+    <div class="Blog_right1">
+      <div class="Blog_right1_1 Blog_right1_11">
+        <div class="Blog_right1_2 ">
+			<div class="img2"></div><!--推荐博文-->
+          <div class="Blog_tit4 Blog_tit5">
+                        <b class="Blog_b1"></b>
+            <a href="/uid-24404943-id-4020546.html">如何利用多核CPU来加速你的Linux命令 — awk, sed, bzip2, grep, wc等</a>
+            <em>2013-12-03 09:19:33</em>
+          </div>
+          <div class="Blog_con2">
+            <div class="Blog_con3">
+              <p>分类： <span>LINUX</span></p>
+			                </p>
+            </div>
+           <div class="Blog_wz1" style='word-wrap: break-word;'>
+			<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	你是否曾经有过要计算一个非常大的数据(几百GB)的需求？或在里面搜索，或其它操作——一些无法并行的操作。数据专家们，我是在对你们说。你可能有一个16核或更多核的CPU，但我们合适的工具，例如 grep, bzip2, wc, awk, sed等等，都是单线程的，只能使用一个CPU内核。
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	但是“如何我能使用这些CPU核心”?
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	要想让Linux命令使用所有的CPU核心，我们需要用到<a title="GNU Parallel" href="https://www.gnu.org/software/parallel/" target="_blank" style="cursor:pointer;">GNU Parallel</a>命令，它让我们所有的CPU核心在单机内做神奇的map-reduce操作，当然，这还要借助很少用到的–pipes 参数(也叫做–spreadstdin)。这样，你的负载就会平均分配到各CPU上，真的。
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	<br />
+</p>
+<h3 style="font-family:微软雅黑;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	BZIP2
+</h3>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	bzip2是比gzip更好的压缩工具，但它很慢！别折腾了，我们有办法解决这问题。
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	以前的做法：
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	cat bigfile.bin | bzip2 --best &gt; compressedfile.bz2
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	现在这样：
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	cat bigfile.bin | parallel --pipe --recend '' -k bzip2 --best &gt; compressedfile.bz2
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	尤其是针对bzip2，GNU parallel在多核CPU上是超级的快。你一不留神，它就执行完成了。
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	<br />
+</p>
+<h3 style="font-family:微软雅黑;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	GREP
+</h3>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	如果你有一个非常大的文本文件，以前你可能会这样：
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	grep pattern bigfile.txt
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	现在你可以这样：
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	cat bigfile.txt | parallel --pipe grep 'pattern'
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	或者这样：
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	cat bigfile.txt | parallel --block 10M --pipe grep 'pattern'
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	这第二种用法使用了–block 10M参数，这是说每个内核处理1千万行——你可以用这个参数来调整每个CUP内核处理多少行数据。
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	<br />
+</p>
+<h3 style="font-family:微软雅黑;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	AWK
+</h3>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	下面是一个用awk命令计算一个非常大的数据文件的例子。
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	常规用法：
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	cat rands20M.txt | awk '{s+=$1} END {print s}'
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	现在这样：
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	cat rands20M.txt | parallel --pipe awk \'{s+=\$1} END {print s}\' | awk '{s+=$1} END {print s}'
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	这个有点复杂：parallel命令中的–pipe参数将cat输出分成多个块分派给awk调用，形成了很多子计算操作。这些子计算经过第二个管道进入了同一个awk命令，从而输出最终结果。第一个awk有三个反斜杠，这是GNU parallel调用awk的需要。
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	<br />
+</p>
+<h3 style="font-family:微软雅黑;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	WC
+</h3>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	想要最快的速度计算一个文件的行数吗？
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	传统做法：
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	wc -l bigfile.txt
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	现在你应该这样：
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	cat bigfile.txt | parallel --pipe wc -l | awk '{s+=$1} END {print s}'
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	非常的巧妙，先使用parallel命令‘mapping’出大量的wc -l调用，形成子计算，最后通过管道发送给awk进行汇总。
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	<br />
+</p>
+<h3 style="font-family:微软雅黑;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	SED
+</h3>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	想在一个巨大的文件里使用sed命令做大量的替换操作吗？
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	常规做法：
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	sed s^old^new^g bigfile.txt
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	现在你可以：
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	cat bigfile.txt | parallel --pipe sed s^old^new^g
+</p>
+<p style="font-family:微软雅黑;font-size:14px;line-height:normal;orphans:2;text-align:-webkit-auto;white-space:normal;widows:2;">
+	…然后你可以使用管道把输出存储到指定的文件里。
+</p>           </div>
+            <!-- <div class="Blog_con3_1">管理员在2009年8月13日编辑了该文章文章。</div> -->
+            <div class="Blog_con2_1 Blog_con3_2">
+              <div>
+			  <!--<img src="/image/default/tu_8.png">-->
+			  <!-- JiaThis Button BEGIN -->
+				<DIV class="bshare-custom icon-medium-plus"><A class=bshare-qzone title=分享到QQ空间></A><A class=bshare-sinaminiblog title=分享到新浪微博></A><A class=bshare-renren title=分享到人人网></A><A class=bshare-qqmb title=分享到腾讯微博></A><A class=bshare-douban title=分享到豆瓣></A><A class="bshare-more bshare-more-icon more-style-addthis" title=更多平台></A></DIV>
+				<SCRIPT type=text/javascript charset=utf-8 src="http://static.bshare.cn/b/buttonLite.js#style=-1&amp;uuid=&amp;pophcol=3&amp;lang=zh"></SCRIPT>
+
+				<SCRIPT type=text/javascript charset=utf-8 src="http://static.bshare.cn/b/bshareC0.js"></SCRIPT>
+				<!-- JiaThis Button END -->
+			  </div>
+              阅读(293) | 评论(1) | 转发(3) |
+			                <div class="HT_line3"></div>
+            </div>
+            <div class="Blog_con3_3">
+              <div><span id='digg_num'>1</span><a href="javascript:void(0)" id='digg' bid='4020546' url='/blog/digg.html' ></a></div>
+              <p>上一篇：<a href="/uid-24404943-id-3952327.html"> lvs架构的DR模式+keepalived高可用 </a></p>
+              <p>下一篇：没有了</p>
+            </div>
+          </div>
+          <div class="Blog_con3_4">
+            <div class="Blog_tit2 Blog_tit6">相关热门文章</div>
+			            <ul class="Blog_ul7">
+						  <li><span class="Blog_span6"></span><a href="http://blog.chinaunix.net/uid-29233673-id-4022062.html" title='20岁小伙长期喝雪蛤炖木瓜致乳房增大似女性' target='blank' >20岁小伙长期喝雪蛤炖木瓜致乳...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://blog.chinaunix.net/uid-29252522-id-4022053.html" title='如何破解“东阳鬼子”密语' target='blank' >如何破解“东阳鬼子”密语...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://blog.chinaunix.net/uid-29285923-id-4022047.html" title='自愿连锁是国家项目吗？合法吗？' target='blank' >自愿连锁是国家项目吗？合法吗...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://blog.chinaunix.net/uid-16749422-id-4022038.html" title='南京网站建设：邵飞Design，做好设计这件事（感悟篇）' target='blank' >南京网站建设：邵飞Design，做...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://blog.chinaunix.net/uid-29354384-id-4022013.html" title='多元化战略 看卫浴企业如何细分市场' target='blank' >多元化战略 看卫浴企业如何细...</a></li>
+			            </ul>
+			            <ul class="Blog_ul7">
+						  <li><span class="Blog_span7"></span><a href="/uid-10900999-id-2920737.html" title='linux 常见服务端口' target='blank' >linux 常见服务端口</a></li>
+						  <li><span class="Blog_span7"></span><a href="/uid-21025382-id-168762.html" title='【ROOTFS搭建】busybox的httpd使用CGI脚本(BusyBox httpd CGI scripts)' target='blank' >【ROOTFS搭建】busybox的httpd...</a></li>
+						  <li><span class="Blog_span7"></span><a href="/uid-20378509-id-1956694.html" title='什么是shell' target='blank' >什么是shell</a></li>
+						  <li><span class="Blog_span7"></span><a href="/uid-233938-id-162618.html" title='linux socket的bug??' target='blank' >linux socket的bug??</a></li>
+						  <li><span class="Blog_span7"></span><a href="/uid-233938-id-162607.html" title='linux的线程是否受到了保护？' target='blank' >linux的线程是否受到了保护？...</a></li>
+			            </ul>
+            <ul class="Blog_ul7">
+						  <li><span class="Blog_span6"></span><a href="http://ask.chinaunix.net/question/4600" title='关于MYSQL 时间类型存储在数据库里是什么类型' target='blank'  >关于MYSQL 时间类型存储在数据...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://ask.chinaunix.net/question/4591" title='schedule如何将新程序运行？' target='blank'  >schedule如何将新程序运行？...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://ask.chinaunix.net/question/4558" title='修改默认端口为222，centos自带/etc/init.d/sshd文件无法启动服务' target='blank'  >修改默认端口为222，centos自...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://ask.chinaunix.net/question/4536" title='用PHP做一个ftp登录页面' target='blank'  >用PHP做一个ftp登录页面...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://ask.chinaunix.net/question/4510" title='Toad for Oracle工具,为什么在一台机器上只能打开一个? ' target='blank'  >Toad for Oracle工具,为什么在...</a></li>
+			            </ul>
+            <div class="clear"></div>
+          </div>
+		  <!--
+          <div class="Blog_con3_4 Blog_con3_5">
+            <div class="Blog_tit2 Blog_tit7">热门推荐</div>
+            <ul>
+			              <li><a href="" title="" target='blank' ></a></li>
+			            </ul>
+          </div>
+		  -->
+        </div>
+      </div>
+      <div class="Blog_right1_7" id='replyList'>
+		<div class="Blog_tit3">给主人留下些什么吧！~~</div>
+														<!--不包含引用-->
+					<div class="Blog_right1_8">
+					  <div class="Blog_right_img1"><a href='/uid/790887.html' ><img src="http://passport.ixpub.net/data/avatar/000/79/08/87_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a></div>
+					  <div class="Blog_right_font1">
+						<p class="Blog_p5"><span><a href='/uid/790887.html' >buptldf</a></span>2013-12-04 15:26:50</p>
+						<p class="Blog_p6">请问一下，为什么在我的测试环境里，wc这个例子，用了parallel比没用要慢很多啊？<br />直接用的博文里的命令。<br /><br />[root@localhost&nbsp;~]#&nbsp;time&nbsp;cat&nbsp;temp&nbsp;|&nbsp;parallel&nbsp;--pipe&nbsp;wc&nbsp;-l&nbsp;|&nbsp;awk&nbsp;'{s+=$1}&nbsp;END&nbsp;{print&nbsp;s}'<br />79759026<br /><br />real&nbsp;&nbsp;&nbsp;&nbsp;1m13.857s<br />user&nbsp;&nbsp;&nbsp;&nbsp;0m54.688s<br />sys&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2m13.860s<br />[root@localhost&nbsp;~]#&nbsp;time&nbsp;wc&nbsp;-l&nbsp;temp<br />79759026&nbsp;temp<br /><br />real&nbsp;&nbsp;&nbsp;&nbsp;0m2.373s<br />user&nbsp;&nbsp;&nbsp;&nbsp;0m1.174s<br />sys&nbsp;&nbsp;&nbsp;&nbsp</p>
+						<div class="div1"><a href="javascript:void(0);" class="Blog_a10"  toid='790887' bid='4020546' cid='606241' tname='buptldf'>回复</a> | <a href="javascript:;" onclick="showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');" class='box_report'>举报</a></div>
+						<!-- 评论占位框-->
+						<div class='z_move_comment' style='display:none'>
+						</div>
+					  </div>
+					  <div class="Blog_line1"></div>
+					</div>
+											<!-- 评论分页-->
+		<div class="Blog_right1_6 Blog_right1_12">
+        		</div>
+		<!-- 评论分页-->
+        <div class="Blog_right1_10">
+          <div class="Blog_tit3">评论热议</div>
+		  		 <!--未登录 -->
+        <div class="Blog_right1_8">
+          <div class="nologin_con1"> 请登录后评论。
+            <p><a href="/site/login.html">登录</a> <a href="http://sso.chinaunix.net/Register?return_url=http%3A%2F%2Ft.cublog.com%2F">注册</a></p>
+          </div>
+        </div>
+		
+        </div>
+      </div>
+    </div>
+  </div>
+  <input type='hidden' id='report_url' value='/blog/ViewReport.html' />
+
+<script type="text/javascript">
+  	//测试字符串的长度 一个汉字算2个字节
+	function mb_strlen(str)
+	{
+		var len=str.length;
+		var totalCount=0;
+		for(var i=0;i<len;i++)
+		{
+			var c = str.charCodeAt(i);
+			if ((c >= 0x0001 && c <= 0x007e) || (0xff60<=c && c<=0xff9f)) {
+				totalCount++;
+			}else{
+				totalCount+=2;
+			}
+		}
+		return totalCount;
+	}
+	/*
+	var Util = {};
+	Util.calWbText = function (text, max){
+		if(max === undefined)
+			max = 500;
+		var cLen=0;
+		var matcher = text.match(/[^\x00-\xff]/g),
+			wlen  = (matcher && matcher.length) || 0;
+		//匹配url链接正则 http://***
+		var pattern = /http:\/\/([\w-]+\.)+[\w-]+(\/*[\w-\.\/\?%&=][^\s^\u4e00-\u9fa5]*)?/gi;
+		//匹配的数据存入数组
+		var arrPt = new Array();
+		var i = 0;
+		while((result = pattern.exec(text)) != null){
+			arrPt[i] = result[0];
+			i++;
+		}
+		//替换掉原文本中的链接
+		for(var j = 0;j<arrPt.length;j++){
+			text = text.replace(arrPt[j],"");
+		}
+		//减掉链接所占的长度
+		return Math.floor((max*2 - text.length - wlen)/2 - 12*i);
+	};
+	*/
+	var allowComment = '0';
+	
+	//举报弹出层
+	function showJuBao(url, cid){
+		
+			$.cover(false);
+			asyncbox.open({
+				id  : 'report_thickbox',
+				url : url,
+				title : '举报违规',
+				width : 378,
+				height : 240,
+				scroll : 'no',
+				data : {
+					'cid'	 : cid,
+					'idtype' : 2 
+				},
+				callback : function(action){
+					if(action == 'close'){
+						$.cover(false);
+					}
+				}
+			});
+	}
+
+	$(function(){
+
+		//创建管理员删除的弹出层
+		$('#admin_article_del').click(function(){
+			$.cover(false);
+			asyncbox.open({
+				id : 'class_thickbox',
+				html : '<div class="HT_layer3_1"><ul><li class="HT_li1">操作原因：<select class="HT_sel7" id="del_type" name="del_type"><option value="广告文章">广告文章</option><option value="违规内容">违规内容</option><option value="标题不明">标题不明</option><option value="文不对题">文不对题</option></select></li><li class="HT_li1" ><input class="HT_btn4" id="admin_delete"  type="button" /></li></ul></div>',
+				title : '选择类型',
+				width : 300,
+				height : 150,
+				scroll : 'no',
+				callback : function(action){
+					if(action == 'close'){
+						$.cover(false);
+					}
+				}
+			});
+		});
+		$('#admin_delete').live('click' , function(){
+			///blog/logicdel/id/3480184/url/%252Fblog%252Findex.html.html
+			var type = $('#del_type').val();
+			var url = '/blog/logicdel/id/4020546/url/%252Fuid%252F24404943.html.html';
+			window.location.href= url + '?type=' + type;
+		});
+
+
+		//顶  js中暂未添加&过滤 
+		$('#digg').live('click' , function(){
+
+			if(isOnLine == '' )
+			{
+				//showErrorMsg('登录之后才能进行此操作' , '消息提示');
+				showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				return false;
+			}
+
+			var bid = $('#digg').attr('bid');
+			var url = $('#digg').attr('url');
+
+			var digg_str = $.cookie('digg_id');
+			if(digg_str != null)
+			{
+				var arr= new Array(); //定义一数组
+
+				arr = digg_str.split(","); //字符分割     
+				for( i=0 ; i < arr.length ; i++ )   
+				{   
+					if(bid == arr[i])
+					{
+						showErrorMsg('已经赞过该文章', '消息提示'); 
+						return false;
+					}
+				} 
+			}
+			$.ajax({
+				type:"POST",
+				url:url,	
+				data: {
+					'bid' : bid 
+				},
+				dataType: 'json',
+				success:function(msg){
+					if(msg.error == 0)
+					{
+						var num = parseInt($('#digg_num').html(),10);
+						num += 1;
+						$('#digg_num').html(num);
+						$('#digg').die();
+
+						if(digg_str == null)
+						{
+							$.cookie('digg_id', bid, {expires: 30 , path: '/'});
+						}
+						else
+						{
+							$.cookie('digg_id', digg_str + ',' + bid, {expires: 30 , path: '/'});
+						}
+						showSucceedMsg('谢谢' , '消息提示');
+					}
+					else if(msg.error == 1)
+					{
+						//showErrorMsg(msg.error_content , '消息提示'); 
+						showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+					}
+					else if(msg.error == 2)
+					{
+						showErrorMsg(msg.error_content , '消息提示'); 
+					}
+				}
+			});
+		});
+		//举报弹出层
+		/*$('.box_report').live('click' , function(){
+			if(isOnLine == '' )
+			{
+				//showErrorMsg('登录之后才能进行此操作' , '消息提示');
+				showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				return false;
+			}
+			var url = $('#report_url').val();
+			var cid = $(this).attr('cid');
+			$.cover(false);
+			asyncbox.open({
+				id  : 'report_thickbox',
+				url : url,
+				title : '举报违规',
+				width : 378,
+				height : 240,
+				scroll : 'no',
+				data : {
+					'cid'	 : cid,
+					'idtype' : 2 
+				},
+				callback : function(action){
+					if(action == 'close'){
+						$.cover(false);
+					}
+				}
+			});
+		});*/
+
+
+		//评论相关代码
+		
+		//点击回复显示评论框
+		$('.Blog_a10').live('click' , function(){
+			if(isOnLine == '' )
+			{
+				//showErrorMsg('登录之后才能进行此操作' , '消息提示');
+				showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				return false;
+			}
+
+			if(allowComment == 1)
+			{
+				showErrorMsg('该博文不允许评论' , '消息提示'); 
+				return false;
+			}
+			var tid = $(this).attr('toid');//留言作者id
+			var bid = $(this).attr('bid');//blogid
+			var cid = $(this).attr('cid');//留言id
+			var tname = $(this).attr('tname');
+			var tpl  = '<div class="Blog_right1_9">';
+				tpl +=	 '<div class="div2">';
+				tpl +=     '<textarea name="" cols="" rows="" class="Blog_ar1_1" id="rmsg">文明上网，理性发言...</textarea>';
+				tpl +=	 '</div>';
+				tpl +=   '<div class="div3">';
+				tpl +=		'<div class="div3_2"><a href="javascript:void(0);" class="Blog_a11" id="quota_sbumit" url="/Comment/PostComment.html" tid="'+tid+'" bid="'+bid+'" cid="'+cid+'" tname="'+tname+'" ></a><a href="javascript:void(0)" id="qx_comment" class="Blog_a12"></a></div>';
+				tpl +=		'<div class="div3_1"><a href="javascript:void(0);" id="mface"><span></span>表情</a></div>';
+				tpl +=		'<div class="clear"></div>';
+				tpl +=	 '</div>';
+				tpl +=  '</div>';
+			$('.z_move_comment').html('');
+			$(this).parents('.Blog_right1_8').find('.z_move_comment').html(tpl).show();
+		});
+		//引用的评论提交
+		$('#quota_sbumit').live('click' , function(){
+
+			if(isOnLine == '' )
+			{
+				//showErrorMsg('登录之后才能进行此操作' , '消息提示');
+				showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				return false;
+			}
+
+			var bid   = $(this).attr('bid');
+			var tid   = $(this).attr('tid');//被引用人的id
+			var qid   = $(this).attr('cid');//引用的id
+			var url = $(this).attr('url');
+			var text = $('#rmsg').val();
+			var tname = $(this).attr('tname');
+			if(text == '' || text=='文明上网，理性发言...')
+			{
+				showErrorMsg('评论内容不能为空！' , '消息提示'); 
+				return false;
+			}
+			else
+			{
+				if(mb_strlen(text) > 1000){
+					showErrorMsg('评论内容不能超过500个汉字' , '消息提示'); 
+					return false;
+				}
+			}
+		    $.ajax({
+		        type: "post",
+			    url: url ,
+			    data: {'bid': bid , 'to' : tid , 'qid' : qid , 'text': text , 'tname' : tname },
+				dataType: 'json',
+			    success: function(data){
+				    if(data.code == 1){
+						var tpl =  '<div class="Blog_right1_8">';
+							tpl+=     '<div class="Blog_right_img1"><a href="' +data.info.url+ '" >' + data.info.header + '</a></div>';
+							tpl+=     '<div class="Blog_right_font1">';
+							tpl+=         '<p class="Blog_p5"><span><a href="' +data.info.url+ '" >' + data.info.username + '</a></span>' + data.info.dateline + '</p>';
+							tpl+=         '<p class="Blog_p7"><a href="' + data.info.quota.url + '">' + data.info.quota.username + '</a>：'+ data.info.quota.content + '</p>';
+							tpl+=         '<p class="Blog_p8">' + data.info.content + '</p><span class="span_text1"><a href="javascript:void(0);" class="Blog_a10" toid=' + data.info.fuid + ' bid=' + data.info.bid + ' cid=' + data.info.cid + '  tname = ' + data.info.username + ' >回复</a> | 　<a class="comment_del_mark" style="cursor:pointer" url="' + data.info.delurl + '" >删除</a>　| 　<a href="javascript:showJuBao(\'/blog/ViewReport.html\','+data.info.cid+')" class="box_report" cid="' + data.info.cid + '" >举报</a></span></div>';
+							tpl+=         '<div class="z_move_comment" style="display:none"></div>';
+							tpl+=	      '<div class="Blog_line1"></div></div>';
+							$('#replyList .Blog_right1_8:first').before(tpl);
+							$('.z_move_comment').html('').hide();
+				    }
+					else if(data.code == -1){
+						//showErrorMsg(data.info , '消息提示'); 
+						showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+			        }
+                },
+			    error: function(){//请求出错处理
+                        
+                }
+			});
+		});
+		//底部发表评论
+		$('#submitmsg').click(function(){
+			if(allowComment == 1)
+			{
+				showErrorMsg('该博文不允许评论' , '消息提示'); 
+				return false;
+			}
+			var bid   = $(this).attr('bid');
+			var toid  = $(this).attr('toid');
+			var text = $('#reply').val();
+			var url = $(this).attr('url');
+			if(text == '' || text=='文明上网，理性发言...')
+			{
+				showErrorMsg('评论内容不能为空！' , '消息提示'); 
+				return false;
+			}
+			else
+			{
+				if(mb_strlen(text) > 1000){
+					showErrorMsg('评论内容不能超过500个汉字' , '消息提示'); 
+					return false;
+				}
+			}
+		    $.ajax({
+		        type: "post",
+			    url: url ,
+			    data: {'bid': bid , 'to' : toid ,'text': text},
+				dataType: 'json',
+			    success: function(data){
+				    if(data.code == 1)
+					{
+						var tpl   = '<div class="Blog_right1_8">';
+							tpl  +=   '<div class="Blog_right_img1"><a href="' +data.info.url+ '" >' + data.info.header + '</a></div>';
+							tpl  +=	  '<div class="Blog_right_font1">';
+							tpl  +=       '<p class="Blog_p5"><span><a href="' +data.info.url+ '" >' + data.info.username + '</a></span>' + data.info.dateline + '</p>';
+							tpl  +=       '<p class="Blog_p6">' + data.info.content + '</p>';
+							tpl  +=		  '<div class="div1"><a href="javascript:void(0);" class="Blog_a10"  toid=' + data.info.fuid + ' bid=' + data.info.bid + ' cid=' + data.info.cid + '>回复</a> | 　<a class="comment_del_mark" style="cursor:pointer" url="' + data.info.delurl + '">删除</a>　| 　<a href="javascript:showJuBao(\'/blog/ViewReport.html\','+data.info.cid+')" class="box_report" cid="' + data.info.cid + '">举报</a></div>';
+							tpl  +=		  '<div class="z_move_comment" style="display:none"></div>';
+							tpl  +=    '</div><div class="Blog_line1"></div></div>';
+							$('.Blog_tit3:first').after(tpl);
+							$('#reply').val('文明上网，理性发言...');
+					}
+					else if(data.code == -1)
+					{
+						showErrorMsg(data.info , '消息提示'); 
+			        }
+                },
+			    error: function(){//请求出错处理
+                        
+                }
+		    });
+			
+		});
+		//底部评论重置
+		$('#reset_comment').click(function(){
+			$('#reply').val('文明上网，理性发言...');
+		});
+		//取消回复
+		$('#qx_comment').live('click' , function(){
+			$('.z_move_comment').html('').hide();
+		});
+
+
+		$('#rmsg, #reply').live({
+		    focus:function(){
+			    if($(this).val() == '文明上网，理性发言...'){
+			        $(this).val('');
+			    }
+			},
+			blur:function(){
+		        if($(this).val() == ''){
+			        $(this).val('文明上网，理性发言...');
+			    }
+			}
+		});
+		//删除留言确认
+		$('.comment_del_mark').live('click' , function(){
+			var url = $(this).attr('url');
+			asyncbox.confirm('删除留言','确认', function(action){
+				if(action == 'ok')
+				{
+					location.href = url;
+				}
+			});
+		});
+		//删除时间确认
+		$('.del_article_id').click(function(){
+			var delurl = $(this).attr('delurl');
+			asyncbox.confirm('删除文章','确认', function(action){
+				if(action == 'ok')
+				{
+					location.href = delurl;
+				}
+			});
+		});
+		/*
+		//字数限制
+		$('#rmsg, #reply').live('keyup', function(){
+			var id = $(this).attr('id');
+			var left = Util.calWbText($(this).val(), 500);
+			var eid = '#errmsg';
+			
+			if(id == 'reply') eid =  '#rerrmsg';
+			if (left >= 0)
+		        $(eid).html('您还可以输入<span>' + left + '</span>字');
+		    else
+		        $(eid).html('<font color="red">您已超出<span>' + Math.abs(left) + '</span>字 </font>');
+		});
+		*/
+		//加载表情
+	    $('#face').qqFace({id : 'facebox1', assign : 'reply', path : '/image/qqface/'});
+	    $('#mface').qqFace({id : 'facebox', assign : 'rmsg', path:'/image/qqface/'});
+	    
+		/*
+		$('#class_one_id').change(function(){
+			alert(123213);
+			var id = parseInt($(this).val() , 10);
+			if(id == 0) return false;
+			$('.hidden_son_class span').each(function( index , dom ){
+				if( dom.attr('cid')  == id )
+				{
+				}
+			});
+		});
+		*/
+		//转载文章
+		var turn_url = "/blog/viewClassPart.html";
+		$('#repost_bar').click(function(){
+			if(isOnLine == '' )
+			{
+				//showErrorMsg('登录之后才能进行此操作' , '消息提示');
+				showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				return false;
+			}
+			var id = $(this).attr('bid');
+			asyncbox.open({
+				id  : 'turn_class_thickbox',
+				url : turn_url,
+				title : '转载文章',
+				width : 330,
+				height : 131,
+				scroll : 'no',
+				data : {
+					'id'	 : id
+				},
+				callback : function(action){
+					if(action == 'close'){
+						$.cover(false);
+					}
+				}
+			});
+		});
+		/*
+	    //转发文章
+	    $('#repost_bar').live('click' , function(){
+			if(isOnLine == '' )
+			{
+				//showErrorMsg('登录之后才能进行此操作' , '消息提示');
+				showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				return false;
+			}
+	    	var bid  = $(this).attr('bid');
+	    	var url  = $(this).attr('url');
+	    	asyncbox.confirm('转载文章','确认', function(action){
+	    	  if(action == 'ok'){
+	    	    $.ajax({
+				type:"POST",
+				url:url,	
+				data: {
+					'bid' : bid 
+				},
+				dataType: 'json',
+				success:function(msg){
+				  if(msg.error == 0){
+				    showSucceedMsg('转发成功！', '消息提示');
+				  }else if(msg.error == 1){
+				    //location.href = '/index.php?r=site/login';
+					showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				  }else{
+				    showErrorMsg(msg.error_content, '消息提示');
+			      }
+				}
+			  });
+	    	  }
+	    	});
+
+		});
+		*/
+
+	});
+</script>
+<!--该部分应该放在输出代码块的后面才起作用 -->
+<script type="text/javascript">
+
+SyntaxHighlighter.autoloader(
+	'applescript			/highlight/scripts/shBrushAppleScript.js',
+	'actionscript3 as3		/highlight/scripts/shBrushAS3.js',
+	'bash shell				/highlight/scripts/shBrushBash.js',
+	'coldfusion cf			/highlight/scripts/shBrushColdFusion.js',
+	'cpp c					/highlight/scripts/shBrushCpp.js',
+	'c# c-sharp csharp		/highlight/scripts/shBrushCSharp.js',
+	'css					/highlight/scripts/shBrushCss.js',
+	'delphi pascal			/highlight/scripts/shBrushDelphi.js',
+	'diff patch pas			/highlight/scripts/shBrushDiff.js',
+	'erl erlang				/highlight/scripts/shBrushErlang.js',
+	'groovy					/highlight/scripts/shBrushGroovy.js',
+	'java					/highlight/scripts/shBrushJava.js',
+	'jfx javafx				/highlight/scripts/shBrushJavaFX.js',
+	'js jscript javascript	/highlight/scripts/shBrushJScript.js',
+	'perl pl				/highlight/scripts/shBrushPerl.js',
+	'php					/highlight/scripts/shBrushPhp.js',
+	'text plain				/highlight/scripts/shBrushPlain.js',
+	'py python				/highlight/scripts/shBrushPython.js',
+	'ruby rails ror rb		/highlight/scripts/shBrushRuby.js',
+	'scala					/highlight/scripts/shBrushScala.js',
+	'sql					/highlight/scripts/shBrushSql.js',
+	'vb vbnet				/highlight/scripts/shBrushVb.js',
+	'xml xhtml xslt html	/highlight/scripts/shBrushXml.js'
+);
+SyntaxHighlighter.all();
+
+
+function code_hide(id){
+	var code = document.getElementById(id).style.display;
+	if(code == 'none'){
+		document.getElementById(id).style.display = 'block';
+	}else{
+		document.getElementById(id).style.display = 'none';
+	}
+}
+</script>
+  <!-- footer -->
+  <div class="Blog_footer" style='clear:both'>
+    <div><a href="http://www.chinaunix.net/about/index.shtml" target="_blank" rel="nofollow">关于我们</a> | <a href="http://www.it168.com/bottomfile/it168.shtml" target="_blank" rel="nofollow">关于IT168</a> | <a href="http://www.chinaunix.net/about/connect.html" target="_blank" rel="nofollow">联系方式</a> | <a href="http://www.chinaunix.net/about/service.html" target="_blank" rel="nofollow">广告合作</a> | <a href="http://www.it168.com//bottomfile/flgw/fl.htm" target="_blank" rel="nofollow">法律声明</a> | <a href="http://sso.chinaunix.net/Register?return_url=http%3A%2F%2Fblog.chinaunix.net%2F
+" target="_blank" rel="nofollow">免费注册</a>
+      <p>Copyright  2001-2010 ChinaUnix.net All Rights Reserved 北京皓辰网域网络信息技术有限公司. 版权所有 </p>
+      <div>感谢所有关心和支持过ChinaUnix的朋友们
+        <p>京ICP证041476号 京ICP证060528号</p>
+      </div>
+    </div>
+  </div>
+</div>
+<script language="javascript">
+
+//全局错误提示弹出框
+function showErrorMsg(content, title, url){
+	var url = url || '';
+	var title = title || '消息提示';
+	var html = '';
+	html += '<div class="HT_layer3_1 HT_layer3_2"><ul><li><p><span class="login_span1"></span>' + content + '</p></li>';
+	if(url == '' || url.length == 0){
+		html += '<li class="HT_li1"><input type="button" class="HT_btn2"  onclick=\'close_windows("error_msg")\'></li>';	
+	} else {
+		html += '<li class="HT_li1"><input type="button" class="login_btn1" onclick="location.href=\'' + url + '\'"></li>';
+	}
+	html += '</ul></div>';
+	$.cover(true);
+	   asyncbox.open({
+		 id: 'error_msg',
+		 title : title,
+		 html : html,
+		 'callback' : function(action){
+			 if(action == 'close'){
+				 $.cover(false);
+			 }
+		 }
+	});
+}
+
+//全局正确提示
+function showSucceedMsg(content, title , url ){
+	var url = url || '';
+	var title = title || '消息提示';
+	var html = '';
+	html += '<div class="HT_layer3_1 HT_layer3_2"><ul><li><p><span class="login_span2"></span>' + content + '</p></li>';
+	if(url == '' || url.length == 0){
+		html += '<li class="HT_li1"><input type="button" class="HT_btn2"  onclick=\'close_windows("error_msg")\'></li>';	
+	} else {
+		html += '<li class="HT_li1"><input type="button" class="HT_btn2" onclick="location.href=\'' + url + '\'"></li>';
+	}
+	html += '</ul></div>';
+	$.cover(true);
+	asyncbox.open({
+		 id: 'error_msg',
+		 title : title,
+		 html : html,
+		 'callback' : function(action){
+			 if(action == 'close'){
+				 $.cover(false);
+			 }
+		 }
+	});
+}
+
+//关闭指定id的窗口
+function close_windows(id){
+	$.cover(false);
+	$.close(id);
+}
+
+
+//公告
+var tID;
+var tn;                        // 高度
+var nStopTime = 5000;        // 不同行间滚动时间隔的时间，值越小，移动越快
+var nSpeed = 50;            // 滚动时，向上移动一像素间隔的时间，值越小，移动越快
+var isMove = true;
+var nHeight = 25;
+var nS = 0;
+var nNewsCount = 3;
+
+/**
+ * n 用于表示是否为第一次运行
+ **/
+function moveT(n)
+{
+    clearTimeout(tID)
+    var noticev2 = document.getElementById("noticev2")
+    nS = nSpeed;
+    
+    // 只在第一次调用时运行，初始化环境（有没有参数）
+    if (n)
+    {
+        // 设置行高
+        noticev2.style.lineHeight = nHeight + "px";
+        // 初始化显示位置
+        tn = 0;
+        // 刚进入时在第一行停止时间
+        nS = nStopTime;
+    }
+    
+    // 判断鼠标是否指向层
+    if (isMove)
+    {
+        // 向上移动一像素
+        tn--;
+        // 如果移动到最下面一行了，则移到顶行
+        if (Math.abs(tn) == nNewsCount * nHeight)
+        {
+            tn = 0;
+        }
+        // 设置位置
+        noticev2.style.marginTop = tn + "px";
+        // 完整显示一行时，停止一段时间
+        if (tn % nHeight == 0)
+        {
+            nS = nStopTime;
+        }
+    }
+
+    tID = setTimeout("moveT()", nS);
+}
+moveT(1);    // 此处可以传入任何参数
+</script>
+<script language="javascript" src="http://stat.it168.com/pv.js"></script>
+<script>
+function sendPV(){
+    var pvTrack = new PvTrack();
+    pvTrack.type = 35; // 频道类别ID
+    pvTrack.channel = 189; // 频道ID
+    pvTrack.pageType = 0;
+    pvTrack.track();
+}
+window.setTimeout("sendPV()", 1000);
+</script>
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-20237423-2']);
+  _gaq.push(['_setDomainName', '.chinaunix.net']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+<script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F0ee5e8cdc4d43389b3d1bfd76e83216b' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript" src="/js/jquery.qqFace.js"></script>
+</body>
+</html>

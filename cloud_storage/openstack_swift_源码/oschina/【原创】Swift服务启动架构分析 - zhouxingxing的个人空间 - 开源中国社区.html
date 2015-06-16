@@ -1,0 +1,1373 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang='zh-CN' xml:lang='zh-CN' xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <meta http-equiv="Content-Language" content="zh-CN"/>
+  <meta name="robots" content="index, follow" />
+  <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico?t=1408501845000" />
+  <title>【原创】Swift服务启动架构分析 -  zhouxingxing的个人空间 - 开源中国社区</title>
+    <meta name="Keywords" content="openstack,swift"/>
+      <meta name="Description" content="【原创】Swift服务启动架构分析：    Swift中会用到三个非常有用的python模块它们分别是webob,eventlet,paste.deploy,其中webob提供了W..."/>
+    <link rel="stylesheet/less" href="http://my.oschina.net/zhouxingxing/styles.less?ver=20140612&date=20121107100034" type="text/css" media="screen" />
+  <link rel="stylesheet" href="/js/2012/poshytip/tip-yellowsimple/tip-yellowsimple.css?t=1377425775000" type="text/css" />
+  <link rel="stylesheet" type="text/css" href="/js/2011/fancybox/jquery.fancybox-1.3.4.css?t=1377425774000" media="screen" />
+  <script type="text/javascript" src="/js/2012/jquery-1.7.1.min.js?t=1377425776000"></script>
+  <script type="text/javascript" src="/js/2012/jquery.form.js?t=1377425776000"></script>
+  <script type="text/javascript" src="/js/2011/fancybox/jquery.fancybox-1.3.4.pack.js?t=1395032412000?2014031702"></script>
+  <script type="text/javascript" src="/js/2012/poshytip/jquery.poshytip.min.js?t=1377425776000"></script>
+  <script type="text/javascript" src="/js/2011/oschina.js?t=1377425774000"></script>
+  <script type="text/javascript" src="/js/2012/less-1.3.0.min.js?t=1377425776000"></script>
+  <script type="text/javascript" src="/js/scrolltopcontrol.js?t=1377425784000"></script>
+  <script type='text/javascript' src='/js/jquery/jquery.atwho.js?t=1385352276000'></script>
+  <script type="text/javascript" src="/js/lib/angular/angular.min.js?t=1406837064000"></script>
+  <script type="text/javascript" src="/js/lib/angular/angular-sanitize.min.js?t=1406837064000"></script>
+  <script type="text/javascript" src="/js/lib/angular/angular-resource.min.js?t=1406837064000"></script>
+  <link rel="stylesheet" type="text/css" href="/js/jquery/jquery.atwho.css?t=1377425741000" />
+  <link rel="alternate" type="application/rss+xml" title="zhouxingxing最新博客" href="http://my.oschina.net/zhouxingxing/rss" />
+  <link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://my.oschina.net/action/xmlrpc/rsd?space=243681" />
+  <link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://my.oschina.net/action/xmlrpc/wlwmanifest?space=243681" /> 
+  <style type="text/css">
+    body,table,input,textarea,select {font-family:Verdana,sans-serif,宋体;}	
+  </style>
+  <script type="text/javascript">
+  	scrolltotop.offset(100,165);
+	scrolltotop.init();
+  </script>
+</head>
+<body>
+<div id="OSC_Screen">
+	<style type="text/css">
+    #OSC_Banner {margin: 0 auto;text-align: left;margin-bottom: 5px;height:30px;border-top:0px;}
+    #OSC_Banner a {text-decoration: none;color: #fff;}
+    #OSC_Banner .cs_content a {color: #080;}
+    #OSC_Banner a:hover {color: #eee;}
+	#OSC_Banner a.project{background-color:transparent;}
+    #OSC_Banner #OSC_Channel {float: left;height:30px;}
+    #OSC_Banner #OSC_Channel ul {line-height: 18px;}
+    #OSC_Banner #OSC_Channel ul li.item {float: left;margin: 0 16px 0 0;line-height: 30px;}
+    #OSC_Banner #OSC_Channel ul li a.hl {font-weight: bold;}
+    #OSC_Banner #OSC_Userbar {float: right;	color: #ddd;line-height:30px;margin-right:10px;}
+    #OSC_Banner #OSC_Userbar em {font-style: normal;color: #fff;margin-right: 2px;}
+	/*下拉菜单*/
+	#OSC_Banner .control_select {position: relative;background: url('/img/down3.gif') no-repeat right 14px;padding-right: 8px;cursor: pointer;height: 25px;display: inline-block;z-index: 1001;}
+	#OSC_Banner .control_select a {position: relative;}
+	#OSC_Banner .control_select ul.cs_content {display: none;text-align: left;position: absolute;left: 0px;top: 25px;width: 110px;z-index: 9999;background: white;padding: 5px 0 2px 5px;font-size: 9pt;list-style-type: none;}
+	#OSC_Banner .control_select ul.cs_content li {border: 0;height: 16px;line-height: 16px;margin-bottom: 8px;}
+	#OSC_Banner .control_select ul.cs_content li a:hover {font-weight: bold;background: #fff;color: #A00}
+	#OSC_Banner .group_msg_count {display: inline-block;	padding: 2px;border-radius: 3px;background-color: RGB(255, 113, 112);color: white;font-size: 12px;height: 10px;text-align: center;
+		line-height: 10px;min-width: 15px;box-shadow: 1px 1px 1px RGBA(0, 0, 0, 0.2);-webkit-box-shadow: 1px 1px 1px RGBA(0, 0, 0, 0.2);-moz-box-shadow: 1px 1px 1px RGBA(0, 0, 0, 0.2);}
+	.tip-yellowsimple .tip-arrow-top{left:80%;}
+</style>
+<script type="text/javascript">
+  	g_user = {
+	id:0,
+	name:'',
+	login:false};</script>
+<script type="text/javascript" src="/js/utils.js?t=1377425784000"></script>
+<script type="text/javascript" src="/js/channel.js?t=1393367280000?2014022501"></script>
+<div id='OSC_Banner'>
+        <div id="OSC_Channel" style="float:left;margin-left:10px;">
+        	<ul>
+        	<li class="item"><a href="http://www.oschina.net/" class='home'>首页</a></li>        	<li class="item control_select"><a href="http://www.oschina.net/project" class='project'>开源项目</a>
+				<ul class="cs_content">					
+                	                	<li><a href="http://www.oschina.net/project/lang/19/java">Java 开源软件</a></li>
+                	<li><a href="http://www.oschina.net/project/lang/194/csharp">C# 开源软件</a></li>
+                	<li><a href="http://www.oschina.net/project/lang/22/php">PHP 开源软件</a></li>
+                	<li><a href="http://www.oschina.net/project/lang/21/c">C/C++ 开源软件</a></li>
+                	<li><a href="http://www.oschina.net/project/lang/26/ruby">Ruby 开源软件</a></li>
+                	<li><a href="http://www.oschina.net/project/lang/25/python">Python 开源软件</a></li>
+                	<li><a href="http://www.oschina.net/project/lang/358/go">Go开源软件</a></li>
+                	<li><a href="http://www.oschina.net/project/lang/28/javascript">JS开源软件</a></li>
+				</ul>
+			</li>
+        	<li class="item control_select">
+				<a href="http://www.oschina.net/question" class='question'>问答</a>				
+				<ul class="cs_content">					
+                	<li><a href="http://www.oschina.net/question?catalog=1"> 技术问答 &raquo; </a></li>
+                	<li><a href="http://www.oschina.net/question?catalog=2"> 技术分享 &raquo; </a></li>
+                	<li><a href="http://www.oschina.net/question?catalog=3"> IT大杂烩 &raquo; </a></li>
+                	<li><a href="http://www.oschina.net/question?catalog=100"> 职业生涯 &raquo; </a></li>
+                	<li><a href="http://www.oschina.net/question?catalog=4"> 站务/建议 &raquo; </a></li>
+                	<li><a href="http://www.oschina.net/alipay"> 支付宝专区 &raquo; </a></li>
+                	<li><a href="http://www.oschina.net/hardware"> 开源硬件专区 &raquo; </a></li>
+				</ul>
+			</li>
+        	<li class="item"><a href="http://www.oschina.net/code/list" class='code'>代码</a></li>
+        	        	<li class="item"><a href="http://www.oschina.net/blog" class='blog'>博客</a></li>
+        	<li class="item"><a href="http://www.oschina.net/translate" class='tran'>翻译</a></li>
+            <li class="item"><a href="http://www.oschina.net/news" class='news'>资讯</a></li>
+        	<li class="item control_select">
+				<a href="http://www.oschina.net/android" class='mobile'>移动开发</a>
+				<ul class="cs_content cs_mobile">
+                	<li class="android_"><a href="http://www.oschina.net/android">Android开发专区</a></li>
+                	<li class="ios_"><a href="http://www.oschina.net/ios/home">iOS开发专区</a></li>
+                	<li class="ios_"><a href="http://www.oschina.net/ios/codingList">iOS代码库</a></li>
+                	<li class="wp7_"><a href="http://www.oschina.net/wp">Windows Phone</a></li>
+				</ul>
+			</li>
+        	<li class="item t_job"><a href="http://www.oschina.net/job" class='job'>招聘</a></li>
+									            <li class="item control_select">
+                <a href="http://city.oschina.net/" id="MyCities" title="城市圈">城市圈</a>
+							</li>
+        	</ul>
+        </div>
+		<div id="OSC_Userbar">
+                		    		当前访客身份：游客 [ <a href="http://www.oschina.net/home/login?goto_page=http%3A%2F%2Fmy.oschina.net%2Fzhouxingxing%2Fblog%2F81931">登录</a> | <a href="http://www.oschina.net/home/reg">加入开源中国</a> ]
+    				</div>
+		<div class='clear'></div>
+</div>	<div id="OSC_Topbar">
+		<div id="VisitorInfo">
+		当前访客身份：
+				游客 [ <a href="http://www.oschina.net/home/login?goto_page=http%3A%2F%2Fmy.oschina.net%2Fzhouxingxing">登录</a> | <a href="http://www.oschina.net/home/reg">加入开源中国</a> ]
+				
+		</div>
+		<div id="SearchBar">
+    		<form action="http://www.oschina.net/search">
+				<input type='hidden' name='user' value='243681'/>
+																<span class="ipt f_l">
+    			<input type='text' id='txt_q' name='q' class='SERACH' value='在 33849 款开源软件中搜索' onblur="(this.value=='')?this.value='在 33849 款开源软件中搜索':this.value" onfocus="if(this.value=='在 33849 款开源软件中搜索'){this.value='';};this.select();"/>
+				</span>
+				                <div class="search-by selectbox">
+    				<span class="hide">
+    				<select name='scope'>					
+                        <option value='project' selected>软件</option>
+                        <option value='code'>代码</option>
+                        <option value='bbs'>讨论区</option>
+                        <option value='news'>新闻</option>
+                        <option value='blog'>博客</option>
+    				</select>
+    				</span>
+                  <div class="search_on" id="search-item"><span class="text">软件</span></div>
+                  <ul class="search_list">
+                     <li class="search-item"><a href="#1">软件</a></li>
+                     <li><a href="#2">代码</a></li>
+                     <li><a href="#3">讨论区</a></li>
+                     <li><a href="#4">新闻</a></li>
+                     <li><a href="#5">博客</a></li>
+                  </ul>
+                </div>
+				<input type='submit' value='搜索' class='bnt f_r'/>			
+    		</form>
+		</div>
+		<div class='clear'></div>
+	</div>
+	<div id="OSC_Content">	
+<style>
+	.icon{width:20px;height:20px;vertical-align: middle;display:inline-block;font-size:14px;text-align:center;color:#FFF;font-weight: bold;}
+	.catalogs{padding:0px;margin:0px;position:relative;display:inline-block;}
+    .catalogs ul{padding:0px;margin:0px;position:absolute;left:-8px;top: -21px;clear:left;width:120px;height:14px;overflow:hidden;background:#FFF;z-index:1000;padding:5px;border:1px solid #FFF;}
+    .catalogs ul:hover{height:auto;background:#fff;border:1px solid #4466bb;}
+    .catalogs ul li a:hover{color:#A00;font-weight: bold;}
+	.BlogStat a:hover{background:#FFF;}
+	.BlogStat{font-size:12px;line-height:20px;}
+	.BlogStat .g{color:#40AA53}
+	.BlogTags{margin-top:8px;}
+		.BlogAbstracts{}
+</style>
+<div id='SpaceLeft'>
+<div class='Owner'>
+	    <a href="http://my.oschina.net/zhouxingxing" class='Img'><img src="http://static.oschina.net/uploads/user/121/243681_100.jpg?t=1360482842000" align="absmiddle" alt="zhouxingxing" title="zhouxingxing" class="LargePortrait"/></a>
+    <span class='U'>
+                    <a href="http://my.oschina.net/zhouxingxing" class='Name' title='男'>zhouxingxing</a>
+        		<span class='opts'>
+			<img src="/img/2012/men.png" align='absmiddle' title='男'/>
+        			<script type='text/javascript'>
+var nologin = "<a href='javascript:_follow_nologin()' title='成为TA的粉丝'>关注此人</a>"
+var follow0 = "<a href='javascript:_follow_user(243681,true)' title='成为TA的粉丝'>关注此人</a>";
+var follow1 = "已关注 | <a href='javascript:_follow_user(243681,false)' title='取消关注后，此人的更新信息将不会出现在你的首页'>取消</a>";
+var follow2 = "互相关注 | <a href='javascript:_follow_user(243681,false)' title='取消关注后，此人的更新信息将不会出现在你的首页'>取消</a>";
+var follow4 = "<a href='javascript:_follow_user(243681,true)' title='成为TA的粉丝'>+关注此人</a>";
+
+document.write("<span id='_follow_243681_action_'>");
+	document.write(nologin);
+document.write("</span>");
+
+function _follow_nologin(){
+	if(confirm('必须登录后才能关注，是否现在登录？')){
+		location.href="http://www.oschina.net/home/login?goto_page="+location.href;
+	}
+}
+
+function _follow_user(uid, follow){
+	var action = follow?"/action/user/follow":"/action/user/unfollow";
+	ajax_post(action,"id="+uid+"&user=${g_user.id}",function(result){
+		var act = $('#_follow_243681_action_');
+		if(result == '0')
+			_follow_nologin();
+		else if(result == '1')
+			act.html(follow0);
+		else if(result == '2')
+			act.html(follow1);
+		else if(result == '3')
+			act.html(follow2);
+		else if(result == '4')
+			act.html(follow4);
+	});
+}
+</script>				</span>
+    </span>
+    <div class='clear'></div>
+    <div class='stat'>
+    	<a href="http://my.oschina.net/zhouxingxing/fellow">关注<span>(4)</span></a>
+    	<a href="http://my.oschina.net/zhouxingxing/fans">粉丝<span>(63)</span></a>
+    	<a href="http://www.oschina.net/question/3307_20931" title="查看OSCHINA积分规则">积分<span>(66)</span></a>
+                       
+    </div>
+</div>    <style type="text/css">
+    #Medals {margin-left: 3px; height: 28px;}
+    #Medals li {float: left;margin: 3px 5px;line-height: 24px;}
+    .tip-yellowsimple-medal {
+        z-index: 1000;
+        text-align: left;
+        border: 1px solid #E6DEB6;
+        border-radius: 4px;
+        -moz-border-radius: 4px;
+        -webkit-border-radius: 4px;
+        padding: 6px 8px;
+        min-width: 50px;
+        max-width: 300px;
+        color: #000;
+        background-color: #FFFEF2;
+    }
+	.tip-yellowsimple-medal .tip-arrow-left {
+		visibility: inherit;
+        margin-top: -4px;
+        margin-left: -6px;
+        top: 15px;
+        left: 0;
+        width: 6px;
+        height: 9px;
+        background: url(/js/2012/poshytip/tip-yellowsimple/tip-yellowsimple_arrows.gif?t=1377425775000) no-repeat -27px 0;
+	}
+	div.tip-yellowsimple-medal div.tip-arrow {
+        visibility: hidden;
+        position: absolute;
+        overflow: hidden;
+        font: 1px/1px sans-serif;
+	}
+</style>
+<script type="text/javascript">
+    $(function(){
+        $('#Medals a').poshytip({
+            className: 'tip-yellowsimple-medal',
+            alignTo: 'target',
+            alignX: 'right',
+            alignY: 'bottom',
+            offsetX: 10,
+            offsetY: -30,
+            fade: false,
+            slide: false,
+            content: function(updateCallback) {
+                ajax_get("/action/ajax/get_medal_detail?owner=243681&medalId="+$(this).attr('medalId')+"&time="+new Date().getTime(),false,function(html){
+                    updateCallback(html);
+                    if($('.tip-arrow.tip-arrow-left').last().offset().top >= temp.offset().top) {
+                        $('.tip-arrow.tip-arrow-left').last().css({top : "15px"});
+                    }
+                    else {
+                        $('.tip-arrow.tip-arrow-left').last().css({top : "135px"});
+                    }
+                });
+                temp = $(this);
+                return "<div style='height:100px;'>Loading...</div>";
+            }
+        });
+    });
+</script>
+<style>
+#MyResume textarea {width:170px;height:60px;font-size:9pt;}
+</style>
+<div class='Resume' id='MyResume'>
+这个人很懒，啥也没写</div>
+
+<div class='Opts clearfix'>
+	<a href="javascript:sendmsg(243681, 0)" class='a1 sendmsg'><i>.</i><span>发送留言</span></a>
+	<a href="http://www.oschina.net/question/ask?user=243681" class='a2 ask'><i>.</i><span>请教问题</span></a>
+</div><div class="Mod" id="BlogCatalogs">
+  <strong> 博客分类</strong>
+  <ul>
+	    	<li><a href="http://my.oschina.net/zhouxingxing/blog?catalog=205093">OpenStack</a><span>(17)</span></li>
+		<li><a href="http://my.oschina.net/zhouxingxing/blog?catalog=232336">翻译文章</a><span>(2)</span></li>
+		<li><a href="http://my.oschina.net/zhouxingxing/blog?catalog=244359">Python</a><span>(2)</span></li>
+		<li><a href="http://my.oschina.net/zhouxingxing/blog?catalog=270170">Swift源码分析</a><span>(14)</span></li>
+		<li><a href="http://my.oschina.net/zhouxingxing/blog?catalog=270641">算法</a><span>(1)</span></li>
+		<li><a href="http://my.oschina.net/zhouxingxing/blog?catalog=300006">工作总结</a><span>(4)</span></li>
+		<li><a href="http://my.oschina.net/zhouxingxing/blog?catalog=148100">工作日志</a><span>(29)</span></li>
+		<li><a href="http://my.oschina.net/zhouxingxing/blog?catalog=148101">日常记录</a><span>(0)</span></li>
+		<li><a href="http://my.oschina.net/zhouxingxing/blog?catalog=148102">转贴的文章</a><span>(0)</span></li>
+	  </ul>
+</div><div class="Mod" id="HotBlogs">
+  <strong>阅读排行</strong>
+  <ol>
+			<li><a href="http://my.oschina.net/zhouxingxing/blog/80516">1. 【原创】OpenStack Swift源码分析（一）builder文件的生成</a></li>
+				<li><a href="http://my.oschina.net/zhouxingxing/blog/81931">2. 【原创】Swift服务启动架构分析</a></li>
+				<li><a href="http://my.oschina.net/zhouxingxing/blog/82672">3. 【原创】OpenStack Swift源码分析（四）proxy服务响应</a></li>
+				<li><a href="http://my.oschina.net/zhouxingxing/blog/83295">4. 【原创】OpenStack Swift源码分析（五）keystone鉴权</a></li>
+				<li><a href="http://my.oschina.net/zhouxingxing/blog/77004">5. OpenStack Swift client开发</a></li>
+				<li><a href="http://my.oschina.net/zhouxingxing/blog/71650">6. Openstack swift+keystone+glance安装总结</a></li>
+				<li><a href="http://my.oschina.net/zhouxingxing/blog/92267">7. Swift 源码分析 脑图</a></li>
+				<li><a href="http://my.oschina.net/zhouxingxing/blog/80931">8. 【原创】OpenStack Swift源码分析（二）ring文件的生成</a></li>
+		  </ol>
+</div>
+<div class="Mod" id="BlogReplies">
+  <strong> 最新评论</strong>  
+      <ul>
+		<li>
+		<a href="http://my.oschina.net/yorktsai">@YorkTsai</a>：你好，看了你的系列分析open stack的博文，觉得超...
+		<a href="/action/tweet/go?obj=280769130&type=18&user=142509">查看&raquo;</a>
+	</li>
+		<li>
+		<a href="http://my.oschina.net/zyloveos">@excellent5</a>：你好，我想问下，这里面哪里用到了一致性哈希算法
+		<a href="/action/tweet/go?obj=277916695&type=18&user=1438492">查看&raquo;</a>
+	</li>
+		<li>
+		<a href="http://my.oschina.net/u/138210">@网名还没想好</a>：引用来自“zhouxingxing”的评论 引用来自“网名...
+		<a href="/action/tweet/go?obj=276844377&type=18&user=138210">查看&raquo;</a>
+	</li>
+		<li>
+		<a href="http://my.oschina.net/zhouxingxing">@zhouxingxing</a>：引用来自“网名还没想好”的评论 请问一下我使用...
+		<a href="/action/tweet/go?obj=276828058&type=18&user=243681">查看&raquo;</a>
+	</li>
+		<li>
+		<a href="http://my.oschina.net/u/138210">@网名还没想好</a>：请问一下我使用命令swift -V 2.0 -A http://192....
+		<a href="/action/tweet/go?obj=276827462&type=18&user=138210">查看&raquo;</a>
+	</li>
+		<li>
+		<a href="http://my.oschina.net/zhouxingxing">@zhouxingxing</a>：引用来自“iambigmomma”的评论 引用来自“zhoux...
+		<a href="/action/tweet/go?obj=276745906&type=18&user=243681">查看&raquo;</a>
+	</li>
+		<li>
+		<a href="http://my.oschina.net/u/1394811">@iambigmomma</a>：引用来自“zhouxingxing”的评论 引用来自“iam...
+		<a href="/action/tweet/go?obj=276745818&type=18&user=1394811">查看&raquo;</a>
+	</li>
+		<li>
+		<a href="http://my.oschina.net/zhouxingxing">@zhouxingxing</a>：引用来自“iambigmomma”的评论 樓主您好! 小弟來...
+		<a href="/action/tweet/go?obj=276745230&type=18&user=243681">查看&raquo;</a>
+	</li>
+		<li>
+		<a href="http://my.oschina.net/u/1394811">@iambigmomma</a>：樓主您好! 小弟來自台灣，目前也正在研究Swift，...
+		<a href="/action/tweet/go?obj=276741693&type=18&user=1394811">查看&raquo;</a>
+	</li>
+		<li>
+		<a href="http://my.oschina.net/u/138210">@网名还没想好</a>：牛B
+		<a href="/action/tweet/go?obj=275655505&type=18&user=138210">查看&raquo;</a>
+	</li>
+	  </ul>
+  </div>
+<div class='Mod' id='Stat'>
+<strong>访客统计</strong>
+<ul>
+	<li><label>今日访问：</label>5</li>
+    <li><label>昨日访问：</label>24</li>
+    <li><label>本周访问：</label>5</li>
+    <li><label>本月访问：</label>56</li>
+    <li><label>所有访问：</label>27791</li>
+</ul>
+</div></div>
+
+<div class='SpaceList'>
+	<div class='TopBar'>
+    	<div class='NavPath'>		
+    		<a href='http://my.oschina.net/zhouxingxing'>空间</a> &raquo; <a href='http://my.oschina.net/zhouxingxing/blog'>博客</a>			
+			&raquo; 
+						<span class="catalogs">
+    			<ul>
+    										<li ><a href="http://my.oschina.net/zhouxingxing/blog?catalog=270170">Swift源码分析</a></li>
+					        			        				<li ><a href="http://my.oschina.net/zhouxingxing/blog?catalog=205093">OpenStack</a></li>    				        				<li ><a href="http://my.oschina.net/zhouxingxing/blog?catalog=232336">翻译文章</a></li>    				        				<li ><a href="http://my.oschina.net/zhouxingxing/blog?catalog=244359">Python</a></li>    				        				    				        				<li ><a href="http://my.oschina.net/zhouxingxing/blog?catalog=270641">算法</a></li>    				        				<li ><a href="http://my.oschina.net/zhouxingxing/blog?catalog=300006">工作总结</a></li>    				        				<li ><a href="http://my.oschina.net/zhouxingxing/blog?catalog=148100">工作日志</a></li>    				        				<li ><a href="http://my.oschina.net/zhouxingxing/blog?catalog=148101">日常记录</a></li>    				        				<li ><a href="http://my.oschina.net/zhouxingxing/blog?catalog=148102">转贴的文章</a></li>    				    				        				<li><a href="http://my.oschina.net/zhouxingxing/blog">所有分类</a></li>
+    				    			</ul>
+			</span>
+    	</div>
+	</div>
+	
+    	<div class='BlogEntity'>		
+      <div class='BlogTitle'>
+        <h1><span class="icon" style="background:#44ac57;"  title="原创博客">原</span>			<span class="icon" style="background:#fd9c47;" title="首页推荐过的博客">荐</span>			<span class="icon" style="background:#fd6245;"  title="个人博客列表置顶博客">顶</span>									【原创】Swift服务启动架构分析</h1>
+        <div class='BlogStat'>
+    		    		发表于2年前(2012-10-08 13:40)&nbsp;&nbsp;
+    		阅读（<span class="g">3437</span>）&nbsp;|&nbsp;评论（<a href="#comments"><span class="g">0</span></a>）
+    					    	    <span class='admin'>
+				<style>
+#TagsSwitcher{color:#A00;}
+#RecTags,#MyTags{margin:5px 0;}
+#RecTags a.tag{line-height:24px;}
+#favor_form p:first-child{margin:5px 0;}
+#favor_form{width:200px;}
+#favor_form p {color:#666;}
+#favor_form form{min-height: 85px;width:200px;}
+#favor_form form ._favor_input{display:block;margin:2px 0;width:199px;}
+#favor_form form ._favor_button{float:left;padding:2px 5px;}
+.favor_ok {text-align:center;font-size:10.5pt;width:199px;height:60px;margin-top:10px;}
+#TagsSwitcher{cursor:pointer;float:right;margin-top:10px;}
+#MyTags{display:none;width:199px;}
+#MyTags a.tag {float:left; background-color: #E0EAF1;border-bottom: 1px solid #3E6D8E;border-right: 1px solid #7F9FB6;color: #3E6D8E;font-size: 8pt;line-height: 16px;margin: 2px 2px 2px 0;padding: 2px 4px;text-decoration: none;white-space: nowrap;}
+#MyTags a.tag:hover{background-color: #3E6D8E;color: #FFF;}
+</style>
+<script type='text/javascript'>
+var favor_add = "<a href='javascript:add_to_favor(81931,3)' id='favor_trigger' title='添加到收藏夹'>我要收藏</a>";
+var favor_del = "<a href='javascript:delete_favor(81931,3)' id='favor_trigger' style='color:#a00;'>取消收藏</a>";
+var favor_ok = "<p class='favor_ok'>已成功添加到收藏夹<br/><br/> <a href='null/favorites?type=3'>我的收藏夹</a> | <a href='javascript:close_favor()'>关闭</a></p>";
+function delete_favor(obi_id, obj_type){
+	$('#attention_it').html(favor_add);
+	$("#p_attention_count").load("/action/favorite/cancel?type="+obj_type+"&id="+obi_id, {user: ''});
+}
+function add_to_favor(obj_id, obj_type){
+	if(confirm('必须登录后才能收藏，是否现在登录？')){
+		location.href="http://www.oschina.net/home/login?goto_page="+encodeURIComponent(location.href);
+	}
+}
+function close_favor(elem_id){
+    $('#favor_trigger').poshytip('destroy');
+}
+function setTag(tv){
+	var t = $("._favor_input");
+	var value = t.val();
+	var tags = value.replace(/，/ig,',').split(',');
+	var exist = false;
+	value = $.map(tags,function(v,i){
+		if($.trim(tv) == $.trim(v)){
+			exist = true;
+			return undefined;
+		}
+		return v;
+	}).join(',');
+	if(exist){
+		t.val(value);
+		return;
+	}
+	if(value!="")
+		t.val(value+","+tv);
+	else
+		t.val(tv)
+}
+function ltrim(str){
+    var whitespace = new String(" \t\n\r");
+    var s = new String(str);
+    if (whitespace.indexOf(s.charAt(0)) != -1){
+        var j=0, i = s.length;
+        while (j < i && whitespace.indexOf(s.charAt(j)) != -1){
+            j++;
+        }
+        s = s.substring(j, i);
+    }
+    return s;
+}
+
+function rtrim(str){
+    var whitespace = new String(" \t\n\r");
+    var s = new String(str);
+    if (whitespace.indexOf(s.charAt(s.length-1)) != -1){
+        var i = s.length - 1;
+        while (i >= 0 && whitespace.indexOf(s.charAt(i)) != -1){
+            i--;
+        }
+        s = s.substring(0, i+1);
+    }
+    return s;
+}
+ 
+function trim(str){
+    return rtrim(ltrim(str));
+}
+</script>
+<em id='p_attention_count'>0</em>人收藏此文章,
+<span id='attention_it'>
+	<script type='text/javascript'>document.write(favor_add);</script>
+</span>
+<script type="text/javascript">
+	$(document).ready(function(){
+    	$.ajax({
+    		url:"/action/favorite/attentionUsersCount",
+    		type:"get",
+    		data:"id="+81931+"&type="+3,
+    		success:function(msg){
+				$("#p_attention_count").html(msg);
+    		}
+    	});
+	});
+</script>			</span>
+			    	</div>
+		<div class="tvote" onclick="vote(81931)" title="都有0个人赞过了，你也来赞一下吧！不会扣积分哦！"><em class="vote">赞</em><em class="num vote_count">0</em></div>
+      </div>
+	  	  <p style='margin:0 0 10px 0;'><a style="color:#A00;font-weight:bold;" href="http://city.oschina.net/changsha/event/213512" target="_blank">1月10日 #长沙# OSC 源创会第32期开始报名</a></p>
+	  	  <a  name="kindeditor" ></a>
+	            <div class="BlogAbstracts">
+						           <div class='BlogTags'>
+        	        	<a href="http://www.oschina.net/search?scope=blog&q=openstack" class="tag">openstack</a>
+        	        	<a href="http://www.oschina.net/search?scope=blog&q=swift" class="tag">swift</a>
+        	           </div>
+		   		  </div><br />
+	  	  	  <div class='BlogContent'><p>&nbsp; &nbsp; Swift中会用到三个非常有用的python模块它们分别是webob,eventlet,paste.deploy,其中webob提供了WSGI封装的Request,Response和其他的一些HTTP操作，eventlet是一个并行的网络编程库，Swift使用它提供多线程的编程，当然更重要的是我接下来要介绍的wsig服务的提供，paste,deploy是提供配置文件书写，启动多个服务（例如proxy-server.conf中的每一个服务）。</p> 
+<p>&nbsp; &nbsp; 初学python的话，一定对这些云里雾里，我就是这样，不过没有关系，对照源码，自己把架构抽离出来发现，其实真的不难（当然这是大牛们的架构，当然简单易懂）。</p> 
+<p>&nbsp; &nbsp; 例如启动一个proxy服务，最终的启动操作在/swift/common/wsgi.py中的run_server方法中的wsgi.server()。这个方法是eventlet提供的方法，用来启动一个应用服务（你可以提供给它ip,port,app）app通过loadapp方法从proxy-server.conf中加载其中的app，调用其中的app_factory方法 实例化功能类(Application)，要保证这个Application类是可以callable的，需要实现__call__方法，通过webob的Request类，封装一个请求（通过env），然后进行相应的请求操作，然后返回响应。</p> 
+<p>上码：myserver.py</p> 
+<pre class="brush:python; toolbar: true; auto-links: false;">import eventlet
+from eventlet import wsgi
+from paste.deploy import loadapp
+import os
+app = loadapp('config:%s' % os.path.abspath('proxy.conf'))
+
+wsgi.server(eventlet.listen(('', 8090)), app)</pre> 
+<p>&nbsp;很简单，启动一个app。</p> 
+<p>proxy.conf</p> 
+<pre class="brush:python; toolbar: true; auto-links: false;">[DEFAULT]
+
+[pipeline:main]
+pipeline = myapp
+
+[app:myapp]
+paste.app_factory = myapp:app_factory</pre> 
+<p> 就是app指向myapp。</p> 
+<p>myapp.py</p> 
+<pre class="brush:python; toolbar: true; auto-links: false;">from webob import Request, Response
+
+class Application(object):
+
+    def __init__(self, conf):
+        pass
+    def __call__(self, env, start_response):
+       req = Request(env)
+       return self.handle_request(req)(env, start_response)
+    
+    def handle_request(self, req):
+        if (req.method == 'GET'):
+            resp = Response(request=req)
+            resp.body = 'you send GET method'
+            return resp
+
+def app_factory(global_conf, **local_conf):
+    conf = global_conf.copy()
+    conf.update(local_conf)
+    return Application(conf)</pre> 如果发一个GET请求，返回you send GET method。 
+<p>&nbsp; &nbsp; 这样就把服务启动的架构抽离抽离出来，这个三段代码分别对应了，Swift中的/swift/common/wsgi.py，proxy-server.conf，/swift/proxy/server.py中的相关代码，然后Swift把具体操作GET POST等请求的代码封装大/swift/proxy/controllers中进行。</p> 
+<p><b>对于eventlet，webob,paste.deploy更多理解，请看官方文档：</b></p> 
+<p><a href="http://eventlet.net/" rel="nofollow">http://eventlet.net/</a></p> 
+<p><a href="http://webob.org/" rel="nofollow">http://webob.org/</a></p> 
+<p><a href="http://pythonpaste.org/deploy/" rel="nofollow">http://pythonpaste.org/deploy/</a></p></div>
+      	      	<div class='BlogShare'>
+    	
+		<strong>分享到：</strong>
+		<a class="share_sina" title="分享到新浪微博" href="javascript:void((function(s,d,e,r,l,p,t,z,c){var%20f='http://v.t.sina.com.cn/share/share.php?appkey=858381728',u=z||d.location,p=['&url=',e(u),'&title=',e(t||d.title),'&source=',e(r),'&sourceUrl=',e(l),'&content=',c||'gb2312','&pic=',e(p||'')].join('');function%20a(){if(!window.open([f,p].join(''),'mb',['toolbar=0,status=0,resizable=1,width=440,height=430,left=',(s.width-440)/2,',top=',(s.height-430)/2].join('')))u.href=[f,p].join('');};if(/Firefox/.test(navigator.userAgent))setTimeout(a,0);else%20a();})(screen,document,encodeURIComponent,'','','','【原创】Swift服务启动架构分析:     Swift中会用到三个非常有用的python模块它们分别是webob,eventlet,paste.deploy,其中webob提供了WSGI封装的Request,Response和其他的一些HTTP操作，eventlet是一个...','','utf-8'));">
+			<img src="/img/sinaweibo_fb1.png?t=1384826240000" height="29">
+		</a>
+		<a class="share_qq" title="分享到腾讯微博" href="javascript:(function(){window.open('http://v.t.qq.com/share/share.php?url='+encodeURIComponent(document.location)+'&amp;appkey=96f54f97c4de46e393c4835a266207f4&amp;site=&amp;title='+encodeURIComponent(document.title)+encodeURIComponent(':     Swift中会用到三个非常有用的python模块它们分别是webob,eventlet,paste.deploy,其中webob提供了WSGI封装的Request,Response和其他的一些HTTP操作，eventlet是一个...'),'', 'width=450, height=400, top=0, left=0, toolbar=no, menubar=no, scrollbars=no, location=yes, resizable=no, status=no');}())">
+			<img src="/img/tencent_weibo_fb.jpg?t=1384826240000" height="30">
+		</a>
+    	<span class='BlogVote' onclick="vote(81931)" title="都有0个人赞过了，你也来赞一下吧！不会扣积分哦！">
+			<span class="num vote_count" >0</span><span class="vote" >赞</span>
+		</span>
+	</div>
+      
+      <div class='BlogCopyright'>		
+	  		声明：OSCHINA 博客文章版权属于作者，受法律保护。未经作者同意不得转载。
+	  	  </div>
+	  	  
+      <div class='BlogLinks'>
+    	<ul>
+                <li class='prev'><a href="http://my.oschina.net/zhouxingxing/blog/80931" title="上一篇：【原创】OpenStack Swift源码分析（二）ring文件的生成">&laquo; 上一篇</a></li>        <li class='next'><a href="http://my.oschina.net/zhouxingxing/blog/82134" title="下一篇：Swift 中proxy-server.conf启动顺序总结">下一篇 &raquo;</a></li>    	</ul>
+      </div>
+	</div>
+		       <div style='margin:10px 0;'>
+    	<script type="text/javascript" src="/js/ad/blog.js?t=1414558172000"></script>
+      </div>
+      </div>
+<!-------------------------------------------------------->
+<script type="text/javascript">
+    angular.module('blogComment', ['ngSanitize'])
+    .controller('ListComment', 
+    function($scope, $http,$filter){
+            var url = "/action/blog/listComment?blog=81931&page=1&size=10";
+            $http({method: 'GET', url: url}).success(function(data) {$scope.commentjsons = data;});
+            $scope.totalComment = 0;
+            $scope.currentPage=1;
+            $scope.pageSize=10;
+            $scope.totalPage=Math.ceil($scope.totalComment/$scope.pageSize);
+            if($scope.currentPage>3){
+            	$scope.beginIndex = $scope.currentPage - 3;
+            }else{
+            	$scope.beginIndex = 1;
+            }
+            $scope.endIndex = $scope.beginIndex + 9;
+            if($scope.endIndex>$scope.totalPage){
+            	$scope.endIndex = $scope.totalPage;
+            }
+			var pages = new Array();
+			var index=0;
+			for(var i=$scope.beginIndex;i<=$scope.endIndex;i++){
+				pages[index]=i;
+				index++;
+			}
+			$scope.pages = pages;
+        $scope.delete_c = function(nid,uid,cid){
+        	delete_c(nid,uid,cid);
+        };
+        	$scope.ReplyInline = function(blog,user,relpy){
+        ReplyInline(blog,user,relpy);
+        };
+	});
+</script>
+<div class='SpaceList' style='margin-top:20px;' ng-app="blogComment" ng-controller="ListComment" ng-cloak>
+<div class='BlogComments'>
+  <h2><a name="comments"></a>评论<em ng-bind="totalComment"></em></h2>
+  <ul id="BlogComments">
+      <li ng-repeat="commentjson in commentjsons" id='cmt_{{commentjson.blogId}}_{{commentjson.userId}}_{{commentjson.commentId}}' ng-class="{'even': {{($index+1)%2}} == 0}">
+	<table class='ostable'>
+	<tr>
+    	<td class='portrait'>
+    		<a ng-href="http://my.oschina.net/u/{{commentjson.userId}}" target="_blank">
+				<img ng-src="{{commentjson.portrait}}" align="absmiddle" title="{{ commentjson.userName }}" class="SmallPortrait" user="{{ commentjson.userId }}"/>
+			</a>
+    	</td>
+    	<td class='body'>
+    		<div class='title'>
+    			<span ng-bind="(currentPage-1)*pageSize+$index+1"></span>楼：<a ng-href="http://my.oschina.net/u/{{commentjson.userId}}" target="_blank" name="{{ commentjson.blogId }}" class="user" ng-bind="commentjson.userName"></a>
+				<span ng-if="(commentjson.client_type>10000 && commentjson.appApproved)">(<a href="{{commentjson.appUrl}}" target="_blank" title="{{commentjson.appTitle}} - {{commentjson.appDescription}}" ng-bind="commentjson.appTitle"></a>)</span>
+				<span ng-switch="{{commentjson.client_type}}">
+					<span ng-if="(commentjson.client_type==2)" ">手机</span>
+					<span ng-if="(commentjson.client_type==3)" ">Android</span>
+					<span ng-if="(commentjson.client_type==4)" ">iPhone</span>
+					<span ng-if="(commentjson.client_type==5)" ">Windows Phone</span>
+					<span ng-if="(commentjson.client_type==6)" ">微信</span>
+				</span>
+				发表于 <span ng-bind="commentjson.create_time"></span>
+				  <a href="" ng-click="delete_c(commentjson.blogId, commentjson.userId, commentjson.commentId)" ng-if="commentjson.canAdmin">删除</a>
+    			  <a href="" ng-click="ReplyInline(commentjson.blogId, commentjson.userId, commentjson.commentId)" ng-if="commentjson.canCommit">回复此评论</a>
+    		</div>
+    		<div class='post' ng-bind-html="commentjson.content"></div>
+    		<div id='inline_reply_of_{{commentjson.blogId}}_{{commentjson.userId}}_{{commentjson.commentId}}' class='inline_reply'></div>
+        </td>
+	</tr>
+	</table>
+</li>  </ul>
+</div>
+
+<ul class="pager">
+<li class='page prev' ng-if="(currentPage>1)"><a href="?p={{currentPage-1}}#comments">&lt;</a></li><li class='page' ng-if="(beginIndex>1)"><a href="?p=1#comments">1</a></li><li class='page' ng-if="totalPage>1" ng-class="{current:{{currentPage==page}}}" ng-repeat="page in pages"><a href="?p={{page}}#comments" ng-bind="page"></a></li><li class='page' ng-if="(endIndex<totalPage"><a href="?p={{totalPage}}#comments" ng-bind="(totalPage)"></a></li><li class='page next' ng-if="(currentPage<totalPage)"><a href="?p={{currentPage+1}}#comments">&gt;</a></li></ul>
+</div>
+<!-------------------------------------------------------->
+
+
+<div id='inline_reply_editor' style='display:none;'>
+<div class="BlogCommentForm">
+	<form id="form_inline_comment" action="/action/blog/add_comment?blog=81931" method="POST">
+	  <input type='hidden' id='inline_reply_id' name='reply_id' value=''/>          
+      <textarea name="content" id="ccom_content" style="width:650px;height:60px;" onkeydown="if((event.metaKey || event.ctrlKey)&&event.keyCode==13){$('#form_inline_comment').submit();}"></textarea><br/>
+	  <p>
+		  <span style="float:right;">
+    	  <input type="button" value="关闭" class="blg_submit_btn" id='btn_close_inline_reply' style="background: rgba(255,255,255,0);color: #555;"/>
+    	  <input type="submit" value="回复" id="btn_comment" class="blg_submit_btn"/> 
+		  </span>
+		  插入：
+				<a href="javascript:;" onclick="javascript:insert_emotions('ccom_content',this);" class="blog_emotion">表情</a>
+				<a href="javascript:insert_projects_c();" class="blog_soft">开源软件</a>
+		 <span class="NoData" id="ficmp_msg" style="color:#F00"></span>
+	  </p>
+    </form>
+</div>
+</div>
+
+<div class='SpaceList' style='margin-top:20px;'>
+  <a name="comments" id="postform"></a>
+      <div class="BlogCommentForm">
+        <form id="form_comment" action="/action/blog/add_comment?blog=81931" method="POST">
+        	<div class="comment_portrait">
+        		<img src="/img/portrait.gif?t=1377425910000" align="absmiddle" alt="zhouxingxing" title="zhouxingxing" class="LargePortrait"/>        	</div>
+        	<div class="comment_form">
+        		<textarea name="content" id="wmd-input" style="width:650px;height:80px;" placeholder=""></textarea>
+				<p>
+					<button type="submit" class="blg_submit_btn" style="float:right;">发表评论</button>
+					插入：
+					<a href="javascript:insert_emotions();" class="blog_emotion">表情</a>
+					<a href="javascript:insert_projects();" class="blog_soft">开源软件</a>
+					<span class="NoData" id="cmt_tip"></span>
+				</p>
+				<div id="TweetFormPopupWraper">
+					<div id="TweetFormPopupArrow">
+        				<div id="TweetFormPopup">
+                        	<div id='TweetEmotions'>
+                            	<div class='TweetPopupTitle'><a href="javascript:;" onclick="$('#TweetFormPopupWraper').hide();return false;">关闭</a>插入表情</div>
+                            	                            	<a href='javascript:;' onclick='return ins_e(0);' class='emotion' style='background-position: -0px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(1);' class='emotion' style='background-position: -24px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(2);' class='emotion' style='background-position: -48px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(3);' class='emotion' style='background-position: -72px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(4);' class='emotion' style='background-position: -96px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(5);' class='emotion' style='background-position: -120px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(6);' class='emotion' style='background-position: -144px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(7);' class='emotion' style='background-position: -168px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(8);' class='emotion' style='background-position: -192px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(9);' class='emotion' style='background-position: -216px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(10);' class='emotion' style='background-position: -240px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(11);' class='emotion' style='background-position: -264px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(12);' class='emotion' style='background-position: -288px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(13);' class='emotion' style='background-position: -312px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(14);' class='emotion' style='background-position: -336px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(15);' class='emotion' style='background-position: -360px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(16);' class='emotion' style='background-position: -384px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(17);' class='emotion' style='background-position: -408px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(18);' class='emotion' style='background-position: -432px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(19);' class='emotion' style='background-position: -456px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(20);' class='emotion' style='background-position: -480px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(21);' class='emotion' style='background-position: -504px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(22);' class='emotion' style='background-position: -528px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(23);' class='emotion' style='background-position: -552px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(24);' class='emotion' style='background-position: -576px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(25);' class='emotion' style='background-position: -600px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(26);' class='emotion' style='background-position: -624px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(27);' class='emotion' style='background-position: -648px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(28);' class='emotion' style='background-position: -672px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(29);' class='emotion' style='background-position: -696px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(30);' class='emotion' style='background-position: -720px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(31);' class='emotion' style='background-position: -744px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(32);' class='emotion' style='background-position: -768px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(33);' class='emotion' style='background-position: -792px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(34);' class='emotion' style='background-position: -816px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(35);' class='emotion' style='background-position: -840px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(36);' class='emotion' style='background-position: -864px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(37);' class='emotion' style='background-position: -888px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(38);' class='emotion' style='background-position: -912px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(39);' class='emotion' style='background-position: -936px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(40);' class='emotion' style='background-position: -960px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(41);' class='emotion' style='background-position: -984px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(42);' class='emotion' style='background-position: -1008px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(43);' class='emotion' style='background-position: -1032px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(44);' class='emotion' style='background-position: -1056px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(45);' class='emotion' style='background-position: -1080px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(46);' class='emotion' style='background-position: -1104px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(47);' class='emotion' style='background-position: -1128px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(48);' class='emotion' style='background-position: -1152px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(49);' class='emotion' style='background-position: -1176px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(50);' class='emotion' style='background-position: -1200px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(51);' class='emotion' style='background-position: -1224px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(52);' class='emotion' style='background-position: -1248px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(53);' class='emotion' style='background-position: -1272px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(54);' class='emotion' style='background-position: -1296px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(55);' class='emotion' style='background-position: -1320px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(56);' class='emotion' style='background-position: -1344px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(57);' class='emotion' style='background-position: -1368px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(58);' class='emotion' style='background-position: -1392px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(59);' class='emotion' style='background-position: -1416px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(60);' class='emotion' style='background-position: -1440px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(61);' class='emotion' style='background-position: -1464px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(62);' class='emotion' style='background-position: -1488px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(63);' class='emotion' style='background-position: -1512px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(64);' class='emotion' style='background-position: -1536px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(65);' class='emotion' style='background-position: -1560px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(66);' class='emotion' style='background-position: -1584px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(67);' class='emotion' style='background-position: -1608px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(68);' class='emotion' style='background-position: -1632px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(69);' class='emotion' style='background-position: -1656px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(70);' class='emotion' style='background-position: -1680px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(71);' class='emotion' style='background-position: -1704px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(72);' class='emotion' style='background-position: -1728px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(73);' class='emotion' style='background-position: -1752px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(74);' class='emotion' style='background-position: -1776px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(75);' class='emotion' style='background-position: -1800px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(76);' class='emotion' style='background-position: -1824px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(77);' class='emotion' style='background-position: -1848px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(78);' class='emotion' style='background-position: -1872px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(79);' class='emotion' style='background-position: -1896px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(80);' class='emotion' style='background-position: -1920px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(81);' class='emotion' style='background-position: -1944px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(82);' class='emotion' style='background-position: -1968px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(83);' class='emotion' style='background-position: -1992px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(84);' class='emotion' style='background-position: -2016px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(85);' class='emotion' style='background-position: -2040px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(86);' class='emotion' style='background-position: -2064px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(87);' class='emotion' style='background-position: -2088px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(88);' class='emotion' style='background-position: -2112px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(89);' class='emotion' style='background-position: -2136px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(90);' class='emotion' style='background-position: -2160px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(91);' class='emotion' style='background-position: -2184px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(92);' class='emotion' style='background-position: -2208px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(93);' class='emotion' style='background-position: -2232px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(94);' class='emotion' style='background-position: -2256px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(95);' class='emotion' style='background-position: -2280px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(96);' class='emotion' style='background-position: -2304px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(97);' class='emotion' style='background-position: -2328px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(98);' class='emotion' style='background-position: -2352px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(99);' class='emotion' style='background-position: -2376px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(100);' class='emotion' style='background-position: -2400px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(101);' class='emotion' style='background-position: -2424px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(102);' class='emotion' style='background-position: -2448px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(103);' class='emotion' style='background-position: -2472px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(104);' class='emotion' style='background-position: -2496px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(105);' class='emotion' style='background-position: -2520px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(106);' class='emotion' style='background-position: -2544px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(107);' class='emotion' style='background-position: -2568px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(108);' class='emotion' style='background-position: -2592px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(109);' class='emotion' style='background-position: -2616px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(110);' class='emotion' style='background-position: -2640px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(111);' class='emotion' style='background-position: -2664px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(112);' class='emotion' style='background-position: -2688px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(113);' class='emotion' style='background-position: -2712px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(114);' class='emotion' style='background-position: -2736px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(115);' class='emotion' style='background-position: -2760px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(116);' class='emotion' style='background-position: -2784px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(117);' class='emotion' style='background-position: -2808px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(118);' class='emotion' style='background-position: -2832px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(119);' class='emotion' style='background-position: -2856px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(120);' class='emotion' style='background-position: -2880px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(121);' class='emotion' style='background-position: -2904px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(122);' class='emotion' style='background-position: -2928px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(123);' class='emotion' style='background-position: -2952px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(124);' class='emotion' style='background-position: -2976px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(125);' class='emotion' style='background-position: -3000px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(126);' class='emotion' style='background-position: -3024px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(127);' class='emotion' style='background-position: -3048px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(128);' class='emotion' style='background-position: -3072px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(129);' class='emotion' style='background-position: -3096px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(130);' class='emotion' style='background-position: -3120px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(131);' class='emotion' style='background-position: -3144px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(132);' class='emotion' style='background-position: -3168px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(133);' class='emotion' style='background-position: -3192px 0px;'></a>
+                            	                            	<a href='javascript:;' onclick='return ins_e(134);' class='emotion' style='background-position: -3216px 0px;'></a>
+                            	                            	<div class='clear'></div>
+                        	</div>
+        				</div>
+					</div>
+				</div>
+            </div>
+        </form>
+    </div>
+  </div>
+	
+<div id="RelativeBlogs">
+	<strong><a id='btn_close'>关闭</a>相关文章阅读</strong>
+	<ul>
+			<li>
+		<span class='date'>2012/07/30</span>
+		<a href="http://my.oschina.net/zhouxingxing/blog/69837" title="OpenStack Swift架构简述">OpenStack Swift架构简述...</a>
+	</li>
+				<li>
+		<span class='date'>2012/07/31</span>
+		<a href="http://my.oschina.net/zhouxingxing/blog/69956" title="OpenStack Swift Ring讲解">OpenStack Swift Ring讲解...</a>
+	</li>
+				<li>
+		<span class='date'>2012/08/01</span>
+		<a href="http://my.oschina.net/zhouxingxing/blog/70249" title="OpenStack Swift Replication">OpenStack Swift Replication...</a>
+	</li>
+				<li>
+		<span class='date'>2012/09/05</span>
+		<a href="http://my.oschina.net/zhouxingxing/blog/77004" title="OpenStack Swift client开发">OpenStack Swift client开发...</a>
+	</li>
+				<li>
+		<span class='date'>2012/08/02</span>
+		<a href="http://my.oschina.net/zhouxingxing/blog/70435" title="OpenStack Swift Large Object Support">OpenStack Swift Large Object Supp...</a>
+	</li>
+			</ul>
+</div>
+<script type="text/javascript" src="/action/visit/blog?id=81931" defer="defer"></script>
+
+<script type="text/javascript" src="/js/sh309/scripts/xregexp-min.js?t=1406837068000"></script>
+<script type="text/javascript" src="/js/sh309/scripts/shCore.min.js?t=1406837068000"></script>
+<script type="text/javascript" src="/js/sh309/scripts/shAutoloader.js?t=1406837068000"></script>
+<link type="text/css" rel="stylesheet" href="/js/sh309/styles/shCore.css?t=1406837068000"/>
+<link type="text/css" rel="Stylesheet" href="/js/sh309/styles/shThemeDefault.css?t=1406837068000"/>
+
+<script type="text/javascript">
+    SyntaxHighlighter.autoloader(
+            'applescript			/js/sh309/scripts/shBrushAppleScript.js?t=1406837068000',
+            'actionscript3 as3		/js/sh309/scripts/shBrushAS3.js?t=1406837068000',
+            'bash shell				/js/sh309/scripts/shBrushBash.js?t=1406837068000',
+            'coldfusion cf			/js/sh309/scripts/shBrushColdFusion.js?t=1406837068000',
+            'cpp c					/js/sh309/scripts/shBrushCpp.js?t=1406837068000',
+            'obj-c objc				/js/sh309/scripts/shBrushObjC.js?t=1406837068000',
+            'c# c-sharp csharp		/js/sh309/scripts/shBrushCSharp.js?t=1406837068000',
+            'css					/js/sh309/scripts/shBrushCss.js?t=1406837068000',
+            'delphi pascal			/js/sh309/scripts/shBrushDelphi.js?t=1406837068000',
+            'diff patch pas			/js/sh309/scripts/shBrushDiff.js?t=1406837068000',
+            'erl erlang				/js/sh309/scripts/shBrushErlang.js?t=1406837068000',
+            'groovy					/js/sh309/scripts/shBrushGroovy.js?t=1406837068000',
+            'haxe hx				/js/sh309/scripts/shBrushHaxe.js?t=1406837068000',
+            'java					/js/sh309/scripts/shBrushJava.js?t=1406837068000',
+            'jfx javafx				/js/sh309/scripts/shBrushJavaFX.js?t=1406837068000',
+            'js jscript javascript	/js/sh309/scripts/shBrushJScript.js?t=1406837068000',
+            'perl pl				/js/sh309/scripts/shBrushPerl.js?t=1406837068000',
+            'php					/js/sh309/scripts/shBrushPhp.js?t=1406837068000',
+            'text plain				/js/sh309/scripts/shBrushPlain.js?t=1406837068000',
+            'py python				/js/sh309/scripts/shBrushPython.js?t=1406837068000',
+            'ruby rails ror rb		/js/sh309/scripts/shBrushRuby.js?t=1406837068000',
+            'scala					/js/sh309/scripts/shBrushScala.js?t=1406837068000',
+            'sql					/js/sh309/scripts/shBrushSql.js?t=1406837068000',
+            'vb vbnet				/js/sh309/scripts/shBrushVb.js?t=1406837068000',
+            'xml xhtml xslt html	/js/sh309/scripts/shBrushXml.js?t=1406837068000'
+    );
+    SyntaxHighlighter.all();
+</script>
+<!--[if lt IE 7]>
+<script type="text/javascript" src="/js/minmax.js?t=1377425784000"></script>
+<![endif]-->
+<script type='text/javascript'>
+<!--
+var posting = false;
+var upprev_closed = false;
+var upprev_hidden = true;
+
+$(document).ready(function(){
+    $('.BlogContent img').css('cursor','pointer');
+    jQuery.each($('.BlogContent img'),function(idx,v){
+    	$(v).wrap("<a href='"+$(this).attr('src')+"' target='_blank'></a>");
+    });
+	$('#form_comment').ajaxForm({
+		dataType: 'json',
+		bforeSubmit: function(){
+			posting = true;
+		},
+		success: function(json) {
+        	if(json.msg){
+				///alert(json.msg);
+				$('#cmt_tip').html("<span style='color:#C00;'>"+json.msg+"</span>");
+				$('#wmd-input').focus();				
+			}else{
+				var url = "http://my.oschina.net/zhouxingxing/blog_post?_cmt_blog="+json.blog+"&_cmt_user="+json.user+"&_cmt_id="+json.id;				
+        		jQuery.get(url, function(data){
+    				$('#form_comment .NoData').hide();
+        			$('ul#BlogComments').append(data);
+        			$('#form_comment').resetForm();
+        		}); 
+			}
+		}
+	});
+	
+    var at_datas = [];
+    $('img.SmallPortrait').each(function(){
+        var name = $(this).attr('alt');
+        if(jQuery.inArray(name, at_datas) < 0 && name != '${g_user.name}')
+            at_datas.push(name);
+    });
+    $("#form_comment textarea").atWho("@", {data: at_datas});
+	$("#form_comment textarea").on("keydown",function(event){
+		if((event.metaKey || event.ctrlKey) && event.keyCode==13){
+			$("#form_comment").submit();
+		}
+	});
+	$("#submiting").ajaxStart(function(){
+	   if(posting){
+    	   $('#btn_submit').attr("disabled","disabled");
+           $(this).show();
+	   }
+    });
+	$("#submiting").ajaxComplete(function(event,request, settings){
+	   if(posting){
+           $(this).hide();
+    	   $('#btn_submit').attr("disabled","");
+	   }
+	   posting = false;
+    }); 
+	
+    $(window).scroll(function() {
+        var lastScreen;
+        if ($("#postform").length > 0)
+            lastScreen = getScrollY() + $(window).height() < $("#postform").offset().top * 1 ? false : true;
+        else
+            lastScreen = getScrollY() + $(window).height() < $(document).height() * 1 ? false : true;
+        if (lastScreen && !upprev_closed) {
+            $("#RelativeBlogs").stop().animate({right:"0px"});
+            upprev_hidden = false;
+        }
+        else if (upprev_closed && getScrollY() == 0) {
+            upprev_closed = false;
+        }
+        else if (!upprev_hidden) {
+            upprev_hidden = true;
+            $("#RelativeBlogs").stop().animate({right:"-400px"});
+        }
+    });
+    $("#RelativeBlogs #btn_close").click(function() {
+        $("#RelativeBlogs").stop().animate({right:"-400px"});
+        upprev_closed = true;
+        upprev_hidden = true;
+    });
+});
+function delete_c(nid,uid,cid){
+  if(confirm("您确认要删除此篇评论？")){
+    var args = "cmt="+cid+"#"+uid+"#"+nid;
+    ajax_post("/action/blog/delete_blog_comments?space=243681",args,function(){$("#cmt_"+nid+"_"+uid+"_"+cid).fadeOut();});
+  }
+}
+var replyinline_dup = false;
+function ReplyInline(blog,user,reply){
+	$('.inline_reply').empty();
+	var div_id = '#inline_reply_of_'+blog+'_'+user+'_'+reply;
+	$('#inline_reply_id').val(user+'_'+reply);
+	$(div_id).html($('#inline_reply_editor').html());
+	$('#ccom_content').focus();
+	$('#btn_close_inline_reply').click(function(){
+		$(div_id).empty();
+	});
+	var li_id = '#cmt_'+blog+'_'+user+'_'+reply;
+	var p_li = $(li_id);
+	var tip = $("#ficmp_msg");
+	$('#form_inline_comment').ajaxForm({
+		dataType: 'json',
+		beforeSubmit:function(){
+			if(replyinline_dup){
+			    tip.html("正在发表评论，请勿重复提交");
+				return false;
+			}
+			replyinline_dup = true;
+			return true;
+		},
+    	success: function(json) {
+			tip.html("");
+        	if(json.msg){                                                                                                       
+				tip.html(json.msg);
+				replyinline_dup = false;
+        	}
+        	else if(json.id){
+    			ajax_post("http://my.oschina.net/blog/show_post","_cmt_user="+"&_cmt_id="+json.id,function(html){
+					if(html.length > 0){
+						$(html).insertAfter(p_li);
+						$(div_id).empty();
+					}else{
+						tip.html("获取评论失败");
+					}
+					setTimeout(function(){
+    					replyinline_dup = false;
+					},5000)
+				});
+        	}
+    	}
+	});
+}
+function edit_catalogs(qid){
+	popup("/set-catalogs?parent=1&type=3&id="+qid);
+}
+function vote(blogid){
+		alert("必须登录后才能操作 :)");
+	}
+function toggle_recomm(blogid){
+	ajax_post("/action/blog/toggle_recomm","id="+blogid,function(html){
+		if(html == '-1')
+			alert("文章不存在");
+		else if(html == 0){
+			$('#lnk_recomm_'+blogid).removeClass('recommend');
+			$('#lnk_recomm_'+blogid).text("未推荐");
+		}
+		else if(html == 1){
+			$('#lnk_recomm_'+blogid).addClass('recommend');
+			$('#lnk_recomm_'+blogid).text("已推荐");
+		}
+	});
+}
+	var textbox = $("#wmd-input").textbox({
+		maxLength: 1000,
+    	onInput: function(event, status) {
+			var txt = jQuery.trim($("#wmd-input").val());
+    	}
+	});	
+	function insert_projects() {
+		textbox.insertText('#此处输入软件名#');
+		$('#TweetEmotions').removeAttr('txt_id');
+	}
+	function insert_projects_c() {
+    	var combox = $("#ccom_content").textbox({
+    		maxLength: 1000,
+        	onInput: function(event, status) {
+    			var txt = jQuery.trim($("#ccom_content").val());
+        	}
+    	});	
+		combox.insertText('#此处输入软件名#');
+		$('#TweetEmotions').removeAttr('txt_id');
+	}
+	function insert_emotions(id,obj) {
+		if(id) {
+			$('#TweetEmotions').attr('txt_id',id);
+			var thiz = $(obj);
+			var offset = thiz.offset();
+			var poffset = thiz.offsetParent().offset();
+        	var left = offset.left-poffset.left;
+        	var top = offset.top-poffset.top;
+			$('#TweetFormPopupWraper').css({'top':top+25 +'px','left':left+'px'});
+		}
+		else {
+			$('#TweetFormPopupWraper').css({'top':'','left':''});
+			$('#TweetEmotions').removeAttr('txt_id');
+		}
+		$('#TweetEmotions').show();
+		$('#TweetImages').hide();
+		$('#TweetFormPopupArrow').removeClass('projects');
+		$('#TweetFormPopupArrow').removeClass('images');
+		$('#TweetFormPopupArrow').addClass('emotions');
+		$('#TweetFormPopupWraper').slideDown('fast');
+	}
+	function ins_e(idx){
+		var txt_id = $('#TweetEmotions').attr('txt_id');
+		if(!txt_id)
+			textbox.insertText('['+idx+']');
+		else {
+			insertAtCursor(txt_id,'['+idx+']');
+		}
+		$('#TweetFormPopupWraper').hide();
+		return false;
+	}
+	function insertAtCursor(tbid,str) {
+		var tb = document.getElementById(tbid);
+        if (document.selection){
+			tb.focus();
+			var r = document.selection.createRange();
+            document.selection.empty();
+            r.text = str;
+            r.collapse();
+            r.select();
+        }
+        else{
+            var newstart = tb.selectionStart+str.length;
+            tb.value=tb.value.substr(0,tb.selectionStart)+str+tb.value.substring(tb.selectionEnd);
+            tb.selectionStart = newstart;
+            tb.selectionEnd = newstart;
+        }
+	}
+//-->
+</script></div>
+	<div class='clear'></div>
+	<div id="OSC_Footer"><style>
+.oscapp {text-align:left; width:220px;}
+.oscapp span {float:left;width:140px;}
+.oscapp a {float:left;text-indent:-9999em;width:16px;margin-left:8px;}
+.oscapp a.android {background:url('/img/android.gif') no-repeat left center;}
+.oscapp a.iphone {background:url('/img/iphone.gif') no-repeat left center;}
+.oscapp a.wp7 {background:url('/img/wp7.gif') no-repeat left center;}
+</style>
+<table width='100%'><tr>
+<td align='left'>&copy; 开源中国(OSChina.NET) | <a href="http://www.oschina.net/home/aboutosc">关于我们</a> | <a href="mailto:oschina.net@gmail.com">广告联系</a> | <a href="http://weibo.com/oschina2010" target="_blank">@新浪微博</a> | <a href="http://m.oschina.net/">开源中国手机版</a> | <a href='http://www.miitbeian.gov.cn/' target='_blank' style='color:#737573;text-decoration:none;'>粤ICP备12009483号-3</a></td>
+<td class='oscapp'>
+	<span>开源中国手机客户端：</span>
+	<a href="http://www.oschina.net/app" class='android' title='Android客户端'>Android</a>
+	<a href="http://www.oschina.net/app" class='iphone' title='iPhone 客户端'>iPhone</a>
+	<a href="http://www.oschina.net/app" class='wp7' title='Windows Phone 客户端'>WP7</a>
+</td>
+</tr>
+<tr>
+<td colspan='2' align='left'>开源中国社区(OSChina.net)是工信部 <a href='http://www.copu.org.cn/' target='_blank'>开源软件推进联盟</a> 指定的官方社区</td>
+</tr>
+</table>
+<script type='text/javascript'>
+<!--
+if (top.location != self.location)top.location=self.location;
+//-->
+</script></div>
+</div>
+</body>
+
+<script type="text/javascript" src="/action/visit/space?id=243681"></script>
+<script type="text/javascript" src="/js/2014/ImageTool.js?t=1390539917000?20140124"></script>
+<script type='text/javascript'>
+<!--
+$(document).ready(function() {
+
+	SelectStyle("#search-item",".search_list");
+	$('.Tweet .photo img').live("click",function(){
+		var T=$(this);
+		var t=this;
+		var bigImg = T.attr('bi');
+		var smallImg = T.attr('si');
+		var src = T.attr('src');
+		var newsrc = (bigImg == src)?smallImg:bigImg;
+		var imgId = T.attr('id');
+		if(T.parent().attr("id") == "img_container"){
+			T.parent().replaceWith(T);
+			T.removeAttr("style");
+			T.removeAttr("width");
+			T.removeAttr("height");
+		}
+		if(newsrc == bigImg){
+    		var loading=$('<img alt="loading" src="/img/loading.gif?t=1377425910000"/>');
+			var top = T.position().top+T.height()/2-8;
+			var left = T.position().left+T.width()/2-8;
+			loading.css({
+				'position':'absolute',
+				'z-index':999,
+				'top':top,
+				'left':left
+			});
+    		T.before(loading);
+			var tImg=new Image();
+			tImg.src=newsrc;
+			tImg.onload=function(){afterImgLoad(T,loading,imgId,newsrc,bigImg);};
+		}
+		else{
+			T.attr("src",newsrc);
+			$('#img_menu_'+imgId).remove();
+		}
+		return false;
+	});
+	
+	$(".tweet_thumb_wrapper").mouseenter(function(){
+		$(this).find(".tweet_play_video").css("opacity",1);
+	}).mouseleave(function(){
+		$(this).find(".tweet_play_video").css("opacity",0.7);
+	});
+
+    $("#TForm textarea").atWho("@", function(query, callback){
+        jQuery.ajax({
+            type:'POST',
+            url:"/action/tweet/at_suggest",
+            data:{'q':query},
+            dataType:'json',
+            success:function(json){
+                callback(json);
+            }
+        });
+    });
+	
+	toggle_tweet_video = function(id){
+		$("#tweet_video_thumb_"+id).toggle();
+		var video = $("#tweet_video_"+id).toggle();
+		video.siblings(".tweet_video_operation,.tweet_thumb_wrapper").toggle();
+	};
+	
+	function afterImgLoad(T,loading,imgId,url,bigImg){
+		var lnks = "<div id='img_menu_"+imgId+"' class='ImgMenu'>";
+		lnks += "<a href='#' onclick='$(\"#"+imgId+"\").click();return false;'>收起</a>";
+		lnks += "<a href='javascript:void(0);' onclick='rotate(this,\""+imgId+"\",0);' id='rotate_btn'>旋转</a>";
+		lnks += "<a href='"+bigImg+"' target='_blank'>查看原图</a></div>";			
+		loading.remove();
+		T.attr("src",url);
+		T.before(lnks);
+	}
+});
+
+function set_fellow_memo(fid,fname){
+	popup("/action/ajax/set_fellow_memo","friend="+fid+"&name="+fname);
+}
+
+function deleteMsgs(uid, fid, fname){
+	if(!confirm("你确认要清除与‘"+fname+"’的所有留言信息吗？"))
+		return ;
+	var args = "user="+uid+"&friend="+fid;
+	ajax_post("/action/msg/delete_user",args,function(html){
+		if(html.length > 0)
+			alert(html);
+		else{
+			$('#Msg_'+fid).fadeOut();
+		}
+	});
+}
+
+function follow_user(uid, uname){
+	just_follow(uid, uname,'${g_user.id}'); //oschina.js
+}
+
+function unfollow_user(uid, uname){
+	if(confirm("确定不再关注" + uname + "了吗？"))
+	just_unfollow(uid,'${g_user.id}',function(){
+		alert('已取消对 ' + uname + ' 的关注');
+	});
+}
+
+function tweet_reply(logid){
+	var r = $('#LogReply_'+logid);
+	if(!r.is(":hidden")){
+		close_tweet_reply(logid);
+		return ;
+	}
+	r.html("<div class='TweetRplsWrapper'><span class='loading'>正在加载评论，请稍候...</span></div>")
+	r.show();
+	r.load("http://my.oschina.net/zhouxingxing/tweet-rpls?log="+logid,function(){
+		$('#edt_tweet_post_'+logid).focus();
+        var at_datas = [];
+        $(this).find("img.SmallPortrait").each(function(){
+            var name = $(this).attr('alt');
+            if(jQuery.inArray(name, at_datas) < 0 && name != '${g_user.name}')
+                at_datas.push(name);
+        });
+        $(this).find("input.TXT_TweetRpl_Text").atWho("@", {data: at_datas});
+        $('#TweetReplyForm_'+logid).ajaxForm({
+        	dataType: 'json',
+			beforeSubmit: function(arr, form, options){
+				$('#BTN_TweetReply_'+logid).attr('disabled','disabled');
+			},
+            success: function(json) {
+            	if(json.msg){
+        			alert(json.msg);
+            	}else if(json.log){
+					$('#log_reply_count_'+logid).text(json.reply_count);
+        			//插入新评论					
+					ajax_get("/action/ajax/get_tweet_reply?id=" + json.log,true,function(html){
+						$('#LogReply_'+logid+' ul').prepend(html);
+					});
+					$('#edt_tweet_post_'+logid).val('');
+            	}
+				$('#BTN_TweetReply_'+logid).removeAttr('disabled');
+            }
+        });
+	});
+}
+function close_tweet_reply(logid){
+	$('#LogReply_'+logid).empty();
+	$('#LogReply_'+logid).hide();
+	$('#Logs .userlogs li').removeClass('hover');
+}
+function reply_rtweet(logid, rid, toname){
+	var edtPost = $('#edt_tweet_post_' + logid);
+	var old_v = edtPost.val();
+	if(old_v.length > 0)
+		edtPost.val(old_v + ',@'+toname+' ');
+	else
+		edtPost.val('回复 @'+toname+' : ');
+	edtPost.focus();
+	edtPost.caretPos(edtPost.val().length); }
+function delete_tweet(logid){
+	if(confirm("确认要删除这条信息吗？"))
+	ajax_post("/action/tweet/delete?log="+logid+"&user=${g_user.id}","",function(html){
+		if(html.length==0){
+			var elem = $('#LI_'+logid);
+			if(elem.length > 0)
+				$('#LI_'+logid).fadeOut();
+			else
+				location.reload();
+		}
+	});
+}
+function delete_tweet_reply(logid){
+	if(confirm("确认要删除这条评论吗？"))
+	ajax_post("/action/tweet/delete_reply?id="+logid+"&user=${g_user.id}","",function(html){
+		if(html.length > 0)
+			$('#LI_'+logid).fadeOut();
+	});
+}
+
+function delete_blog(blog_id){
+    if(!confirm("文章删除后无法恢复，请确认是否删除此篇文章？")) return;
+    ajax_post("/action/blog/delete?id="+blog_id+"&user=${g_user.id}&user_code=${g_user.activate_code}","",function(html){
+    	location.href="http://my.oschina.net/zhouxingxing/blog";
+    });
+}
+
+function SelectStyle(on,option){
+	var currentSort = $(on).attr('id');
+	var currentText = $(option+" li."+currentSort+" a").html();
+	$(on + " .text").html(currentText);
+	$(on + " .text").hover(function(){
+		$(this).addClass("hover")
+	},function(){
+		$(this).removeClass("hover")
+	});
+	$(option+" li a").each(function(index){
+		$(this).click(function(){
+			thishtml = $(this).html();
+			$(on + " .text").removeClass("on").html(thishtml);		
+			$(".selectbox select ").find("option").removeAttr('selected').eq(index).attr("selected","selected");	
+			$(option).hide()
+			return false;
+		});
+		
+	});		
+	
+	$(".selectbox").click(function(){		
+		$(option).toggle();
+		$(on + " .text").toggleClass("on");		
+		return false;
+	});
+	$(document).click(function(){
+		$(option).hide();	
+		$(on + " .text").removeClass("on");
+	});
+	$(document).trigger('click');
+
+}
+
+//-->
+</script>
+</html>
+
+<!-- Generated by OsChina.NET (init:0[ms],page:88[ms],ip:49.5.1.198) -->

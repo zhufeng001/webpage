@@ -1,0 +1,512 @@
+<html>
+<head>
+<title>Tracing python code</title>
+<link href="http://www.dalkescientific.com/dss.css" rel="stylesheet" type="text/css">
+<meta name="keywords">
+<meta name="description">
+</head>
+
+<body marginwidth="0" marginheight="0" leftmargin="0" topmargin="0" rightmargin="0" bottommargin="0">
+
+<table border="0" cellpadding="0" cellspacing="0" width="642">
+
+<tr>
+<td valign="top"><a href="http://www.dalkescientific.com/index.html"><img SRC="http://www.dalkescientific.com/images/toplogo_left.gif" width="144" height="100" border="0" alt="Dalke Scientific Software: "></a></td>
+
+<td valign="top"><a href="http://www.dalkescientific.com/index.html"><img SRC="http://www.dalkescientific.com/images/toplogo_right.gif" width="160" height="100" border="0" alt="More science. Less time."></a></td>
+
+<td valign="top"><img SRC="http://www.dalkescientific.com/images/news_title.gif" width="338" height="100" border="0" alt="Products"></td>
+</tr>
+
+</table>
+
+<div class="content">
+
+
+<!--- PAGE CONTENT FOLLOWS --->
+
+[
+<a href="http://www.dalkescientific.com/writings/diary/archive/2005/04/18/wrapping_command_line_programs_V.html">previous</a>
+
+|
+<a href="http://www.dalkescientific.com/writings/diary/archive/2005/04/21/using_xmlrpc.html">newer</a>
+
+]
+&nbsp;&nbsp;&nbsp;
+/<a href="../../../../../..">home</a>/<a href="../../../../..">writings</a>/<a href="../../../..">diary</a>/<a href="../../..">archive</a>/<a href="../..">2005</a>/<a href="..">04</a>/<a href=".">20</a>/tracing_python_code
+<br>
+
+<h2><center>Tracing python code</center></h2>
+
+
+<p>
+
+Sometimes it's helpful to watch what Python the low-level details of
+what Python is doing.  With an IDE like <a href="http://wingware.com/">Wing IDE</a> or <a href="http://www.activestate.com/Products/Komodo/?_x=1">Komodo</a> you
+can step through events in a GUI.  But if you're a command-line sort
+of person like me you can roll your own trace program using the same
+run-time hooks used by those IDEs
+
+</p><p>
+
+The hook is set via the <a href="http://docs.python.org/lib/debugger-hooks.html">sys.settrace()</a>
+function.  This takes a function which is called during any of several
+events.  One is the "line" event.  Before the interpreter executes a
+line it calls the trace function with the current frame and the string
+"line".  (The function gets a third argument which is <tt>None</tt>;
+that fields is used by other events.
+
+</p><p>
+
+The frame contains the attribute "f_lineno" which is the line number
+about to be run.  Here is a simple example which only prints the
+current line number.  Note that the trace function returns itself.  If
+it doesn't then Python's trace mechanism interprets that as a request
+to stop the tracing while inside the given scope.
+
+<pre class="code">
+import sys
+
+def traceit(frame, event, arg):
+    if event == "line":
+        lineno = frame.f_lineno
+        print "line", lineno
+
+    return traceit
+
+def main():
+    print "In main"
+    for i in range(5):
+        print i, i*3
+    print "Done."
+    
+
+sys.settrace(traceit)
+main()
+</pre>
+
+Here is the output
+
+<pre class="code">
+line 11
+In main
+line 12
+line 13
+0 0
+line 12
+line 13
+1 3
+line 12
+line 13
+2 6
+line 12
+line 13
+3 9
+line 12
+line 13
+4 12
+line 12
+line 14
+Done.
+</pre>
+
+</p><p>
+
+Stare at the output long enough and you can figure out what's going on
+but it isn't easy.  It's more helpful to also print the line.  The
+<tt><a href="http://docs.python.org/lib/module-linecache.html">linecache</a></tt>
+module is available for this but it needs to know the filename.  In
+this case I know all of the lines are from "traceit.py" so I'll
+hard-code that into the program.
+
+<pre class="code">
+import sys
+import linecache
+
+def traceit(frame, event, arg):
+    if event == "line":
+        lineno = frame.f_lineno
+        line = linecache.getline("traceit.py", lineno)
+        print "line %d: %s" % (lineno, line.rstrip())
+    return traceit
+</pre>
+
+Here's the output
+
+<pre class="code">
+line 13:     print "In main"
+In main
+line 14:     for i in range(5):
+line 15:         print i, i*3
+0 0
+line 14:     for i in range(5):
+line 15:         print i, i*3
+1 3
+line 14:     for i in range(5):
+line 15:         print i, i*3
+2 6
+line 14:     for i in range(5):
+line 15:         print i, i*3
+3 9
+line 14:     for i in range(5):
+line 15:         print i, i*3
+4 12
+line 14:     for i in range(5):
+line 16:     print "Done."
+Done.
+</pre>
+
+Much more readable.  But what if the program uses another file so that
+the hard-coded <tt>traceit.py</tt> doesn't work?  Instead of saying
+<tt>print i, i*3</tt> I'll use <tt>print i, random.randrange(0,
+10)</tt> to get a random integer in the range <tt>0&lt;=n&lt;10</tt>.
+I chose this because it is implemented in Python.  I originally chose
+<tt>random.random()</tt> but that's implemented in C so it wasn't
+interesting.  Here's the output:
+
+<pre class="code">
+line 14:     print "In main"
+In main
+line 15:     for i in range(5):
+line 16:         print i, random.randrange(0, 10)
+0 line 141: 
+line 142: 
+line 144: 
+line 150: 
+line 151: 
+line 153: 
+line 166: 
+8
+line 15:     for i in range(5):
+line 16:         print i, random.randrange(0, 10)
+1 line 141: 
+line 142: 
+line 144: 
+line 150: 
+line 151: 
+line 153: 
+line 166: 
+8
+line 15:     for i in range(5):
+line 16:         print i, random.randrange(0, 10)
+2 line 141: 
+line 142: 
+line 144: 
+line 150: 
+line 151: 
+line 153: 
+line 166: 
+7
+line 15:     for i in range(5):
+line 16:         print i, random.randrange(0, 10)
+3 line 141: 
+line 142: 
+line 144: 
+line 150: 
+line 151: 
+line 153: 
+line 166: 
+8
+line 15:     for i in range(5):
+line 16:         print i, random.randrange(0, 10)
+4 line 141: 
+line 142: 
+line 144: 
+line 150: 
+line 151: 
+line 153: 
+line 166: 
+5
+line 15:     for i in range(5):
+line 17:     print "Done."
+Done.
+</pre>
+
+As you can see it isn't very helpful because it gets lines from the
+wrong file.
+
+</p><p>
+
+The current filename is available from the module's globals dictionary
+using the special key of <tt>__file__</tt>.  Here's a trace function
+that only displays the filename and line number.
+
+<pre class="code">
+import sys
+import linecache
+import random
+
+def traceit(frame, event, arg):
+    if event == "line":
+        lineno = frame.f_lineno
+        filename = frame.f_globals["__file__"]
+        print "file %s line %d" % (filename, lineno)
+    return traceit
+
+
+def main():
+    print "In main"
+    for i in range(5):
+        print i, random.randrange(0, 10)
+    print "Done."
+
+sys.settrace(traceit)
+main()
+</pre>
+
+and the output is
+
+<pre class="code">
+file &lt;stdin&gt; line 14
+In main
+file &lt;stdin&gt; line 15
+file &lt;stdin&gt; line 16
+0 file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 141
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 142
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 144
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 150
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 151
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 153
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 166
+2
+file &lt;stdin&gt; line 15
+file &lt;stdin&gt; line 16
+1 file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 141
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 142
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 144
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 150
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 151
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 153
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 166
+3
+file &lt;stdin&gt; line 15
+file &lt;stdin&gt; line 16
+2 file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 141
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 142
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 144
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 150
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 151
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 153
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 166
+0
+file &lt;stdin&gt; line 15
+file &lt;stdin&gt; line 16
+3 file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 141
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 142
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 144
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 150
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 151
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 153
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 166
+2
+file &lt;stdin&gt; line 15
+file &lt;stdin&gt; line 16
+4 file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 141
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 142
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 144
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 150
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 151
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 153
+file /System/Library/Frameworks/Python.framework/Versions/2.3/lib/python2.3/random.pyc line 166
+3
+file &lt;stdin&gt; line 15
+file &lt;stdin&gt; line 17
+Done.
+</pre>
+
+The "&lt;stdin&gt;" is because I ran the code from Emacs in
+python-mode.  If I run it from the command-line I get the correct
+filename.
+
+<pre class="code">
+file traceit.py line 14
+In main
+file traceit.py line 15
+file traceit.py line 16
+</pre>
+
+This means we'll need to treat the main program somewhat carefully.
+What I'll do is force the correct filename if it's found to be
+"&lt;stdin&gt;".
+
+</p><p>
+
+If you look at the filenames you'll see the ones from the random
+module end with ".pyc".  This means the code actually came from the
+precompiled bytecode and not the original Python file.  Getting the
+right file means dropping the final "c"; or "o" for the ".pyo"
+optimized bytecode files.  For this example I don't want to see the
+full filename so I'll use the module's <tt>__name__</tt> instead.
+
+</p><p>
+
+The current version of the code is
+
+<pre class="code">
+import sys
+import linecache
+import random
+
+def traceit(frame, event, arg):
+    if event == "line":
+        lineno = frame.f_lineno
+        filename = frame.f_globals["__file__"]
+        if filename == "&lt;stdin&gt;":
+            filename = "traceit.py"
+        if (filename.endswith(".pyc") or
+            filename.endswith(".pyo")):
+            filename = filename[:-1]
+        name = frame.f_globals["__name__"]
+        line = linecache.getline(filename, lineno)
+        print "%s:%s: %s" % (name, lineno, line.rstrip())
+    return traceit
+
+
+def main():
+    print "In main"
+    for i in range(5):
+        print i, random.randrange(0, 10)
+    print "Done."
+
+sys.settrace(traceit)
+main()
+</pre>
+
+and the output is
+
+<pre class="code">
+__main__:21:     print "In main"
+In main
+__main__:22:     for i in range(5):
+__main__:23:         print i, random.randrange(0, 10)
+0 random:141:         istart = int(start)
+random:142:         if istart != start:
+random:144:         if stop is default:
+random:150:         istop = int(stop)
+random:151:         if istop != stop:
+random:153:         if step == 1 and istart &lt; istop:
+random:166:             return int(istart + int(self.random()*(istop - istart)))
+3
+__main__:22:     for i in range(5):
+__main__:23:         print i, random.randrange(0, 10)
+1 random:141:         istart = int(start)
+random:142:         if istart != start:
+random:144:         if stop is default:
+random:150:         istop = int(stop)
+random:151:         if istop != stop:
+random:153:         if step == 1 and istart &lt; istop:
+random:166:             return int(istart + int(self.random()*(istop - istart)))
+3
+__main__:22:     for i in range(5):
+__main__:23:         print i, random.randrange(0, 10)
+2 random:141:         istart = int(start)
+random:142:         if istart != start:
+random:144:         if stop is default:
+random:150:         istop = int(stop)
+random:151:         if istop != stop:
+random:153:         if step == 1 and istart &lt; istop:
+random:166:             return int(istart + int(self.random()*(istop - istart)))
+7
+__main__:22:     for i in range(5):
+__main__:23:         print i, random.randrange(0, 10)
+3 random:141:         istart = int(start)
+random:142:         if istart != start:
+random:144:         if stop is default:
+random:150:         istop = int(stop)
+random:151:         if istop != stop:
+random:153:         if step == 1 and istart &lt; istop:
+random:166:             return int(istart + int(self.random()*(istop - istart)))
+7
+__main__:22:     for i in range(5):
+__main__:23:         print i, random.randrange(0, 10)
+4 random:141:         istart = int(start)
+random:142:         if istart != start:
+random:144:         if stop is default:
+random:150:         istop = int(stop)
+random:151:         if istop != stop:
+random:153:         if step == 1 and istart &lt; istop:
+random:166:             return int(istart + int(self.random()*(istop - istart)))
+7
+__main__:22:     for i in range(5):
+__main__:24:     print "Done."
+Done.
+</pre>
+
+</p><p>
+
+How is this helpful for debugging?  Let me modify the code just a bit
+
+<pre class="code">
+import sys
+import linecache
+
+def traceit(frame, event, arg):
+    if event == "line":
+        lineno = frame.f_lineno
+        filename = frame.f_globals["__file__"]
+        if (filename.endswith(".pyc") or
+            filename.endswith(".pyo")):
+            filename = filename[:-1]
+        name = frame.f_globals["__name__"]
+        line = linecache.getline(filename, lineno)
+        print "%s:%s: %s" % (name, lineno, line.rstrip())
+    return traceit
+
+</pre>
+
+Terry Brunck over at Daylight found a problem with my <a href="http://www.dalkescientific.com/PyDaylight/">PyDaylight</a>
+library.  At the end of a function after it was finished and Python
+was doing garbage collection the code seemed to do nothing.  Rather it
+was doing something because the CPU was pegged but we couldn't figure
+out what that was.
+
+</p><p>
+
+I wrote a trace function like the one above and put the following at
+the end of the function that had the problem so it would be called
+just before it finished:
+
+<pre class="code">
+        import sys
+        sys.settrace(traceit)
+</pre>
+
+This let me watch what the finalization code did.  The problem was
+tracked down to a <tt>dt_dealloc()</tt> call meaning the Daylight
+toolkit was making the big demands on the CPU.  That clue helped
+narrowed down the problem space.  It ended up being three different
+things.  Terry's code made heavy use of a PyDaylight function that
+made Daylight streams but forgot to dealloc them once finished.
+Normally that's not a problem because the toolkit keeps track of the
+created streams and deletes them when the molecule is deleted.  Except
+in this case there were about 30,000 streams and the deallocation code
+wasn't designed to handle that well.
+
+</p>
+
+
+
+	<!--- footer --->
+
+
+<hr width="10%" style="text-align: left; margin: 0 auto 0 0;">
+<p style="font-size: smaller">
+Andrew Dalke is an independent consultant focusing on
+software development for computational chemistry and biology.
+Need contract programming, help, or training?
+<a href="mailto:dalke@dalkescientific.com">Contact me</a>
+</p>
+
+	<center>
+	<img SRC="http://www.dalkescientific.com/images/spacer.gif" width="30" height="100" border="0" alt=" "><br>
+	<hr>
+	<font size="-1" face="arial, helvetica">
+	Copyright &copy; 2001-2013 Andrew Dalke Scientific AB
+	</font>	
+	<!--- end footer --->
+
+
+<!--- PAGE CONTENT ENDS --->
+</div>
+</body>
+</html>

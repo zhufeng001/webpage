@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+<meta charset="utf-8"/>
+<title>异步信号安全(可重入性)与线程安全 - aitao - 博客园</title>
+<link type="text/css" rel="stylesheet" href="/bundles/blog-common.css?v=3Mjfsaoy1pQNyDpjy8B5IkGl_PViJYWRpNjFNodNbqs1"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="http://common.cnblogs.com/Skins/ThinkInside/style.css?id=20140415"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/zhaoyl/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/zhaoyl/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/zhaoyl/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">var currentBlogApp = 'zhaoyl', cb_enable_mathjax=false;</script>
+<script src="/bundles/blog-common.js?v=pzxx7x3sqR30lEc0nG4ZhKzBV18f_F73MpkndVccXuk1" type="text/javascript"></script>
+</head>
+<body>
+<a name="top"></a>
+
+<!--done-->
+<div id="home">
+<div id="header">
+	<div id="blogTitle">
+	<a id="lnkBlogLogo" href="http://www.cnblogs.com/zhaoyl/"><img id="blogLogo" src="/Skins/custom/images/logo.gif" alt="返回主页" /></a>			
+		
+<!--done-->
+<h1><a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/zhaoyl/">Just Love U</a></h1>
+<h2>學而不思则罔，真理越辯越明</h2>
+
+
+
+		
+	</div><!--end: blogTitle 博客的标题和副标题 -->
+	<div id="navigator">
+		
+<ul id="navList">
+<li></li>
+<li><a id="MyLinks1_MyHomeLink" class="menu" href="http://www.cnblogs.com/zhaoyl/">首页</a></li>
+<li><a class="menu" href="http://q.cnblogs.com/">博问</a></li>
+<li><a class="menu" href="http://home.cnblogs.com/ing/">闪存</a></li>
+<li><a id="MyLinks1_NewPostLink" class="menu" rel="nofollow" href="http://i.cnblogs.com/EditPosts.aspx?opt=1">新随笔</a></li>
+<li><a id="MyLinks1_ContactLink" class="menu" rel="nofollow" href="http://space.cnblogs.com/msg/send/aitao">联系</a></li>
+<li><a id="MyLinks1_Syndication" class="menu" href="http://www.cnblogs.com/zhaoyl/rss">订阅</a>
+<!--<a id="MyLinks1_XMLLink" class="aHeaderXML" href="http://www.cnblogs.com/zhaoyl/rss"><img src="http://www.cnblogs.com/images/xml.gif" alt="订阅" /></a>--></li>
+<li><a id="MyLinks1_Admin" class="menu" rel="nofollow" href="http://i.cnblogs.com/">管理</a></li>
+</ul>
+		<div class="blogStats">
+			
+			
+<!--done-->
+随笔- 81&nbsp;
+文章- 0&nbsp;
+评论- 9&nbsp;
+
+			
+		</div><!--end: blogStats -->
+	</div><!--end: navigator 博客导航栏 -->
+</div><!--end: header 头部 -->
+
+<div id="main">
+	<div id="mainContent">
+	<div class="forFlow">
+		
+
+<!--done-->
+<div id="topics">
+	<div class = "post">
+		<h1 class = "postTitle">
+			<a id="cb_post_title_url" class="postTitle2" href="http://www.cnblogs.com/zhaoyl/archive/2012/10/03/2711018.html">异步信号安全(可重入性)与线程安全</a>
+		</h1>
+		<div class="clear"></div>
+		<div class="postBody">
+			<div id="cnblogs_post_body"><p>　　求职不利，趁十一假期复习APUE v2线程和信号章节，两天时间看完。书中10.6和12.5两节分别是信号和线程的重入介绍。但是未对异步信号安全、线程安全、可重入概念做统一对比，难以彻悟。针对于此，写下本文。</p>
+<p><span style="font-family: 隶书; font-size: 18px;">1.　三个概念，线程安全，可重入，信号安全</span></p>
+<p>　　先简单提一下，</p>
+<p>　　线程安全，主要是针对数据竞争来说的，就是说：如果数据不需要共享，那就让每个线程私有；如果需要共享，那就加锁。</p>
+<p><span style="font-size: 14px;">　　信号安全，其实也就是异步信号安全，是说线程在信号处理函数当中，不管以任何方式调用你的这个函数如果不死锁不修改数据，那就是信号安全的。也就是说一个可重入函数在信号处理函数当中不影响调用他的人本身的状态，其实就是一个task_struct有很多指针指向它，你通过多线程调一个可重入函数，函数有自己所在的task的代码段和数据段，如果你在信号处理里面调它，实际上是换了一个指向同一个task_struct里面内容的指针来操作，会有问题。这种情形通过加锁是解决不了问题的，比如你正在调用printf过程中，遇到一个信号，转而去处理这个信号，并且在处理这个信号的信号处理函数当中正巧要调用printf，那么屏幕上就是乱的，加锁行不行呢？那就很好玩了。所以printf不是异步信号安全的。</span></p>
+<p><span style="font-size: 14px;">　　可重入性：就是无论以什么方式多次调用都不会出现问题，不会出现对可能有修改的静态数据的访问，不会出现对全局变量（比如errno）的访问。严格讲可重入要区分线程安全（弱可重入）还是信号安全（强可重入）两点，但是一般说可重入就是指信号安全。由于信号安全要求高于线程安全，所以说如果一个函数是可重入的，那一定是线程安全的（反之不一定）。</span></p>
+<p><span style="font-family: 隶书; font-size: 18px;">2. &nbsp;下面详细解释三者</span></p>
+<p>　　2.1 可重入性（<em>reentrant</em>）<span style="color: #ff0000;"><strong>针对函数</strong></span>，它有两个方面的内涵：</p>
+<p>　　1)可并行/并发，同时进入：指可重入函数被某任务调用时，其它任务可同时进行调用而不产生错误的结果；或称在相同的输入情况下可重入函数的执行所产生的效果，并不因其并发的调用而产生不同，<span style="color: #ff0000;"><em>也称并发安全</em></span>。</p>
+<p>　　2)中断后可重新进入：指可重入函数可被任意的中断，当中断执行完毕，返回断点可以继续正确的运行下去；或称在相同的输入情况下可重入函数的执行所产生的结果，并不因为在函数执行期间有中断的调用而产生不同，<span style="color: #ff0000;"><em>也称中断安全</em>。</span></p>
+<p><em>　　可重入（reentrant）</em>函数可以由多于一个任务并发使用，而不必担心数据错误。相反，&nbsp;<em>不可重入（non-reentrant）</em>函数不能由超过一个任务所共享，除非能确保函数的互斥 （或者使用信号量，或者在代码的关键部分禁用中断）。可重入函数可以在任意时刻被中断， 稍后再继续运行，不会丢失数据。可重入函数要么使用本地变量，要么在使用全局变量时 保护自己的数据。</p>
+<p>　　可重入函数一般要满足：</p>
+<ul>
+<li>不为连续的调用持有静态数据。</li>
+<li>不返回指向静态数据的指针；所有数据都由函数的调用者提供。</li>
+<li>使用本地数据，或者通过制作全局数据的本地拷贝来保护全局数据。</li>
+<li>绝不调用任何不可重入函数。&nbsp;</li>
+</ul>
+<p>　　出于以下任意某个原因，其余函数是不可重入的：</p>
+<ul>
+<li>它们调用了&nbsp;<code>malloc</code>&nbsp;或&nbsp;<code>free：malloc/free&nbsp;是在&nbsp;C&nbsp;标准中规定的，而在&nbsp;C&nbsp;中是没有进程/线程的概念。</code></li>
+<li>众所周知它们使用了静态数据结构体。</li>
+<li>它们是标准 I/O 程序库的一部分：<span>glibc的c库算是线程安全了，却不保证可重入或异步信号安全。</span></li>
+</ul>
+<p><strong>　　2.2&nbsp;</strong>线程安全（MT-safe）<em><span style="color: #ff0000;">不仅仅针对函数</span></em>，它主要是指数据或程序的安全这一结果，所以有不同的层次上讲的线程安全：如线程安全的函数，线程安全的库&nbsp;。本文还会引入线程安全的类这一概念。通常意义上一个线程安全的函数是指有可重入函数第一个内涵的函数即并发安全的函数。但需要注意的是即使是一个从函数级别上并不安全的函数，如果使其不安全的因素在特定应用中并不存在时，这个函数对于该应用来讲同样也是线程安全的。例如对于全局变量的访问，一般而言未命名同步方式访问肯定是非线程安全的，但如果所有可能同时发生的访问均是只读访问则从结果上讲也是线程安全的。</p>
+<p>　　不要混淆可重入与线程安全。在程序员看来，这是两个独立的概念：函数可以是可重入的，是线程安全的，或者 二者皆是，或者二者皆非。不可重入的函数不能由多个线程使用。另外，或许不可能让某个 不可重入的函数是线程安全的。<em><span style="color: #ff0000;">关于标准IO库是不是线程安全的要依据实际情况而定</span></em>，不同的库有不同实现，一般为了方便用户使用，在支持多线程的系统上都配备了线程安全的库，但却不是以不安全的，因为，<em><span style="color: #ff0000;">信号一定是</span><span style="color: #ff0000;"><em>异</em>步的，不是线程的加锁机制（本质是同步化）就可以解决的</span></em>。</p>
+<p><strong>　　2.3 </strong>信号安全，信号的本质软中断，中断在本质上是异步的，所谓异步信号安全同线程安全一样，也是站在结果上考虑的，指在信号的中断处理过程中的安全。通常意义上一个异步信号安全的函数是指可以在异步信息处理函数中调用而不会出现异常的函数。同样需要注意到即使一个从函数级别上并非异步信息安全的函数，如果在信息处理函数中调用，也并不一定会产生不安全的结果。</p>
+<p><span style="font-size: 18px; font-family: 隶书;">3.　三个概念的异同</span></p>
+<p>　　 从函数级别考虑，仅从概念上就可以发现可重入函数一定是线程安全函数，也是异步信号安全函数；多线程安全函数却要弱得多，并非一定要是可重入函数，它只要求并发无误即可；虽然异步信号函数与可重入函数的描述方式有所不同，但两者从实现层面上讲是完全一致的。</p>
+<p>&nbsp;</p>
+<p>参考文献：</p>
+<p>1&nbsp;<a href="http://www.ibm.com/developerworks/cn/linux/l-reent.html" target="_blank">《使用可重入函数进行更安全的信号处理》</a></p>
+<p>2&nbsp;<a href="http://bbs.chinaunix.net/thread-942090-1-1.html">http://bbs.chinaunix.net/thread-942090-1-1.html</a></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p></div><div id="MySignature"></div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="BlogPostCategory"></div>
+<div id="EntryTag"></div>
+<div id="blog_post_info">
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"></div>
+</div>
+
+
+		</div>
+		<div class = "postDesc">posted @ <span id="post-date">2012-10-03 19:50</span> <a href='http://www.cnblogs.com/zhaoyl/'>aitao</a> 阅读(<span id="post_view_count">...</span>) 评论(<span id="post_comment_count">...</span>)  <a href ="http://i.cnblogs.com/EditPosts.aspx?postid=2711018" rel="nofollow">编辑</a> <a href="#" onclick="AddToWz(2711018);return false;">收藏</a></div>
+	</div>
+	<script type="text/javascript">var allowComments=true,isLogined=false,cb_blogId=115490,cb_entryId=2711018,cb_blogApp=currentBlogApp,cb_blogUserGuid='03fd6403-558b-e111-aa3f-842b2b196315',cb_entryCreatedDate='2012/10/3 19:50:00';loadViewCount(cb_entryId);</script>
+	
+</div><!--end: topics 文章、评论容器-->
+<a name="!comments"></a><div id="blog-comments-placeholder"></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="开发者的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="opt_under_post"></div>
+<script type="text/javascript">
+    var enableGoogleAd = true;var googletag = googletag || {};googletag.cmd = googletag.cmd || [];
+    fixPostBodyFormat();
+</script>
+<div id="ad_under_post_holder">
+<script type='text/javascript'>
+    var googletag = googletag || {};
+    googletag.cmd = googletag.cmd || [];
+    (function () {
+        var gads = document.createElement('script');
+        gads.async = true;
+        gads.type = 'text/javascript';
+        var useSSL = 'https:' == document.location.protocol;
+        gads.src = (useSSL ? 'https:' : 'http:') +'//www.googletagservices.com/tag/js/gpt.js';
+        var node = document.getElementsByTagName('script')[0];
+        node.parentNode.insertBefore(gads, node);
+    })();
+</script>
+<script type='text/javascript'>
+    try {
+        googletag.cmd.push(function () {
+            googletag.defineSlot('/1090369/cnblogs_blogpost_C1_sitehome', [300, 250], 'div-gpt-ad-1346480159711-0').addService(googletag.pubads());
+            googletag.pubads().enableSingleRequest();
+            googletag.enableServices();
+        });
+    } catch (e) { }
+</script>
+<div id="google_ad_c1" class="c_ad_block">
+    <div id='div-gpt-ad-1346480159711-0' style='width:300px; height:250px;'>
+    <script type='text/javascript'>
+    try{
+        googletag.cmd.push(function () { googletag.display('div-gpt-ad-1346480159711-0'); });
+    } catch (e) { }
+    </script>
+    </div>
+</div>
+</div>
+<div id="blog_news_kb"></div>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+$(function () {
+    loadNewsAndKb();
+    loadBlogSignature();
+    LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+    GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);
+    loadOptUnderPost();
+    GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+    $.ajax({ url: 'http://counter.cnblogs.com/blog/post/' + cb_entryId, type: 'get', dataType: 'script', cache: true });
+});
+</script>
+</div>
+
+	</div><!--end: forFlow -->
+	</div><!--end: mainContent 主体内容容器-->
+
+	<div id="sideBar">
+		<div id="sideBarMain">
+			
+			<div id="blog-calendar" style="display:none"></div><script type="text/javascript">loadBlogDefaultCalendar();</script>
+			
+			<div id="leftcontentcontainer">
+				<div id="blog-sidecolumn"></div><script type="text/javascript">loadBlogSideColumn();</script>
+			</div>
+			
+		</div><!--end: sideBarMain -->
+	</div><!--end: sideBar 侧边栏容器 -->
+	<div class="clear"></div>
+	</div><!--end: main -->
+	<div class="clear"></div>
+	<div id="footer">
+		
+<!--done-->
+Copyright &copy;2014 aitao
+	</div><!--end: footer -->
+</div><!--end: home 自定义的最大容器 -->
+</body>
+</html>

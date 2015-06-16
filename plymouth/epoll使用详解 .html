@@ -1,0 +1,1051 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>epoll使用详解_laoyao512_新浪博客</title>
+<meta name="keywords" content="epoll使用详解_laoyao512_新浪博客,laoyao512,epoll,epoll_create,epoll_ctl,epoll_wait,it" />
+<meta name="description" content="epoll使用详解_laoyao512_新浪博客,laoyao512," />
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+<!–[if lte IE 6]>
+<script type="text/javascript">
+try{
+document.execCommand("BackgroundImageCache", false, true);
+}catch(e){}
+</script>
+<![endif]–>
+<script type="text/javascript">
+window.staticTime=new Date().getTime();
+
+var locInterval = setInterval(function(){
+var tc = document.getElementById('trayContainer');
+if(tc) {
+var isLogin = false;var sup = document.cookie.match(/sup=([^;]+);/gi);if(sup != null){ sup = decodeURIComponent(sup[0]);var uid = sup.match(/uid=([^&]+)/gi); isLogin = (uid != null); } if (isLogin){ tc.innerHTML = '<div class="topbar_loading"><img src="http://simg.sinajs.cn/blog7style/images/common/loading.gif" />加载中…</div>'; } else { tc.innerHTML = '<div class="topbar_menu"><span class="link"><a href="http://blog.sina.com.cn" target="_blank">博客首页</a></span><span class="line_s"></span></div><div class="topbar_login"><a href="#" class="login" id="linkTrayLogin" onclick="return false;">登录</a><a href="http://login.sina.com.cn/signup/signupmail.php?entry=blog&r=&srcuid=&src=blogicp" class="register" target="_blank" id="linkReg">注册</a></div><div class="topbar_ad" id="divPopularize"></div><div id="phprender" ></div>';}
+clearInterval(locInterval);
+locInterval = null;
+}
+},50);
+
+</script>
+<link rel="pingback" href="http://upload.move.blog.sina.com.cn/blog_rebuild/blog/xmlrpc.php" />
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://upload.move.blog.sina.com.cn/blog_rebuild/blog/xmlrpc.php?rsd" />
+<link href="http://blog.sina.com.cn/blog_rebuild/blog/wlwmanifest.xml" type="application/wlwmanifest+xml" rel="wlwmanifest" />
+<link rel="alternate" type="application/rss+xml" href="http://blog.sina.com.cn/rss/2588754904.xml" title="RSS" />
+<link href="http://simg.sinajs.cn/blog7style/css/conf/blog/article.css" type="text/css" rel="stylesheet" /><link href="http://simg.sinajs.cn/blog7style/css/common/common.css" type="text/css" rel="stylesheet" /><link href="http://simg.sinajs.cn/blog7style/css/blog/blog.css" type="text/css" rel="stylesheet" /><link href="http://simg.sinajs.cn/blog7style/css/module/common/blog.css" type="text/css" rel="stylesheet" /><style id="tplstyle" type="text/css">@charset "utf-8";@import url("http://simg.sinajs.cn/blog7newtpl/css/16/16_10/t.css");
+</style>
+<style id="positionstyle"  type="text/css">
+.sinabloghead .blogtoparea{ left:56px;top:32%;}
+.sinabloghead .blognav{ left:76px;top:72%;}
+</style>
+<style id="bgtyle"  type="text/css">
+</style>
+<style id="headtyle"  type="text/css">
+</style>
+<style id="navtyle"  type="text/css">
+</style>
+<script type="text/javascript" src="http://d1.sina.com.cn/litong/zhitou/sspnew.js"></script></head>
+<body>
+<!--$sinatopbar-->
+<div style="z-index:512;" class="sinatopbar">
+			<div class="topbar_main">
+				<a id="login_bar_logo_link_350" href="http://blog.sina.com.cn" target="_blank"><img class="topbar_logo" src="http://simg.sinajs.cn/blog7style/images/common/topbar/topbar_logo.gif" width="100" alt="新浪博客"/></a>
+
+				<div id="trayContainer" style="float:left">
+								</div>
+				<div class="topbar_floatR">
+					<span class="tb_wrtBlog">
+						<a target="_blank" href="http://control.blog.sina.com.cn/admin/article/article_add.php"><img class="SG_icon SG_icon15" src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" width="15" height="15" title="博文" align="absmiddle"/>	发博文</a>
+
+						<span id="arrowAddArticle" class="wrtblog_arrow"></span>
+					</span>
+					<div class="topbar_search">
+						<form action="" target="_blank" method="get" id="loginBarSearchForm">
+							<div class="topbar_input">
+								<input id="loginBarSearchInput" name="k" class="topbar_txt" type="text" value=""/>
+							</div>
+							<div id="searchSelect" class="topbar_list">
+								<div id="loginBarSearchMenuLabel" class="anainp">博文</div>
+
+								<div class="arrow"></div>
+							</div>
+							<input type="submit" class="topbar_searchBtn" value="搜索"/>
+							<input type="hidden" id="ie" value="utf-8" name="ie"/>
+							<input type="hidden" id="loginBarSearchT" value="" name="t"/>
+							<input type="hidden" id="loginBarSearchTS" value="" name="ts"/>
+							<input type="hidden" id="loginBarSearchS" value="" name="s"/>
+							<input type="hidden" id="loginBarSearchType" value="" name="type"/>
+							<input type="hidden" id="loginBarSearchSType" value="" name="stype"/>
+
+							<input type="hidden" id="e" value="utf-8" name="e"/>
+						</form>
+					</div>
+					
+				</div>
+			</div>
+			<div style="position:absolute;left:0;top:0;" id="trayFlashConnetion"></div>
+		</div>
+		
+<!--$end sinatopbar-->
+
+
+<div class="sinabloga" id="sinabloga">
+	<div id="sinablogb" class="sinablogb">
+
+	   
+ <div id="sinablogHead" class="sinabloghead">
+     <div style="display: none;" id="headflash" class="headflash"></div>
+	   <div id="headarea" class="headarea">
+      <div id="blogTitle" class="blogtoparea">
+      <h1 id="blogname" class="blogtitle"><a href="http://blog.sina.com.cn/u/2588754904"><span id="blognamespan">laoyao512的博客</span></a></h1>
+	        <div id="bloglink" class="bloglink"><a href="http://blog.sina.com.cn/u/2588754904">http://blog.sina.com.cn/u/2588754904</a>  <a onclick="return false;" class="CP_a_fuc" href="#" id="SubscribeNewRss">[<cite>订阅</cite>]</a><a class="CP_a_fuc" href="javascript:void(scope.pa_add.add('2588754904'));">[<cite>手机订阅</cite>]</a></div>
+      </div>
+      <div class="blognav" id="blognav">
+      			  <div id="blognavBg" class="blognavBg"></div> <div class="blognavInfo"> 
+		<span><a   href="http://blog.sina.com.cn/u/2588754904">首页</a></span>
+      <span><a class="on" href="http://blog.sina.com.cn/s/articlelist_2588754904_0_1.html">博文目录</a></span>
+      <span><a href="http://photo.blog.sina.com.cn/u/2588754904">图片</a></span>
+      <span class="last"><a  href="http://blog.sina.com.cn/s/profile_2588754904.html">关于我</a></span></div>
+      </div>
+      		      		 	
+      
+             <div class="autoskin" id="auto_skin">
+       </div>
+
+<div class="adsarea">
+     <a href="#"><div id="template_clone_pic" class="pic"></div></a>
+     <div id="template_clone_link" class="link wdc_HInf"></div>
+     <div id="template_clone_other" class="other"></div>        
+</div>
+    </div>
+    	    	    </div>
+    
+    <!--主题内容开始 -->
+    <div class="sinablogbody" id="sinablogbody">
+		
+	<!--第一列start-->
+    <div id="column_1" class="SG_colW21 SG_colFirst"><div class="SG_conn" id="module_901">
+    <div class="SG_connHead">
+            <span class="title" comp_title="个人资料">个人资料</span>
+            <span class="edit">
+                        </span>
+    </div>
+    <div class="SG_connBody">
+        <div class="info">
+            		        
+			<div class="info_img" id="comp_901_head"><img src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" real_src ="http://portrait1.sinaimg.cn/2588754904/blog/180" id="comp_901_head_image" width="180" height="180" alt="laoyao512" title="laoyao512" /></div>
+			
+       	    <div class="info_txt">
+		      <div class="info_nm">
+		        <img id="comp_901_online_icon" style="display:none;" class="SG_icon SG_icon1" src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" width="15" height="15" align="absmiddle" />
+		        <span class="SG_txtb"><strong id="ownernick">laoyao512								</strong></span>
+		        
+                <div class="clearit"></div>
+              </div>
+		      <div class="info_btn1">
+			  <!--user['qing_url'] -->
+		        <a target="_blank" href="http://qing.blog.sina.com.cn/2588754904" onclick="v7sendLog && v7sendLog('79_01_01',scope.$pageid,'qingLink');"  class="SG_aBtn SG_aBtn_ico"><cite><img class="SG_icon SG_icon205" src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" width="15" height="15" align="absmiddle" />Qing</cite></a>
+		        <a target="_blank" href="http://weibo.com/u/2588754904?source=blog" class="SG_aBtn SG_aBtn_ico"><cite><img class="SG_icon SG_icon51" src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" width="15" height="15" align="absmiddle" />微博</cite></a>
+		        <div class="clearit"></div>
+		      </div>
+	<div class="SG_j_linedot"></div>		<div class="info_locate" id = "info_locate_id">
+<div class="SG_j_linedot"></div>
+<div class="info_btn2">
+	<p>
+	<a href="javascript:void(0);" class="SG_aBtn " id="comp901_btn_invite"><cite >加好友</cite></a>
+	<a href="javascript:void(0);" class="SG_aBtn" id="comp901_btn_sendpaper"><cite >发纸条</cite></a>
+	</p>
+	<p>
+	<a href="http://blog.sina.com.cn/s/profile_2588754904.html#write" class="SG_aBtn"   id="comp901_btn_msninfo"><cite>写留言</cite></a>
+	<a href="#" onclick="return false;" class="SG_aBtn"  id="comp901_btn_follow"><cite onclick="Module.SeeState.add()">加关注</cite></a>
+	</p>
+	<div class="clearit"></div>
+</div>
+<div class="SG_j_linedot"></div>
+</div>
+			      <div class="info_list">	  
+			   					<ul class="info_list1">
+					<li><span class="SG_txtc">博客等级：</span><span id="comp_901_grade"><img src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" real_src="http://simg.sinajs.cn/blog7style/images/common/number/1.gif"  /><img src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" real_src="http://simg.sinajs.cn/blog7style/images/common/number/0.gif"  /></span></li>
+					<li><span class="SG_txtc">博客积分：</span><span id="comp_901_score"><strong>145</strong></span></li>
+					</ul>
+					<ul class="info_list2">
+					<li><span class="SG_txtc">博客访问：</span><span id="comp_901_pv"><strong>8,672</strong></span></li>
+					<li><span class="SG_txtc">关注人气：</span><span id="comp_901_attention"><strong>0</strong></span></li>
+					</ul>
+		</div>
+<div class="clearit"></div>
+	</div>
+	<div class="clearit"></div>
+</div>
+            </div>       
+            <div class="SG_connFoot"></div>
+</div>
+<!--Qingtuijian--><div id="module_903" class="SG_conn ">
+    <div class="SG_connHead">
+    <span comp_title="相关博文" class="title">相关博文</span>
+    <span class="edit"> </span>
+    </div>
+    <div class="SG_connBody">
+    <div class="atcTitList relaList">        <ul class="">
+		<li class="SG_j_linedot1" style="display:none;">
+			<p id="atcTitLi_SLOT_41" class="atcTitCell_tit SG_dot" style="display:none">
+		</p>
+		</li>
+		<li class="SG_j_linedot1" style="display:none;">
+			<p id="atcTitLi_SLOT_42"  class="atcTitCell_tit SG_dot" style="display:none">
+		</p>
+		</li>
+				            <li class="SG_j_linedot1">
+                                                <p class="atcTitCell_tit SG_dot"><a  suda-uatrack="key=blog_blogpage&value=h_blogxg"  onclick="v7sendLog('69_01_09');" href="http://swf.games.sina.com.cn/tgy/lieyan/ng/neiguang.html?sina003" target="_blank" title="当年一起玩传奇的人你们在哪？">当年一起玩传奇的人你们在哪？</a></p>
+                        <p class="atcTitCell_nm"><a class="SG_linkb"  suda-uatrack="key=blog_blogpage&value=h_blogxg"  onclick="v7sendLog('69_01_09');" href="http://swf.games.sina.com.cn/tgy/lieyan/ng/neiguang.html?sina003" target="_blank">烈焰</a></p>
+                        		            </li> 
+				            <li class="SG_j_linedot1">
+                                                <p class="atcTitCell_tit SG_dot"><a  suda-uatrack="key=blog_blogpage&value=h_blogxg"  onclick="v7sendLog('69_01_08');" href="http://blog.sina.com.cn/s/blog_4be779730102e5c6.html?tj=1" target="_blank" title="到底为啥离的婚？">到底为啥离的婚？</a></p>
+                        <p class="atcTitCell_nm"><a class="SG_linkb"  suda-uatrack="key=blog_blogpage&value=h_blogxg"  onclick="v7sendLog('69_01_08');" href="http://blog.sina.com.cn/s/blog_4be779730102e5c6.html?tj=1" target="_blank">王建一</a></p>
+                        		            </li> 
+		                    <li class="SG_j_linedot1">
+                                    <p class="atcTitCell_tit SG_dot"><a onclick="v7sendLog('41_01_07');"  suda-uatrack="key=blog_blogpage&value=h_blogxg" href="http://blog.sina.com.cn/s/blog_466c66400100bi2x.html" target="_blank" title="杨建：网站加速--系统架构篇" >杨建：网站加速--系统架构篇</a></p>
+                    <p class="atcTitCell_nm"><a onclick="v7sendLog('41_01_07');"  suda-uatrack="key=blog_blogpage&value=h_blogxg" class="SG_linkb" href="http://blog.sina.com.cn/u/1181509184" target="_blank">iyangjian2005997</a></p>
+                		
+            </li>
+			</ul>
+    <div class="atcTit_more"><span class="SG_more"><a href="http://search.sina.com.cn/?c=blog&q=%D4%D3%CC%B8%2C%D0%DD%CF%D0&by=tag" target="_blank">更多&gt;&gt;</a></span></div></div>    </div>
+    <div class="SG_connFoot"></div>
+  </div>
+<!--BeijingQingtuijian--><div class="SG_conn " id="module_911">
+<div class="SG_connHead">
+<span class="title">精彩图文</span>
+</div>
+<div class="SG_connBody">
+<div class="atcTitLists relaList">
+<div class="wondPicSlide">
+<div style="background:url(http://www.sinaimg.cn/blog/qingzujian/11.jpg)" id="qingRecWindow" class="pic"><a target="_blank" href="http://blog.sina.com.cn/u/65ffd1a10102e81n" onclick="v7sendLog('q2b_bj_2_big');return true;"><img align="absmiddle" src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" /><span>5分钟简易版韩风妆容</span></a></div><ul id="qingRecPic" class="SG_j_linedot1">
+<li><a target="_blank" suda-uatrack="key=blog_blogpage&value=h_qingmodulebj" href="http://blog.sina.com.cn/u/65ffd1a10102e81n" onclick="v7sendLog('41_01_04');return true;" bigcode="41_01_04"><img bigsrc=http://www.sinaimg.cn/blog/qingzujian/11.jpg height=50 width=50 alt="5分钟简易版韩风妆容" src="http://www.sinaimg.cn/blog/qingzujian/11.jpg"></a></li><li><a target="_blank" suda-uatrack="key=blog_blogpage&value=h_qingmodulebj" href="http://blog.sina.com.cn/u/537719ca0102ebr0" onclick="v7sendLog('41_01_04');return true;" bigcode="41_01_04"><img bigsrc=http://www.sinaimg.cn/blog/qingzujian/12.jpg height=50 width=50 alt="萌宝清华大学爽翻天" src="http://www.sinaimg.cn/blog/qingzujian/12.jpg"></a></li><li class="mgr"><a target="_blank" suda-uatrack="key=blog_blogpage&value=h_qingmodulebj" href="http://blog.sina.com.cn/u/4cbeb6a50102e2a8" onclick="v7sendLog('41_01_04');return true;" bigcode="41_01_04"><img bigsrc=http://www.sinaimg.cn/blog/qingzujian/13.jpg height=50 width=50 alt="带着小破孩儿游厦门" src="http://www.sinaimg.cn/blog/qingzujian/13.jpg"></a></li></ul>
+</div>
+<div class="atcTit_more"><span class="SG_more"><a href="http://qing.blog.sina.com.cn/fancy.html" onclick="v7sendLog('q2b_bj_more');return true;" target="_blank">查看更多</a>&gt;&gt;</span></div>
+</div>
+
+</div>
+<div class="SG_connFoot"></div>
+</div>
+<!--endBeijingQing--><div class="SG_conn " id="module_904">
+<div class="SG_connHead">
+<span class="title">推荐博文</span>
+</div>
+<div class="SG_connBody ">
+	<div class="atcTitList relaList">		<ul class="">
+			<li class="SG_j_linedot1"><p class="atcTitCell_tit SG_dot"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" title="并购Tumblr：雅虎并购走向" target="_blank" href="http://blog.sina.com.cn/s/blog_4cab48ba0102e76o.html?tj=2">并购Tumblr：雅虎并购走向</a></p>
+        <p class="atcTitCell_nm"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" target="_blank" href="http://blog.sina.com.cn/u/1286293690" class="SG_linkb">孙永杰</a></p>
+		</li><li class="SG_j_linedot1"><p class="atcTitCell_tit SG_dot"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" title="美国科技IPO复苏：待上市公司" target="_blank" href="http://blog.sina.com.cn/s/blog_a27b0ef30101l0yg.html?tj=2">美国科技IPO复苏：待上市公司</a></p>
+        <p class="atcTitCell_nm"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" target="_blank" href="http://blog.sina.com.cn/u/2725973747" class="SG_linkb">莲子洲</a></p>
+		</li><li class="SG_j_linedot1"><p class="atcTitCell_tit SG_dot"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" title="“打手”搜狗的价值：5亿美元至" target="_blank" href="http://blog.sina.com.cn/s/blog_53831e9c0101cw5d.html?tj=2">“打手”搜狗的价值：5亿美元至</a></p>
+        <p class="atcTitCell_nm"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" target="_blank" href="http://blog.sina.com.cn/u/1401101980" class="SG_linkb">尹生</a></p>
+		</li><li class="SG_j_linedot1"><p class="atcTitCell_tit SG_dot"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" title="品牌折扣特卖：电商的第二春？" target="_blank" href="http://blog.sina.com.cn/s/blog_44fea84d0102e9nj.html?tj=2">品牌折扣特卖：电商的第二春？</a></p>
+        <p class="atcTitCell_nm"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" target="_blank" href="http://blog.sina.com.cn/u/1157539917" class="SG_linkb">贾敬华</a></p>
+		</li><li class="SG_j_linedot1"><p class="atcTitCell_tit SG_dot"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" title="方兴未艾的产业整合潮" target="_blank" href="http://blog.sina.com.cn/s/blog_513a2b800101ii40.html?tj=2">方兴未艾的产业整合潮</a></p>
+        <p class="atcTitCell_nm"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" target="_blank" href="http://blog.sina.com.cn/u/1362766720" class="SG_linkb">谢文</a></p>
+		</li><li class="SG_j_linedot1"><p class="atcTitCell_tit SG_dot"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" title="10亿美金之8848（下）" target="_blank" href="http://blog.sina.com.cn/s/blog_52231ba90101n832.html?tj=2">10亿美金之8848（下）</a></p>
+        <p class="atcTitCell_nm"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" target="_blank" href="http://blog.sina.com.cn/u/1378032553" class="SG_linkb">林军</a></p>
+		</li><li class="SG_j_linedot1"><p class="atcTitCell_tit SG_dot"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" title="2013全球网络广告市场变革既" target="_blank" href="http://blog.sina.com.cn/s/blog_497631d70102emas.html?tj=2">2013全球网络广告市场变革既</a></p>
+        <p class="atcTitCell_nm"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" target="_blank" href="http://blog.sina.com.cn/u/1232482775" class="SG_linkb">赵勇922</a></p>
+		</li><li class="SG_j_linedot1"><p class="atcTitCell_tit SG_dot"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" title="雅虎收购Tumblr：传统互联" target="_blank" href="http://blog.sina.com.cn/s/blog_5d771f670101alxm.html?tj=2">雅虎收购Tumblr：传统互联</a></p>
+        <p class="atcTitCell_nm"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" target="_blank" href="http://blog.sina.com.cn/u/1568087911" class="SG_linkb">飞刀李</a></p>
+		</li><li class="SG_j_linedot1"><p class="atcTitCell_tit SG_dot"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" title="黑马大赛现场分享：创业者要不断" target="_blank" href="http://blog.sina.com.cn/s/blog_634351030102ehvg.html?tj=2">黑马大赛现场分享：创业者要不断</a></p>
+        <p class="atcTitCell_nm"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" target="_blank" href="http://blog.sina.com.cn/u/1665356035" class="SG_linkb">王树彤</a></p>
+		</li><li class="SG_j_linedot1"><p class="atcTitCell_tit SG_dot"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" title="微信营销的误区" target="_blank" href="http://blog.sina.com.cn/s/blog_49332a830101amh0.html?tj=2">微信营销的误区</a></p>
+        <p class="atcTitCell_nm"><a suda-uatrack="key=blog_blogpage&value=h_blogtj" target="_blank" href="http://blog.sina.com.cn/u/1228089987" class="SG_linkb">徽剑</a></p>
+		</li>		</ul>
+		<div id="atcPicList">
+		</div>
+	<div class="atcTit_more"><span class="SG_more"><a target="_blank" href="http://blog.sina.com.cn/lm/top/it/day.html">查看更多</a>&gt;&gt;</span></div></div></div>
+<div class="SG_connFoot"></div>
+</div>
+        <div class="SG_conn" id="module_47"><div class="SG_connHead">
+                <span class="title" comp_title="谁看过这篇博文">谁看过这篇博文</span>
+                                <span class="edit"></span>
+            </div>
+            <div class="SG_connBody">
+            	<div class="wdtLoading"><img src="http://simg.sinajs.cn/blog7style/images/common/loading.gif" />加载中…</div>            </div>
+            <div class="SG_connFoot"></div>
+                  </div></div>
+	<!--第一列end-->
+	
+	<!--第二列start-->
+	<div id="column_2" class="SG_colW73">	
+<div id="module_920" class="SG_conn">
+	<div class="SG_connHead">
+	    <span comp_title="正文" class="title">正文</span>
+	    <span class="edit"><span id="articleFontManage" class="fontSize">字体大小：<a href="javascript:;" onclick="changeFontSize(2);return false;">大</a> <strong>中</strong> <a href="javascript:;" onclick="changeFontSize(0);return false;">小</a></span></span>
+	</div>
+    <div class="SG_connBody">
+<!--博文正文 begin -->
+	<div id="articlebody" class="artical" favMD5='{"9a4d43d801018d6v":"192ed4ae14be640164a9788f70786022"}'>
+		<div class="articalTitle"> 
+			
+								<h2 id="t_9a4d43d801018d6v" class="titName SG_txta">epoll使用详解</h2>
+			
+					<span class="time SG_txtc">(2013-01-17 15:18:03)</span><div class="turnBoxzz"><a href="javascript:;" class="SG_aBtn SG_aBtn_ico SG_turn"  action-type="reblog" action-data="{srcBlog:1, blogId:'9a4d43d801018d6v'}"><cite><img class="SG_icon SG_icon111" src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" width="15" height="15" align="absmiddle">转载<em class="arrow">▼</em></cite></a></div>		</div>
+		<div class="articalTag" id="sina_keyword_ad_area">
+			<table>
+				<tr>
+					<td class="blog_tag">
+					<script>
+					var $tag='epoll,epoll_create,epoll_ctl,epoll_wait,it';
+					var $tag_code='b8662b23d7479f6a6c737fcdfe5db93b';
+					var $r_quote_bligid='9a4d43d801018d6v';
+					var $worldcup='0';
+					var $worldcupball='0';
+					</script>
+											<span class="SG_txtb">标签：</span>
+																				<h3><a href="http://search.sina.com.cn/?c=blog&q=epoll&by=tag" target="_blank">epoll</a></h3>
+																				<h3><a href="http://search.sina.com.cn/?c=blog&q=epoll_create&by=tag" target="_blank">epoll_create</a></h3>
+																				<h3><a href="http://search.sina.com.cn/?c=blog&q=epoll_ctl&by=tag" target="_blank">epoll_ctl</a></h3>
+																				<h3><a href="http://search.sina.com.cn/?c=blog&q=epoll_wait&by=tag" target="_blank">epoll_wait</a></h3>
+																				<h3><a href="http://search.sina.com.cn/?c=blog&q=it&by=tag" target="_blank">it</a></h3>
+																</td>
+					<td class="blog_class">
+											<span class="SG_txtb">分类：</span>
+						<a target="_blank" href="http://blog.sina.com.cn/s/articlelist_2588754904_5_1.html">VC</a>
+										</td>
+				</tr>
+			</table>
+		</div>
+						<!-- 正文开始 -->
+		<div id="sina_keyword_ad_area2" class="articalContent  ">
+			在linux的网络编程中，很长的时间都在使用select来做事件触发。在linux新的内核中，有了一种替换它的机制，就是epoll。<br />
+
+相比于select，epoll最大的好处在于它不会随着监听fd数目的增长而降低效率。因为在内核中的select实现中，它是采用轮询来处理的，轮询的fd数目越多，自然耗时越多。并且，在linux/posix_types.h头文件有这样的声明：<br />
+
+#define
+__FD_SETSIZE&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+1024<br />
+表示select最多同时监听1024个fd，当然，可以通过修改头文件再重编译内核来扩大这个数目，但这似乎并不治本。<br />
+<br />
+epoll的接口非常简单，一共就三个函数：<br />
+1. int epoll_create(int size);<br />
+创建一个epoll的句柄，size用来告诉内核这个监听的数目一共有多大。这个参数不同于select()中的第一个参数，给出最大监听的fd+1的值。需要注意的是，当创建好epoll句柄后，它就是会占用一个fd值，在linux下如果查看/proc/进程id/fd/，是能够看到这个fd的，所以在使用完epoll后，必须调用close()关闭，否则可能导致fd被耗尽。<br />
+
+<br />
+<br />
+2. int epoll_ctl(int epfd, int op, int fd, struct epoll_event
+*event);<br />
+epoll的事件注册函数，它不同与select()是在监听事件时告诉内核要监听什么类型的事件，而是在这里先注册要监听的事件类型。第一个参数是epoll_create()的返回值，第二个参数表示动作，用三个宏来表示：<br />
+
+EPOLL_CTL_ADD：注册新的fd到epfd中；<br />
+EPOLL_CTL_MOD：修改已经注册的fd的监听事件；<br />
+EPOLL_CTL_DEL：从epfd中删除一个fd；<br />
+第三个参数是需要监听的fd，第四个参数是告诉内核需要监听什么事，struct epoll_event结构如下：<br />
+<br />
+typedef union epoll_data {<br />
+&nbsp;<wbr>&nbsp;<wbr> &nbsp;<wbr>void
+*ptr;<br />
+&nbsp;<wbr>&nbsp;<wbr> &nbsp;<wbr>int
+fd;<br />
+&nbsp;<wbr>&nbsp;<wbr> &nbsp;<wbr>__uint32_t
+u32;<br />
+&nbsp;<wbr>&nbsp;<wbr> &nbsp;<wbr>__uint64_t
+u64;<br />
+} epoll_data_t;<br />
+<br />
+struct epoll_event {<br />
+&nbsp;<wbr>&nbsp;<wbr> &nbsp;<wbr>__uint32_t
+events;<br />
+&nbsp;<wbr>&nbsp;<wbr> &nbsp;<wbr>epoll_data_t
+data;<br />
+};<br />
+<br />
+events可以是以下几个宏的集合：<br />
+EPOLLIN ：表示对应的文件描述符可以读（包括对端SOCKET正常关闭）；<br />
+EPOLLOUT：表示对应的文件描述符可以写；<br />
+EPOLLPRI：表示对应的文件描述符有紧急的数据可读（这里应该表示有带外数据到来）；<br />
+EPOLLERR：表示对应的文件描述符发生错误；<br />
+EPOLLHUP：表示对应的文件描述符被挂断；<br />
+EPOLLET： 将EPOLL设为边缘触发(Edge Triggered)模式，这是相对于水平触发(Level
+Triggered)来说的。<br />
+EPOLLONESHOT：只监听一次事件，当监听完这次事件之后，如果还需要继续监听这个socket的话，需要再次把这个socket加入到EPOLL队列里<br />
+
+<br />
+<br />
+3. int epoll_wait(int epfd, struct epoll_event * events, int
+maxevents, int timeout);<br />
+等待事件的产生，类似于select()调用。参数events用来从内核得到事件的集合，maxevents告之内核这个events有多大，这个
+maxevents的值不能大于创建epoll_create()时的size，参数timeout是超时时间（毫秒，0会立即返回，-1将不确定，也有说法说是永久阻塞）。该函数返回需要处理的事件数目，如返回0表示已超时。<br />
+
+<br />
+<br />
+4、关于ET、LT两种工作模式：<br />
+可以得出这样的结论:<br />
+ET模式仅当状态发生变化的时候才获得通知,这里所谓的状态的变化并不包括缓冲区中还有未处理的数据,也就是说,如果要采用ET模式,需要一直read/write直到出错为止,很多人反映为什么采用ET模式只接收了一部分数据就再也得不到通知了,大多因为这样;而LT模式是只要有数据没有处理就会一直通知下去的.<br />
+
+<br />
+<br />
+那么究竟如何来使用epoll呢？其实非常简单。<br />
+通过在包含一个头文件#include 以及几个简单的API将可以大大的提高你的网络服务器的支持人数。<br />
+<br />
+首先通过create_epoll(int
+maxfds)来创建一个epoll的句柄，其中maxfds为你epoll所支持的最大句柄数。这个函数会返回一个新的epoll句柄，之后的所有操作将通过这个句柄来进行操作。在用完之后，记得用close()来关闭这个创建出来的epoll句柄。<br />
+
+<br />
+之后在你的网络主循环里面，每一帧的调用epoll_wait(int epfd, epoll_event events, int max
+events, int timeout)来查询所有的网络接口，看哪一个可以读，哪一个可以写了。基本的语法为：<br />
+nfds = epoll_wait(kdpfd, events, maxevents, -1);<br />
+其中kdpfd为用epoll_create创建之后的句柄，events是一个epoll_event*的指针，当epoll_wait这个函数操作成功之后，epoll_events里面将储存所有的读写事件。max_events是当前需要监听的所有socket句柄数。最后一个timeout是
+epoll_wait的超时，为0的时候表示马上返回，为-1的时候表示一直等下去，直到有事件范围，为任意正整数的时候表示等这么长的时间，如果一直没有事件，则范围。一般如果网络主循环是单独的线程的话，可以用-1来等，这样可以保证一些效率，如果是和主逻辑在同一个线程的话，则可以用0来保证主循环的效率。<br />
+
+<br />
+epoll_wait范围之后应该是一个循环，遍利所有的事件。<br />
+<br />
+几乎所有的epoll程序都使用下面的框架：<br />
+<br />
+&nbsp;<wbr>&nbsp;<wbr> &nbsp;<wbr>for( ; ;
+)<br />
+&nbsp;<wbr>&nbsp;<wbr> &nbsp;<wbr>{<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>nfds = epoll_wait(epfd,events,20,500);<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>for(i=0;i<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>{<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>if(events[i].data.fd==listenfd) //有新的连接<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>{<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>connfd = accept(listenfd,(sockaddr
+*)&amp;clientaddr, &amp;clilen); //accept这个连接<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>ev.data.fd=connfd;<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>ev.events=EPOLLIN|EPOLLET;<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>epoll_ctl(epfd,EPOLL_CTL_ADD,connfd,&amp;ev);
+//将新的fd添加到epoll的监听队列中<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>}<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>else if( events[i].events&amp;EPOLLIN )
+//接收到数据，读socket<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>{<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>n = read(sockfd, line, MAXLINE)) &lt;
+0&nbsp;<wbr>&nbsp;<wbr> &nbsp;<wbr>//读<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>ev.data.ptr = md;
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>//md为自定义类型，添加数据<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>ev.events=EPOLLOUT|EPOLLET;<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>epoll_ctl(epfd,EPOLL_CTL_MOD,sockfd,&amp;ev);//修改标识符，等待下一个循环时发送数据，异步处理的精髓<br />
+
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>}<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>else if(events[i].events&amp;EPOLLOUT)
+//有数据待发送，写socket<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>{<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>struct myepoll_data* md =
+(myepoll_data*)events[i].data.ptr;&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>//取数据<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>sockfd = md-&gt;fd;<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>send( sockfd, md-&gt;ptr,
+strlen((char*)md-&gt;ptr), 0 );&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>//发送数据<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>ev.data.fd=sockfd;<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>ev.events=EPOLLIN|EPOLLET;<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>epoll_ctl(epfd,EPOLL_CTL_MOD,sockfd,&amp;ev);
+//修改标识符，等待下一个循环时接收数据<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>}<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>else<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>{<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>//其他的处理<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>}<br />
+&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>
+&nbsp;<wbr>}<br />
+&nbsp;<wbr>&nbsp;<wbr> &nbsp;<wbr>}<br />
+<br />
+<br />
+<br />
+下面给出一个完整的服务器端例子：<br />
+<br />
+<br />
+<table STYLE="WiDTH: 95%; BorDer-CoLLApse: collapse" BORDER="1" CELLSPACING="0" BORDERCOLOR="#999999" CELLPADDING="0" BGCOLOR="#F1F1F1">
+<tbody>
+<tr>
+<td>
+<p STYLE="Line-HeiGHT: 150%; MArGin: 5px"><code><span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">include</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #ff0000">iostream</SPAN><span STYLE="CoLor: #0000cc">&gt;</SPAN><br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">include</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;sys<span STYLE="CoLor: #0000cc">/</SPAN><span STYLE="CoLor: #ff0000">socket</SPAN><span STYLE="CoLor: #0000cc">.</SPAN>h<span STYLE="CoLor: #0000cc">&gt;</SPAN><br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">include</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;sys<span STYLE="CoLor: #0000cc">/</SPAN>epoll<span STYLE="CoLor: #0000cc">.</SPAN>h<span STYLE="CoLor: #0000cc">&gt;</SPAN><br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">include</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;netinet<span STYLE="CoLor: #0000cc">/</SPAN>in<span STYLE="CoLor: #0000cc">.</SPAN>h<span STYLE="CoLor: #0000cc">&gt;</SPAN><br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">include</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;arpa<span STYLE="CoLor: #0000cc">/</SPAN>inet<span STYLE="CoLor: #0000cc">.</SPAN>h<span STYLE="CoLor: #0000cc">&gt;</SPAN><br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">include</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;fcntl<span STYLE="CoLor: #0000cc">.</SPAN>h<span STYLE="CoLor: #0000cc">&gt;</SPAN><br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">include</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;unistd<span STYLE="CoLor: #0000cc">.</SPAN>h<span STYLE="CoLor: #0000cc">&gt;</SPAN><br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">include</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;stdio<span STYLE="CoLor: #0000cc">.</SPAN>h<span STYLE="CoLor: #0000cc">&gt;</SPAN><br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">include</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #ff0000">errno</SPAN><span STYLE="CoLor: #0000cc">.</SPAN>h<span STYLE="CoLor: #0000cc">&gt;</SPAN><br />
+<br />
+<span STYLE="CoLor: #0000ff">using</SPAN> <span STYLE="CoLor: #0000ff">namespace</SPAN> <span STYLE="CoLor: #ff0000">std</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+<br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">define</SPAN> MAXLINE 5<br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">define</SPAN> OPEN_MAX 100<br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">define</SPAN> LISTENQ 20<br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">define</SPAN> SERV_PORT 5000<br />
+<span STYLE="CoLor: #0000cc">#</SPAN><span STYLE="CoLor: #ff0000">define</SPAN> INFTIM 1000<br />
+<br />
+<span STYLE="CoLor: #0000ff">void</SPAN> setnonblocking<span STYLE="CoLor: #0000cc">(</SPAN><span STYLE="CoLor: #0000ff">int</SPAN>
+sock<span STYLE="CoLor: #0000cc">)</SPAN><br />
+<span STYLE="CoLor: #0000cc">{</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">int</SPAN>
+opts<span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>opts<span STYLE="CoLor: #0000cc">=</SPAN>fcntl<span STYLE="CoLor: #0000cc">(</SPAN>sock<span STYLE="CoLor: #0000cc">,</SPAN>F_GETFL<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">if</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>opts<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;0<span STYLE="CoLor: #0000cc">)</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">{</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">perror</SPAN><span STYLE="CoLor: #0000cc">(</SPAN><span STYLE="CoLor: #ff00ff">"fcntl(sock,GETFL)"</SPAN><span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">exit</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>1<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>opts
+<span STYLE="CoLor: #0000cc">=</SPAN> opts<span STYLE="CoLor: #0000cc">|</SPAN>O_NONBLOCK<span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">if</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>fcntl<span STYLE="CoLor: #0000cc">(</SPAN>sock<span STYLE="CoLor: #0000cc">,</SPAN>F_SETFL<span STYLE="CoLor: #0000cc">,</SPAN>opts<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;0<span STYLE="CoLor: #0000cc">)</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">{</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">perror</SPAN><span STYLE="CoLor: #0000cc">(</SPAN><span STYLE="CoLor: #ff00ff">"fcntl(sock,SETFL,opts)"</SPAN><span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">exit</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>1<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN><br />
+
+<span STYLE="CoLor: #0000cc">}</SPAN><br />
+<br />
+<span STYLE="CoLor: #0000ff">int</SPAN> main<span STYLE="CoLor: #0000cc">(</SPAN><span STYLE="CoLor: #0000ff">int</SPAN>
+argc<span STYLE="CoLor: #0000cc">,</SPAN> <span STYLE="CoLor: #0000ff">char</SPAN><span STYLE="CoLor: #0000cc">*</SPAN>
+argv<span STYLE="CoLor: #0000cc">[</SPAN><span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">)</SPAN><br />
+<span STYLE="CoLor: #0000cc">{</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">int</SPAN>
+i<span STYLE="CoLor: #0000cc">,</SPAN> maxi<span STYLE="CoLor: #0000cc">,</SPAN> listenfd<span STYLE="CoLor: #0000cc">,</SPAN> connfd<span STYLE="CoLor: #0000cc">,</SPAN> sockfd<span STYLE="CoLor: #0000cc">,</SPAN>epfd<span STYLE="CoLor: #0000cc">,</SPAN>nfds<span STYLE="CoLor: #0000cc">,</SPAN>
+portnumber<span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>ssize_t
+n<span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">char</SPAN>
+<span STYLE="CoLor: #ff0000">line</SPAN><span STYLE="CoLor: #0000cc">[</SPAN>MAXLINE<span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">socklen_t</SPAN>
+clilen<span STYLE="CoLor: #0000cc">;</SPAN><br />
+<br />
+<br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">if</SPAN>
+<span STYLE="CoLor: #0000cc">(</SPAN> 2 <span STYLE="CoLor: #0000cc">=</SPAN><span STYLE="CoLor: #0000cc">=</SPAN> argc
+<span STYLE="CoLor: #0000cc">)</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">{</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">if</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>
+<span STYLE="CoLor: #0000cc">(</SPAN>portnumber <span STYLE="CoLor: #0000cc">=</SPAN> <span STYLE="CoLor: #ff0000">atoi</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>argv<span STYLE="CoLor: #0000cc">[</SPAN>1<span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">)</SPAN>
+<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt; 0 <span STYLE="CoLor: #0000cc">)</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">{</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">fprintf</SPAN><span STYLE="CoLor: #0000cc">(</SPAN><span STYLE="CoLor: #ff0000">stderr</SPAN><span STYLE="CoLor: #0000cc">,</SPAN><span STYLE="CoLor: #ff00ff">"Usage:%s
+portnumber/a/n"</SPAN><span STYLE="CoLor: #0000cc">,</SPAN>argv<span STYLE="CoLor: #0000cc">[</SPAN>0<span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">return</SPAN>
+1<span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">else</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">{</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">fprintf</SPAN><span STYLE="CoLor: #0000cc">(</SPAN><span STYLE="CoLor: #ff0000">stderr</SPAN><span STYLE="CoLor: #0000cc">,</SPAN><span STYLE="CoLor: #ff00ff">"Usage:%s
+portnumber/a/n"</SPAN><span STYLE="CoLor: #0000cc">,</SPAN>argv<span STYLE="CoLor: #0000cc">[</SPAN>0<span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">return</SPAN>
+1<span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN><br />
+
+<br />
+<br />
+<br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//声明epoll_event结构体的变量,ev用于注册事件,数组用于回传要处理的事件<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">struct</SPAN>
+epoll_event ev<span STYLE="CoLor: #0000cc">,</SPAN>events<span STYLE="CoLor: #0000cc">[</SPAN>20<span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//生成用于处理accept的epoll专用的文件描述符<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>epfd<span STYLE="CoLor: #0000cc">=</SPAN>epoll_create<span STYLE="CoLor: #0000cc">(</SPAN>256<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">struct</SPAN>
+<span STYLE="CoLor: #ff0000">sockaddr_in</SPAN>
+clientaddr<span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">struct</SPAN>
+<span STYLE="CoLor: #ff0000">sockaddr_in</SPAN>
+serveraddr<span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>listenfd
+<span STYLE="CoLor: #0000cc">=</SPAN> <span STYLE="CoLor: #ff0000">socket</SPAN><span STYLE="CoLor: #0000cc">(</SPAN><span STYLE="CoLor: #ff0000">AF_INET</SPAN><span STYLE="CoLor: #0000cc">,</SPAN> <span STYLE="CoLor: #ff0000">SOCK_STREAM</SPAN><span STYLE="CoLor: #0000cc">,</SPAN> 0<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//把socket设置为非阻塞方式<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//setnonblocking(listenfd);<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//设置与要处理的事件相关的文件描述符<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>ev<span STYLE="CoLor: #0000cc">.</SPAN>data<span STYLE="CoLor: #0000cc">.</SPAN>fd<span STYLE="CoLor: #0000cc">=</SPAN>listenfd<span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//设置要处理的事件类型<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>ev<span STYLE="CoLor: #0000cc">.</SPAN>events<span STYLE="CoLor: #0000cc">=</SPAN>EPOLLIN<span STYLE="CoLor: #0000cc">|</SPAN>EPOLLET<span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//ev.events=EPOLLIN;<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//注册epoll事件<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>epoll_ctl<span STYLE="CoLor: #0000cc">(</SPAN>epfd<span STYLE="CoLor: #0000cc">,</SPAN>EPOLL_CTL_ADD<span STYLE="CoLor: #0000cc">,</SPAN>listenfd<span STYLE="CoLor: #0000cc">,</SPAN><span STYLE="CoLor: #0000cc">&amp;</SPAN>ev<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>bzero<span STYLE="CoLor: #0000cc">(</SPAN><span STYLE="CoLor: #0000cc">&amp;</SPAN>serveraddr<span STYLE="CoLor: #0000cc">,</SPAN>
+<span STYLE="CoLor: #0000ff">sizeof</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>serveraddr<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>serveraddr<span STYLE="CoLor: #0000cc">.</SPAN>sin_family
+<span STYLE="CoLor: #0000cc">=</SPAN> <span STYLE="CoLor: #ff0000">AF_INET</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">char</SPAN>
+<span STYLE="CoLor: #0000cc">*</SPAN>local_addr<span STYLE="CoLor: #0000cc">=</SPAN><span STYLE="CoLor: #ff00ff">"127.0.0.1"</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>inet_aton<span STYLE="CoLor: #0000cc">(</SPAN>local_addr<span STYLE="CoLor: #0000cc">,</SPAN><span STYLE="CoLor: #0000cc">&amp;</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>serveraddr<span STYLE="CoLor: #0000cc">.</SPAN>sin_addr<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><span STYLE="CoLor: #ff9900">//htons(portnumber);<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>serveraddr<span STYLE="CoLor: #0000cc">.</SPAN>sin_port<span STYLE="CoLor: #0000cc">=</SPAN><span STYLE="CoLor: #ff0000">htons</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>portnumber<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">bind</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>listenfd<span STYLE="CoLor: #0000cc">,</SPAN><span STYLE="CoLor: #0000cc">(</SPAN><span STYLE="CoLor: #ff0000">sockaddr</SPAN>
+<span STYLE="CoLor: #0000cc">*</SPAN><span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">&amp;</SPAN>serveraddr<span STYLE="CoLor: #0000cc">,</SPAN> <span STYLE="CoLor: #0000ff">sizeof</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>serveraddr<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">listen</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>listenfd<span STYLE="CoLor: #0000cc">,</SPAN>
+LISTENQ<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>maxi
+<span STYLE="CoLor: #0000cc">=</SPAN> 0<span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">for</SPAN>
+<span STYLE="CoLor: #0000cc">(</SPAN> <span STYLE="CoLor: #0000cc">;</SPAN> <span STYLE="CoLor: #0000cc">;</SPAN>
+<span STYLE="CoLor: #0000cc">)</SPAN> <span STYLE="CoLor: #0000cc">{</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//等待epoll事件的发生<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>nfds<span STYLE="CoLor: #0000cc">=</SPAN>epoll_wait<span STYLE="CoLor: #0000cc">(</SPAN>epfd<span STYLE="CoLor: #0000cc">,</SPAN>events<span STYLE="CoLor: #0000cc">,</SPAN>20<span STYLE="CoLor: #0000cc">,</SPAN>500<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//处理所发生的所有事件<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">for</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>i<span STYLE="CoLor: #0000cc">=</SPAN>0<span STYLE="CoLor: #0000cc">;</SPAN>i<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;nfds<span STYLE="CoLor: #0000cc">;</SPAN><span STYLE="CoLor: #0000cc">+</SPAN><span STYLE="CoLor: #0000cc">+</SPAN>i<span STYLE="CoLor: #0000cc">)</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">{</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">if</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>events<span STYLE="CoLor: #0000cc">[</SPAN>i<span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">.</SPAN>data<span STYLE="CoLor: #0000cc">.</SPAN>fd<span STYLE="CoLor: #0000cc">=</SPAN><span STYLE="CoLor: #0000cc">=</SPAN>listenfd<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #ff9900">//如果新监测到一个SOCKET用户连接到了绑定的SOCKET端口，建立新的连接。<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">{</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>connfd
+<span STYLE="CoLor: #0000cc">=</SPAN> <span STYLE="CoLor: #ff0000">accept</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>listenfd<span STYLE="CoLor: #0000cc">,</SPAN><span STYLE="CoLor: #0000cc">(</SPAN><span STYLE="CoLor: #ff0000">sockaddr</SPAN> <span STYLE="CoLor: #0000cc">*</SPAN><span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">&amp;</SPAN>clientaddr<span STYLE="CoLor: #0000cc">,</SPAN> <span STYLE="CoLor: #0000cc">&amp;</SPAN>clilen<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">if</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>connfd<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;0<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">{</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">perror</SPAN><span STYLE="CoLor: #0000cc">(</SPAN><span STYLE="CoLor: #ff00ff">"connfd&lt;0"</SPAN><span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">exit</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>1<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//setnonblocking(connfd);<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">char</SPAN>
+<span STYLE="CoLor: #0000cc">*</SPAN>str <span STYLE="CoLor: #0000cc">=</SPAN> inet_ntoa<span STYLE="CoLor: #0000cc">(</SPAN>clientaddr<span STYLE="CoLor: #0000cc">.</SPAN>sin_addr<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">cout</SPAN>
+<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt; <span STYLE="CoLor: #ff00ff">"accapt a connection from "</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt; str <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt; <span STYLE="CoLor: #ff0000">endl</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//设置用于读操作的文件描述符<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>ev<span STYLE="CoLor: #0000cc">.</SPAN>data<span STYLE="CoLor: #0000cc">.</SPAN>fd<span STYLE="CoLor: #0000cc">=</SPAN>connfd<span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//设置用于注测的读操作事件<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>ev<span STYLE="CoLor: #0000cc">.</SPAN>events<span STYLE="CoLor: #0000cc">=</SPAN>EPOLLIN<span STYLE="CoLor: #0000cc">|</SPAN>EPOLLET<span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//ev.events=EPOLLIN;<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//注册ev<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>epoll_ctl<span STYLE="CoLor: #0000cc">(</SPAN>epfd<span STYLE="CoLor: #0000cc">,</SPAN>EPOLL_CTL_ADD<span STYLE="CoLor: #0000cc">,</SPAN>connfd<span STYLE="CoLor: #0000cc">,</SPAN><span STYLE="CoLor: #0000cc">&amp;</SPAN>ev<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">else</SPAN>
+<span STYLE="CoLor: #0000ff">if</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>events<span STYLE="CoLor: #0000cc">[</SPAN>i<span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">.</SPAN>events<span STYLE="CoLor: #0000cc">&amp;</SPAN>EPOLLIN<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #ff9900">//如果是已经连接的用户，并且收到数据，那么进行读入。<br /></SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">{</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">cout</SPAN>
+<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt; <span STYLE="CoLor: #ff00ff">"EPOLLIN"</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt; <span STYLE="CoLor: #ff0000">endl</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">if</SPAN>
+<span STYLE="CoLor: #0000cc">(</SPAN> <span STYLE="CoLor: #0000cc">(</SPAN>sockfd <span STYLE="CoLor: #0000cc">=</SPAN> events<span STYLE="CoLor: #0000cc">[</SPAN>i<span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">.</SPAN>data<span STYLE="CoLor: #0000cc">.</SPAN>fd<span STYLE="CoLor: #0000cc">)</SPAN>
+<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt; 0<span STYLE="CoLor: #0000cc">)</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">continue</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">if</SPAN>
+<span STYLE="CoLor: #0000cc">(</SPAN> <span STYLE="CoLor: #0000cc">(</SPAN>n <span STYLE="CoLor: #0000cc">=</SPAN>
+<span STYLE="CoLor: #ff0000">read</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>sockfd<span STYLE="CoLor: #0000cc">,</SPAN> <span STYLE="CoLor: #ff0000">line</SPAN><span STYLE="CoLor: #0000cc">,</SPAN>
+MAXLINE<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">)</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt; 0<span STYLE="CoLor: #0000cc">)</SPAN> <span STYLE="CoLor: #0000cc">{</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">if</SPAN>
+<span STYLE="CoLor: #0000cc">(</SPAN><span STYLE="CoLor: #ff0000">errno</SPAN> <span STYLE="CoLor: #0000cc">=</SPAN><span STYLE="CoLor: #0000cc">=</SPAN>
+ECONNRESET<span STYLE="CoLor: #0000cc">)</SPAN> <span STYLE="CoLor: #0000cc">{</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">close</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>sockfd<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>events<span STYLE="CoLor: #0000cc">[</SPAN>i<span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">.</SPAN>data<span STYLE="CoLor: #0000cc">.</SPAN>fd
+<span STYLE="CoLor: #0000cc">=</SPAN> <span STYLE="CoLor: #0000cc">-</SPAN>1<span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN>
+<span STYLE="CoLor: #0000ff">else</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">std</SPAN><span STYLE="CoLor: #0000cc">:</SPAN><span STYLE="CoLor: #0000cc">:</SPAN><span STYLE="CoLor: #ff0000">cout</SPAN><span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #ff00ff">"readline
+error"</SPAN><span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #ff0000">std</SPAN><span STYLE="CoLor: #0000cc">:</SPAN><span STYLE="CoLor: #0000cc">:</SPAN><span STYLE="CoLor: #ff0000">endl</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN>
+<span STYLE="CoLor: #0000ff">else</SPAN> <span STYLE="CoLor: #0000ff">if</SPAN> <span STYLE="CoLor: #0000cc">(</SPAN>n
+<span STYLE="CoLor: #0000cc">=</SPAN><span STYLE="CoLor: #0000cc">=</SPAN> 0<span STYLE="CoLor: #0000cc">)</SPAN>
+<span STYLE="CoLor: #0000cc">{</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">close</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>sockfd<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>events<span STYLE="CoLor: #0000cc">[</SPAN>i<span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">.</SPAN>data<span STYLE="CoLor: #0000cc">.</SPAN>fd
+<span STYLE="CoLor: #0000cc">=</SPAN> <span STYLE="CoLor: #0000cc">-</SPAN>1<span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">line</SPAN><span STYLE="CoLor: #0000cc">[</SPAN>n<span STYLE="CoLor: #0000cc">]</SPAN>
+<span STYLE="CoLor: #0000cc">=</SPAN> <span STYLE="CoLor: #ff00ff">'/0'</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">cout</SPAN>
+<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt; <span STYLE="CoLor: #ff00ff">"read "</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt; <span STYLE="CoLor: #ff0000">line</SPAN> <span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt;<span STYLE="CoLor: #0000cc">&lt;&lt;/span&gt; <span STYLE="CoLor: #ff0000">endl</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//设置用于写操作的文件描述符<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>ev<span STYLE="CoLor: #0000cc">.</SPAN>data<span STYLE="CoLor: #0000cc">.</SPAN>fd<span STYLE="CoLor: #0000cc">=</SPAN>sockfd<span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//设置用于注测的写操作事件<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>ev<span STYLE="CoLor: #0000cc">.</SPAN>events<span STYLE="CoLor: #0000cc">=</SPAN>EPOLLOUT<span STYLE="CoLor: #0000cc">|</SPAN>EPOLLET<span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//修改sockfd上要处理的事件为EPOLLOUT<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//epoll_ctl(epfd,EPOLL_CTL_MOD,sockfd,&amp;ev);<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">else</SPAN>
+<span STYLE="CoLor: #0000ff">if</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>events<span STYLE="CoLor: #0000cc">[</SPAN>i<span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">.</SPAN>events<span STYLE="CoLor: #0000cc">&amp;</SPAN>EPOLLOUT<span STYLE="CoLor: #0000cc">)</SPAN> <span STYLE="CoLor: #ff9900">//
+如果有数据发送<br /></SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">{</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>sockfd
+<span STYLE="CoLor: #0000cc">=</SPAN> events<span STYLE="CoLor: #0000cc">[</SPAN>i<span STYLE="CoLor: #0000cc">]</SPAN><span STYLE="CoLor: #0000cc">.</SPAN>data<span STYLE="CoLor: #0000cc">.</SPAN>fd<span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff0000">write</SPAN><span STYLE="CoLor: #0000cc">(</SPAN>sockfd<span STYLE="CoLor: #0000cc">,</SPAN>
+<span STYLE="CoLor: #ff0000">line</SPAN><span STYLE="CoLor: #0000cc">,</SPAN> n<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//设置用于读操作的文件描述符<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>ev<span STYLE="CoLor: #0000cc">.</SPAN>data<span STYLE="CoLor: #0000cc">.</SPAN>fd<span STYLE="CoLor: #0000cc">=</SPAN>sockfd<span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//设置用于注测的读操作事件<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>ev<span STYLE="CoLor: #0000cc">.</SPAN>events<span STYLE="CoLor: #0000cc">=</SPAN>EPOLLIN<span STYLE="CoLor: #0000cc">|</SPAN>EPOLLET<span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #ff9900">//修改sockfd上要处理的事件为EPOLIN<br />
+</SPAN><br />
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>epoll_ctl<span STYLE="CoLor: #0000cc">(</SPAN>epfd<span STYLE="CoLor: #0000cc">,</SPAN>EPOLL_CTL_MOD<span STYLE="CoLor: #0000cc">,</SPAN>sockfd<span STYLE="CoLor: #0000cc">,</SPAN><span STYLE="CoLor: #0000cc">&amp;</SPAN>ev<span STYLE="CoLor: #0000cc">)</SPAN><span STYLE="CoLor: #0000cc">;</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000cc">}</SPAN><br />
+
+&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr>&nbsp;<wbr><span STYLE="CoLor: #0000ff">return</SPAN>
+0<span STYLE="CoLor: #0000cc">;</SPAN><br />
+<span STYLE="CoLor: #0000cc">}</SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></SPAN></CODE></P>
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<br />
+客户端直接连接到这个服务器就好了。。<br />							
+		</div>
+						<!-- 正文结束 -->
+		<div class="shareUp">
+        	<div class="share SG_txtb">
+			分享： 
+			<a href="javascript:;" id="shareqing" class="bshare-qing"><img class="SG_icon SG_icon205"  src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" width="18" height="18" title="分享到新浪Qing" align="absmiddle" />分享到新浪Qing</a>
+				<div class="bshare-custom" style="display:inline;margin-left:5px;"><a title="分享到新浪微博" class="bshare-sinaminiblog" href="javascript:void(0);"></a><a title="分享到MSN" class="bshare-msn" href="javascript:void(0);"></a><a title="分享到开心网" class="bshare-kaixin001" href="javascript:void(0);"></a><a title="分享到人人网" class="bshare-renren" href="javascript:void(0);"></a><a title="分享到QQ空间" class="bshare-qzone" href="javascript:void(0);"></a><a title="分享到豆瓣" class="bshare-douban" href="javascript:void(0);"></a><a title="更多平台" class="bshare-more bshare-more-icon more-style-addthis"></a>
+			</div>
+			</div>
+            <div class="up">
+	        	<div title="喜欢后让更多人看到" id="dbox_9a4d43d801018d6v" class="upBox" style="cursor: pointer;">
+	            	<p ti_title="epoll使用详解" id="dbox2_9a4d43d801018d6v" class="count" ></p>
+	                <p class="link"><img width="15" height="15" align="absmiddle" src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" class="SG_icon SG_icon34">喜欢</p>
+	            </div>
+	        </div>
+            <div class="clearit"></div>
+		</div>
+		<div class="articalInfo">
+			<!-- 分享到微博 {$t_blog} -->
+			<div class="IL">
+				阅读<span id="r_9a4d43d801018d6v" class="SG_txtb"></span><em class="SG_txtb">┊</em> 
+				<a href="#commonComment">评论</a> <span id="c_9a4d43d801018d6v" class="SG_txtb"></span><em class="SG_txtb">┊</em>				<a href="javascript:;" onclick="$articleManage('9a4d43d801018d6v',5);return false;">收藏</a><span id="f_9a4d43d801018d6v"  class="SG_txtb"></span>
+				<em class="SG_txtb">┊</em><a href="#" id="quote_set_sign" onclick="return false ;">转载</a><a  href="#" id="z_9a4d43d801018d6v" onclick="return false ;" class="zznum"></a>				<span id="fn_epoll使用详解" class="SG_txtb"></span><em class="SG_txtb">┊</em>
+				<a onclick="return false;" href="javascript:;" ><cite id="d1_digg_9a4d43d801018d6v">喜欢</cite></a><a id="d1_digg_down_9a4d43d801018d6v" href="javascript:;" ><b>▼</b></a>
+									<em class="SG_txtb">┊</em><a href="http://blog.sina.com.cn/main_v5/ria/print.html?blog_id=blog_9a4d43d801018d6v" target="_blank">打印</a><em class="SG_txtb">┊</em><a id="q_9a4d43d801018d6v" onclick="report('9a4d43d801018d6v');return false;" href="#">举报</a>
+											</div>
+			<div class="IR">
+				<table>
+					<tr>
+											<th class="SG_txtb" scope="row">已投稿到：</th>
+						<td>
+							<div class="IR_list">
+								<span><img class="SG_icon SG_icon36" src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" width="15" height="15" title="排行榜" align="absmiddle" /> <a href="http://blog.sina.com.cn/lm/114/113/day.html" class="SG_linkb" target="_blank">排行榜</a></span><span><img class="SG_icon SG_icon13" src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" width="15" height="15" title="圈子" align="absmiddle" /> <a href="http://q.sina.com.cn/blog_groups.php?fid=9a4d43d801018d6v" class="SG_linkb" target="_blank">圈子</a></span>							</div>
+						</td>
+										</tr>
+									</table>
+			</div>
+		</div>
+		<div class="clearit"></div>
+		<div class="blogzz_zzlist borderc" id="blog_quote" style="display:none">加载中，请稍候......</div>
+		<div class="articalfrontback SG_j_linedot1 clearfix" id="new_nextprev_9a4d43d801018d6v">
+							<div><span class="SG_txtb">前一篇：</span><a href="http://blog.sina.com.cn/s/blog_9a4d43d801018bkr.html">struct&nbsp;stat</a></div>
+										<div><span class="SG_txtb">后一篇：</span><a href="http://blog.sina.com.cn/s/blog_9a4d43d801018d6x.html">我的博客今天1岁45天了，我领取了新锐博主徽章</a></div>
+					</div>
+		<div class="clearit"></div>
+							
+		<div id="loginFollow"></div>
+				<div class="allComm">
+			<div  class="allCommTit" >
+				<div class="SG_floatL">
+				    <strong>评论</strong>
+				    <span id="commAd_1" style="display:none;">
+				        <a href="http://blog.sina.com.cn/lm/8/2009/0325/105340.html"  target="_blank">重要提示：警惕虚假中奖信息</a>
+				    				        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="http://blog.sina.com.cn/s/blog_4bb440080102ef01.html?tj=1" target="_blank">岛国宛如仙境樱花城</a>
+				       
+				        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="http://sina.allyes.com/main/adfclick?db=sina&bid=118883,251213,256255&cid=0,0,0&sid=247096&advid=358&camid=19809&show=ignore&url=http://weibo.com/blogkefu" onclick="scope.attMiniBlog && scope.attMiniBlog();" target="_blank">关注每日最热门博客</a><a name="comment">&nbsp;</a>
+				    </span>
+				</div>
+				<div class="SG_floatR"><a class="CP_a_fuc" href="#post">[<cite>发评论</cite>]</a></div>
+			</div>
+			<ul id="article_comment_list" class="SG_cmp_revert"><!-- 循环始 --><li>评论加载中，请稍候...</li><!-- 循环终  --></ul>
+			<div class="clearit"></div>
+			<div class="myCommPages SG_j_linedot1">
+				<div class="SG_page" id="commentPaging" style="display:none;">
+					<ul class="SG_pages">
+					</ul>
+				</div>
+				<div class="clearit"></div>
+			</div>
+			<a name="post"></a>
+			<div class="writeComm">
+				<div class="allCommTit">
+					<div class="SG_floatL">
+					    <strong>发评论</strong>
+					    <span id="commAd_2" style="display:none;">
+					    					    					        <a href="http://blog.sina.com.cn/s/blog_4a8a80490102e7zm.html?tj=1" target="_blank">最适合调情西班牙海湾</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+					    					        <a href="http://sina.allyes.com/main/adfclick?db=sina&bid=118883,251212,256254&cid=0,0,0&sid=247095&advid=358&camid=19809&show=ignore&url=http://weibo.com/blogkefu" onclick="scope.attMiniBlog && scope.attMiniBlog();" target="_blank">关注每日最热门博客</a>
+					    </span>
+					    <span></span>
+					</div>
+					<div class="SG_floatR"></div>
+				</div>
+				<div class="wrCommTit">
+					<div class="SG_floatL" id="commentNick" style="display:none;"></div>
+				</div>
+				<div class="formTextarea">
+					<div style="float:left;" id="commonComment">
+					<iframe id="postCommentIframe"  frameborder="0" style="border:1px solid #C7C7C7;
+		height:158px;width:448px;maring-top:1px;background-color:white;" src="http://blog.sina.com.cn/main_v5/ria/blank2.html"></iframe>
+					<textarea id="commentArea" tabindex="1" style="display:none;"></textarea>
+					</div>
+					<div id="mobileComment" style="float:left;display:none;">
+						<textarea id="mbCommentTa" style="width:438px;height:150px;border:1px solid #C7C7C7;line-height:18px;padding:5px;"></textarea>
+					</div>
+					<div class="faceblk" id="faceWrap">
+						<div id="smilesSortShow" class="faceline1">
+						</div>
+						<ul id="smilesRecommended" class="faceline01"></ul>
+					</div>
+					<div class="clearit"></div>
+				</div>
+				<div class="formLogin">
+					<div class="SG_floatL"> 
+					<p id="commentlogin" style="display:none;"><span>登录名：</span><input type="text" style="width: 115px;" id="login_name" tabindex="2"/>   <span>密码：</span><input type="password" style="width: 115px;" id="login_pass" tabindex="3"/>   <a href="http://login.sina.com.cn/getpass.html" target="_blank">找回密码</a>   <a href="http://login.sina.com.cn/signup/signup.php?entry=blog&src=blogicp&srcuid=2588754904" target="_blank">注册</a>	<input type="checkbox" id="login_remember"/><label for="login_remember" style="display:inline-block;" title="建议在网吧/公用电脑上取消该选项">记住登录状态</label></p><p id="commentloginM" style="display:none;"><span>昵&nbsp;&nbsp;&nbsp;称：</span><input type="text" style="width: 115px;" id="comment_anonyous"  value="新浪网友"/ tabindex="2" disabled></p><p id="quote_comment_p"><input type="checkbox" id="bb"> <label for="bb"><img height="18" align="absmiddle" width="18" title="" src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" class="SG_icon SG_icon110">分享到微博 <img height="15" align="absmiddle" width="15" title="新" src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" class="SG_icon SG_icon11"></label>&nbsp;&nbsp;&nbsp;<input type="checkbox" id="cbCommentQuote" /><label for="cbCommentQuote">评论并转载此博文</label><img class="SG_icon SG_icon11" src="http://simg.sinajs.cn/blog7style/images/common/sg_trans.gif" width="15" height="15" title="新" align="absmiddle" /></p><p><span>验证码：</span><input type="text" style="width: 46px;" id="login_check" tabindex="4" onclick="return false;"/>  <a class="SG_linka" id='check_show'>请点击后输入验证码</a><img id="comment_check_img" align="absmiddle"  style="display:none;"/>  <a id="comment_get_vcode" href="#" onclick="return false;">收听验证码</a></p>
+					</div>
+
+					<span style="display: none; color: rgb(153, 153, 153); margin-left: 10px;" id="login_remember_caution"></span>
+
+											<div class="SG_floatR" id="anonymity_cont"><input type="checkbox" id="anonymity"/><label for="anonymity">匿名评论</label></div>
+									</div>
+				<div class="formBtn">
+					<a href="javascript:;" onclick="return false;" class="SG_aBtn" tabindex="5"><cite id="postcommentid">发评论</cite></a>
+					<p class="SG_txtc">以上网友发言只代表其个人观点，不代表新浪网的观点或立场。</p>
+				</div>
+			</div>
+		</div>
+				<div class="clearit"></div>
+		
+				<div class="articalfrontback articalfrontback2 clearfix">
+						  <div class="SG_floatL"><span class="SG_txtb">&lt;&nbsp;前一篇</span><a href="http://blog.sina.com.cn/s/blog_9a4d43d801018bkr.html">struct&nbsp;stat</a></div>
+									  <div class="SG_floatR"><span class="SG_txtb">后一篇&nbsp;&gt;</span><a href="http://blog.sina.com.cn/s/blog_9a4d43d801018d6x.html">我的博客今天1岁45天了，我领取了新锐博主徽章</a></div>
+					</div>
+		<div class="clearit"></div>
+				
+	</div>
+	<!--博文正文 end -->
+		<script type="text/javascript">
+			var voteid="";
+		</script>
+
+            </div>       
+            <div class="SG_connFoot"></div>
+          </div>
+</div>
+	<!--第二列start-->
+	
+	<!--第三列start-->
+	<div id="column_3" class="SG_colWnone"><div style="width:0px;height:0.1px;margin:0px;">&nbsp;&nbsp;</div></div>
+	<!--第三列end-->
+
+	
+    </div>
+   <!--主题内容结束 -->
+  
+
+	<div id="diggerFla" style="position:absolute;left:0px;top:0px;width:0px"></div>
+    <div class="sinablogfooter" id="sinablogfooter"  style="position:relative;">
+      
+      <p class="SG_linka"><a href="http://control.blog.sina.com.cn/admin/advice/advice_list.php" target="_blank">新浪BLOG意见反馈留言板</a>　<a href="javascript:;" onclick="window.open ('http://control.blog.sina.com.cn/admin/advice/impeach.php?url=http%3A//blog.sina.com.cn/s/blog_4cf7b4ec0100eudp.html%3Ftj%3D1', '','height=495, width=510, top=0, left=0, toolbar=no, menubar=no, scrollbars=no, resizable=no,location=n o, status=no');">不良信息反馈</a>　电话：4006900000 提示音后按1键（按当地市话标准计费）　欢迎批评指正</p>
+   
+      <p class="SG_linka"><a href="http://corp.sina.com.cn/chn/" target="_blank">新浪简介</a> | <a href="http://corp.sina.com.cn/eng/" target="_blank">About Sina</a> | <a href="http://emarketing.sina.com.cn/" target="_blank">广告服务</a> | <a href="http://www.sina.com.cn/contactus.html" target="_blank">联系我们</a> | <a href="http://corp.sina.com.cn/chn/sina_job.html" target="_blank">招聘信息</a> | <a href="http://www.sina.com.cn/intro/lawfirm.shtml" target="_blank">网站律师</a> | <a href="http://english.sina.com" target="_blank">SINA English</a> | <a href="http://members.sina.com.cn/apply/" target="_blank">会员注册</a> | <a href="http://help.sina.com.cn/" target="_blank">产品答疑</a> </p>
+      <p class="copyright SG_linka"> Copyright &copy; 1996 - 2013 SINA Corporation,  All Rights Reserved</p>
+      <p class="SG_linka"> 新浪公司 <a href="http://www.sina.com.cn/intro/copyright.shtml" target="_blank">版权所有</a></p>
+	  <a href="http://www.bj.cyberpolice.cn/index.jsp"  target="_blank" class="gab_link"></a>
+    </div>
+  </div>
+</div>
+<div id="swfbox"></div>
+<script id="PVCOUNTER_FORIE" type="text/javascript"></script>
+</body>
+<script type="text/javascript">
+var scope = {
+	$setDomain : true,
+	$uid : "2588754904",
+	$PRODUCT_NAME : "blog7",		//blog7photo,blog7icp
+	$pageid : "article",
+	$key :  "0bc98cb6aabe3489793de44e2a72509a",
+	$uhost : "",
+	$ownerWTtype :"",
+	$private: {"pageset":0,"tj":0,"adver":0,"sms":0,"ad":0,"blogsize":0,"cms":0,"hidecms":0,"top":0,"invitationset":0,"p4p":0,"spamcms":0,"init7":1,"quote":0,"foot":0,"isprivate":0,"headpic":1,"t_sina":"2588754904","oauth_token":1,"oauth_token_secret":1,"uname":"","p_push_t":0,"p_get_t":0,"medal7":2,"articleclass":"113"},
+	$is_photo_vip:0,
+		 $nClass:0,
+		 $articleid:"9a4d43d801018d6v",
+		 $sort_id:113,
+		 $cate_id:"",
+		 $isCommentAllow:0,
+		 $album_pic:"",
+		 $pn_x_rank:0,
+		 $x_quote_c:"",
+		 $flag2008:"",
+		 	component_lists:{"2":{"size":730,"list":[920]},"1":{"size":210,"list":[901,910,903,911,904,47]}},
+	formatInfo:1,
+	UserPic:[{"pid":"","repeat":"repeat-x","align-h":"center","align-v":"top","apply":"0"},{"pid":"","repeat":"repeat-x","align-h":"center","align-v":"top","apply":"0"},{"pid":"","repeat":"repeat-x","align-h":"center","align-v":"top","apply":"0"}],
+	UserBabyPic:{"photoX":0,"photoY":0,"photoURL":null,"angle":0,"zoom":0,"maskX":0,"maskY":0,"maskURL":null,"frameURL":null},
+	UserColor:1,
+	backgroundcolor:"rgb(113, 192, 231)",
+	tpl:"16_10",
+	reclist:0	};
+var	$encrypt_code = "035ba384e1608705031d9c888893a7e5";
+</script>
+
+<script type="text/javascript" src="http://sjs.sinajs.cn/blog7common/js/boot.js"></script>
+<script type="text/javascript">__load_js();</script>
+<script type="text/javascript">__render_page();</script>
+
+
+<script type="text/javascript" charset="utf-8" src="http://static.bshare.cn/b/buttonLite.js#style=-1&amp;uuid=b436f96b-ce3c-469f-93ca-9c0c406fcf10&amp;pophcol=2&amp;lang=zh"></script><script type="text/javascript" charset="utf-8" src="http://static.bshare.cn/b/bshareC0.js"></script>
+<script type="text/javascript" charset="utf-8">
+        bShare.addEntry({pic: "", title:"分享自laoyao512  《epoll使用详解》", summary:"在linux的网络编程中，很长的时间都在使用select来做事件触发。在linux新的内核中，有了一种替换它的机制，就是epoll。 相...  (来自 @头条博客)"});
+     </script>
+    <script type="text/javascript" src="http://sjs.sinajs.cn/xblogtheme/js/blog680-min.js"></script>
+<script type="text/javascript">
+    	var slotArr = ['atcTitLi_SLOT_41', 'atcTitLi_SLOT_42']; //广告位id
+    	var sourceArr = ['SLOT_41','SLOT_42'];  //广告资源id
+    	SinaBlog680.staticBox(slotArr, sourceArr);
+</script>
+</html>

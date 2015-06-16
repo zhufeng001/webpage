@@ -1,0 +1,57 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Chapter 20. Advanced Event and Signal Handling</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="prev" href="sec-IdleFunctions.html" title="19.3. Idle Functions"><link rel="next" href="sec-SignalEmissionAndPropagation.html" title="20.2. Signal Emission and Propagation"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter 20. Advanced Event and Signal Handling</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-IdleFunctions.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="sec-SignalEmissionAndPropagation.html">Next</a></td></tr></table><hr></div><div class="chapter" title="Chapter 20. Advanced Event and Signal Handling"><div class="titlepage"><div><div><h2 class="title"><a name="ch-AdvancedEventAndSignalHandling"></a>Chapter 20. Advanced Event and Signal Handling</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="ch-AdvancedEventAndSignalHandling.html#sec-SignalMethods">20.1. Signal Methods</a></span></dt><dd><dl><dt><span class="sect2"><a href="ch-AdvancedEventAndSignalHandling.html#idp9736336">20.1.1. Connecting and Disconnecting Signal Handlers</a></span></dt><dt><span class="sect2"><a href="ch-AdvancedEventAndSignalHandling.html#idp8501888">20.1.2. Blocking and Unblocking Signal Handlers</a></span></dt><dt><span class="sect2"><a href="ch-AdvancedEventAndSignalHandling.html#idp9964512">20.1.3. Emitting and Stopping Signals</a></span></dt></dl></dd><dt><span class="sect1"><a href="sec-SignalEmissionAndPropagation.html">20.2. Signal Emission and Propagation</a></span></dt></dl></div><div class="sect1" title="20.1. Signal Methods"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-SignalMethods"></a>20.1. Signal Methods</h2></div></div></div><p> The signal methods are <code class="classname">gobject.GObject</code>
+methods that are inherited by the <code class="classname">gtk.Object</code>s
+including all the GTK+ widgets.</p><div class="sect2" title="20.1.1. Connecting and Disconnecting Signal Handlers"><div class="titlepage"><div><div><h3 class="title"><a name="idp9736336"></a>20.1.1. Connecting and Disconnecting Signal Handlers</h3></div></div></div><pre class="programlisting">
+  handler_id = object.connect(<em class="parameter"><code>name</code></em>, <em class="parameter"><code>cb</code></em>, <em class="parameter"><code>cb_args</code></em>)
+  
+  handler_id = object.connect_after(<em class="parameter"><code>name</code></em>, <em class="parameter"><code>cb</code></em>, <em class="parameter"><code>cb_args</code></em>)
+  
+  handler_id = object.connect_object(<em class="parameter"><code>name</code></em>, <em class="parameter"><code>cb</code></em>, <em class="parameter"><code>slot_object</code></em>, <em class="parameter"><code>cb_args</code></em>)
+  
+  handler_id = object.connect_object_after(<em class="parameter"><code>name</code></em>, <em class="parameter"><code>cb</code></em>, <em class="parameter"><code>slot_object</code></em>, <em class="parameter"><code>cb_args</code></em>)
+  
+  object.disconnect(<em class="parameter"><code>handler_id</code></em>)
+</pre><p>The first four methods connect a signal handler
+(<em class="parameter"><code>cb</code></em>) to a <code class="classname">gtk.Object</code>
+(<em class="parameter"><code>object</code></em>) for the given signal name. and return a
+<em class="parameter"><code>handler_id</code></em> that identifies the connection.
+<em class="parameter"><code>cb_args</code></em> is zero or more arguments that will be passed
+last (in order) to <em class="parameter"><code>cb</code></em>. The
+<code class="methodname">connect_after</code>() and
+<code class="methodname">connect_object_after</code>() methods will have their
+signal handlers called after other signal handlers (including the default
+handlers) connected to the same object and signal name. Each object signal
+handler has its own set of arguments that it expects. You have to refer to
+the GTK+ documentation to figure out what arguments need to be handled by a
+signal handler though information for the common widgets is available in
+<a class="xref" href="app-GtkSignals.html" title="Appendix A. GTK Signals">Appendix A, <i>GTK Signals</i></a>. The general signal handler is
+similar to:</p><pre class="programlisting">
+  def signal_handler(<em class="parameter"><code>object</code></em>, ...., <em class="parameter"><code>cb_args</code></em>):
+</pre><p>Signal handlers that are defined as part of a Python object
+class (specified in the <code class="methodname">connect</code>() methods as
+<em class="parameter"><code>self.cb</code></em>) will have an additional argument passed as
+the first argument - the object instance <em class="parameter"><code>self</code></em>:</p><pre class="programlisting">
+  signal_handler(self, <em class="parameter"><code>object</code></em>, ...., <em class="parameter"><code>cb_args</code></em>)
+</pre><p>The <code class="methodname">connect_object</code>() and
+<code class="methodname">connect_object_after</code>() methods call the signal
+handler with the <em class="parameter"><code>slot_object</code></em> substituted in place of
+the <em class="parameter"><code>object</code></em> as the first argument:</p><pre class="programlisting">
+  def signal_handler(<em class="parameter"><code>slot_object</code></em>, ...., <strong class="parameter"><code>func_args</code></strong>):
+
+  def signal_handler(self, <em class="parameter"><code>slot_object</code></em>, ...., <em class="parameter"><code>func_args</code></em>):
+</pre><p>The <code class="methodname">disconnect</code>() method destroys the
+connection between a signal handler and an object signal. The
+<em class="parameter"><code>handler_id</code></em> specifies which connection to
+destroy.</p></div><div class="sect2" title="20.1.2. Blocking and Unblocking Signal Handlers"><div class="titlepage"><div><div><h3 class="title"><a name="idp8501888"></a>20.1.2. Blocking and Unblocking Signal Handlers</h3></div></div></div><p>The following methods:</p><pre class="programlisting">
+  object.handler_block(<em class="parameter"><code>handler_id</code></em>)
+
+  object.handler_unblock(<em class="parameter"><code>handler_id</code></em>)
+</pre><p>block and unblock the signal handler specified by
+<em class="parameter"><code>handler_id</code></em>. When a signal handler is blocked it will
+not be invoked when the signal occurs.</p></div><div class="sect2" title="20.1.3. Emitting and Stopping Signals"><div class="titlepage"><div><div><h3 class="title"><a name="idp9964512"></a>20.1.3. Emitting and Stopping Signals</h3></div></div></div><p>The following methods:</p><pre class="programlisting">
+  object.emit(<em class="parameter"><code>name</code></em>, ...)
+
+  object.emit_stop_by_name(<em class="parameter"><code>name</code></em>)
+</pre><p>emit and stop the signal <em class="parameter"><code>name</code></em>
+respectively. Emitting the signal causes its default and user defined
+handlers to be run. The <code class="methodname">emit_stop_by_name</code>() method
+will abort the current signal name emission.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-IdleFunctions.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="sec-SignalEmissionAndPropagation.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">19.3. Idle Functions </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 20.2. Signal Emission and Propagation</td></tr></table></div></body></html>

@@ -1,0 +1,632 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>14.2. The TreeModel Interface and Data Stores</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-TreeViewWidget.html" title="Chapter 14. Tree View Widget"><link rel="prev" href="ch-TreeViewWidget.html" title="Chapter 14. Tree View Widget"><link rel="next" href="sec-TreeViews.html" title="14.3. TreeViews"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">14.2. The TreeModel Interface and Data Stores</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch-TreeViewWidget.html">Prev</a> </td><th width="60%" align="center">Chapter 14. Tree View Widget</th><td width="20%" align="right"> <a accesskey="n" href="sec-TreeViews.html">Next</a></td></tr></table><hr></div><div class="sect1" title="14.2. The TreeModel Interface and Data Stores"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-TreeModelInterface"></a>14.2. The TreeModel Interface and Data Stores</h2></div></div></div><div class="sect2" title="14.2.1. Introduction"><div class="titlepage"><div><div><h3 class="title"><a name="sec-TreeModelIntroduction"></a>14.2.1. Introduction</h3></div></div></div><p>The <code class="classname">TreeModel</code> interface is implemented by
+all the <code class="classname">TreeModel</code> subclasses and provides methods
+to:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">retrieve the characteristics of the data store such as
+the number of columns and the type of data in a column.</li><li class="listitem">retrieve a <code class="classname">TreeIter</code> (a transient
+reference) that points at a row in the model</li><li class="listitem">retrieve information about a node (or row) such as the
+number of its child nodes, a list of its child nodes, the contents of its
+columns and a pointer to its parent node</li><li class="listitem">provide notification of <code class="classname">TreeModel</code>
+data changes</li></ul></div></div><div class="sect2" title="14.2.2. Creating TreeStore and ListStore Objects"><div class="titlepage"><div><div><h3 class="title"><a name="sec-CreatingTreeStoreAndListStore"></a>14.2.2. Creating TreeStore and ListStore Objects</h3></div></div></div><p>The base data store classes: <code class="classname">ListStore</code> and
+<code class="classname">TreeStore</code> provide the means to define and manage the
+rows and columns of data in the tree model. The constructors of both these
+objects require the column types to be specified as any of:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">Python types such as the built-in types: int, str, long,
+float and object</li><li class="listitem">PyGTK types such as <code class="classname">Button</code>,
+<code class="classname">VBox</code>, <code class="classname">gdk.Rectangle</code>,
+<code class="classname">gdk.Pixbuf</code></li><li class="listitem"><p class="simpara"><code class="classname">GObject</code> types (GTK+ GTypes)
+specified either as GObject Type constants or as strings. Most GTypes are
+mapped to a Python type:</p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem">gobject.TYPE_CHAR or 'gchar'</li><li class="listitem">gobject.TYPE_UCHAR or 'guchar'</li><li class="listitem">gobject.TYPE_BOOLEAN or 'gboolean'</li><li class="listitem">gobject.TYPE_INT or 'gint'</li><li class="listitem">gobject.TYPE_UINT or 'guint'</li><li class="listitem">gobject.TYPE_LONG or 'glong</li><li class="listitem">gobject.TYPE_ULONG or 'gulong</li><li class="listitem">gobject.TYPE_INT64 or 'gint64'</li><li class="listitem">gobject.TYPE_UINT64 or 'guint64'</li><li class="listitem">gobject.TYPE_FLOAT or 'gfloat'</li><li class="listitem">gobject.TYPE_DOUBLE or 'gdouble'</li><li class="listitem">gobject.TYPE_STRING or 'gchararray'</li><li class="listitem">gobject.TYPE_OBJECT or 'GObject</li></ul></div></li></ul></div><p>For example to create a <code class="classname">ListStore</code> or
+<code class="classname">TreeStore</code> with rows containing a
+<code class="classname">gdk.Pixbuf</code>, an integer, a string and boolean you
+could do something like:</p><pre class="programlisting">
+  liststore = ListStore(gtk.gdk.Pixbuf, int, str, 'gboolean')
+
+  treestore = TreeStore(gtk.gdk.Pixbuf, int, str, 'gboolean')
+</pre><p>Once a <code class="classname">ListStore</code> or
+<code class="classname">TreeStore</code> is created and its columns defined, they
+cannot be changed or modified. It's also important to realize that there is
+no preset relation between the columns in a <code class="classname">TreeView</code>
+and the columns of its <code class="classname">TreeModel</code>. That is, the fifth
+column of data in a <code class="classname">TreeModel</code> may be displayed in the
+first column of one <code class="classname">TreeView</code> and in the third column
+in another. So you don't have to worry about how the data will be displayed
+when creating the data store.</p><p>If these two data stores do not fit your application it is
+possible to define your own custom data store in Python as long as it
+implements the TreeModel interface. I'll talk more about this later in <a class="xref" href="sec-GenericTreeModel.html" title="14.11. The Generic TreeModel">Section 14.11, “The Generic TreeModel”</a>.</p></div><div class="sect2" title="14.2.3. Referring to TreeModel Rows"><div class="titlepage"><div><div><h3 class="title"><a name="sec-ReferringToTreeModelRows"></a>14.2.3. Referring to TreeModel Rows</h3></div></div></div><p>Before we can talk about managing the data rows in a
+<code class="classname">TreeStore</code> or <code class="classname">ListStore</code> we need
+a way of specifying which row we want to deal with. PyGTK has three ways of
+referring to <code class="classname">TreeModel</code> rows: a tree path, a
+<code class="classname">TreeIter</code> and a
+<code class="classname">TreeRowReference</code>.</p><div class="sect3" title="14.2.3.1. Tree Paths"><div class="titlepage"><div><div><h4 class="title"><a name="sec-TreePaths"></a>14.2.3.1. Tree Paths</h4></div></div></div><p>A tree path is a int, string or tuple representation of the
+location of a row in the store. An int value specifies the top level row in
+the model starting from 0. For example, a tree path value of 4 would specify
+the fifth row in the store. By comparison, a string representation of the
+same row would be "4" and the tuple representation would be (4,). This is
+sufficient for specifying any row in a <code class="classname">ListStore</code> but
+for a TreeStore we have to be able to represent the child rows. For these
+cases we have to use either the string or tuple representations.</p><p>Since a <code class="classname">TreeStore</code> can have an arbitrarily
+deep hierarchy the string representation specifies the path from the top
+level to the designated row using ints separated by the ":"
+character. Similarly, the tuple representation specifies the tree path
+starting from the top level to the row as a sequence of ints. For example,
+valid tree path string representations are: "0:2" (specifies the row that is
+the third child of the first row) and "4:0:1" (specifies the row that is the
+second child of the first child of the fifth row). By comparison the same
+tree paths are represented by the tuples (0, 2) and (4, 0, 1)
+respectively.</p><p>A tree path provides the only way to map from a
+<code class="classname">TreeView</code> row to a <code class="classname">TreeModel</code>
+row because the tree path of a <code class="classname">TreeView</code> row is the
+same as the tree path of the corresponding <code class="classname">TreeModel</code>
+row. There are also some problems with tree paths:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">a tree path can specify a row that doesn't exist in the
+ListStore or TreeStore.</li><li class="listitem">a tree path can point to a different data row after
+inserting or deleting a row in the <code class="classname">ListStore</code> or
+<code class="classname">TreeStore</code>.</li></ul></div><p>PyGTK uses the tuple representation when returning tree paths
+but will accept any of the three forms for a tree path representation. You
+should use the tuple representation for a tree path for consistency.</p><p>A tree path can be retrieved from a
+<code class="classname">TreeIter</code> using the
+<code class="methodname">get_path</code>() method:</p><pre class="programlisting">
+  path = store.get_path(<strong class="parameter"><code>iter</code></strong>)
+</pre><p>where <em class="parameter"><code>iter</code></em> is a
+<code class="classname">TreeIter</code> pointing at a row in store and
+<em class="parameter"><code>path</code></em> is the row's tree path as a tuple.</p></div><div class="sect3" title="14.2.3.2. TreeIters"><div class="titlepage"><div><div><h4 class="title"><a name="sec-TreeIters"></a>14.2.3.2. TreeIters</h4></div></div></div><p>A <code class="classname">TreeIter</code> is an object that provides a
+transient reference to a <code class="classname">ListStore</code> or
+<code class="classname">TreeStore</code> row. If the contents of the store change
+(usually because a row is added or deleted) the
+<code class="classname">TreeIter</code>s can become invalid. A
+<code class="classname">TreeModel</code> that supports persistent TreeIters should
+set the <code class="literal">gtk.TREE_MODEL_ITERS_PERSIST</code> flag. An application
+can check for this flag using the <code class="methodname">get_flags</code>()
+method.</p><p>A <code class="classname">TreeIter</code> is created by one of the
+<code class="classname">TreeModel</code> methods that are applicable to both
+<code class="classname">TreeStore</code> and <code class="classname">ListStore</code>
+objects:</p><pre class="programlisting">
+  treeiter = store.get_iter(<strong class="parameter"><code>path</code></strong>)
+</pre><p>where <em class="parameter"><code>treeiter</code></em> points at the row at the
+tree path <em class="parameter"><code>path</code></em>. The ValueError exception is raised if
+the tree path is invalid.</p><pre class="programlisting">
+  treeiter = store.get_iter_first()
+</pre><p>where <em class="parameter"><code>treeiter</code></em> is a TreeIter pointing
+at the row at tree path (0,). <em class="parameter"><code>treeiter</code></em> will be
+<code class="literal">None</code> if the store is empty.</p><pre class="programlisting">
+  treeiter = store.iter_next(<strong class="parameter"><code>iter</code></strong>)
+</pre><p>where <em class="parameter"><code>treeiter</code></em> is a
+<code class="classname">TreeIter</code> that points at the next row at the same
+level as the <code class="classname">TreeIter</code> specified by
+<em class="parameter"><code>iter</code></em>. <em class="parameter"><code>treeiter</code></em> will be
+<code class="literal">None</code> if there is no next row (<em class="parameter"><code>iter</code></em>
+is also invalidated).</p><p>The following methods are useful only for retrieving a
+<code class="classname">TreeIter</code> from a
+<code class="classname">TreeStore</code>:</p><pre class="programlisting">
+  treeiter = treestore.iter_children(<strong class="parameter"><code>parent</code></strong>)
+</pre><p>where <em class="parameter"><code>treeiter</code></em> is a
+<code class="classname">TreeIter</code> pointing at the first child row of the row
+specified by the <code class="classname">TreeIter</code>
+<em class="parameter"><code>parent</code></em>. <em class="parameter"><code>treeiter</code></em> will be
+<code class="literal">None</code> if there is no child.</p><pre class="programlisting">
+  treeiter = treestore.iter_nth_child(<strong class="parameter"><code>parent</code></strong>, <strong class="parameter"><code>n</code></strong>)
+</pre><p>where <em class="parameter"><code>treeiter</code></em> is a
+<code class="classname">TreeIter</code> pointing at the child row (with the index
+<em class="parameter"><code>n</code></em>) of the row specified by the
+<code class="classname">TreeIter</code>
+<em class="parameter"><code>parent</code></em>. <em class="parameter"><code>parent</code></em> may be
+<code class="literal">None</code> to retrieve a top level
+row. <em class="parameter"><code>treeiter</code></em> will be <code class="literal">None</code> if
+there is no child.</p><pre class="programlisting">
+  treeiter = treestore.iter_parent(<strong class="parameter"><code>child</code></strong>)
+</pre><p>where <em class="parameter"><code>treeiter</code></em> is a
+<code class="classname">TreeIter</code> pointing at the parent row of the row
+specified by the <code class="classname">TreeIter</code>
+<em class="parameter"><code>child</code></em>. treeiter will be <code class="literal">None</code> if
+there is no child.</p><p>A tree path can be retrieved from a
+<code class="classname">TreeIter</code> using the
+<code class="methodname">get_path</code>() method:</p><pre class="programlisting">
+  path = store.get_path(<strong class="parameter"><code>iter</code></strong>)
+</pre><p>where <em class="parameter"><code>iter</code></em> is a
+<code class="classname">Treeiter</code> pointing at a row in store and
+<em class="parameter"><code>path</code></em> is the row's tree path as a tuple.</p></div><div class="sect3" title="14.2.3.3. TreeRowReferences"><div class="titlepage"><div><div><h4 class="title"><a name="sec-TreeRowReferences"></a>14.2.3.3. TreeRowReferences</h4></div></div></div><p>A <code class="classname">TreeRowReference</code> is a persistent
+reference to a row of data in a store. While the tree path (i.e. the
+location) of the row might change as rows are added to or deleted from the
+store, the <code class="classname">TreeRowReference</code> will point at the same
+data row as long as it exists.</p><div class="note" title="Note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p><code class="classname">TreeRowReference</code>s are only available in
+PyGTK 2.4 and above.</p></div><p>You can create a <code class="classname">TreeRowReference</code> using
+its constructor:</p><pre class="programlisting">
+  treerowref = TreeRowReference(<strong class="parameter"><code>model</code></strong>, <strong class="parameter"><code>path</code></strong>)
+</pre><p>where <em class="parameter"><code>model</code></em> is the
+<code class="classname">TreeModel</code> containing the row and
+<em class="parameter"><code>path</code></em> is the tree path of the row to track. If
+<em class="parameter"><code>path</code></em> isn't a valid tree path for
+<em class="parameter"><code>model</code></em>, <code class="literal">None</code> is returned.</p></div></div><div class="sect2" title="14.2.4. Adding Rows"><div class="titlepage"><div><div><h3 class="title"><a name="sec-AddingStoreRows"></a>14.2.4. Adding Rows</h3></div></div></div><div class="sect3" title="14.2.4.1. Adding Rows to a ListStore"><div class="titlepage"><div><div><h4 class="title"><a name="sec-AddingListStoreRows"></a>14.2.4.1. Adding Rows to a ListStore</h4></div></div></div><p>Once you have a <code class="classname">ListStore</code> you'll need to
+add data rows using one of the following methods:</p><pre class="programlisting">
+  iter = append(<strong class="parameter"><code>row</code></strong>=None)
+  iter = prepend(<strong class="parameter"><code>row</code></strong>=None)
+  iter = insert(<strong class="parameter"><code>position</code></strong>, <strong class="parameter"><code>row</code></strong>=None)
+  iter = insert_before(<strong class="parameter"><code>sibling</code></strong>, <strong class="parameter"><code>row</code></strong>=None)
+  iter = insert_after(<strong class="parameter"><code>sibling</code></strong>, <strong class="parameter"><code>row</code></strong>=None)
+</pre><p>Each of these methods inserts a row at an implied or specified
+position in the <code class="classname">ListStore</code>. The
+<code class="methodname">append</code>() and <code class="methodname">prepend</code>()
+methods use implied positions: after the last row and before the first row,
+respectively. The <code class="methodname">insert</code>() method takes an integer
+(the parameter <em class="parameter"><code>position</code></em>) that specifies the location
+where the row will be inserted. The other two methods take a
+<code class="classname">TreeIter</code> (<em class="parameter"><code>sibling</code></em>) that
+references a row in the <code class="classname">ListStore</code> to insert the row
+before or after.</p><p>The <em class="parameter"><code>row</code></em> parameter specifies the data that
+should be inserted in the row after it is created. If
+<em class="parameter"><code>row</code></em> is <code class="literal">None</code> or not specified, an
+empty row will be created. If <em class="parameter"><code>row</code></em> is specified it
+must be a tuple or list containing as many items as the number of columns in
+the <code class="classname">ListStore</code>. The items must also match the data
+type of their respective <code class="classname">ListStore</code> columns.</p><p>All methods return a <code class="classname">TreeIter</code> that points
+at the newly inserted row. The following code fragment illustrates the
+creation of a <code class="classname">ListStore</code> and the addition of data rows
+to it:</p><pre class="programlisting">
+  ...
+  liststore = gtk.ListStore(int, str, gtk.gdk.Color)
+  liststore.append([0,'red',colormap.alloc_color('red')])
+  liststore.append([1,'green',colormap.alloc_color('green')])
+  iter = liststore.insert(1, (2,'blue',colormap.alloc_color('blue')) )
+  iter = liststore.insert_after(iter, [3,'yellow',colormap.alloc_color('blue')])
+  ...
+</pre></div><div class="sect3" title="14.2.4.2. Adding Rows to a TreeStore"><div class="titlepage"><div><div><h4 class="title"><a name="sec-AddingTreeStoreRows"></a>14.2.4.2. Adding Rows to a TreeStore</h4></div></div></div><p>Adding a row to a <code class="classname">TreeStore</code> is similar to
+adding a row to a <code class="classname">ListStore</code> except that you also have
+to specify a parent row (using a <code class="classname">TreeIter</code>) to add the
+new row to. The <code class="classname">TreeStore</code> methods are:</p><pre class="programlisting">
+  iter = append(<strong class="parameter"><code>parent</code></strong>, <strong class="parameter"><code>row</code></strong>=None)
+  iter = prepend(<strong class="parameter"><code>parent</code></strong>, <strong class="parameter"><code>row</code></strong>=None)
+  iter = insert(<strong class="parameter"><code>parent</code></strong>, <strong class="parameter"><code>position</code></strong>, <strong class="parameter"><code>row</code></strong>=None)
+  iter = insert_before(<strong class="parameter"><code>parent</code></strong>, <strong class="parameter"><code>sibling</code></strong>, <strong class="parameter"><code>row</code></strong>=None)
+  iter = insert_after(<strong class="parameter"><code>parent</code></strong>, <strong class="parameter"><code>sibling</code></strong>, <strong class="parameter"><code>row</code></strong>=None)
+</pre><p>If <em class="parameter"><code>parent</code></em> is <code class="literal">None</code>, the
+row will be added to the top level rows.</p><p>Each of these methods inserts a row at an implied or specified
+position in the <code class="classname">TreeStore</code>. The
+<code class="methodname">append</code>() and <code class="methodname">prepend</code>()
+methods use implied positions: after the last child row and before the first
+child row, respectively. The <code class="methodname">insert</code>() method takes
+an integer (the parameter <em class="parameter"><code>position</code></em>) that specifies
+the location where the child row will be inserted. The other two methods
+take a <code class="classname">TreeIter</code> (<em class="parameter"><code>sibling</code></em>) that
+references a child row in the <code class="classname">TreeStore</code> to insert the
+row before or after.</p><p>The <em class="parameter"><code>row</code></em> parameter specifies the data that
+should be inserted in the row after it is created. If
+<em class="parameter"><code>row</code></em> is <code class="literal">None</code> or not specified, an
+empty row will be created. If <em class="parameter"><code>row</code></em> is specified it
+must be a tuple or list containing as many items as the number of columns in
+the <code class="classname">TreeStore</code>. The items must also match the data
+type of their respective <code class="classname">TreeStore</code> columns.</p><p>All methods return a <code class="classname">TreeIter</code> that points
+at the newly inserted row. The following code fragment illustrates the
+creation of a <code class="classname">TreeStore</code> and the addition of data rows
+to it:</p><pre class="programlisting">
+  ...
+  folderpb = gtk.gdk.pixbuf_from_file('folder.xpm')
+  filepb = gtk.gdk.pixbuf_from_file('file.xpm')
+  treestore = gtk.TreeStore(int, str, gtk.gdk.Pixbuf)
+  iter0 = treestore.append(None, [1,'(0,)',folderpb] )
+  treestore.insert(iter0, 0, [11,'(0,0)',filepb])
+  treestore.append(iter0, [12,'(0,1)',filepb])
+  iter1 = treestore.insert_after(None, iter0, [2,'(1,)',folderpb])
+  treestore.insert(iter1, 0, [22,'(1,1)',filepb])
+  treestore.prepend(iter1, [21,'(1,0)',filepb])
+  ...
+</pre></div><div class="sect3" title="14.2.4.3. Large Data Stores"><div class="titlepage"><div><div><h4 class="title"><a name="sec-LargeDataStores"></a>14.2.4.3. Large Data Stores</h4></div></div></div><p>When a <code class="classname">ListStore</code> or
+<code class="classname">TreeStore</code> contains a large number of data rows,
+adding new rows can become very slow. There are a few things that you can do
+to mitigate this problem:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">If adding a large number of rows disconnect the
+<code class="classname">TreeModel</code> from its <code class="classname">TreeView</code>
+(using the <code class="methodname">set_model</code>() method with the
+<em class="parameter"><code>model</code></em> parameter set to <code class="literal">None</code>) to
+avoid <code class="classname">TreeView</code> updates for each row
+entered.</li><li class="listitem">Likewise, disable sorting (using the
+<code class="methodname">set_default_sort_func</code>() method with the
+<em class="parameter"><code>sort_func</code></em> set to <code class="literal">None</code>) while
+adding a large number of rows.</li><li class="listitem">Limit the number of
+<code class="classname">TreeRowReference</code>s in use since they update their path
+with each addition or removal.</li><li class="listitem">Set the <code class="classname">TreeView</code>
+"fixed-height-mode" property to <code class="literal">TRUE</code> making all rows have
+the same height and avoiding the individual calculation of the height of
+each row. Only available in PyGTK 2.4 and above.</li></ul></div></div></div><div class="sect2" title="14.2.5. Removing Rows"><div class="titlepage"><div><div><h3 class="title"><a name="sec-RemovingStoreRows"></a>14.2.5. Removing Rows</h3></div></div></div><div class="sect3" title="14.2.5.1. Removing Rows From a ListStore"><div class="titlepage"><div><div><h4 class="title"><a name="sec-RemovingListStoreRows"></a>14.2.5.1. Removing Rows From a ListStore</h4></div></div></div><p>You can remove a data row from a
+<code class="classname">ListStore</code> by using the
+<code class="methodname">remove</code>() method:</p><pre class="programlisting">
+  treeiter = liststore.remove(<strong class="parameter"><code>iter</code></strong>)
+</pre><p>where <em class="parameter"><code>iter</code></em> is a
+<code class="classname">TreeIter</code> pointing at the row to remove. The returned
+<code class="classname">TreeIter</code> (<em class="parameter"><code>treeiter</code></em>) points at
+the next row or is invalid if <em class="parameter"><code>iter</code></em> was pointing at
+the last row.</p><p>The <code class="methodname">clear</code>() method removes all rows
+from the <code class="classname">ListStore</code>:</p><pre class="programlisting">
+  liststore.clear()
+</pre></div><div class="sect3" title="14.2.5.2. Removing Rows From a TreeStore"><div class="titlepage"><div><div><h4 class="title"><a name="sec-RemovingTreeStoreRows"></a>14.2.5.2. Removing Rows From a TreeStore</h4></div></div></div><p>The methods for removing data rows from a
+<code class="classname">TreeStore</code> are similar to the
+<code class="classname">ListStore</code> methods:</p><pre class="programlisting">
+  result = treestore.remove(<strong class="parameter"><code>iter</code></strong>)
+  treestore.clear()
+</pre><p>where <em class="parameter"><code>result</code></em> is <code class="literal">TRUE</code>
+if the row was removed and <em class="parameter"><code>iter</code></em> points at the next
+valid row. Otherwise, <em class="parameter"><code>result</code></em> is
+<code class="literal">FALSE</code> and <em class="parameter"><code>iter</code></em> is
+invalidated.</p></div></div><div class="sect2" title="14.2.6. Managing Row Data"><div class="titlepage"><div><div><h3 class="title"><a name="sec-ManagingRowData"></a>14.2.6. Managing Row Data</h3></div></div></div><div class="sect3" title="14.2.6.1. Setting and Retrieving Data Values"><div class="titlepage"><div><div><h4 class="title"><a name="sec-AccessingDataValues"></a>14.2.6.1. Setting and Retrieving Data Values</h4></div></div></div><p>The methods for accessing the data values in a
+<code class="classname">ListStore</code> and <code class="classname">TreeStore</code> have
+the same format. All store data manipulations use a
+<code class="classname">TreeIter</code> to specify the row that you are working
+with. Once you have a <code class="classname">TreeIter</code> it can be used to
+retrieve the values of a row column using the
+<code class="methodname">get_value</code>() method:</p><pre class="programlisting">
+  value = store.get_value(<strong class="parameter"><code>iter</code></strong>, <strong class="parameter"><code>column</code></strong>)
+</pre><p>where <em class="parameter"><code>iter</code></em> is a
+<code class="classname">TreeIter</code> pointing at a row,
+<em class="parameter"><code>column</code></em> is a column number in
+<em class="parameter"><code>store</code></em>, and, <em class="parameter"><code>value</code></em> is the value
+stored at the row-column location.</p><p>If you want to retrieve the values from multiple columns in
+one call use the <code class="methodname">get</code>() method:</p><pre class="programlisting">
+  values = store.get(iter, column, ...)
+</pre><p>where <em class="parameter"><code>iter</code></em> is a
+<code class="classname">TreeIter</code> pointing at a row,
+<em class="parameter"><code>column</code></em> is a column number in
+<em class="parameter"><code>store</code></em>, and, <em class="parameter"><code>...</code></em> represents
+zero or more additional column numbers and <em class="parameter"><code>values</code></em> is
+a tuple containing the retrieved data values. For example to retrieve the
+values in columns 0 and 2:</p><pre class="programlisting">
+  val0, val2 = store.get(iter, 0, 2)
+</pre><div class="note" title="Note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>The <code class="methodname">get</code>() method is only available
+in PyGTK 2.4 and above.</p></div><p>Setting a single column value is effected using the
+<code class="methodname">set_value</code>() method:</p><pre class="programlisting">
+  store.set_value(<strong class="parameter"><code>iter</code></strong>, <strong class="parameter"><code>column</code></strong>, <strong class="parameter"><code>value</code></strong>)
+</pre><p>where <em class="parameter"><code>iter</code></em> (a
+<code class="classname">TreeIter</code>) and <em class="parameter"><code>column</code></em> (an int)
+specify the row-column location in <em class="parameter"><code>store</code></em> and
+<em class="parameter"><code>column</code></em> is the column number where
+<em class="parameter"><code>value</code></em> is to be set. <em class="parameter"><code>value</code></em> must
+be the same data type as the <em class="parameter"><code>store</code></em> column.</p><p>If you wish to set the value of more than one column in a row
+at a time, use the <code class="methodname">set</code>() method:</p><pre class="programlisting">
+  store.set(<em class="parameter"><code>iter</code></em>, <em class="parameter"><code>...</code></em>)
+</pre><p>where <em class="parameter"><code>iter</code></em> specifies the store row and
+<em class="parameter"><code>...</code></em> is one or more column number - value pairs
+indicating the column and and value to set. For example, the following
+call:</p><pre class="programlisting">
+  store.set(iter, 0, 'Foo', 5, 'Bar', 1, 123)
+</pre><p>sets the first column to 'Foo', the sixth column to 'Bar' and
+the second column to 123 in the <em class="parameter"><code>store</code></em> row specified
+by <em class="parameter"><code>iter</code></em>.</p></div><div class="sect3" title="14.2.6.2. Rearranging ListStore Rows"><div class="titlepage"><div><div><h4 class="title"><a name="sec-RearrangingListStoreRows"></a>14.2.6.2. Rearranging ListStore Rows</h4></div></div></div><p>Individual <code class="classname">ListStore</code> rows can be moved
+using one of the following methods that are available in PyGTK 2.2 and
+above:</p><pre class="programlisting">
+  liststore.swap(<strong class="parameter"><code>a</code></strong>, <strong class="parameter"><code>b</code></strong>)
+  liststore.move_after(<strong class="parameter"><code>iter</code></strong>, <strong class="parameter"><code>position</code></strong>)
+  liststore.move_before(<strong class="parameter"><code>iter</code></strong>, <strong class="parameter"><code>position</code></strong>)
+</pre><p><code class="methodname">swap</code>() swaps the locations of the rows
+referenced by the <code class="classname">TreeIter</code>s <em class="parameter"><code>a</code></em>
+and <em class="parameter"><code>b</code></em>. <code class="methodname">move_after</code>() and
+<code class="methodname">move_before</code>() move the row referenced by the
+<code class="classname">TreeIter</code> <em class="parameter"><code>iter</code></em> after or before
+the row referenced by the <code class="classname">TreeIter</code>
+<em class="parameter"><code>position</code></em>. If <em class="parameter"><code>position</code></em> is
+<code class="literal">None</code>, <code class="methodname">move_after</code>() will place
+the row at the beginning of the store while
+<code class="methodname">move_before</code>(), at the end of the store.</p><p>If you want to completely rearrange the
+<code class="classname">ListStore</code> data rows, use the following method:</p><pre class="programlisting">
+  liststore.reorder(<em class="parameter"><code>new_order</code></em>)
+</pre><p>where <em class="parameter"><code>new_order</code></em> is a list of integers
+      that specify the new row order. The child nodes will be rearranged so
+      that the <em class="parameter"><code>liststore</code></em> node that is at position
+      index <em class="parameter"><code>new_order</code></em><code class="literal">[i]</code> will be
+      located at position index <code class="literal">i</code>.</p><p>For example, if <em class="parameter"><code>liststore</code></em> contained
+four rows:</p><pre class="programlisting">
+  'one'
+  'two'
+  'three'
+  'four'
+</pre><p>The method call:</p><pre class="programlisting">
+  liststore.reorder([2, 1, 3, 0])
+</pre><p>would produce the resulting order:</p><pre class="programlisting">
+  'three'
+  'two'
+  'four'
+  'one'
+</pre><div class="note" title="Note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>These methods will only rearrange unsorted
+<code class="classname">ListStore</code>s.</p></div><p>If you want to rearrange rows in PyGTK 2.0 you have to remove
+and insert rows using the methods described in <a class="xref" href="sec-TreeModelInterface.html#sec-AddingStoreRows" title="14.2.4. Adding Rows">Section 14.2.4, “Adding Rows”</a> and <a class="xref" href="sec-TreeModelInterface.html#sec-RemovingStoreRows" title="14.2.5. Removing Rows">Section 14.2.5, “Removing Rows”</a>.</p></div><div class="sect3" title="14.2.6.3. Rearranging TreeStore Rows"><div class="titlepage"><div><div><h4 class="title"><a name="sec-RearrangingTreeStoreRows"></a>14.2.6.3. Rearranging TreeStore Rows</h4></div></div></div><p>The methods used to rearrange <code class="classname">TreeStore</code>
+rows are similar to the <code class="classname">ListStore</code> methods except they
+only affect the child rows of an implied parent row - it is not possible to,
+say, swap rows with different parent rows.:</p><pre class="programlisting">
+  treestore.swap(<strong class="parameter"><code>a</code></strong>, <strong class="parameter"><code>b</code></strong>)
+  treestore.move_after(<strong class="parameter"><code>iter</code></strong>, <strong class="parameter"><code>position</code></strong>)
+  treestore.move_before(<strong class="parameter"><code>iter</code></strong>, <strong class="parameter"><code>position</code></strong>)
+</pre><p><code class="methodname">swap</code>() swaps the locations of the child
+rows referenced by the TreeIters <em class="parameter"><code>a</code></em> and
+<em class="parameter"><code>b</code></em>. <em class="parameter"><code>a</code></em> and
+<em class="parameter"><code>b</code></em> must both have the same parent
+row. <code class="methodname">move_after</code>() and
+<code class="methodname">move_before</code>() move the row referenced by the
+<code class="classname">TreeIter</code> <em class="parameter"><code>iter</code></em> after or before
+the row referenced by the <code class="classname">TreeIter</code>
+<em class="parameter"><code>position</code></em>. <em class="parameter"><code>iter</code></em> and
+<em class="parameter"><code>position</code></em> must both have the same parent row. If
+<em class="parameter"><code>position</code></em> is <code class="literal">None</code>,
+<code class="methodname">move_after</code>() will place the row at the beginning of
+the store while <code class="methodname">move_before</code>(), at the end of the
+store.</p><p>The <code class="methodname">reorder</code>() method requires an
+additional parameter specifying the parent row whose child rows will be
+reordered:</p><pre class="programlisting">
+  treestore.reorder(<strong class="parameter"><code>parent</code></strong>, <strong class="parameter"><code>new_order</code></strong>)
+</pre><p>where <em class="parameter"><code>new_order</code></em> is a list of integers
+that specify the new child row order of the parent row specified by the
+<code class="classname">TreeIter</code> <em class="parameter"><code>parent</code></em> as:</p><pre class="programlisting">
+  <em class="parameter"><code>new_order</code></em>[newpos] = oldpos
+</pre><p>For example, if <em class="parameter"><code>treestore</code></em> contained
+four rows:</p><pre class="programlisting">
+  'parent'
+      'one'
+      'two'
+      'three'
+      'four'
+</pre><p>The method call:</p><pre class="programlisting">
+  treestore.reorder(parent, [2, 1, 3, 0])
+</pre><p>would produce the resulting order:</p><pre class="programlisting">
+  'parent'
+      'three'
+      'two'
+      'four'
+      'one'
+</pre><div class="note" title="Note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>These methods will only rearrange unsorted 
+<code class="classname">TreeStore</code>s.</p></div></div><div class="sect3" title="14.2.6.4. Managing Multiple Rows"><div class="titlepage"><div><div><h4 class="title"><a name="sec-ManagingMultipleRows"></a>14.2.6.4. Managing Multiple Rows</h4></div></div></div><p>One of the trickier aspects of dealing with
+<code class="classname">ListStore</code>s and <code class="classname">TreeStore</code>s is
+the operation on multiple rows, e.g. moving multiple rows, say, from one
+parent row to another or removing rows based on certain criteria. The
+difficulty arises from the need to use a <code class="classname">TreeIter</code>
+that may become invalid as the result of the operation. For
+<code class="classname">ListStore</code>s and <code class="classname">TreeStore</code>s the
+TreeIters are persistent as can be checked by using the
+<code class="methodname">get_flags</code>() method and testing for the
+<code class="literal">gtk.TREE_MODEL_ITERS_PERSIST</code> flag. However the stackable
+<code class="classname">TreeModelFilter</code> and
+<code class="classname">TreeModelSort</code> classes do not have persistent
+<code class="classname">TreeIter</code>s.</p><p>Assuming that <code class="classname">TreeIter</code>s don't persist how
+do we move all the child rows from one parent row to another? We have
+to:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">iterate over the parent's children</li><li class="listitem">retrieve each row's data</li><li class="listitem">remove each child row</li><li class="listitem">insert a new row with the old row data in the new
+parent's list</li></ul></div><p>We can't rely on the <code class="methodname">remove</code>() method to
+return a valid <code class="classname">TreeIter</code> so we'll just ask for the
+first child iter until it returns <code class="literal">None</code>. A possible
+function to move child rows is:</p><pre class="programlisting">
+  def move_child_rows(treestore, from_parent, to_parent):
+    n_columns = treestore.get_n_columns()
+    iter = treestore.iter_children(from_parent)
+    while iter:
+      values = treestore.get(iter, *range(n_columns))
+      treestore.remove(iter)
+      treestore.append(to_parent, values)
+      iter = treestore.iter_children(from_parent)
+    return
+</pre><p>The above function covers the simple case of moving all child
+rows of a single parent row but what if you want to remove all rows in the
+<code class="classname">TreeStore</code> based on some match criteria, say the first
+column value? Here you might think that you could use the
+<code class="methodname">foreach</code>() method to iterate over all the rows and
+remove the matching ones:</p><pre class="programlisting">
+  store.foreach(<em class="parameter"><code>func</code></em>, <em class="parameter"><code>user_data</code></em>)
+</pre><p>where <em class="parameter"><code>func</code></em> is a function that is
+invoked for each store row and has the signature:</p><pre class="programlisting">
+  def func(<em class="parameter"><code>model</code></em>, <em class="parameter"><code>path</code></em>, <em class="parameter"><code>iter</code></em>, <em class="parameter"><code>user_data</code></em>):
+</pre><p>where <em class="parameter"><code>model</code></em> is the
+<code class="classname">TreeModel</code> data store, <em class="parameter"><code>path</code></em> is
+the tree path of a row in <em class="parameter"><code>model</code></em>,
+<em class="parameter"><code>iter</code></em> is a <code class="classname">TreeIter</code> pointing at
+<em class="parameter"><code>path</code></em> and <em class="parameter"><code>user_data</code></em> is the
+passed in data. if <em class="parameter"><code>func</code></em> returns
+<code class="literal">TRUE</code> the <code class="methodname">foreach</code>() method will
+cease iterating and return.</p><p>The problem with that is that changing the contents of the store
+while the <code class="methodname">foreach</code>() method is iterating over it may
+have unpredictable results. Using the <code class="methodname">foreach</code>()
+method to create and save TreeRowReferences to the rows to be removed and
+then removing them after the <code class="methodname">foreach</code>() method
+completes would be a good strategy except that it doesn't work for PyGTK 2.0
+and 2.2 where <code class="classname">TreeRowReference</code>s are not
+available.</p><p>A reliable strategy that covers all the PyGTK variants is to
+use the <code class="methodname">foreach</code>() method to gather the tree paths
+of rows to be removed and then remove them in reverse order to preserve the
+validity of the tree paths. An example code fragment utilizing this
+strategy is:</p><pre class="programlisting">
+  ...
+  # match if the value in the first column is &gt;= the passed in value
+  # data is a tuple containing the match value and a list to save paths
+  def match_value_cb(model, path, iter, data):
+    if model.get_value(iter, 0) &gt;= data[0]:
+      data[1].append(path)
+    return False     # keep the foreach going
+
+  pathlist = []
+  treestore.foreach(match_value_cb, (10, pathlist))
+
+  # foreach works in a depth first fashion
+  pathlist.reverse()
+  for path in pathlist:
+    treestore.remove(treestore.get_iter(path))
+  ...
+</pre><p>If you want to search a <code class="classname">TreeStore</code> for the
+first row that matches some criteria, you probably want to do the iteration
+yourself using something like:</p><pre class="programlisting">
+   treestore = TreeStore(str)
+   ...
+   def match_func(model, iter, data):
+       column, key = data # data is a tuple containing column number, key
+       value = model.get_value(iter, column)
+       return value == key
+   def search(model, iter, func, data):
+       while iter:
+           if func(model, iter, data):
+               return iter
+           result = search(model, model.iter_children(iter), func, data)
+           if result: return result
+           iter = model.iter_next(iter)
+       return None
+   ...
+   match_iter = search(treestore, treestore.iter_children(None), 
+                       match_func, (0, 'foo'))
+</pre><p>The <code class="function">search</code>() function iterates recursively
+over the row (specified by <em class="parameter"><code>iter</code></em>) and its siblings and
+their child rows in a depth first fashion looking for a row that has a
+column matching the given key string. The search terminates when a row is
+found.</p></div></div><div class="sect2" title="14.2.7. Python Protocol Support"><div class="titlepage"><div><div><h3 class="title"><a name="sec-PythonProtocolSupport"></a>14.2.7. Python Protocol Support</h3></div></div></div><p>The classes that implement the <code class="classname">TreeModel</code>
+interface (<code class="classname">TreeStore</code> and
+<code class="classname">ListStore</code> and in PyGTK 2.4, also the
+<code class="classname">TreeModelSort</code> and
+<code class="classname">TreeModelFilter</code>) support the Python mapping and
+iterator protocols. The iterator protocol allows you to use the Python
+<code class="function">iter</code>() function on a <code class="classname">TreeModel</code>
+to create an iterator to be used to iterate over the top level rows in the
+<code class="classname">TreeModel</code>. A more useful capability is to iterate
+using the <code class="literal">for</code> statement or a list comprehension. For
+example:</p><pre class="programlisting">
+  ...
+  liststore = gtk.ListStore(str, str)
+  ...
+  # add some rows to liststore
+  ...
+  # for looping
+  for row in liststore:
+      # do individual row processing
+  ...
+  # list comprehension returning a list of values in the first column
+  values = [ r[0] for r in liststore ]
+  ...
+</pre><p>Other parts of the mapping protocols that are supported are using
+<code class="literal">del</code> to delete a row in the model and extracting a PyGTK
+<code class="classname">TreeModelRow</code> from the model using a key value that is
+a tree path or <code class="classname">TreeIter</code>. For example, the following
+statements all return the first row in a <code class="classname">TreeModel</code>
+and the final statement deletes the first child row of the first row:</p><pre class="programlisting">
+  row = model[0]
+  row = model['0']
+  row = model["0"]
+  row = model[(0,)]
+  i = model.get_iter(0)
+  row = model[i]
+  del model[(0,0)]
+</pre><p>In addition, you can set the values in an existing row similar
+to the following:</p><pre class="programlisting">
+  ...
+  liststore = gtk.ListStore(str, int, object)
+  ...
+  liststore[0] = ['Button', 23, gtk.Button('Label')]
+</pre><p>A PyGTK <code class="classname">TreeModelRow</code> object supports the
+Python sequence and iterator protocols. You can get an iterator to iterate
+over the column values in the row or use the for statement or list
+comprehension as well. A <code class="classname">TreeModelRow</code> uses the column
+number as the index to extract a value. For example:</p><pre class="programlisting">
+  ...
+  liststore = gtk.ListStore(str, int)
+  liststore.append(['Random string', 514])
+  ...
+  row = liststore[0]
+  value1 = row[1]
+  value0 = liststore['0'][0]
+  for value in row:
+      print value
+  val0, val1 = row
+  ...
+</pre><p>Using the example from the previous section to iterate over a
+<code class="classname">TreeStore</code> to locate a row containing a particular
+value, the code becomes:</p><pre class="programlisting">
+   treestore = TreeStore(str)
+   ...
+   def match_func(row, data):
+       column, key = data # data is a tuple containing column number, key
+       return row[column] == key
+   ...
+   def search(rows, func, data):
+       if not rows: return None
+       for row in rows:
+           if func(row, data):
+               return row
+           result = search(row.iterchildren(), func, data)
+           if result: return result
+       return None
+   ...
+   match_row = search(treestore, match_func, (0, 'foo'))
+</pre><p>You can also set a value in an existing column using:</p><pre class="programlisting">
+  treestore[(1,0,1)][1] = 'abc'
+</pre><p>The <code class="classname">TreeModelRow</code> also supports the
+<code class="literal">del</code> statement and conversion to lists and tuples using
+the Python <code class="function">list</code>() and <code class="function">tuple</code>()
+functions. As illustrated in the above example the
+<code class="classname">TreeModelRow</code> has the
+<code class="methodname">iterchildren</code>() method that returns an iterator for
+iterating over the child rows of the
+<code class="classname">TreeModelRow</code>.</p></div><div class="sect2" title="14.2.8. TreeModel Signals"><div class="titlepage"><div><div><h3 class="title"><a name="sec-TreeModelSignals"></a>14.2.8. TreeModel Signals</h3></div></div></div><p>Your application can track changes in a
+<code class="classname">TreeModel</code> by connecting to the signals that are
+emitted by the <code class="classname">TreeModel</code>: "row-changed",
+"row-deleted", "row-inserted", "row-has-child-toggled" and
+"rows-reordered". These signals are used by a
+<code class="classname">TreeView</code> to track changes in its
+<code class="classname">TreeModel</code>.</p><p>If you connect to these signals in your application, you may see
+clusters of signals when some methods are called. For example the call to
+add the first child row to a parent row:</p><pre class="programlisting">
+  treestore.append(parent, ['qwe', 'asd', 123])
+</pre><p>will cause the following signal emissions:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">"row-inserted" where the inserted row will be 
+empty.</li><li class="listitem">"row-has-child-toggled" since
+<em class="parameter"><code>parent</code></em> didn't previously have any child
+rows.</li><li class="listitem">"row-changed" for the inserted row when setting the value
+'qwe' in the first column.</li><li class="listitem">"row-changed" for the inserted row when setting the value
+'asd in the second column.</li><li class="listitem">"row-changed" for the inserted row when setting the value
+123 in the third column.</li></ul></div><p>Note that you can't retrieve the row order in the
+"rows-reordered" callback since the new row order is passed as an opaque
+pointer to an array of integers.</p><p>See the <a class="ulink" href="http://www.pygtk.org/pygtk2reference/class-gtktreemodel.html" target="_top">PyGTK
+Reference Manual</a> for more information on the
+<code class="classname">TreeModel</code> signals.</p></div><div class="sect2" title="14.2.9. Sorting TreeModel Rows"><div class="titlepage"><div><div><h3 class="title"><a name="sec-SortingTreeModelRows"></a>14.2.9. Sorting TreeModel Rows</h3></div></div></div><div class="sect3" title="14.2.9.1. The TreeSortable Interface"><div class="titlepage"><div><div><h4 class="title"><a name="sec-TreeSortable"></a>14.2.9.1. The TreeSortable Interface</h4></div></div></div><p>The <code class="classname">ListStore</code> and
+<code class="classname">TreeStore</code> objects implement the
+<code class="classname">TreeSortable</code> interface that provides methods for
+controlling the sorting of <code class="classname">TreeModel</code> rows. The key
+element of the interface is a "sort column ID" which is an arbitrary integer
+value referring to a sort comparison function and associated user data. A
+sort column ID must be greater than or equal to zero. A sort column ID is
+created by using the method:</p><pre class="programlisting">
+  treesortable.set_sort_func(<em class="parameter"><code>sort_column_id</code></em>, <em class="parameter"><code>sort_func</code></em>, <em class="parameter"><code>user_data</code></em>=<code class="literal">None</code>)
+</pre><p>where <em class="parameter"><code>sort_column_id</code></em> is a programmer
+assigned integer value, <em class="parameter"><code>sort_func</code></em> is a function or
+method used to compare rows and <em class="parameter"><code>user_data</code></em> is context
+data. <em class="parameter"><code>sort_func</code></em> has the signature:</p><pre class="programlisting">
+  def sort_func_function(model, iter1, iter2, data)
+  def sort_func_method(self, model, iter1, iter2, data)
+</pre><p>where <em class="parameter"><code>model</code></em> is the
+<code class="classname">TreeModel</code> containing the rows pointed to by the
+<code class="classname">TreeIter</code>s <em class="parameter"><code>iter1</code></em> and
+<em class="parameter"><code>iter2</code></em> and <em class="parameter"><code>data</code></em> is
+<em class="parameter"><code>user_data</code></em>. <em class="parameter"><code>sort_func</code></em> should
+return: -1 if the <em class="parameter"><code>iter1</code></em> row should precede the
+<em class="parameter"><code>iter2</code></em> row; 0, if the rows are equal; and, 1 if the
+<em class="parameter"><code>iter2</code></em> row should precede the
+<em class="parameter"><code>iter1</code></em> row. The sort comparison function should always
+assume that the sort order is <code class="literal">gtk.SORT_ASCENDING</code> as the
+sort order will be taken into account by the
+<code class="classname">TreeSortable</code> implementations.</p><p>The same sort comparison function can be used for multiple sort
+column IDs by varying the user_data to provide context information. For
+example, the <em class="parameter"><code>user_data</code></em> specified in the
+<code class="methodname">set_sort_func</code>() method could be the index of the
+column to extract the sort data from.</p><p>Once a sort column ID is created a store can use it for sorting
+by calling the method:</p><pre class="programlisting">
+  treesortable.set_sort_column_id(<strong class="parameter"><code>sort_column_id</code></strong>, <strong class="parameter"><code>order</code></strong>)
+</pre><p>where <em class="parameter"><code>order</code></em> is the sort order either
+<code class="literal">gtk.SORT_ASCENDING</code> or
+<code class="literal">gtk.SORT_DESCENDING</code>.</p><p>The sort column ID of -1 means that the store should use the
+default sort function that is set using the method:</p><pre class="programlisting">
+  treesortable.set_default_sort_func(<em class="parameter"><code>sort_func</code></em>, <em class="parameter"><code>user_data</code></em>=<code class="literal">None</code>)
+</pre><p>You can check if a store has a default sort function using the
+method:</p><pre class="programlisting">
+  result = treesortable.has_default_sort_func()
+</pre><p>which returns <code class="literal">TRUE</code> if a default sort function
+has been set.</p><p>Once a sort column ID has been set on a
+<code class="classname">TreeModel</code> implementing the
+<code class="classname">TreeSortable</code> interface it cannot be returned to the
+original unsorted state. You can change the sort function or use a default
+sort function but you cannot set the <code class="classname">TreeModel</code> to
+have no sort function.</p></div><div class="sect3" title="14.2.9.2. Sorting in ListStores and TreeStores"><div class="titlepage"><div><div><h4 class="title"><a name="sec-SortingStores"></a>14.2.9.2. Sorting in ListStores and TreeStores</h4></div></div></div><p>When a <code class="classname">ListStore</code> or
+<code class="classname">TreeStore</code> object is created it automatically sets up
+sort column IDs corresponding to the columns in the store using the column
+index number. For example, a <code class="classname">ListStore</code> with three
+columns would have three sort column IDs (0, 1, 2) setup
+automatically. These sort column IDs are associated with an internal sort
+comparison function that handles the fundamental types:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">'gboolean'</li><li class="listitem">str</li><li class="listitem">int</li><li class="listitem">long</li><li class="listitem">float</li></ul></div><p>Initially a <code class="classname">ListStore</code> or
+<code class="classname">TreeStore</code> is set with a sort column ID of -2 that
+indicates that no sort function is being used and that the store is
+unsorted. Once you set a sort column ID on a
+<code class="classname">ListStore</code> or <code class="classname">TreeStore</code> you
+cannot set it back to -2.</p><p>If you want to maintain the default sort column IDs you can set up
+a sort column ID well out of the range of the number of columns such as 1000
+and up. Then you can switch between the default sort function and your
+application sort functions as needed.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch-TreeViewWidget.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-TreeViewWidget.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="sec-TreeViews.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 14. Tree View Widget </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 14.3. TreeViews</td></tr></table></div></body></html>

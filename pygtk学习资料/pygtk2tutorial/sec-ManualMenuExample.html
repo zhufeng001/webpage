@@ -1,0 +1,108 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>11.2. Manual Menu Example</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-MenuWidget.html" title="Chapter 11. Menu Widget"><link rel="prev" href="ch-MenuWidget.html" title="Chapter 11. Menu Widget"><link rel="next" href="sec-UsingItemFactory.html" title="11.3. Using ItemFactory"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">11.2. Manual Menu Example</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch-MenuWidget.html">Prev</a> </td><th width="60%" align="center">Chapter 11. Menu Widget</th><td width="20%" align="right"> <a accesskey="n" href="sec-UsingItemFactory.html">Next</a></td></tr></table><hr></div><div class="sect1" title="11.2. Manual Menu Example"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-ManualMenuExample"></a>11.2. Manual Menu Example</h2></div></div></div><p>That should about do it. Let's take a look at the <a class="ulink" href="examples/menu.py" target="_top"><span class="command"><strong>menu.py</strong></span></a> example program to
+help clarify the concepts.
+<a class="xref" href="sec-ManualMenuExample.html#menufig" title="Figure 11.1. Menu Example">Figure 11.1, “Menu Example”</a> illustrates the program display:</p><div class="figure"><a name="menufig"></a><p class="title"><b>Figure 11.1. Menu Example</b></p><div class="figure-contents"><div class="mediaobject" align="center"><img src="figures/menu.png" align="middle" alt="Menu Example"></div></div></div><br class="figure-break"><p>The <a class="ulink" href="examples/menu.py" target="_top"><span class="command"><strong>menu.py</strong></span></a> program source
+code is:</p><pre class="programlisting">
+    1	#!/usr/bin/env python
+    2	
+    3	# example menu.py
+    4	
+    5	import pygtk
+    6	pygtk.require('2.0')
+    7	import gtk
+    8	
+    9	class MenuExample:
+   10	    def __init__(self):
+   11	        # create a new window
+   12	        window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+   13	        window.set_size_request(200, 100)
+   14	        window.set_title("GTK Menu Test")
+   15	        window.connect("delete_event", lambda w,e: gtk.main_quit())
+   16	
+   17	        # Init the menu-widget, and remember -- never
+   18	        # show() the menu widget!! 
+   19	        # This is the menu that holds the menu items, the one that
+   20	        # will pop up when you click on the "Root Menu" in the app
+   21	        menu = gtk.Menu()
+   22	
+   23	        # Next we make a little loop that makes three menu-entries for
+   24	        # "test-menu".  Notice the call to gtk_menu_append.  Here we are
+   25	        # adding a list of menu items to our menu.  Normally, we'd also
+   26	        # catch the "clicked" signal on each of the menu items and setup a
+   27	        # callback for it, but it's omitted here to save space.
+   28	        for i in range(3):
+   29	            # Copy the names to the buf.
+   30	            buf = "Test-undermenu - %d" % i
+   31	
+   32	            # Create a new menu-item with a name...
+   33	            menu_items = gtk.MenuItem(buf)
+   34	
+   35	            # ...and add it to the menu.
+   36	            menu.append(menu_items)
+   37	
+   38		    # Do something interesting when the menuitem is selected
+   39		    menu_items.connect("activate", self.menuitem_response, buf)
+   40	
+   41	            # Show the widget
+   42	            menu_items.show()
+   43	
+   44	        # This is the root menu, and will be the label
+   45	        # displayed on the menu bar.  There won't be a signal handler attached,
+   46	        # as it only pops up the rest of the menu when pressed.
+   47	        root_menu = gtk.MenuItem("Root Menu")
+   48	
+   49	        root_menu.show()
+   50	
+   51	        # Now we specify that we want our newly created "menu" to be the
+   52	        # menu for the "root menu"
+   53	        root_menu.set_submenu(menu)
+   54	
+   55	        # A vbox to put a menu and a button in:
+   56	        vbox = gtk.VBox(False, 0)
+   57	        window.add(vbox)
+   58	        vbox.show()
+   59	
+   60	        # Create a menu-bar to hold the menus and add it to our main window
+   61	        menu_bar = gtk.MenuBar()
+   62	        vbox.pack_start(menu_bar, False, False, 2)
+   63	        menu_bar.show()
+   64	
+   65	        # Create a button to which to attach menu as a popup
+   66	        button = gtk.Button("press me")
+   67	        button.connect_object("event", self.button_press, menu)
+   68	        vbox.pack_end(button, True, True, 2)
+   69	        button.show()
+   70	
+   71	        # And finally we append the menu-item to the menu-bar -- this is the
+   72	        # "root" menu-item I have been raving about =)
+   73	        menu_bar.append (root_menu)
+   74	
+   75	        # always display the window as the last step so it all splashes on
+   76	        # the screen at once.
+   77	        window.show()
+   78	
+   79	    # Respond to a button-press by posting a menu passed in as widget.
+   80	    #
+   81	    # Note that the "widget" argument is the menu being posted, NOT
+   82	    # the button that was pressed.
+   83	    def button_press(self, widget, event):
+   84	        if event.type == gtk.gdk.BUTTON_PRESS:
+   85	            widget.popup(None, None, None, event.button, event.time)
+   86	            # Tell calling code that we have handled this event the buck
+   87	            # stops here.
+   88	            return True
+   89	        # Tell calling code that we have not handled this event pass it on.
+   90	        return False
+   91	
+   92	    # Print a string when a menu item is selected
+   93	    def menuitem_response(self, widget, string):
+   94	        print "%s" % string
+   95	
+   96	def main():
+   97	    gtk.main()
+   98	    return 0
+   99	
+  100	if __name__ == "__main__":
+  101	    MenuExample()
+  102	    main()
+</pre><p>You may also set a menu item to be insensitive and, using an
+accelerator table, bind keys to menu callbacks.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch-MenuWidget.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-MenuWidget.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="sec-UsingItemFactory.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 11. Menu Widget </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 11.3. Using ItemFactory</td></tr></table></div></body></html>

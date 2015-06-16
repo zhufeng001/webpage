@@ -1,0 +1,1808 @@
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+<!doctype html>
+<html>
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link title="豆丁网" type="application/opensearchdescription+xml" rel="search" href="/open_search.xml" />
+<script>
+	var picture_image_path_v1 = "http://pics.wanlibo.com";
+</script>
+ 
+
+
+
+<title>Postgresql通过Slony-I实现数据库同步备份 - 豆丁网</title>
+<meta http-equiv="description" content="精品：postgresql postgresql下载 java连接postgresql postgresql教程 postgresql操作 postgresql中文文档 postgresql安装 postgresql文档 postgresql手册 postgresql导出数据"/>
+<meta http-equiv="keywords" content="wangbinno111,IT计算机"/>
+<meta property="og:title" content="Postgresql通过Slony-I实现数据库同步备份" />
+<meta property="og:type" content="book" />
+<meta property="og:url" content="http://www.docin.com/p-652579453.html" />
+<meta property="og:image" content="http://img2.vonibo.com/docin_652579453_90x80.jpg" />
+<meta property="og:site_name" content="豆丁网" />
+<meta property="og:description" content="精品：postgresql postgresql下载 java连接postgresql postgresql教程 postgresql操作 postgresql中文文档 postgresql安装 postgresql文档 postgresql手册 postgresql导出数据" />
+<meta name="ads8_union_verify" content="262c497d0f7396328772b8b81071008a"> 
+<meta name="apple-itunes-app" content="app-id=473506754" />
+<link rel="canonical" href="http://www.docin.com/p-652579453.html" /> 
+
+<meta name="Author"  content="豆丁网" />
+<meta name="Copyright" content="豆丁网 docin.com 版权所有" />
+<link rel="icon" href="http://pics.wanlibo.com/images_cn/favicon.ico?rand=20140504" type="image/x-icon" />
+<link rel="shortcut icon" href="http://pics.wanlibo.com/images_cn/favicon.ico?rand=20140504" type="image/x-icon" />
+<link href="http://pics.wanlibo.com/css/docincommon.css?rand=20140504" rel="stylesheet" type="text/css" media="screen, projection"/>
+
+<link href="http://pics.wanlibo.com/css/my/mybook.css?rand=20140504"  rel="stylesheet" type="text/css" />
+<link href="http://pics.wanlibo.com/css/end/endv9.css?rand=20140504" rel="stylesheet" type="text/css" />
+<!--测试不同豆单样式  -->
+<style type="text/css" >
+.related-list{height:417px;}
+.doc-relatedShortForOne{height:274px;} 
+.doc-relatedShortForMore{height:258px;}
+.doc-nopicDoudan .doc-dlWrap dd a{margin-right:5px;}
+
+.b-recomm-list li{height: 36px;}
+
+</style>
+<script type="text/javascript">
+	var ifshow = 0;
+</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/m.js"></script>
+<script type="text/javascript"> 
+	var auditLevel = 1;
+	var isSharePs =0;
+	var imageServerName = "http://pics.wanlibo.com";
+	var appDownloadUrl = "";//ipad端app下载使用
+	
+		appDownloadUrl = "http://itunes.apple.com/cn/app/id448604849?l=en&ls=1&mt=8";
+		
+	BAIDU_CLB_preloadSlots("259515","503930","259494","230398","259496","259504","280850","360672","884108","884107","884121","900253");
+</script> 
+</head> 
+<body>
+
+
+
+
+<div class="headEnd-wapper" id="endheader">
+ 	<!-- head  -->
+	<div class="headEnd clear">
+		<div class="logo">
+			<a href="http://www.docin.com/" onMouseDown="return inpmv(1387);" title="豆丁网" ><img src="http://pics.wanlibo.com/images_cn/newDocin/head_bar/logo.gif" alt="豆丁网"/></a>
+		</div>
+		<!-- sear  -->
+		<div class="sear">
+			<form id="searchForm" method="get" action="http://www.docin.com/search.do" >
+				<input type="hidden" name="searchcat" id="searchcat" value="2" />
+				<input type="text" class='listTopInput inputColor' onblur="if(this.value=='') {this.value='在两亿文档库里搜索文档';this.className='listTopDefault inputColor';}" onfocus="if(this.value=='在两亿文档库里搜索文档') this.value='';this.className='listTopInput inputColor';" value="postgres 同步" onkeydown="if(event.keyCode==13){ return searchNew()}" name="nkey" class="listTopDefault" maxlength="100" id="topsearch" baidusug="2" autocomplete="off" tabindex="1">
+				<input type="submit" onMouseDown="return inpmv(1390);" onclick="return searchNew();" value="搜索" title="搜索" class="btn" tabindex="2">
+			</form>
+		</div>
+		<!-- sear end  -->
+		<!-- nav  -->
+		<div class="nav">
+			<ul class="nav-main" >
+	 			<li ><a onMouseDown="return inpmv(1391);" href="http://www.docin.com/list.html" id="navClassMore"><span><em class="padBtn">文档分类</em></span></a></li>
+				<li><a onMouseDown="return inpmv(1389);" href="http://www.docin.com/app/docin_upload/index" class="upload" >我要上传</a></li>
+	 			<!--<li ><span class="padLine"></span><a href="http://huiyi.docin.com" ><span>会议</span></a></li>-->
+	 			<li ><a onMouseDown="return inpmv(1393);" href="http://shequ.docin.com" ><span>社区</span></a></li>
+	 			<li ><a  href="http://www.docin.com/mobile_web/index.jsp" ><span>客户端</span></a></li>
+	 			<li ><a  href="http://docstore.docin.com" ><span>商业工具</span></a></li>
+				<li><span class="padLine"></span><a href="javascript:void(0);" id="channelMore"><span><i class="minChannel"></i>频道</span></a></li>
+			</ul>
+			
+				<div class="nav-main nav-quick">
+					<ul>
+						<li><a target="_blank" href="http://shufang.docin.com"><span><em class="nav-bookStore">豆丁书房</em></span></a></li>
+						<li><a href="javascript:void(0)" onclick="showlogin()">登录</a></li>
+						<li><a href="/app/forward?forward=register">注册</a></li>
+					</ul>
+				</div>
+			
+			<!-- navSkills-class  -->
+			<div class="docinPop nav-skills navSkills-class" id="navClassSkills">
+				<div>
+					<table class="docinPopTable">
+						<tbody>
+							<tr>
+								<td class="pop_topleft"></td>
+								<td class="pop_border"></td>
+								<td class="pop_topright"></td>
+							</tr>
+							<tr>
+								<td class="pop_border"></td>
+								<td class="pop_content">
+									<iframe style="height:100%;width:100%;position:absolute;top:0;left:0;z-index:-1;" scrolling="no" frameborder="0"></iframe>
+									<div class="dialog_content">
+										<span class="popTopArr"></span>
+										<div class="dialog_body">
+											<div class="clear">
+												<ul>
+													<li ><a href="http://www.docin.com/l-10008-0-0-0-0-1.html" >论文</a></li>
+													<li ><a href="http://www.docin.com/l-10003-0-0-0-0-1.html" >中学教育</a></li>
+													<li ><a href="http://www.docin.com/l-10004-0-0-0-0-1.html" >高等教育</a></li>
+													<li ><a href="http://www.docin.com/l-10006-0-0-0-0-1.html" >外语学习</a></li>
+													<li ><a href="http://www.docin.com/l-10017-0-0-0-0-1.html" >IT计算机</a></li>
+													<li ><a href="http://www.docin.com/l-10027-0-0-0-0-1.html" >研究报告</a></li>
+													<li ><a href="http://www.docin.com/l-10028-0-0-0-0-1.html" >办公文档</a></li>
+													<li ><a href="http://www.docin.com/l-10023-0-0-0-0-1.html" >行业资料</a></li>
+												</ul>
+												<ul>
+													<li ><a href="http://www.docin.com/l-10034-0-0-0-0-1.html" >生活休闲</a></li>
+													<li ><a href="http://www.docin.com/l-10019-0-0-0-0-1.html" >建筑/环境</a></li>
+													<li ><a href="http://www.docin.com/l-10018-0-0-0-0-1.html" >法律/法学</a></li>
+													<li ><a href="http://www.docin.com/l-10020-0-0-0-0-1.html" >通信/电子</a></li>
+													<li ><a href="http://www.docin.com/l-10005-0-0-0-0-1.html" >研究生考试</a></li>
+													<li ><a href="http://www.docin.com/l-11926-0-0-0-0-1.html" >经济/贸易/财会</a></li>
+													<li ><a href="http://www.docin.com/l-10002-0-0-0-0-1.html" >幼儿/小学教育</a></li>
+													<li ><a href="http://www.docin.com/l-11937-0-0-0-0-1.html" >管理/人力资源</a></li>
+												</ul>
+												<ul class="mar0" >
+													<li ><a href="http://www.docin.com/l-10024-0-0-0-0-1.html" >汽车/机械/制造</a></li>
+													<li ><a href="http://www.docin.com/l-10022-0-0-0-0-1.html" >医学/心理学</a></li>
+													<li ><a href="http://www.docin.com/l-10007-0-0-0-0-1.html" >资格/认证考试</a></li>
+													<li ><a href="http://www.docin.com/l-11936-0-0-0-0-1.html" >金融/证券 </a></li>
+													<li ><a href="http://www.docin.com/l-10031-0-0-0-0-1.html" >文学/艺术/军事/历史</a></li>
+													<li class="fl"><a href="http://tushu.docin.com" title="图书">图书</a></li>
+													<li class="fl"><a href="http://www.docin.com/stock/list.do" title="股票">股票</a></li>
+													<li class="fl"><a href="http://zazhi.docin.com" title="杂志">杂志</a></li>
+													<li class="fl">
+														<a href="http://www.docin.com/cartoon/index.do" title="漫画">漫画</a>
+													</li>
+												</ul>
+											</div>
+										</div>
+									</div>
+								</td>
+								<td class="pop_border">
+								</td>
+							</tr>
+							<tr>
+								<td class="pop_bottomleft"></td>
+								<td class="pop_border"></td>
+								<td class="pop_bottomright"></td>
+							</tr>
+						</tbody>		
+					</table>
+				</div>
+			</div>
+			<!-- navSkills-class end  -->
+			<!--smalltype -->
+				<div id="navChannelSkills" class="docinPop nav-skills navChannel">
+					<div>
+						<table class="docinPopTable">
+							<tbody>
+								<tr>
+									<td class="pop_topleft"></td>
+									<td class="pop_border"></td>
+									<td class="pop_topright"></td>
+								</tr>
+								<tr>
+									<td class="pop_border"></td>
+									<td class="pop_content">
+										<iframe scrolling="no" frameborder="0" style="height:100%;width:100%;position:absolute;top:0;left:0;z-index:-1;"></iframe>		
+										<div class="dialog_content">
+											<span class="popTopArr"></span>
+											<div class="dialog_body">
+												<div class="clear">
+													<ul>
+														<li><a href="http://huiyi.docin.com">会议</a></li>
+														<li><a href="http://www.docin.com/stock/list.do">股票</a></li>
+														<li><a href="http://www.docin.com/medical/index.do">医疗</a></li>
+														<li><a href="http://www.docin.com/cartoon/index.do">漫画</a></li>
+														
+													</ul>
+												</div>
+											</div>
+										</div>
+									</td>
+									<td class="pop_border"></td>
+								</tr>
+								<tr>
+									<td class="pop_bottomleft"></td>
+									<td class="pop_border"></td>
+									<td class="pop_bottomright"></td>
+								</tr>
+							</tbody>		
+						</table>	
+					</div>	
+			</div>
+			<!--smalltype end -->
+			<!-- nav-skills  -->
+			
+			<!-- nav-skills end  -->
+		</div>
+		<!-- nav end -->
+				
+			<div id="search_more" class="forsearweb"><div class="myAlpha">
+				</div><div class="forsearweb-sub"><a title="关闭" class="closeNotice" onclick="javascript:document.getElementById('search_more').style.display='none';" href="javascript:void(0);"></a>
+			<a href="javascript:document.getElementById('searchForm').submit();">您搜索“<b>postgres 同..</b>”到达豆丁网，点击这里搜索更多</a><span class="tips"></span></div></div>
+		
+	</div>
+	<!-- head  end   -->
+</div>
+
+<div id="taskPopBox" class="docinPop" style="display: none"></div>
+<div id="medalOrTaskPopBox" class="docinPop" style="display: none"></div>		
+
+
+
+
+
+
+
+<script type="text/javascript" src="http://pics.wanlibo.com/js/jquery-1.3.min.js?rand=20140504"></script>
+<script type="text/javascript" src="http://pics.wanlibo.com/js/jquery-1.9.0.min.js?rand=201300917"></script>
+<script type="text/javascript">
+if(jQuery_New!=$){
+	var jQuery_New = $.noConflict(true);
+}
+</script>
+<script type="text/javascript" src="http://pics.wanlibo.com/js/common.js?rand=20140504"></script>
+
+
+<style type="text/css">
+	pigBD {}
+	.bdSug_app {display:none;}
+</style>
+<script type="text/javascript">
+	addEV(window,"load",function(){LoadJS("http://www.baidu.com/js/opensug.js",1);})
+</script>
+<!-- 仿微博通知 -->
+
+
+	<script type="text/javascript">
+		 //feedNoticePs(36,10);
+		 feedNoticeFix({top:35});
+	</script>
+
+<script type="text/javascript">
+boxShare("channelMore","navChannelSkills");
+</script>
+<script src="http://pics.wanlibo.com/js/product_end_new.js?rand=20140504"></script>
+<script src="http://pics.wanlibo.com/players/swfobject.js?rand=20140504" ></script>
+
+<div class="wapper clear" id="wapper-end">
+ 
+<div id="end-cramNav" class="grid col-top clear">
+<div class="col-topLeft">
+
+<a class="fcb" onMouseDown="return inpmv(2132);" href="/l-10017-0-0-0-0-1.html">IT计算机</a>&nbsp;&gt;&nbsp;<a class="fcb" onMouseDown="return inpmv(2132);" href="/l-11868-0-0-0-0-1.html">数据库</a>&nbsp;&gt;&nbsp;
+ 
+  <h1>Postgresql通过Slony-I实现数据库同步备份 <a href="#documentinfo" onmousedown="return inpmv(2134);" onclick="closeDimIcon();">详细»</a></h1>
+  </div>
+<!-- 广告位：终极页播放器右上方文字链（搜狗） -->
+<div style="float: right; margin:8px 0 0 0;overflow:hidden; text-decoration: none;line-height:22px;" onMouseDown="return inpmv(3048);" id="doc_end_ad1">
+	<div style="position:relative;top:2px;">
+		<script type="text/javascript">BAIDU_CLB_fillSlot("259494");</script>
+		<b style="color:red;font-size:12px;position:relative;top:-4px;">[广告]</b>
+	</div>
+</div>
+</div>
+<!-- grid -->
+ 
+<div class="grid col-freeDoc clear" id="end" style='display:none;'>
+<span class="rd_tl"></span><span class="rd_tr"></span>
+<div class="freeDoc-box clear">
+<div class="freeDoc-rss"><b class="fs14" >今日免费精品文档 <a href="http://feed.feedsky.com/docin_todayfree" target="_blank" title="" ><img src="http://pics.wanlibo.com/images_cn/freedoc/icon-rss.png"  id="rssmore" alt="订阅"/></a></b><a href="http://t.sina.com.cn/docinfree" title="订阅今日免费精品文档" class="freeDoc-share-sina" onmousedown="return inpmv(2135);" target="_blank"></a></div>
+<div class="freeDoc-time" id="oTime"></div>
+<div class="fs14">原价:<del><span class="fs16" >7.80豆元</span></del></div>
+<div class="freeDoc-btn"><a href="javascript:void(0);" onclick="document.getElementById('player').downloadFile();"  onMouseDown="return inpmv(2135);" title="购买">购买</a><b>0豆元</b></div>
+</div>
+<span class="rd_bl"></span><span class="rd_br"></span>
+</div>
+
+<!-- grid end -->
+	<!--grid-->
+	<div class="grid gridPad clear" id="player-end">
+		
+			<!-- 播放器 -->
+			<div class="doc-player doc-noads-player " id="DocinViewerWapper">
+				<div id="DocinViewer" style="height:100%;width:100%">
+				
+				<span class="loading">播放器加载中，请稍候...</span>
+					
+				
+				</div>
+				<!-- 顶,踩,收藏,转帖一栏-->
+				<div class="grid clear" id="shop-end">
+						
+						<div class="doc-quick-shop clear">
+							<dl style="float:right;margin:2px 0 0 5px;">
+					  			<dt>分享到:</dt>
+					  			<dd>
+									<span id="bdshare" class="bdshare_t bds_tools get-codes-bdshare" onclick="renrenBdShare();" data="{'text':'Postgresql通过Slony-I实现数据库同步备份','desc':'精品：postgresql postgresql下载 java连接postgresql postgresql教程 postgresql操作 postgresql中文文档 postgresql安装 postgresql文档 postgresql手册 postgresql导出数据','comment':'嗯，这个文档不错！'}"><a class="bds_renren share shareRr"></a></span>
+									<span id="bdshare" class="bdshare_t bds_tools get-codes-bdshare" onclick="qqZoneBdShare();" data="{'text':'Postgresql通过Slony-I实现数据库同步备份','comment':'精品：postgresql postgresql下载 java连接postgresql postgresql教程 postgresql操作 postgresql中文文档 postgresql安装 postgresql文档 postgresql手册 postgresql导出数据','desc':'嗯，这个文档不错！'}"><a class="bds_qzone share shareQz"></a></span>
+									<span id="bdshare" class="bdshare_t bds_tools get-codes-bdshare" onclick="sinaWbBdShare();" data="{'text':'Postgresql通过Slony-I实现数据库同步备份'}"><a class="bds_tsina share shareWb"></a></span>
+									<span id="bdshare" class="bdshare_t bds_tools get-codes-bdshare" data="{'text':'Postgresql通过Slony-I实现数据库同步备份'}"  onclick="qqWbBdShare();"><a class="bds_tqq share shareQq"></a></span>
+									<span id="bdshare" class="bdshare_t bds_tools get-codes-bdshare" onclick="qqFdBdShare();" data="{'text':'Postgresql通过Slony-I实现数据库同步备份','desc':'看一下这个：Postgresql通过Slony-I实现数据库同步备份'}">
+									<a class="bds_sqq share shareTxqq"></a></span>
+									<span id="bdshare"  class="bdshare_t bds_tools get-codes-bdshare" onclick="kaixinBdShare();" data="{'text':'Postgresql通过Slony-I实现数据库同步备份'}"><a class="bds_kaixin001 share shareKx"></a></span>
+								 <a onMouseDown="return inpmv(2147);" href="javascript:openShare(652579453);" class="share shareDocin" title="更多分享方式">更多分享方式</a>
+				 				</dd>
+							</dl>
+							<ul>
+								
+									
+									
+						 				<li class="btnTop" ><a onMouseDown="return inpmv(2144);" href="javascript:setTop(652579453,1);" title="顶" ><em><span id="showTop"></span>顶 <b id="showlab">0</b></em></a></li>
+									
+								
+								<li class="btnHit"><a onMouseDown="return inpmv(2145);" href="javascript:setStepon(652579453,1);" id="stepon" title="踩"><em><span></span>踩<b id="steponlab">0</b></em></a></li>
+			
+				 				
+					 				<!--  
+					 				<li class="btnIphone"><a href="javascript:void(0);" onclick="document.getElementById('player').syncIphone();" title="" ><em><span></span>加入iPhone</em></a></li>
+				 					-->
+				 				
+					 			<li class="btnAdd"><a href="javascript:void(0);" onMouseDown="return inpmv(2148);" title="" onclick="insertDoclist(652579453);" ><em><span></span>加入豆单</em></a></li>
+				 				<li class="btnReport"><a onMouseDown="return inpmv(2149);" href="javascript:void(0);" id="feekback1" title="举报" ><em><span></span>举报</em></a></li>
+								<li class="dimCode"><a href="javascript:void(0);" id="feekDimcCode" title="扫扫二维码，用手机观看" ><em><span></span>手机观看<i class="drophandle"></i></em></a></li>
+							</ul>							
+				 			 
+						</div>
+						
+				</div>
+				<ul id="small-flash" class="indent-flash display-n" ><li><a title="缩小" onMouseDown="return inpmv(2157);" href="javascript:showEndFlash();"></a></li></ul>
+				<ul id="big-flash" class="indent-flash indent-flashTips" ><li><a title="放大" onMouseDown="return inpmv(2157);" href="javascript:hideEndFlash();"></a></li></ul>
+				<!-- 顶,踩,收藏,转帖一栏 end-->					
+				<div class="doc-playerAd" id="doc-playerAd">
+			    <!-- 播放器浮窗 -->
+			    
+		   	 		<!-- 
+		    		<script type="text/javascript">BAIDU_CLB_fillSlot("307508");</script>
+		    		 -->
+		    	
+				</div>
+				<!-- 广告位：终极页播放器文字链-->
+				<div style="line-height: 22px;position: absolute; left: 0pt; width:44%;margin:1px 37%;*margin:2px 37%;text-align: left; bottom: 3px;_bottom: 30px;  height: 24px;" id="sg2">
+					<script type="text/javascript">BAIDU_CLB_fillSlot("360672");</script>
+				</div>
+			   
+			   <!--  
+			   <script type="text/javascript">BAIDU_CLB_fillSlot("277063");</script>
+			   -->
+			   		
+				   			
+					   				<script type="text/javascript">BAIDU_CLB_fillSlot("259515");</script>
+					   				<script type="text/javascript">BAIDU_CLB_fillSlot("503930");</script>
+					   				<script type="text/javascript">BAIDU_CLB_fillSlot("280850");</script>
+				   			
+			  
+ <!-- 跳过广告弹层开始 -->
+	
+		<div id="docVipMask" style="display: none;position:absolute;top:0;left:0;width:100%;height:100%;background-color:#000;opacity:0.4;filter:alpha(opacity:40);z-index:99;"></div>
+		<div id="docVipOpen" style="display: none; position: absolute; left: 50%; top: 30px; margin: 0 0 0 -200px;"
+			class="docinPop">
+		
+			<div>
+				<table class="docinPopTable">
+					<tbody>
+						<tr>
+							<td class="pop_topleft"></td>
+							<td class="pop_border"></td>
+							<td class="pop_topright"></td>
+						</tr>
+						<tr>
+							<td class="pop_border"></td>
+							<td class="pop_content">
+								<iframe scrolling="no" frameborder="0"
+									style="height: 100%; _height: 145px; width: 100%; position: absolute; top: 0; left: 0; z-index: -1; filter: ( opacity = 0 ); background: none;"></iframe>
+								<div id="alertBody" class="dialog_content"
+									style="padding: 10px 15px;">
+									<h3 class="dialog_title">
+										想跳过广告？请开通VIP
+										<a href="javascript:hiddenJumpAdv()" title="关闭" class="dialog_closed" onMouseDown="return inpmv(4373);"><img
+												src="http://pics.wanlibo.com/images_cn/newDocin/popClose.gif"
+												alt="关闭">
+										</a>
+									</h3>
+									<div class="dialog_body">
+										<div class="showContent">
+											<p>
+												亲爱的豆丁网友(IP:49.5.1.*) 
+											</p>
+											<p class="sperateLine gy">
+												你还未开通VIP，开通后即可尊享去广告等特权（含iPad和手机端VIP特权）。选择以下任一方式即可开通：
+											</p>
+											<p class="textCenter">
+												一次充值100元可
+												<span class="fwb">免费获赠</span>1个月VIP会籍
+												<br />
+												（200元可获赠2个月，以此类推，
+												<a href="/helpcenter/getProblem.do?pid=96" target="_blank" title="了解详情" onMouseDown="return inpmv(4368);">了解详情</a>）
+											</p>
+											<div class="rechargeBtn sperateLine">
+												<a class="btn_blue" title="立即充值获赠VIP会籍" href="javascript:to_jump_ad_fin(652579453);"  id="to_jump_ad_fin" onMouseDown="return inpmv(4369);">立即充值获赠VIP会籍</a>
+												<span class="or">or</span>
+											</div>
+											<p class="textCenter">
+												也可以
+												<span class="fwb">直接购买</span>VIP会籍
+											</p>
+												<div class="vipSelect">
+													<label>
+														<span class="">￥10</span>
+														<input checked="checked" value="1" type="radio" name="vip" onMouseDown="return inpmv(4370);" />
+														1个月VIP
+													</label>
+													<label>
+														<span class="">￥20</span>
+														<input type="radio" value="3" name="vip" onMouseDown="return inpmv(4371);" />
+														3个月VIP
+													</label>
+													<label>
+														<span class="">￥30</span>
+														<input type="radio" value="6" name="vip" onMouseDown="return inpmv(4372);" />
+														6个月VIP
+													</label>
+												</div>
+											<form action="/jsp_cn/my/fin/jump_adv/jump_adv_sale.jsp" id="sale_adv_form">
+												<input type="hidden" id="vip_type" name="vip_type" value="1"/>
+												<input type="hidden" id="jump_product" name="jump_product" value="652579453" />
+												<div class="rechargeBtn">
+												 	<p class="fwb fch">提示: 此按钮并非购买下载文档，只能开通VIP会籍</p>
+													<a class="btn_org" title="直接购买VIP会籍" href="javascript:saleJump()">直接购买VIP会籍</a>
+												</div>
+											</form>
+										</div>
+									</div>
+								</div>
+							</td>
+							<td class="pop_border"></td>
+						</tr>
+						<tr>
+							<td class="pop_bottomleft"></td>
+							<td class="pop_border"></td>
+							<td class="pop_bottomright"></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+<script type="text/javascript">
+	var if_show_jump = false;
+	
+		if_show_jump = true;
+	
+</script>
+<!-- 跳过广告弹层结束 -->
+			</div> 
+			<!-- 播放器 end-->
+			
+		
+		
+			<!-- 包含两个按钮,相关文档,豆单的div -->
+			<div id="colRight" class="col-right" style="display: ;">
+			<!--doc-player end-->
+			
+				<div class="colSide-ad" id="downdiv">
+				
+					<a href="javascript:void(0);" onMouseDown="return inpmv(2152);" onClick="document.getElementById('player').downloadFile();" title=""><img src="http://pics.wanlibo.com/images_cn/news/pic198643.jpg" alt="下载文档" /></a>
+				
+				<!-- 收藏到书房 -->
+				
+							<a id="collectHref" title="" href="javascript:document.getElementById('player').favouriteDoc();" onMouseDown="return inpmv(3138);"><img id="collectImg" alt="收藏文档" src="http://pics.wanlibo.com/images_cn/news/pic-addFav.png" style="float:none;margin:10px auto 0;"></a>
+											
+				<!-- 收藏到书房 end-->				
+	  			</div>
+  			
+		<!--doc-related-->
+		<div class="doc-related  doc-mark" id="sider_relative" style="border:none;">
+		
+			
+		</div>
+		</div>
+		<!-- 包含两个按钮,相关文档,豆单的div end-->
+		
+		
+			
+		<!--doc-related-->
+	</div>
+	<!-- grid end-->
+	<!--doc-user-->
+		
+		 
+		 <div class="grid clear" id="luceneDiv">
+		 
+		 
+		</div>
+		
+	
+		<!--doc-user end-->
+
+<script type="text/javascript" language="JavaScript">
+function detechFlash(){
+function flashChecker()
+{
+var hasFlash=0;         //是否安装了flash
+var flashVersion=0; //flash版本
+var isIE=/*@cc_on!@*/0;      //是否IE浏览器
+
+if(isIE)
+{
+var swf = new ActiveXObject('ShockwaveFlash.ShockwaveFlash'); 
+if(swf) {
+hasFlash=1;
+VSwf=swf.GetVariable("$version");
+flashVersion=parseInt(VSwf.split(" ")[1].split(",")[0]); 
+}
+}else{
+if (navigator.plugins && navigator.plugins.length > 0)
+{
+var swf=navigator.plugins["Shockwave Flash"];
+    if (swf)
+     {
+hasFlash=1;
+        var words = swf.description.split(" ");
+        for (var i = 0; i < words.length; ++i)
+{
+            if (isNaN(parseInt(words[i]))) continue;
+            flashVersion = parseInt(words[i]);
+}
+    }
+}
+}
+return {f:hasFlash,v:flashVersion};
+}
+
+var fls=flashChecker();
+var s="";
+if(!fls.f){document.getElementById('DocinViewer').innerHTML='<div style="text-align: center; padding: 200px 0pt;"><h4 style="line-height: 30px;">您需要升级或者安装最新的flash播放器才能正常查看文档。</h4><p><a target="_blank" href="http://www.adobe.com/cn/products/flashplayer/" id="downloadflash"><img  src="http://pics.wanlibo.com/images_cn/news/getflashPlayer.png" /></a></p></div>'; }
+}
+detechFlash();
+
+
+		
+		var playcontent = {"converSuccess":[30],"downloadPrice":[7.8],"autherId":[77437937],"pdtType":["doc"],"onlinePrice":[0],"bookMarkId":[0],"initLoadCtrl":[true],"pdtState":[0],"keyWord":[null],"pageNum":[1],"autherNickName":["wangbinno111"],"sharetime":["2013-05-14 19:05:47"],"pdtTitle":["Postgresql通过Slony-I实现数据库同步备份"],"pdtSize":[""],"pdtFreeDown":[false],"bookMark":[0],"errorCode":[0],"pdtDescription":["精品：postgresql postgresql下载 java连接postgresql postgresql教程 postgresql操作 postgresql中文文档 postgresql安装 postgresql文档 postgresql手册 postgresql导出数据"],"wrongType":[-4],"onlinePage":[0],"auditLevel":[1],"autherName":["wangbinno111"],"pcatid":["5"]};
+		function returnJson(){
+			return playcontent;
+		}
+		function addShareNum(){
+		   inpmv(3196);
+		}
+		function addActivityTask(){
+		   inpmv(3978);
+		}
+		function addGoPaid(){
+		   inpmv(3995);
+		}
+		function isBuyProduct(){
+			return "0";
+		}
+		function addPlayerListRead(){
+		   inpmv(4271);
+		}
+		function addPlayerPointRead(){
+		   inpmv(4272);
+		}
+		function addPlayerUploadDoc(){
+		   inpmv(4273);
+		}
+		function addPlayerDocInfo(){
+		   inpmv(4274);
+		}
+		function addPlayerAbout(){
+		   inpmv(4275);
+		}
+		function addPlayerMark(){
+		   inpmv(4276);
+		}
+		function addPlayerFangDaJing(){
+		   inpmv(4277);
+		}
+		function addPlayerFangDa(){
+		   inpmv(4278);
+		}
+		function addPlayerSuoXiao(){
+		   inpmv(4279);
+		}
+		function addPlayerPrePage(){
+		   inpmv(4280);
+		}
+		function addPlayerNextPage(){
+		   inpmv(4281);
+		}
+		function addPlayerSuoLue(){
+		   inpmv(4282);
+		}
+		function addPlayerSouSuo(){
+		   inpmv(4283);
+		}
+		function addPlayerQuanPing(){
+		   inpmv(4284);
+		}
+		function addPlayerXiangGuan(){
+		   inpmv(4285);
+		}
+		function addPlayerZhuanTie(){
+		   inpmv(4286);
+		}
+		function addPlayerShouCang(){
+		   inpmv(4287);
+		}
+		function addPlayerXiaZai(){
+		   inpmv(4288);
+		}
+		
+		
+		var fo = new SWFObject("http://pics.wanlibo.com/players/DocinViewer.swf?rand=20140429", "player", "100%", "100%", "9.0.16.0");
+		
+		fo.addVariable("productId",652579453);
+		fo.addVariable("channel",0);
+		fo.addVariable("loadurl" , "docin.oss.aliyuncs.com");
+		
+		fo.addVariable("aid" , "5");
+
+		//页间1  docin-yejian   id：1134  sg1
+		//页间2  docin-yejian2  id：1150  sg4
+		//页间3  docin-yejian3  id：1169  sg3
+		
+		// 页间1
+		
+			fo.addVariable("sgid1" ,1);
+		
+		
+		// 页间2
+		
+		fo.addVariable("sgid4" , 4);
+		
+		// 页间3
+		
+		fo.addVariable("sgid3" ,3);
+		
+		
+		fo.addParam("align","middle");
+		fo.addParam("quality","high");
+		fo.addParam("allowScriptAccess","always");
+		fo.addParam("allowFullScreen","true");
+		fo.addParam("wmode","transparent");
+		
+		
+		fo.useExpressInstall('http://pics.wanlibo.com/players/expressinstall.swf');
+		fo.write("DocinViewer");
+	
+</script>
+	<!--grid-->
+	<div class="grid clear" id="commonts-end">
+		<div class="endLongPic" id="doc_end_ad2">
+		 <script type="text/javascript">BAIDU_CLB_fillSlot("230398");</script>
+		</div>
+		<div class="side-column">
+		<div class="doc-info clear doc-noads-info" id="documentinfo">
+			<!--doc-info-l-->
+			<div class="doc-info-l clear doc-info-lTips">
+<dl class="clear">
+					<dt>
+					<a onMouseDown="return inpmv(4380);" href="http://www.docin.com/wangbinno111" target="_blank" title="wangbinno111">
+				     				<img width="65" height="65" src="http://img2.vonibo.com/docin_u_77437937_80x80.gif" alt="wangbinno111">
+				     </a>
+					</dt>
+					<dd><ul class="userinfo userinfo-tips">
+                        <li >
+                         <a onMouseDown="return inpmv(4381);" target="_blank" title="wangbinno111" href="http://www.docin.com/wangbinno111" class="fs14" >wangbinno111</a></li>
+                    	</ul>
+						<ul class="userinfo my-level">
+                   	
+	
+	
+                        <li >分享于&nbsp;<em>2013-05-14 19:05</em></li>
+                    </ul></dd>
+				</dl>
+	        
+				
+				<p class="mtb-1015"><a name="download_a" id="download_a" onClick="document.getElementById('player').downloadFile();scrollMove();" onMouseDown="return inpmv(2152);"  href="javascript:void(0);"><img alt="下载文档" src="http://pics.wanlibo.com/images_cn/news/icon-down.gif"></a></p>
+				
+				<h4>文档数据</h4>
+				<ul class="clear">
+					<li class="hot">热度:<span class='viewhot3'></span></li>
+					<li class="d1">浏览:<span>21</span></li>
+					<li class="d2">评论:<span>0</span></li>
+					<li class="d3"><a href="javascript:setTop(652579453,1);" >顶　</a><span class="t"></span>:<span id="span_top_down">0</span></li>
+					<li class="d4"><a  onClick="document.getElementById('player').favouriteDoc();" href="#" >收藏</a>:<span name="favorate_count" id="favorate_count">2</span></li>
+				</ul>
+			</div>
+			<!--doc-info-l end-->
+			<!--doc-info-r-->
+			<div class="doc-info-r doc-noads-info-r">
+				<h4><a onMouseDown="return inpmv(2161);" href="javascript:void(0);" id="feekback2">举报</a>文档介绍</h4>
+					
+				<p id="descTemp">
+					精品：postgresql postgresql下载 java连接postgresql postgresql教程 postgresql操作 postgresql中文文档&#46;&#46;
+					
+						<a onMouseDown="return inpmv(2161);" href="javascript:void(0);" class="all" onClick="showDesc()">全部>></a>
+					
+				</p>
+				<p id="descAll" style="display:none">
+					精品：postgresql postgresql下载 java连接postgresql postgresql教程 postgresql操作 postgresql中文文档 postgresql安装 postgresql文档 postgresql手册 postgresql导出数据
+					<a onMouseDown="return inpmv(2161);" href="javascript:void(0);" class="all" onClick="showTemp()">还原>></a>
+				</p>
+				<div class="clear">
+				<dl class="docInfoRight-l">
+					<dt>文档分类</dt>
+					<dd>
+						
+							<a onMouseDown="return inpmv(4377);" href="/l-10017-0-0-0-0-1.html" >IT计算机</a>&nbsp;--&nbsp;
+							<a onMouseDown="return inpmv(4378);" href="/l-11868-0-0-0-0-1.html" >数据库</a>
+						
+					</dd>
+				</dl>
+				<dl class="docInfoRight-l">
+					<dt>文档格式</dt>
+					<dd class="doc-mark"><em class="doc"></em>
+					.doc
+					</dd>
+				</dl>
+				
+				
+				</div>
+			 <ul class="docInfo-task clear" ><li ><a onMouseDown="return inpmv(2161);" href="#" title="" target="_blank" style="display:none">我来整理</a></li></ul>
+			</div>
+			<!--doc-info-r end-->
+		</div>
+		<div class="ad-column clear" id="baiduLoad" >
+			<script type="text/javascript">BAIDU_CLB_fillSlot("259496");</script>
+		</div>
+		<div id="a5"></div>
+		<div class="ad-column" id="doc_end_ad3">
+			<script type="text/javascript">BAIDU_CLB_fillSlot("259504");</script>
+		</div> 
+		
+ 	<div class="colSide-help clear">如要提出意见建议，请到<a href="http://shequ.docin.com/app/shequ/themeList?fid=6" target="_blank">社区论坛</a>发帖反馈。</div>
+		<!--ad-column end-->
+		</div>
+<!--commonts-->
+		<div class="commonts">
+		<h4>评论</h4>
+		<div style="display:none">
+		<input type="hidden" id="productId" name="productId" value="652579453"/>
+		<input type="hidden" value="0" id="messageCount" name="messageCount"/>
+		<input type="hidden" id="ajaxReMessageId" name="ajaxReMessageId" />
+		<input type="hidden" id="msgcpage" name="msgcpage" value="1" />
+		<input type="hidden" id="ismy" name="ismy" value="0" />
+		<input type="hidden" id="total" name="total" value="0" />
+		<input type="hidden" id="userIp" name="userIp" value="49.5.1.198" />
+		</div>
+		
+				<div id="checkCodeDiv" name="checkCodeDiv" class="validator fordocinend"  style="display:none;"><strong >校验码:</strong>&nbsp;<input type="text" id="checkout" name="checkout" /><img id="regimg" name="regimg" alt=""/>请输入左侧字符，<a href="javascript:refCode('regimg');">看不清楚,换张图片</a></div>
+		
+		<div class="commonts-sub">
+			<textarea onBlur="if(!this.value){showTextareaImp();}else{return false;}" onFocus="hiddenTextareaImp();showCheckCode();" name="message" id="message" onKeyDown="if(event.ctrlKey&amp;&amp;event.keyCode==13)insertUserMessage(1);"></textarea>
+			<div id="textarea_imp" class="commonts-skills" onclick="hiddenTextareaImp();showCheckCode();document.getElementById('message').focus();">评论的时候，请遵纪守法并注意语言文明，多给文档分享人一些支持。</div>
+			<div class="commonts-submit"><input type="button" id="insertMessageBtn" onClick="insertUserMessage(1);" class="dBtn-btn dBtn-blue" title="提交评论" value="提交评论"><span>Ctrl+Enter快速提交</span></div>
+			<div id="showMsgContent">
+				评论加载中
+			</div>
+		</div>
+		</div>
+		<!--commonts end-->		
+	</div>
+	<!--grid end-->
+</div>
+<div id="jquerydiv"></div>
+<!--举报-->
+<div id="feekBackDiv" style="display:none;" class="docinPop lightTips">
+	<div>
+		<table class="docinPopTable">
+			<tbody>
+			<tr>
+				<td class="pop_topleft"></td>
+				<td class="pop_border"></td>
+				<td class="pop_topright"></td>
+			</tr>
+			<tr>
+				<td class="pop_border"></td>
+				<td class="pop_content">
+					<iframe scrolling="no" frameborder="0" style="height:100%;width:100%;position:absolute;top:0;left:0;z-index:-1;"></iframe>
+					<div class="dialog_content">
+						<h3 class="dialog_title" style="height:18px;">
+							<a class="dialog_closed" title="关闭" href="javascript:hiddenFeekback();"><img alt="关闭" src="http://pics.wanlibo.com/images_cn/newDocin/popClose.gif"></a>
+						</h3>
+						<div class="dialog_body">
+							<div id="reportMessageDiv" style="display: none;">
+								<p><label for="error1"><input type="radio" onclick="javascript:changeRadio();" value="举报该文档含有违规或不良信息。" name="error" id="error1">举报该文档含有违规或不良信息。</label></p>
+								<p><label for="error4"><input type="radio" onclick="javascript:changeRadio();" value="反馈该文档无法正常浏览。" name="error" id="error4">反馈该文档无法正常浏览。</label></p>
+								<p><label for="error2"><input type="radio" onclick="javascript:changeRadio();" id="error2" name="error" value="举报该文档为重复文档。">举报该文档为重复文档。</label></p>
+								<p id="repeatproduct" class="tips-url" style="display:none"><input id="purl" onblur="if(this.value=='') {this.value='输入与之重复的另一篇文档URL地址';this.className='txt';}" onfocus="if(this.value=='输入与之重复的另一篇文档URL地址') this.value='';this.className='txt-on';" type="text" value="输入与之重复的另一篇文档URL地址" class="txt"> (必填)<br/><span id="subTip">例: http://www.docin.com/p-44907311.html</span></p>
+								<p><textarea id="error3" class="marT15" ></textarea></p>
+								<p class="marT5" style="text-align:center;" >
+									<input type="button" value="提交" onClick="javascript:sendFeekBack(652579453);" class="docinCubeBt">
+									<input type="button" value="取消" onClick="javascript:hiddenFeekback();" class="docinCubeBt docinCubebtGray">
+								</p>
+							 </div>
+							 <div id="recommendedMessageDiv" style="display: none;">
+								<p><label for="recommendMessage">推荐理由：</label></p>
+								<p><textarea id="recommendMessage" name="recommendMessage" class="marT15" ></textarea></p>
+								<p class="marT5" style="text-align:center;" >
+									<input class="docinCubeBt" type="button" id="insertRecommendMessageBtn" value="提交" onClick="javascript:recommendProduct_zhf(1);">
+									<input type="button" value="取消" onClick="javascript:hiddenFeekback();" class="docinCubeBt docinCubebtGray">
+								</p>
+							</div>
+						</div>
+					</div>
+				</td>
+				<td class="pop_border"></td>
+			</tr>
+			<tr>
+				<td class="pop_bottomleft"></td>
+				<td class="pop_border"></td>
+				<td class="pop_bottomright"></td>
+			</tr>
+			</tbody>		
+		</table>
+	</div>
+</div>
+<!--举报-->
+<!--二维码弹层-->
+<div id="dimCodeDiv" class="docinPop dimCodeDiv" >
+	<div>
+			<table class="docinPopTable">
+				<tbody>
+				<tr>
+				<td class="pop_topleft"></td>
+				<td class="pop_border"></td>
+				<td class="pop_topright"></td>
+				</tr>
+				<tr>
+				<td class="pop_border"></td>
+				<td class="pop_content">
+				<iframe scrolling="no" frameborder="0" style="height:100%;width:100%;position:absolute;top:0;left:0;z-index:-1;"></iframe>
+				<div class="dialog_content">
+						<h3 class="dialog_title">
+						扫扫二维码，随身浏览文档
+						<a class="dialog_closed" title="关闭" href="javascript:closeDimDiv();">
+						<img alt="关闭" src="http://pics.wanlibo.com/images_cn/newDocin/popClose.gif"></a>
+						</h3>
+						<div class="dialog_body clear">
+							<div class="dimcodeIntro">
+								<p class="fcqh mar5">手机或平板扫扫即可继续访问</p>
+								<h4>Postgresql通过Slony-I实现数据库同步备份</h4>
+								<p class="dimcode-info mar5"><span class="fcr">*</span><span class="fcqh">需二维码识别软件支持。</span><a target="_blank" href="http://baike.baidu.com/view/132241.html">什么是二维码？</a></p>
+							</div>
+							<div class="dimcode_pic">
+								<img id="dimcode_pic" width="135" height="135" alt="获取二维码" title="获取二维码">
+								<i id="dimcode_docin_icon" class="ico_docin_dimcode" style="display: none;"></i>
+							</div>
+						</div>					
+					</div>
+					</td>
+					<td class="pop_border">
+				</td></tr>
+				<tr><td class="pop_bottomleft"></td>
+				<td class="pop_border"></td>
+				<td class="pop_bottomright"></td>
+				</tr>
+
+				</tbody>		
+			</table>
+		</div>
+</div>
+<!--二维码弹层 end-->
+
+<!-- 购买豆丁VIP -->
+
+
+
+
+		
+
+<div id="beDocinVip" style="width:470px;display:none;" class="docinPop">
+	<div>
+		<table class="docinPopTable">
+		<tbody>
+			<tr>
+				<td class="pop_topleft"></td>
+				<td class="pop_border"></td>
+				<td class="pop_topright"></td>
+			</tr>
+			<tr>
+				<td class="pop_border"></td>
+				<td class="pop_content">
+					<iframe scrolling="no" frameborder="0" style="height:100%;_height:145px;width:100%;position:absolute;top:0;left:0;z-index:-1;filter:(opacity=0);background:none;"></iframe>
+					<div id="alertBody" class="dialog_content">
+						<h3 class="dialog_title">豆丁提示:<a id="closeVipDiv" href="javascript:document.getElementById('beDocinVip').style.display='none';void(0);" title="关闭" class="dialog_closed"><img src="http://pics.wanlibo.com/images_cn/newDocin/popClose.gif" alt="关闭"></a></h3>
+						<div style="font-size:14px;padding:5px 0;text-align:center;" class="dialog_body">
+							<span style="display:inline-block;margin: 0 auto;text-align:left;">恭喜您，已经成为豆丁VIP。</span>
+							<p class="fch" style="font-size:12px;padding:10px 0 0 0;">
+								<label><input type="checkbox" id="agree" checked="checked" style="vertical-align:middle;"> 同意豆丁网自动续费协议</label>
+							</p>
+							<p style="padding:20px 0 0 0;">
+								<a class="dBtn-btn dBtn-blue" title="设置会员自动续费" href="javascript:setAutoPay()" style="margin:0 10px 0 0;">设置会员自动续费</a>
+								<a id="cancelBeVip" class="dBtn-btn dBtn-gray" title="取消" href="javascript:void 0;">取消</a>
+							</p>
+							<p class="fch" style="font-size:12px;padding:10px 0 0 0;">
+								<img src="http://pics.wanlibo.com/images_cn/icon-tip.png" alt="" style="vertical-align:middle;" />
+								自动续费功能，是为会员提供的一种按月扣款的续费服务，您只需点击设置自动续费按钮，即可开启服务。
+							</p>
+						</div>
+					</div>
+				</td>
+				<td class="pop_border"></td>
+			</tr>
+			<tr>
+				<td class="pop_bottomleft"></td>
+				<td class="pop_border"></td>
+				<td class="pop_bottomright"></td>
+			</tr>
+		</tbody>
+		</table>
+	</div>
+</div>
+
+
+
+<div id="bindPhone" style="width:450px;display:none;" class="docinPop" >
+	<div>
+		<table class="docinPopTable">
+		<tbody>
+			<tr>
+				<td class="pop_topleft"></td>
+				<td class="pop_border"></td>
+				<td class="pop_topright"></td>
+			</tr>
+			<tr>
+				<td class="pop_border"></td>
+				<td class="pop_content">
+					<iframe scrolling="no" frameborder="0" style="height:100%;_height:145px;width:100%;position:absolute;top:0;left:0;z-index:-1;filter:(opacity=0);background:none;"></iframe>
+					<div id="alertBody" class="dialog_content">
+						<h3 class="dialog_title">豆丁提示:<a href="javascript:closeBindPhone();" title="关闭" class="dialog_closed"><img src="http://pics.wanlibo.com/images_cn/newDocin/popClose.gif" alt="关闭"></a></h3>
+						<div style="font-size:14px;padding:5px 0;text-align:center;" class="dialog_body">
+							<div style="float:left;border:1px #FDDDAE solid;background:#FEFAF1;color:#333;padding:8px;" id="taskSmallTips">
+							<img src="http://pics.wanlibo.com/images_cn/recharge/icon_atten2.jpg" style="vertical-align:middle;">
+							温馨提示：为了您的财产安全，请进行手机绑定。
+							</div>
+							<style type="text/css">
+								.phoneItem{padding:10px 0 0 0;}
+								.phoneItem dt,.phoneItem dd{float:left;line-height:36px;}
+								.phoneItem dt{width:60px;text-align:right;}
+								.phoneItem dd{width:300px;text-align:left;}
+								.phoneItem .input_text2{height:20px;line-height:20px;padding: 4px 5px;width:180px;color:#999;font-size:14px;}
+								.valiTips{height:30px;background:url(http://pics.wanlibo.com/images_cn/registration/reg_icon_cw.gif) 0 center no-repeat;line-height:30px;padding-left:24px;color:#ff0000;visibility:hidden;}
+							</style>
+							<dl class="phoneItem clear">
+								<dt>手机号：</dt>
+								<dd>
+									<input type="text" id="phoneNumber" name="smscode" class="input_text2" value="请输入您的手机号"> 
+								 	<div id="valiTips" class="valiTips">
+									</div>
+								</dd>
+							</dl>
+						</div>
+						<div class="dialog_buttons">
+							<input type="button" onclick = "checkPhoneNumber();" value="确定" class="docinCubeBt" />
+						</div>
+					</div>
+				</td>
+				<td class="pop_border"></td>
+			</tr>
+			<tr>
+				<td class="pop_bottomleft"></td>
+				<td class="pop_border"></td>
+				<td class="pop_bottomright"></td>
+			</tr>
+		</tbody>
+		</table>
+	</div>
+</div>
+
+<script type="text/javascript">
+
+//恭喜你成为豆丁vip弹层
+(function(){
+	var oBeDocinVip = jQuery("#beDocinVip"),
+	oCloseBtn = jQuery("#closeVipDiv"),
+	oCanceBtn = jQuery("#cancelBeVip");
+	if(oBeDocinVip.length<0){return;}
+	oCloseBtn.click(function(){
+		oBeDocinVip.hide();//关闭
+	});
+	oCanceBtn.click(function(){
+		oBeDocinVip.hide();//取消
+	});
+	
+})();
+
+
+//手机绑定
+(function(window){
+	var num = jQuery("#phoneNumber");
+	num.focus(function(){
+		jQuery("#valiTips").css({"visibility":"hidden"});
+		if(jQuery(this).val()=="请输入您的手机号"){
+			jQuery(this).val("").css({"color":"#333"});
+		}
+		else{
+			jQuery(this).css({"color":"#333"});
+		}
+	}).blur(function(){
+		if(jQuery(this).val()==""){
+			jQuery(this).val("请输入您的手机号").css({"color":"#999"});
+		}
+	});
+	function checkPhoneNumber(){
+		var reg = /^1[3-8]\d{9}$/;
+		if(num.val()==""||num.val()=="请输入您的手机号"){
+			jQuery("#valiTips").html("手机号不能为空").css({"visibility":"visible"})
+		}
+		else if(reg.test(num.val())){//手机号验证成功
+			jQuery("#valiTips").css({"visibility":"hidden"});
+			closeBindPhone();
+			
+			//保存用户填写的手机号码
+			var url = "/jump_adv/mobileInfoDatabase.do?auto_mobile="+num.val();
+			jQuery.post(url,function(data){
+				if(data == 1){//成功
+					docinAlert('<div style="text-align:center;">恭喜您，支付宝一键支付自动续费功能已开通。下次自动续费时会下发短信通知。</div>');	
+				}else if(data <= 0){//失败
+					docinAlert('<div style="text-align:center;">验证出错了，请联系管理员！</div>');				
+				}
+				
+				
+			});
+		}
+		else{
+			jQuery("#valiTips").html("请输入正确的11位手机号码").css({"visibility":"visible"});	
+		}
+	}
+	function closeBindPhone(f){//0关闭 1显示
+		if(!!!f){//关闭弹层
+			dialogBoxHidden();
+			jQuery("#bindPhone").hide();
+		}
+		else{//显示弹层
+			dialogBoxShadow();
+			setObjCenter("bindPhone");
+		}
+	}
+	
+	window.checkPhoneNumber = checkPhoneNumber;
+	window.closeBindPhone = closeBindPhone;
+})(window);
+
+function setAutoPay(){
+	var oBeDocinVip = jQuery("#beDocinVip");
+	var agree = document.getElementById("agree");
+	if(agree.checked == true){
+		jQuery.post("/jump_adv/isShowMobile.do",function(data){
+			if(data == 1){//需要用户输入手机号码
+				oBeDocinVip.hide();
+				closeBindPhone(1);
+			}else if(data == 0){//不需要手机号
+				oBeDocinVip.hide();
+				var url = "http://www.docin.com/jump_adv/set_sign_alipay.do?f=3&isend=1";
+				jQuery.post(url,function(da){
+					if(da == 1){
+						docinAlert('<div style="text-align:center;">恭喜您，支付宝一键支付自动续费功能已开通。</div>');	
+					}else{
+						docinAlert('<div style="text-align:center;">验证出错了，请联系管理员！</div>');
+					}
+				});
+			}else{
+				oBeDocinVip.hide()
+				docinAlert('<div style="text-align:center;">验证出错了，请联系管理员！</div>');
+			}
+		});
+	}else{
+		docinAlert('<div style="text-align:center;">请选择“同意豆丁网自动续费协议”!</div>');
+	}
+}
+</script>
+
+<!--二维码小黄条-->
+<div id="gotoDimWarp" class="dim_tips">
+	通过二维码转到手机观看
+	<div class="arrow"></div>
+	<a class="closeNotice" onclick="closeGotoDim();" href="javascript:void(0);"></a>
+</div>
+<!--二维码小黄条 end-->
+<!--豆单相关-->
+<!-- mod at 2013-05-06 把豆单相关的弹出层提出 -->
+<!--豆单相关 end--> 
+<!-- 充值优化 -->
+<div id="docinEndRecharge" style="display: block;"></div>
+<!-- 充值优化 -->
+
+<script>
+	var audit_sec = 10;
+	var audit_timeid = 0;
+	var auditType = "";
+	function audit_div(){
+		document.getElementById("audit_div").style.display = "block";
+		document.getElementById("audit_div").style.marginTop = 120+getScrollTop()+"px";
+		if(audit_sec > 0){
+			document.getElementById("audit_span").innerHTML = audit_sec;
+			audit_sec = audit_sec - 1;
+			audit_timeid = window.setTimeout("audit_div()",1000);
+		}else{ 
+		    clearTimeout(audit_timeid);
+		    document.getElementById("audit_div").style.display = "none";
+			audit_sec = 10;
+			if(auditType=="edubbsmain"){
+				document.getElementById("formAdd").submit();
+			}else if(auditType=="edubbsre"){
+				document.getElementById("formRe").submit();
+			}else if(auditType=="groupset"){
+				window.location.reload();
+			}else if(auditType=="groupcreate"){
+				document.forms[0].submit();
+			}else if(auditType=="groupmain"){
+				document.getElementById("talk").submit();
+			}else if(auditType=="regroup"){
+				document.getElementById("reform").submit();
+			}else if(auditType=="updateTalk"){
+				document.getElementById("updatefrom").submit();
+			}
+		}
+	}
+	function audit_close(){
+		clearTimeout(audit_timeid);
+		audit_sec = 10;
+		document.getElementById("audit_div").style.display = "none";
+		if(auditType=="edubbsmain"){
+			document.getElementById("formAdd").submit();
+		}else if(auditType=="edubbsre"){
+			document.getElementById("formRe").submit();
+		}else if(auditType=="groupmain"){
+			document.getElementById("talk").submit();
+		}else if(auditType=="regroup"){
+			document.getElementById("reform").submit();
+		}else if(auditType=="groupset"){
+			window.location.reload();
+		}else if(auditType=="groupcreate"){
+			document.forms[0].submit();
+		}else if(auditType=="updateTalk"){
+				document.getElementById("updatefrom").submit();
+		}
+	}
+	function getScrollTop() {   
+		var scrollPos = 0;    
+		if (typeof window.pageYOffset != 'undefined') {    
+			scrollPos = window.pageYOffset;    
+		}else if (typeof window.document.compatMode != 'undefined' &&    
+			window.document.compatMode != 'BackCompat') {    
+			scrollPos = window.document.documentElement.scrollTop;    
+		}else if (typeof window.document.body != 'undefined') {    
+        	scrollPos = window.document.body.scrollTop;    
+     	}
+     	return scrollPos;   
+ 	}
+</script>
+
+<div id="audit_div" class="docinPop endAudit-skills"  style="top:100px;display:none;">
+	<div>
+		<table class="docinPopTable">
+			<tbody>
+			<tr>
+			<td class="pop_topleft"></td>
+			<td class="pop_border"></td>
+
+			<td class="pop_topright"></td>
+			</tr>
+			<tr>
+			<td class="pop_border"></td>
+			<td class="pop_content">
+			<iframe scrolling="no" frameborder="0" style="height:100%;width:100%;position:absolute;top:0;left:0;z-index:-1;"></iframe>
+			<div class="dialog_content">
+			
+				<h3 class="dialog_title">
+					豆丁提示：
+					<a class="dialog_closed" title="关闭" href="javascript:audit_close();">
+					<img alt="关闭" src="http://pics.wanlibo.com/images_cn/newDocin/popClose.gif"></a>
+					</h3>
+					<div class="dialog_body">
+							<p style="font-size: 14px; line-height: 22px; text-align: center;"><span style="display:inline-block;text-align:left"><strong >您的内容已经提交成功</strong></span></p>
+							<p style="font-size: 12px; line-height: 22px; text-align: center;padding:5px 0"><span style="display:inline-block;text-align:left">您所提交的内容需要审核后才能发布，请您等待！</span></p>
+							<div class="fcr" ><span id="audit_span">3</span>秒自动关闭窗口</div>
+					</div>
+					<div class="dialog_buttons" >
+							<input type="button" onclick="javascript:audit_close();" class="docinCubeBt" value="关闭" />
+					</div>					
+				</div>
+				</td>
+				<td class="pop_border">
+			</td></tr>
+			<tr><td class="pop_bottomleft"></td>
+			<td class="pop_border"></td>
+			<td class="pop_bottomright"></td>
+			</tr>
+
+			</tbody>		
+		</table>
+	</div>
+</div>
+
+
+
+
+<div class="edubox_footer1" id="foot">
+	<div class="fontnr">
+		<a href="http://www.docin.com/about/aboutus.jsp" target="_blank" title="关于我们">关于我们</a> <span>-</span>
+		<a href="http://blog.docin.com" target="_blank" title="豆丁博客">豆丁博客</a> <span>-</span> 
+		<a href="http://www.docin.com/about/doc_qqcl.jsp" target="_blank" title="侵权处理">侵权处理</a> <span>-</span>
+		<a href="http://www.docin.com/about/doc_mzsm.jsp" target="_blank" title="免责声明">免责声明</a> <span>-</span> 
+		<a href="http://www.docin.com/about/doc_ysbg.jsp" target="_blank" title="隐私保护">隐私保护</a> <span>-</span>  
+		<a href="http://www.docin.com/about/doc_wzdt.jsp" target="_blank" title="网站地图">网站地图</a> <span>-</span> 
+		<a href="http://www.docin.com/app/about/mediareport" target="_blank" title="媒体关注">媒体关注</a> <span>-</span>
+		<a href="http://www.docin.com/about/guanggao.jsp" target="_blank" title="广告刊例">广告刊例</a> <span>-</span>
+		<a href="http://www.docin.com/about/doc_jrwm.jsp" target="_blank" title="加入我们">加入我们</a> <span>-</span>
+		<a href="http://www.docin.com/company/index.do" target="_blank" title="合作机构">合作机构</a> <span>-</span> 
+		<a href="http://www.docin.com/about/doc_yqlj.jsp" target="_blank" title="友情链接">友情链接</a> <span>-</span> 
+		<a href="http://www.docin.com/about/doc_lxwm.jsp" target="_blank" title="联系我们">联系我们</a> <span>-</span>
+		<a href="http://www.docin.com/helpcenter/doc_help_xssl.do" target="_blank" title="帮助中心">帮助中心</a> <span>-</span>
+		<a href="http://www.docin.com/helpcenter/toHelpCenter.do" target="_blank" title="常见问题">常见问题</a>
+	</div> 
+	
+  	<div class="fontnr_one fontnr">
+  		 
+  		<span>&copy;2008-2014 DocIn.com Inc. All Rights Reserved 豆丁网</span> 
+  		<a href="http://www.docin.com/about/doc_bqsy.jsp" target="_blank">版权所有</a>
+  		
+  		<span>
+			联系客服QQ：<b>800004241</b>
+		</span>
+  		
+  	</div> 
+</div>
+
+
+
+<script type="text/javascript" src="http://pics.wanlibo.com/js/newDocin/index_zhuce_new.js?rand=20140504"></script>
+<div id="loginwindow"></div>	
+
+
+
+
+
+
+
+<script>
+//flash滚动
+flashMousewhee("DocinViewer","player");
+//前贴片广告关闭
+closePlayerAdAuto();
+//开通VIP
+jQuery(function(){
+	var $aInput=jQuery("input[name='vip']");
+	$aInput.each(function(){
+		if(jQuery(this).is(":checked")){
+			jQuery(this).parent("label").css("color","#669900");
+		}
+	});
+	$aInput.click(function(){
+		$aInput.parent("label").css("color","#333");
+		jQuery(this).parent("label").css("color","#669900");
+	});
+	
+	jQuery("#docVipOpen h3 a").click(function(){
+		jQuery("#docVipOpen").hide();
+	});
+})
+//VIP升级
+function if_show_message(){
+	var flag = getCookie_jump('show_jump_message');
+	if(flag != null && flag == '1'){
+		SetCookie_jump('show_jump_message','0',0);
+		docinAlert("恭喜您，已经成为豆丁VIP。","","");
+	}
+}
+if_show_message();
+//加载评论
+showMessageContent();
+//二维码
+addLoadEvent(loadFun);
+showDimCodeDiv(window);
+//举报弹层
+showFeekback('feekBackDiv','feekback1');
+showFeekback("feekBackDiv","feekback2");	
+showFeekback("feekBackDiv","recommendMessageButtun");
+//
+inser_cookie_ip();
+//统计ID
+_pageId=171;
+var js_pid = 652579453;
+var js_cid=11868;
+_st = 1399604214035;
+var userid_app=null;
+
+//私有文档
+function checkprivatepass(){
+	var val = document.getElementById("privatepass").value;
+	if(val == null || trim(val) == ""){
+		jQuery("#wrong").show();			
+	}else{
+		jQuery.post("/mobile/checkprivatepass.do?id=652579453&val="+val,function(data){
+			if(data == 1){
+				jQuery("#mbPrivCon").hide();
+				jQuery("#mobileFavMes652579453").show();
+			}else{
+				jQuery("#wrong").show();
+			}
+		});
+	}
+}
+//是否填充评论内容
+setMsgContent(652579453);
+window.onunload=function(){
+	document.getElementById('player').unloadDipatchRequest();
+	jQuery("#a5").load("/jsp_cn/oper.jsp?fn=close&pageid=" + _pageId + "&pid=652579453&n=" + _st);
+};
+</script>
+<script src="http://pics.wanlibo.com/js/pp.js?rand=20140504"></script>
+
+<script src="http://pics.wanlibo.com/js/ajaxUtil.js?rand=20140504"></script>
+<script src="http://pics.wanlibo.com/js/pagemodulestat.js?rand=20140504"></script>
+
+
+<!-- 乐知相关文档使用 -->
+<script> 
+	var bshare_recomm_config={
+		sitePrefix:"http://www.docin.com/p-"
+	};
+</script>
+<script charset="utf-8" src="http://lzstatic.bshare.cn/plugin/lz.js#uuid=74331ba5-5e96-4729-a9a5-b0e23d6d9da5"></script>
+
+
+<style>
+.b-recomm-list a{padding-left:20px;}
+.b-recomm-list a.doc {
+background: url('http://cdn1.iconfinder.com/data/icons/fugue/icon_shadowless/document-word-text.png') 0 0px no-repeat;
+}
+
+.b-recomm-list a.word {
+
+background: url('http://static.bshare.cn/frame/images/v2r/icon-display-small.gif') 0 0px no-repeat;
+}
+</style>
+
+<script type="text/javascript">
+function loadBshare(){
+	var recomm = document.getElementById("bShareRecommDiv"), docType = ["p-","d-","t-"], docNum = [4418,4417,4416], docImage = ['word','doc','word'];
+	if(!recomm){return;}
+	recomm.onmousedown = function(ev){
+		var ev, target, url, i;
+		ev = ev || window.event;
+		target = ev.target || ev.srcElement;
+		while(target.tagName != "A"){
+			target = target.parentNode;
+		}
+		url = target.href;
+		url = url.substr(url.indexOf("redirect?to="),url.indexOf(".html"));
+		for(i = 0; i < docType.length; i++){
+			if(url.indexOf(docType[i]) != -1){
+				pmid = docNum[i];
+				if(typeof(pmid)=='undefined' ||pmid==null || pmid==''){
+					return ;
+				}
+				var url='http://www.docin.com/st/stat/controllers/inpmv_c.php';
+				url = 'http://img.docin.com/stat/controllers/inpmv_c.php';	
+				var c_name="cookie_id";
+				var c_value=null;
+				if (document.cookie.length > 0)  
+				{  
+					var begin = document.cookie.indexOf(c_name+"=");  
+					if (begin != -1)      
+					{  
+						begin += c_name.length+1;
+						var end = document.cookie.indexOf(";", begin);
+						if (end == -1) end = document.cookie.length;  
+						c_value = unescape(document.cookie.substring(begin, end));
+					 }  
+				}  
+				c_value = getcookie(c_name);  
+				url=url+'?mid='+pmid+'&cookie_id='+c_value;    
+				d = new Date();
+				if(document.images) {
+					(new Image()).src=url+ "&time=" + d.getTime();
+				}
+				return true;
+			}
+		}
+	}
+	var linkList = recomm.getElementsByTagName("A"), i, j, len = linkList.length, url;
+	for(i = 0; i < len; i++){
+		if(linkList[i].parentNode.className != 'b-recomm-footer'){
+			url = linkList[i].href;
+			//url = url.substr(url.indexOf("redirect?to="),url.indexOf(".html"));
+			for(j = 0; j < docType.length; j++){
+				if(url.indexOf(docType[j]) != -1){
+
+						linkList[i].className = docImage[j];
+					
+					
+					
+				}
+			}
+		}
+	}
+}
+
+function inpv_bshare(){    
+	var url='http://img.docin.com/stat/controllers/inpv_c.php';	
+	var bc_value=getcookie("cookie_id");
+	url=url+'?pid=293&cookie_id='+bc_value;
+	docinclick(url);
+}
+loadBshare();
+
+
+
+</script>
+
+<!-- 乐知相关文档使用 -->
+
+
+
+
+
+
+
+
+
+ 
+ 
+
+	<script type="text/javascript">
+	var d=document,gaJsHost = (("https:" == d.location.protocol) ? "https://ssl." : "http://www.");
+	d.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+	</script>
+	<script type="text/javascript">
+	try {
+		var pageTracker = _gat._getTracker("UA-3158355-1");
+		pageTracker._setDomainName("docin.com");
+		pageTracker._initData();
+	
+	
+	
+	
+		
+		pageTracker._setCustomVar(3, "doc-type", "doc", 3);
+	
+		pageTracker._setCustomVar(2, "player", "old", 3);
+	
+		pageTracker._trackPageview();
+		
+	} catch(err) {}
+	</script>
+	
+
+	
+<script type="text/javascript">
+	var url;
+	
+	url = "/app/jquery/hadoopLog?hadoop_stat_type_id=44&hadoop_stat_uid=0&hadoop_stat_cat_id=11868&hadoop_stat_doc_id=652579453&hadoop_stat_doclist_id=null&ali=1";
+	
+	jQuery.post(url,null,null);
+</script>
+
+<!-- 阿里云 start -->
+<script>
+alivisit('652579453');
+</script>
+<!-- 阿里云 end -->
+
+<!-- Baidu Button BEGIN -->
+<script type="text/javascript">
+var bdshareconfig = {
+	url:window.location.href,
+	to:1,
+	pic:'http://img2.vonibo.com/docin_652579453_110x140.jpg',
+	title:"Postgresql通过Slony-I实现数据库同步备份",
+	desc:"精品：postgresql postgresql下载 java连接postgresql postgresql教程 postgresql操作 postgresql中文文档 postgresql安装 postgresql文档 postgresql手册 postgresql导出数据",
+	comment:"嗯，这个文档不错！"
+};
+</script>
+<script type="text/javascript" id="bdshare_js" data="type=tools" ></script> 
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+document.getElementById('bdshell_js').src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date()/3600000);
+var bds_config = {
+	'wbUid' : '1644855885',
+	'searchPic':'1',
+	'bdPic':'http://img2.vonibo.com/docin_652579453_110x140.jpg',
+	'snsKey':{'tsina':'750339144'}
+};
+</script>
+<!-- Baidu Button END -->
+
+
+<!-- 今日免费倒计时 -->
+<script type="text/javascript">
+
+</script>
+<!-- 今日免费倒计时 end-->
+<script type="text/javascript">
+boxShare("channelMore","navChannelSkills");
+(function(){
+	var vipshowTimer = null;
+	//vip information
+	jQuery(".shop_form .help").hover(function(){
+		clearTimeout(vipshowTimer);
+		var top = jQuery(this).offset().top+20;
+		var left = jQuery(this).offset().left;
+		jQuery(".vipShowTips").css({'left':left,'top':top}).show();
+	},function(){
+		vipshowTimer = setTimeout(function(){jQuery(".vipShowTips").hide();},1000);
+	});
+	
+	jQuery(".vipShowTips").hover(function(){
+		clearTimeout(vipshowTimer);
+	},function(){
+		vipshowTimer = setTimeout(function(){jQuery(".vipShowTips").hide();},1000);
+	});
+})();
+</script>
+<script>
+
+function alipay_init(){
+	if(jQuery("#channel1").length>0){
+		var aInput = jQuery("#channel1 li input[name='quick']");
+		aInput.bind("click",function(){
+			var index = aInput.index(jQuery(this))+1;
+			jQuery("#channel1 li").removeClass("cur");
+			jQuery("#quick" + index).addClass("cur");
+		});
+	}
+}
+
+
+function loadRechargePage(uid,pid){
+	
+}
+</script>
+
+
+<!--未验证邮箱登录 -->
+<div id="emailMention2" class="docinPop subscribeOk">
+	<div>
+		<table class="docinPopTable">
+		<tbody>
+			<tr>
+				<td class="pop_topleft"></td>
+				<td class="pop_border"></td>
+				<td class="pop_topright"></td>
+			</tr>
+			<tr>
+				<td class="pop_border"></td>
+				<td class="pop_content">
+					<iframe scrolling="no" frameborder="0" style="height:100%;_height:160px;width:100%;position:absolute;top:0;left:0;z-index:-1;filter:(opacity=0);background:none;"></iframe>
+					<div id="alertBody" class="dialog_content">
+					<h3 class="dialog_title">请验证你的邮箱，以便接收更新提醒<a href="javascript:void(0);" onclick="closeDiv(2);" title="关闭" class="dialog_closed"><img src="http://pics.wanlibo.com/images_cn/newDocin/popClose.gif" alt="关闭"></a></h3>
+					<div class="dialog_body">
+						<p class="ms">验证邮件已发送到你的邮箱<span id="address1">null</span>，<a href="javascript:void(0);" onclick="goEmail('null');" title="前往邮箱">前往邮箱</a>，立即验证。</p>
+						<p class="ms">邮箱地址 <span id="address2" class="fco fwb">null</span></p>
+						<div class="fch">如果找不到邮件，看看是否在垃圾邮箱或订阅邮箱里，若10分钟内没收到确认信，请[<a href="javascript:sendValidateEmail();" title="重新发送">重新发送</a>]<span id="sendValidateEmailSpan"></span></div>
+					</div>
+					<div class="dialog_buttons">
+					<input type="button" id="immedVerify2" value="确定" class="docinCubeBt"><!--<input type="button" class="docinCubeBt docinCubebtGray" style="margin-left:40px;" value="取消" />-->
+					</div>
+					</div>
+				</td>
+				<td class="pop_border"></td>
+			</tr>
+			<tr>
+				<td class="pop_bottomleft"></td>
+				<td class="pop_border"></td>
+				<td class="pop_bottomright"></td>
+			</tr>
+		</tbody>
+		</table>
+	</div>
+</div>
+<div id="emailMention1" class="docinPop subscribeOk">
+	<div>
+		<table class="docinPopTable">
+		<tbody>
+			<tr>
+				<td class="pop_topleft"></td>
+				<td class="pop_border"></td>
+				<td class="pop_topright"></td>
+			</tr>
+			<tr>
+				<td class="pop_border"></td>
+				<td class="pop_content">
+					<iframe scrolling="no" frameborder="0" style="height:100%;_height:190px;width:100%;position:absolute;top:0;left:0;z-index:-1;filter:(opacity=0);background:none;"></iframe>
+					<div class="dialog_content">
+						<h3 class="dialog_title">感谢你订阅了null <a href="javascript:void(0);" onclick="closeDiv(1);" title="关闭" class="dialog_closed"><img src="http://pics.wanlibo.com/images_cn/newDocin/popClose.gif" alt="关闭"></a></h3>
+						<div class="dialog_body">
+							<p class="ms">你会收到更新提醒邮件，同时订阅null会在首页兴趣标签“null”中显示</p>
+							
+							<p class="ms">邮箱地址 <span class="fco fwb">null</span></p>
+							
+							
+						</div>
+						<div class="dialog_buttons">
+							<input id="immedVerify" type="button" value="确定" class="docinCubeBt">
+						</div>
+					</div>
+				</td>
+				<td class="pop_border"></td>
+			</tr>
+			<tr>
+				<td class="pop_bottomleft"></td>
+				<td class="pop_border"></td>
+				<td class="pop_bottomright"></td>
+			</tr>
+		</tbody>
+		</table>
+	</div>
+</div>
+
+<script type="text/javascript">
+function modifyEmailAdress(){
+		var adressInput = jQuery_New("#loginEmail2"),
+			verifyBtn = jQuery_New("#immedVerify"),
+			verifyBtn2 = jQuery_New("#immedVerify2"),
+			modifyLink = jQuery_New("#modifyLink");
+		if(adressInput.length>0){
+			adressInput.bind("focus",function(){
+				jQuery_New(".placeHolder").css({"color":"#ccc"});
+			});
+			//blur
+			adressInput.bind("blur",function(){
+				var curInput = jQuery_New(this).val();
+				if(curInput==""){
+					jQuery_New(".placeHolder").css({"color":"#666"}).show();
+				}
+			});
+			adressInput.bind("keydown",function(){
+				var curInput = jQuery_New(this).val();
+				if(curInput==""){
+					jQuery_New(".placeHolder").show();
+				}
+				jQuery_New(".placeHolder").hide();
+			});
+		}
+		
+		if(adressInput.length == 0){verifyBtn.bind("click",function(){
+			closeAlertDiv(1);
+		})
+		}
+		
+		if(verifyBtn2.length>0){verifyBtn2.bind("click",function(){
+			closeAlertDiv(2);
+		})
+		}
+		//马上验证
+		if(verifyBtn.length>0){verifyBtn.bind("click",function(){
+			//这里是邮箱验证区
+			if(adressInput.val()==""){
+				sendValidateEmail();
+				closeAlertDiv(1);
+			}
+			else{
+				validateEmail();
+			}
+		});}
+		modifyLink.bind("click",function(){
+			jQuery_New(".modifyEmailAddr").show();
+			if(jQuery_New("#behide").length>0){
+				jQuery_New("#behide").hide();
+				//adressInput.focus();
+			}
+		});
+	}
+	function validateEmail(){//验证邮箱
+			var adressInput = jQuery_New("#loginEmail2");
+			//alert(adressInput.val());
+			if(checkemail(adressInput.val())){
+					//这里是邮箱验证区
+					//jQuery_New("#verifyTips").html("你需要验证邮箱，以接收更新提醒邮件").show();
+					//alert("邮箱格式正确");
+					var loginEmail = jQuery.trim(adressInput.val());
+					var url = "/dwrutil/checkLoginEmail.do?loginEmail=" + encodeURI(loginEmail) + "&rank=" + new Date().getTime();
+					jQuery.get(url,null,function(data){
+						//showCheckLoginEmail2(data);
+						var flag = data == "true";
+						if(flag){
+							//修改邮箱需要发送邮件到新的邮箱中
+							//showCheckLoginEmail2(data);
+							var modSendEmailURL = "/app/my/docin/validate?loginEmail2="+loginEmail;
+							//修改邮箱，并且发送验证到新邮箱
+							jQuery.get(modSendEmailURL,null,function(data){});
+							jQuery_New(".modifyEmailAddr").hide();
+							closeAlertDiv(1);
+						} else {
+							jQuery_New("#verifyTips").html("该邮箱已被注册！").show();
+						}
+					});
+				}
+				else{
+					jQuery_New("#verifyTips").html("邮箱格式不正确").show();
+			}
+	}
+	function checkemail(email){ 
+		var str=email; 
+		var re = /^([a-zA-Z0-9]+[_|\-|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\-|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/; 
+		var objExp=new RegExp(re); 
+		if(objExp.test(str)==true){ 
+			return true; 
+		}
+		return false; 		
+	} 
+function showAlertDiv(id){
+		dialogBoxShadow();
+		setObjCenter("emailMention"+id);
+	}
+function closeDiv(id){
+	dialogBoxHidden();
+	jQuery_New("#emailMention"+id).hide();
+}
+function closeAlertDiv(id){
+	dialogBoxHidden();
+	jQuery_New("#emailMention"+id).hide();
+	if(id == 1){
+		
+	}
+}
+function sendValidateEmail(){//重发邮件
+	var url = "/dwrutil/sendMailAgain.do";
+	jQuery.get(url,null,function(data){});
+}
+modifyEmailAdress();
+</script>
+<script type="text/javascript">
+function goEmail(origEmail){//前往邮箱
+	var loginEmail2 = document.getElementById("loginEmail2").value;
+	var head_eam = "http://mail.";
+	var emailUrl = "";
+	var email = "";
+	var hrefs = "";
+	if(loginEmail2 != null && loginEmail2.indexOf("@") > -1){
+		emailUrl = loginEmail2.substring(loginEmail2.indexOf("@")+1,loginEmail2.length);
+	} else {
+		emailUrl = origEmail;
+	}
+	var indexEmail = emailUrl.indexOf(".");
+    if(indexEmail > 0){
+    		email = emailUrl.substring(0 , indexEmail);
+    }
+	if(email == "hotmail"){
+		head_eam = "http://www.";
+	}
+	hrefs = head_eam + emailUrl;
+	//alert(hrefs);
+	window.open(hrefs);
+}
+</script>
+<script type="text/javascript">
+
+
+</script>
+
+<script type="text/javascript">
+
+(function(){
+	var url = "/app/p/end/ajax/getRightRelativeDocs";
+	var metaKeyWords = jQuery_New("meta[name='keywords']").attr("content");
+	var metaDescription = jQuery_New("meta[name='description']").attr("content");
+	jQuery.post(url,{"metaDescription":metaDescription,"metaKeyWords":metaKeyWords,"id":"652579453","medical_":"null","disease_name":"null"},function(re){
+		//将请求结果放置到相关文档div中
+		jQuery_New("#sider_relative").html(re);
+	});
+})();
+
+
+(function(){
+	var url = "/app/p/end/ajax/getOtherDocs";
+	jQuery.post(url,{"pubInt":"0","productId":"652579453","userId":"77437937","productName":"Postgresql通过Slony-I实现数据库同步备份","userName":"wangbinno111","userLikePsFlag":"0"},function(re){
+		//将请求结果放置到相关文档div中
+		jQuery("#luceneDiv").html(re);
+	});
+})();	
+
+</script>
+
+</body>
+</html>

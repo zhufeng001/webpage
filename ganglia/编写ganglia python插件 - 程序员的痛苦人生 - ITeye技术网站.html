@@ -1,0 +1,396 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-CN" dir="ltr">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>编写ganglia python插件 - 程序员的痛苦人生 - ITeye技术网站</title>
+    <meta name="description" content="ganglia支持python插件，熟悉了架构后编写起来还是比较简单的. 具体安装过程就不说了，各种系统配置不一样，推荐的安装方法也各有不同，这里只记下基本定制插件的写法. ganglia的体系结构=gmetad + gmond, gmetad作为整个系统的调度和展示的控制中心，gmond则分布在每台受监控机器上定期运行各种监控度量(metric) 并将结果送到gmetad.  插件需要写成pyth ..." />
+    <meta name="keywords" content="ganglia, python, gmond, metric 编写ganglia python插件" />
+    <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon" />
+    <link rel="search" type="application/opensearchdescription+xml" href="/open_search.xml" title="ITeye" />
+    <link href="/rss" rel="alternate" title="程序员的痛苦人生" type="application/rss+xml" />
+    <link href="http://www.iteye.com/stylesheets/blog.css?1393920955" media="screen" rel="stylesheet" type="text/css" />
+<link href="http://www.iteye.com/stylesheets/themes/blog/blue.css?1326191326" media="screen" rel="stylesheet" type="text/css" />
+    <script src="http://www.iteye.com/javascripts/application.js?1358214518" type="text/javascript"></script>
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-535605-1']);
+  _gaq.push(['_setDomainName', 'iteye.com']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+
+      <link href="http://www.iteye.com/javascripts/syntaxhighlighter/SyntaxHighlighter.css?1348819953" media="screen" rel="stylesheet" type="text/css" />
+  <script src="http://www.iteye.com/javascripts/syntaxhighlighter/shCoreCommon.js?1325907333" type="text/javascript"></script>
+<script src="http://www.iteye.com/javascripts/hotkey.js?1324994303" type="text/javascript"></script>
+  <script src="http://www.iteye.com/javascripts/code_favorites.js?1358214518" type="text/javascript"></script>
+<script src="http://www.iteye.com/javascripts/weiboshare.js?1324994303" type="text/javascript"></script>
+  </head>
+  <body>
+    <div id="header">
+      <div id="blog_site_nav">
+  <a href="http://www.iteye.com/" class="homepage">首页</a>
+  <a href="http://www.iteye.com/news">资讯</a>
+  <a href="http://www.iteye.com/magazines">精华</a>
+  <a href="http://www.iteye.com/forums">论坛</a>
+  <a href="http://www.iteye.com/ask">问答</a>
+  <a href="http://www.iteye.com/blogs">博客</a>
+  <a href="http://www.iteye.com/blogs/subjects">专栏</a>
+  <a href="http://www.iteye.com/groups">群组</a>
+  <a href="#" onclick="return false;" id="msna"><u>更多</u> <small>▼</small></a>
+  <div class="quick_menu" style="display:none;">
+    <a target="_blank" href="http://job.iteye.com/iteye">招聘</a>
+    <a href="http://www.iteye.com/search">搜索</a>
+  </div>
+</div>
+
+      <div id="user_nav">
+      <a href="/login" class="welcome" title="登录">您还未登录 !</a>
+    <a href="/login">登录</a>
+    <a href="/signup" class="nobg">注册</a>
+  </div>
+
+    </div>
+
+    <div id="page">
+      <div id="branding" class="clearfix">
+        <div id="blog_name">
+          <h1><a href="/">程序员的痛苦人生</a></h1>
+        </div>
+        <div id='fd'></div>
+        <div id="blog_navbar">
+          <ul>
+            <li class='blog_navbar_for'><a href="http://superisaac.iteye.com"><strong>博客</strong></a></li>
+            <li ><a href="/weibo">微博</a></li>
+            <li ><a href="/album">相册</a></li>
+            <li ><a href="/link">收藏</a></li>
+            <li ><a href="/blog/guest_book">留言</a></li>
+            <li ><a href="/blog/profile">关于我</a></li>
+          </ul>
+    
+          <div class="search">
+            <form action="/blog/search" method="get">
+              <input class="search_text" id="query" name="query" style="margin-left: 10px;width: 110px;" type="text" value="" />
+              <input class="submit_search" type="submit" value="" />
+            </form>
+          </div> 
+          <div id="fd"></div>         
+        </div>
+      </div>
+      
+      <div id="content" class="clearfix">
+        <div id="main">
+          
+
+
+
+          
+
+
+<div class="h-entry" style='display:none'>
+  <a href="http://superisaac.iteye.com" class="p-author" target="_blank">superisaac</a>
+</div>
+
+
+<div class="blog_main">
+  <div class="blog_title">
+    <h3>
+      <a href="/blog/1255354">编写ganglia python插件</a>
+      <em class="actions">      </em>
+    </h3>
+    
+        <div class='news_tag'><a href="http://www.iteye.com/blogs/tag/ganglia">ganglia</a><a href="http://www.iteye.com/blogs/tag/python">python</a><a href="http://www.iteye.com/blogs/tag/gmond">gmond</a><a href="http://www.iteye.com/blogs/tag/metric">metric</a>&nbsp;</div>
+  </div>
+
+  <div id="blog_content" class="blog_content">
+    ganglia支持python插件，熟悉了架构后编写起来还是比较简单的. 具体安装过程就不说了，各种系统配置不一样，推荐的安装方法也各有不同，这里只记下基本定制插件的写法.<br /><br />ganglia的体系结构=gmetad + gmond, gmetad作为整个系统的调度和展示的控制中心，gmond则分布在每台受监控机器上定期运行各种监控度量(metric) 并将结果送到gmetad. <br /><br />插件需要写成python module的方式，放置在/usr/lib64/ganglia/python_modules 下面, 简单实例模板如<br /><pre class="python" name="code">
+import random
+def  get_foo_count(name):
+    '''可定制业务方法，返回一个整数值'''
+    return random.randrange(5, 100) + 10
+
+def metric_init(params):
+    '''metric'''
+    global descriptors
+    
+    d1 = {
+        'name': 'foo_count',
+        'call_back': get_foo_count,                  # 名字同业务方法一致
+        'time_max': 90,                                   # 最大调度间隔时间
+        'value_type': 'uint',
+        'units': 'C',
+        'slope': 'both',
+        'format': '%u',
+        'description': 'Number of Foo',
+        'groups': 'foo_group'
+        }
+    descriptors = [d1]
+    return descriptors
+
+def metric_cleanup():
+    "清除metric"
+
+if __name__ == '__main__':
+    metric_init({})
+    for d in descriptors:
+        v = d['call_back'](d['name'])
+        print 'value for %s is %u' % (d['name'], v)
+
+</pre><br /><br />metric_init 是初始化方法，返回本plugin要写的metric描述的列表，　在这只返回一个metric. <br /><br />写完可以在命令行直接测试，如果输出 value for foo_count is 82 这样的结果就表示基本没有问题了。<br /><br />接下来的工作是让gmond知道这里有ganglia插件，在/etc/ganglia/conf.d 目录下写个foo.pyconf　就可以<br /><br /><pre class="java" name="code">
+modules {
+  module {
+    name = "foo"
+    language = "python"
+  }
+}
+
+collection_group {
+  collect_every = 60
+  time_threshold = 60
+  metric {
+    name = "foo_count"
+    title = "Foo Count"
+    value_threshold = 1.0
+  }
+}
+</pre><br /><br />详细资料可以看　http://sourceforge.net/apps/trac/ganglia/wiki/ganglia_gmond_python_modules
+  </div>
+
+  
+
+
+  <IFRAME SRC="/iframe_ggbd/794" SCROLLING=no WIDTH=468 HEIGHT=60 FRAMEBORDER=0></IFRAME>
+  
+  <div id="bottoms" class="clearfix">
+    
+    <div id="share_weibo">分享到：
+      <a data-type='sina' href="javascript:;" title="分享到新浪微博"><img src="/images/sina.jpg"></a>
+      <a data-type='qq' href="javascript:;" title="分享到腾讯微博"><img src="/images/tec.jpg"></a>
+    </div>
+  </div>
+
+  <div class="blog_nav">
+    <div class="pre_next">
+      <a href="/blog/1284195" class="next" title="一小时的极限编程, 关于socket.io">一小时的极限编程, 关于socket.io</a>
+      |
+      <a href="/blog/1254832" class="pre" title="微博API timeline压缩的想法">微博API timeline压缩的想法</a>
+    </div>
+  </div>
+  <div class="blog_bottom">
+    <ul>
+      <li>2011-11-13 18:18</li>
+      <li>浏览 1802</li>
+      <li><a href="#comments">评论(0)</a></li>
+      
+      
+      <li>分类:<a href="http://www.iteye.com/blogs/category/os">操作系统</a></li>      
+      <li class='last'><a href="http://www.iteye.com/wiki/blog/1255354" target="_blank" class="more">相关推荐</a></li>
+    </ul>
+  </div>
+
+  <div class="blog_comment">
+    <h5>评论</h5>
+    <a id="comments" name="comments"></a>
+    
+    
+    
+  </div>
+
+  <div class="blog_comment">
+    <h5>发表评论</h5>
+            <p style="text-align:center; margin-top:30px;margin-bottom:0px;"><a href="/login" style="background-color:white;"> <img src="/images/login_icon.png" style="vertical-align:middle; margin-right: 10px;" /></a><a href="/login">  您还没有登录,请您登录后再发表评论 </a></p>
+      </div>
+</div>
+
+
+<script type="text/javascript">
+  dp.SyntaxHighlighter.HighlightAll('code', true, true);
+
+  $$('#main .blog_content pre[name=code]').each(function(pre, index){ // blog content
+    var post_id = 1255354;
+    var location = window.location;
+    source_url = location.protocol + "//" + location.host + location.pathname + location.search;
+    pre.writeAttribute('codeable_id', post_id);
+    pre.writeAttribute('codeable_type', "Blog");
+    pre.writeAttribute('source_url', source_url);
+    pre.writeAttribute('pre_index', index);
+    pre.writeAttribute('title', '编写ganglia python插件');
+  });
+
+  fix_image_size($$('div.blog_content img'), 700);
+
+  function processComment() {
+    $$('#main .blog_comment > div').each(function(comment){// comment
+      var post_id = comment.id.substr(2);
+      $$("#"+comment.id+" pre[name=code]").each(function(pre, index){
+        var location = window.location;
+        source_url = location.protocol + "//" + location.host + location.pathname + location.search;
+        source_url += "#" + comment.id;
+        pre.writeAttribute('codeable_id', post_id);
+        pre.writeAttribute('codeable_type', "BlogComment");
+        pre.writeAttribute('source_url', source_url);
+        pre.writeAttribute('pre_index', index);
+        pre.writeAttribute('title', '编写ganglia python插件');
+      });
+    });
+  }
+
+  function quote_comment(id) {
+    new Ajax.Request('/editor/quote', {
+      parameters: {'id':id, 'type':'BlogComment'},
+      onSuccess:function(response){editor.bbcode_editor.textarea.insertAfterSelection(response.responseText);
+        Element.scrollTo(editor.bbcode_editor.textarea.element);}
+    });
+  }
+
+  code_favorites_init();
+  processComment();
+  new WeiboShare({share_buttons: $('share_weibo'), img_scope: $('blog_content')});
+</script>
+
+
+
+
+        </div>
+
+        <div id="local">
+          <div class="local_top"></div>
+          <div id="blog_owner">
+  <div id="blog_owner_logo"><a href='http://superisaac.iteye.com'><img alt="superisaac的博客" class="logo" src="http://www.iteye.com/images/user-logo.gif?1324994303" title="superisaac的博客: 程序员的痛苦人生" /></a></div>
+  <div id="blog_owner_name">superisaac</div>
+</div>
+
+          <div id="blog_actions">
+            <ul>
+              <li>浏览: 20108 次</li>
+              <li>性别: <img alt="Icon_minigender_1" src="http://www.iteye.com/images/icon_minigender_1.gif?1324994303" title="男" /></li>
+              <li>来自: 北京</li>
+              <li><img src='/images/status/offline.gif'/></li>
+              
+            </ul>
+          </div>
+          <div id="user_visits" class="clearfix">
+            <h5>最近访客 <span style='font-weight:normal;font-size:12px;padding-left:30px;'><a href="/blog/user_visits">更多访客&gt;&gt;</a></span></h5>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://dylinshi126.iteye.com' target='_blank'><img alt="dylinshi126的博客" class="logo" src="http://www.iteye.com/images/user-logo-thumb.gif?1324994303" title="dylinshi126的博客: " /></a></div>
+                <div class="left"><a href='http://dylinshi126.iteye.com' target='_blank' title='dylinshi126'>dylinshi126</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://diaosimanong.iteye.com' target='_blank'><img alt="屌丝码农的博客" class="logo" src="http://www.iteye.com/upload/logo/user/866036/8ea50bce-5538-3810-9de7-9e2784d6d4f5-thumb.jpg?1373082300" title="屌丝码农的博客: 屌丝的博客" /></a></div>
+                <div class="left"><a href='http://diaosimanong.iteye.com' target='_blank' title='屌丝码农'>屌丝码农</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://cooler1217.iteye.com' target='_blank'><img alt="cooler1217的博客" class="logo" src="http://www.iteye.com/upload/logo/user/609910/585802b4-8c7d-383b-b052-55334edf93a5-thumb.jpg?1324539125" title="cooler1217的博客: 加菲猫小站" /></a></div>
+                <div class="left"><a href='http://cooler1217.iteye.com' target='_blank' title='cooler1217'>cooler1217</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://scelong.iteye.com' target='_blank'><img alt="daqing15的博客" class="logo" src="http://www.iteye.com/upload/logo/user/249764/19b07f39-b741-38e2-b586-480f7a01c979-thumb.jpg?1273830428" title="daqing15的博客: Ring#殇" /></a></div>
+                <div class="left"><a href='http://scelong.iteye.com' target='_blank' title='daqing15'>daqing15</a></div>
+              </div>
+            
+          </div>
+
+          
+
+                      <div id="blog_menu">
+              <h5>文章分类</h5>
+              <ul>
+                <li><a href="/">全部博客 (38)</a></li>
+                
+                  <li><a href="/category/169450">django (1)</a></li>
+                
+              </ul>
+            </div>
+            <div id='month_blogs'>
+              <h5>社区版块</h5>
+              <ul>
+                <li><a href="/blog/news">我的资讯</a> (0)</li>
+                <li>
+                  <a href="/blog/post">我的论坛</a> (2)
+                </li>
+                <li><a href="/blog/answered_problems">我的问答</a> (1)</li>
+              </ul>
+            </div>
+            <div id="month_blogs">
+              <h5>存档分类</h5>
+              <ul>
+                
+                  <li><a href="/blog/monthblog/2012-07">2012-07</a> (1)</li>
+                
+                  <li><a href="/blog/monthblog/2012-06">2012-06</a> (1)</li>
+                
+                  <li><a href="/blog/monthblog/2012-05">2012-05</a> (1)</li>
+                
+                <li><a href="/blog/monthblog_more">更多存档...</a></li>
+              </ul>
+            </div>
+            
+            
+
+            <div id="guest_books">
+              <h5>最新评论</h5>
+              <ul>
+                
+                <li>
+                  <a href='http://zjy3771272.iteye.com' target='_blank' title='zjy3771272'>zjy3771272</a>： 
+                  不知道你是在哪定义的，急啊。希望能解答我啊。谢谢！<br />
+                  <a href="/blog/1284195#bc2291763">一小时的极限编程, 关于socket.io</a>
+                </li>
+                
+                <li>
+                  <a href='http://zjy3771272.iteye.com' target='_blank' title='zjy3771272'>zjy3771272</a>： 
+                  你好，能说明一下data.cid<br />
+                  <a href="/blog/1284195#bc2291762">一小时的极限编程, 关于socket.io</a>
+                </li>
+                
+              </ul>
+            </div>
+
+            <div class="local_bottom"></div>
+          
+        </div>
+      </div>
+
+      <div id="footer" class="clearfix">
+        <div id="copyright">
+          <hr/>
+          声明：ITeye文章版权属于作者，受法律保护。没有作者书面许可不得转载。若作者同意转载，必须以超链接形式标明文章原始出处和作者。<br />
+          &copy; 2003-2014 ITeye.com.   All rights reserved.  [ 京ICP证110151号  京公网安备110105010620 ]
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+  document.write("<img src='http://stat.iteye.com/?url="+ encodeURIComponent(document.location.href) + "&referrer=" + encodeURIComponent(document.referrer) + "&user_id=' width='0' height='0' />");
+</script>
+
+<script src="http://csdnimg.cn/pubfooter/js/tracking.js?version=20130923164150" type="text/javascript"></script>
+
+    
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-6563183-5']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+      
+    
+  </body>
+</html>

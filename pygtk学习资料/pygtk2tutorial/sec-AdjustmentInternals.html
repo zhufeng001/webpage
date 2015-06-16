@@ -1,0 +1,56 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>7.3. Adjustment Internals</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-Adjustments.html" title="Chapter 7. Adjustments"><link rel="prev" href="sec-UsingAdjustmentsTheEasyWay.html" title="7.2. Using Adjustments the Easy Way"><link rel="next" href="ch-RangeWidgets.html" title="Chapter 8. Range Widgets"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7.3. Adjustment Internals</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-UsingAdjustmentsTheEasyWay.html">Prev</a> </td><th width="60%" align="center">Chapter 7. Adjustments</th><td width="20%" align="right"> <a accesskey="n" href="ch-RangeWidgets.html">Next</a></td></tr></table><hr></div><div class="sect1" title="7.3. Adjustment Internals"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-AdjustmentInternals"></a>7.3. Adjustment Internals</h2></div></div></div><p>Ok, you say, that's nice, but what if I want to create my own
+handlers to respond when the user adjusts a range widget or a spin button,
+and how do I get at the value of the adjustment in these handlers? To answer
+these questions and more, let's start by taking a look at the attributes of
+a <code class="classname">gtk.Adjustment</code> itself:</p><pre class="programlisting">
+  lower
+  upper
+  value
+  step_increment
+  page_increment
+  page_size
+</pre><p>Given a <code class="classname">gtk.Adjustment</code> instance
+<em class="parameter"><code>adj</code></em>, each of the attributes are retrieved or set by
+<em class="parameter"><code>adj.lower</code></em>, <em class="parameter"><code>adj.value</code></em>,
+etc.</p><p>Since, when you set the value of an adjustment, you generally
+want the change to be reflected by every widget that uses this adjustment,
+PyGTK provides a method to do this:</p><pre class="programlisting">
+  adjustment.set_value(<strong class="parameter"><code>value</code></strong>)
+</pre><p>As mentioned earlier, <code class="classname">Adjustment</code> is a
+subclass of <code class="classname">Object</code> just like all the various widgets,
+and thus it is able to emit signals. This is, of course, why updates happen
+automagically when you share an adjustment object between a scrollbar and
+another adjustable widget; all adjustable widgets connect signal handlers to
+their adjustment's value_changed signal, as can your program. Here's the
+definition of this signal callback:</p><pre class="programlisting">
+  def value_changed(adjustment):
+</pre><p>The various widgets that use the
+<code class="classname">Adjustment</code> object will emit this signal on an
+adjustment whenever they change its value. This happens both when user input
+causes the slider to move on a range widget, as well as when the program
+explicitly changes the value with the <code class="methodname">set_value</code>()
+method. So, for example, if you have a scale widget, and you want to change
+the rotation of a picture whenever its value changes, you would create a
+callback like this:</p><pre class="programlisting">
+  def cb_rotate_picture(adj, picture):
+      set_picture_rotation (picture, adj.value)
+  ...
+</pre><p>and connect it to the scale widget's adjustment like
+this:</p><pre class="programlisting">
+  adj.connect("value_changed", cb_rotate_picture, picture)
+</pre><p>What about when a widget reconfigures the
+<em class="parameter"><code>upper</code></em> or <em class="parameter"><code>lower</code></em> fields of its
+adjustment, such as when a user adds more text to a text widget? In this
+case, it emits the changed signal, which looks like this:</p><pre class="programlisting">
+  def changed(adjustment):
+</pre><p><code class="classname">Range</code> widgets typically connect a handler
+to this signal, which changes their appearance to reflect the change - for
+example, the size of the slider in a scrollbar will grow or shrink in
+inverse proportion to the difference between the lower and upper values of
+its adjustment.</p><p>You probably won't ever need to attach a handler to this signal,
+unless you're writing a new type of range widget. However, if you change any
+of the values in a <code class="classname">Adjustment</code> directly, you should
+emit this signal on it to reconfigure whatever widgets are using it, like
+this:</p><pre class="programlisting">
+  adjustment.emit("changed")
+</pre></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-UsingAdjustmentsTheEasyWay.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-Adjustments.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch-RangeWidgets.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">7.2. Using Adjustments the Easy Way </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 8. Range Widgets</td></tr></table></div></body></html>

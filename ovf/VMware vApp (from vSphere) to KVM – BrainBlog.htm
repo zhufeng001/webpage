@@ -1,0 +1,347 @@
+<!doctype html>
+<!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if (IE 7)&!(IEMobile)]><html class="no-js lt-ie9 lt-ie8" lang="en"><![endif]-->
+<!--[if (IE 8)&!(IEMobile)]><html class="no-js lt-ie9" lang="en"><![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"><!--<![endif]-->
+<head>
+<meta charset="utf-8">
+<title>VMware vApp (from vSphere) to KVM &#8211; BrainBlog</title>
+<meta name="description" content="So we have a simple migration at hand looking at the current virtualization landscape, right ?
+
+">
+<meta name="keywords" content="howto, software, unix, virtualization">
+ 
+<meta name="twitter:title" content="VMware vApp (from vSphere) to KVM">
+<meta name="twitter:description" content="So we have a simple migration at hand looking at the current virtualization landscape, right ?
+
+">
+<meta name="twitter:site" content="@braincode">
+<meta name="twitter:creator" content="@braincode">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://blogs.nopcode.org/images/site-logo.png">
+ 
+<meta property="og:locale" content="sv_SE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="VMware vApp (from vSphere) to KVM">
+<meta property="og:description" content="So we have a simple migration at hand looking at the current virtualization landscape, right ?
+
+">
+<meta property="og:url" content="http://blogs.nopcode.org/brainstorm/2010/03/05/vmware-vapp-from-vsphere-to-kvm/">
+<meta property="og:site_name" content="BrainBlog">
+ 
+<meta name="google-site-verification" content="eO_6OaSTxmqQEV3OzzD-XqDSuFzLV7l2NUdCUZu3J5c">
+<script type="text/javascript">
+//<![CDATA[
+try{if (!window.CloudFlare) {var CloudFlare=[{verbose:0,p:0,byc:0,owlid:"cf",bag2:1,mirage2:0,oracle:0,paths:{cloudflare:"/cdn-cgi/nexp/dok2v=1613a3a185/"},atok:"cb2f40dc9079f6fc733220b55bef6a04",petok:"02ba176e017e5b54759401c979302ed7b04a695d-1415761752-1800",zone:"nopcode.org",rocket:"0",apps:{}}];CloudFlare.push({"apps":{"ape":"10fbd3b70fb65e0c05beb198a6483151"}});!function(a,b){a=document.createElement("script"),b=document.getElementsByTagName("script")[0],a.async=!0,a.src="//ajax.cloudflare.com/cdn-cgi/nexp/dok2v=919620257c/cloudflare.min.js",b.parentNode.insertBefore(a,b)}()}}catch(e){};
+//]]>
+</script>
+<link rel="canonical" href="http://blogs.nopcode.org/brainstorm/2010/03/05/vmware-vapp-from-vsphere-to-kvm/">
+<link href="http://blogs.nopcode.org/feed.xml" type="application/atom+xml" rel="alternate" title="BrainBlog Feed">
+ 
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+ 
+<link rel="stylesheet" href="http://blogs.nopcode.org/assets/css/main.css">
+ 
+<script src="//use.edgefonts.net/source-sans-pro:n2,i2,n3,i3,n4,i4,n6,i6,n7,i7,n9,i9;source-code-pro:n4,n7;volkhov.js"></script>
+<meta http-equiv="cleartype" content="on">
+ 
+<!--[if lt IE 9]>
+  <script src="http://blogs.nopcode.org/assets/js/vendor/html5shiv.min.js"></script>
+  <script src="http://blogs.nopcode.org/assets/js/vendor/respond.min.js"></script>
+<![endif]-->
+ 
+<script src="http://blogs.nopcode.org/assets/js/vendor/modernizr-2.7.1.custom.min.js"></script>
+ 
+ 
+<link rel="shortcut icon" href="http://blogs.nopcode.org/favicon.ico">
+ 
+<link rel="shortcut icon" href="http://blogs.nopcode.org/favicon.png">
+ 
+<link rel="apple-touch-icon-precomposed" href="http://blogs.nopcode.org/images/apple-touch-icon-precomposed.png">
+ 
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="http://blogs.nopcode.org/images/apple-touch-icon-72x72-precomposed.png">
+ 
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="http://blogs.nopcode.org/images/apple-touch-icon-114x114-precomposed.png">
+ 
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="http://blogs.nopcode.org/images/apple-touch-icon-144x144-precomposed.png">
+</head>
+<body id="post">
+<div class="navigation-wrapper">
+<nav role="navigation" id="site-nav" class="animated drop">
+<ul>
+<li><a href="http://blogs.nopcode.org/about/">About</a></li>
+<li><a href="http://blogs.nopcode.org/brainstorm/archives/">Archives</a></li>
+<li><a href="http://blogs.nopcode.org/brainstorm/tags/">Tags</a></li>
+<li class="dosearch"><span><i class="fa fa-search"></i> Search</span></li>
+</ul>
+</nav>
+</div> 
+<!--[if lt IE 9]><div class="upgrade"><strong><a href="http://whatbrowser.org/">Your browser is quite old!</strong> Why not upgrade to a different browser to better enjoy this site?</a></div><![endif]-->
+<div class="search-wrapper">
+<div class="search-form">
+<input type="text" class="search-field" placeholder="Search...">
+<button class="close-btn"><i class="fa fa-times-circle fa-2x"></i></button>
+<ul class="search-results post-list"></ul> 
+</div> 
+</div> 
+<header class="masthead">
+<div class="wrap">
+<a href="http://blogs.nopcode.org" class="site-logo" rel="home" title="BrainBlog"><img src="http://blogs.nopcode.org/images/site-logo.png" width="200" height="200" alt="BrainBlog logo" class="animated fadeInUp"></a>
+<h1 class="site-title animated fadeIn"><a href="http://blogs.nopcode.org">BrainBlog</a></h1>
+<h2 class="site-description animated fadeIn" itemprop="description">Braindumping myself</h2>
+</div>
+</header> 
+<div class="js-menu-screen menu-screen"></div>
+<div id="main" role="main">
+<article class="hentry">
+<div class="entry-wrapper">
+<header class="entry-header">
+<span class="entry-tags"><a href="http://blogs.nopcode.org/tags/#howto" title="Pages tagged howto">howto</a>&nbsp;&bull;&nbsp;<a href="http://blogs.nopcode.org/tags/#software" title="Pages tagged software">software</a>&nbsp;&bull;&nbsp;<a href="http://blogs.nopcode.org/tags/#unix" title="Pages tagged unix">unix</a>&nbsp;&bull;&nbsp;<a href="http://blogs.nopcode.org/tags/#virtualization" title="Pages tagged virtualization">virtualization</a></span>
+<h1 class="entry-title">VMware vApp (from vSphere) to KVM</h1>
+</header>
+<footer class="entry-meta">
+<img src="http://blogs.nopcode.org/images/bio-photo-2.jpg" class="bio-photo" alt="Roman Valls Guimerà bio photo"></a>
+<span class="author vcard">By <span class="fn">Roman Valls Guimerà</span></span>
+<span class="entry-date date published"><time datetime="2010-03-05T00:00:00+00:00"><i class="fa fa-calendar-o"></i> March 05, 2010</time></span>
+<span class="entry-comments"><i class="fa fa-comment-o"></i> <a href="#disqus_thread">Comment</a></span>
+</footer>
+<div class="entry-content">
+<p>So we have a simple migration at hand looking at the current virtualization landscape, right ?</p>
+<ol>
+<li>Use virt-convert from python-virtinst. In other words: [<acronym title="Open Virtualization Format">OVF</acronym>][1] to libvirt’s XML</li>
+<li>Launch KVM with the resulting migrated files (both images and metadata)</li>
+<li>Do trivial configurations inside the guest machine to match host environment</li>
+</ol>
+<p>That was my idealized view. It turns to be this way:</p>
+<ol>
+<li>Try <strong>virt-convert</strong> to discover that it <strong>fails</strong> when converting from OVF.</li>
+<li>Try to <strong>fix libvirt python</strong> code libraries (OVF XML parser).</li>
+<li>When the code is fixed, the resulting metadata files are <strong>malformed</strong>.</li>
+<li>Try with the commercial “vCenter Converter Standalone”: <strong>ERROR</strong>: “OVF contains multiple virtual machines”.</li>
+<li>Download ~500MB of “VMWare Server” to just use the “vmware-vdiskmanager” binary (1.4MB).</li>
+<li>Construct libvirt’s xml, with some hand-edited sections.</li>
+<li>[virt-manager fails when connecting via VNC][2] to your remote VM due to a Ubuntu-CentOS cross-distro issue involving NetCat parameters. Place a workaround and report the bug.</li>
+<li>Optimize both virtual network and disk performance switching to VirtIO.</li>
+<li><strong>Rebuild guest ramdisk</strong> image in order to load VirtIO drivers in the boot process.</li>
+</ol>
+<center>
+<br/> <a href="http://dilbert.com/strips/comic/2008-02-12/" title="Dilbert.com"><img src="http://dilbert.com/dyn/str_strip/000000000/00000000/0000000/000000/00000/1000/800/1869/1869.strip.gif" border="0" alt="Dilbert.com"/></a><br/>
+</center>
+<p>Want more details ? Keep reading…<br/>
+ </p>
+<h2 id="conversion">Conversion</h2>
+<p>At the time of writing these lines, converting a file to <acronym title="Open Virtualization Format">OVF</acronym> is barely supported by the virt-convert migration tool:<br/>
+<code>&lt;br /&gt;
+$ virt-convert -v -i ovf -D qcow2 vApp.ovf&lt;br /&gt;
+Generating output in 'virt-image' format to vm/&lt;br /&gt;
+ERROR Couldn't export to file "vm/vm.virt-image.xml":&lt;br /&gt;
+VM must have a memory setting&lt;br /&gt;
+</code></p>
+<p>After fixing some xpath code I manage to create an XML file lacking several sections. Since it seems that we reached a dead end here, it is time to [convert the vmdk image<strong>s</strong>][3] and define the libvirt xml schema later on:<br/>
+<code>&lt;br /&gt;
+$ qemu-img convert -f vmdk -O qcow2 vApp-disk1.vmdk pfam.qcow2&lt;br /&gt;
+qemu-img: error while reading&lt;br /&gt;
+</code></p>
+<p>Ok, the vmdk files are not in a format that qemu-img can understand, let’s convert it with the proprietary tool:<br/>
+<code>&lt;br /&gt;
+$ ./vmware-vdiskmanager -r disk1.vmdk -t 0 final.vmdk&lt;br /&gt;
+SSLLoadSharedLibrary: Failed to load library&lt;br /&gt;
+libcrypto.so.0.9.8: libdir/lib/libcrypto.so.0.9.8/libcrypto.so.0.9.8:&lt;br /&gt;
+cannot open shared object file: No such file or directory&lt;br /&gt;
+</code></p>
+<p>Allright, it seems that needs a specific openssl library that does not match the symbols of the currently installed one on my system. Retrieving that library file from VMWare server tarball solves it:<br/>
+<code>&lt;br /&gt;
+LD_LIBRARY_PATH="$CWD" ./vmware-vdiskmanager -r disk1.vmdk -t 0 final.vmdk&lt;br /&gt;
+Converting 1%...&lt;br /&gt;
+</code></p>
+<p>It takes a little while, but succeds. I still want qcow2 files to do proper snapshots:<br/>
+<code>&lt;br /&gt;
+$ qemu-img convert final.vmdk -O qcow2 final.qcow2&lt;br /&gt;
+</code></p>
+<p>If you are running SELinux, don’t forget to restore the context for your newly created files with “restorecon”, otherwise the VM will not launch:<br/>
+<code>&lt;br /&gt;
+# restorecon final.qcow2&lt;br /&gt;
+-rw-r--r-- root root system_u:object_r:virt_image_t final.qcow2&lt;br /&gt;
+</code></p>
+<p>Image migration complete !</p>
+<h2 id="working-on-the-metadata">Working on the metadata</h2>
+<p>Now we have to describe basic properties about the virtual machine. Please note that this is a highly “YMMV” section, you should customize it to fit your needs ! But for the impatient:</p>
+<pre class="brush: xml; title: ; notranslate" title="">&lt;domain type='kvm'&gt;
+  &lt;name&gt;vm&lt;/name&gt;
+  &lt;memory&gt;2097152&lt;/memory&gt;
+  &lt;currentmemory&gt;2097152&lt;/currentmemory&gt;
+  &lt;vcpu&gt;1&lt;/vcpu&gt;
+  &lt;os&gt;
+    &lt;type arch='x86_64' machine='pc'&gt;hvm&lt;/type&gt;
+    &lt;boot dev='hd'/&gt;
+  &lt;/os&gt;
+  &lt;features&gt;
+    &lt;acpi /&gt;
+    &lt;apic /&gt;
+    &lt;pae /&gt;
+  &lt;/features&gt;
+  &lt;clock offset='utc'/&gt;
+  &lt;on_poweroff&gt;destroy&lt;/on_poweroff&gt;
+  &lt;on_reboot&gt;restart&lt;/on_reboot&gt;
+  &lt;on_crash&gt;restart&lt;/on_crash&gt;
+  &lt;devices&gt;
+    &lt;emulator&gt;/usr/local/bin/kvm&lt;/emulator&gt;
+    &lt;disk type='file' device='disk'&gt;
+      &lt;source file='/var/lib/libvirt/images/vm.qcow2'/&gt;
+      &lt;target dev='vda' bus='virtio'/&gt;
+    &lt;/disk&gt;
+    &lt;interface type='bridge'&gt;
+      &lt;mac address='54:52:00:24:34:16'/&gt;
+      &lt;source bridge='br0'/&gt;
+      &lt;target dev='vnet0'/&gt;
+      &lt;model type='virtio'/&gt;
+    &lt;/interface&gt;
+    &lt;serial type='pty'&gt;
+      &lt;source path='/dev/pts/4'/&gt;
+      &lt;target port='0'/&gt;
+    &lt;/serial&gt;
+    &lt;console type='pty' tty='/dev/pts/4'&gt;
+      &lt;source path='/dev/pts/4'/&gt;
+      &lt;target port='0'/&gt;
+    &lt;/console&gt;
+    &lt;input type='mouse' bus='ps2'/&gt;
+    &lt;graphics type='vnc' port='5900' autoport='yes' keymap='en-us'/&gt;
+  &lt;/devices&gt;
+&lt;/domain&gt;
+</pre>
+<p>I use to place this file under: /etc/libvirt/qemu/vm.xml.tmpl. In that way I can edit the template and reload it back to libvirtd.<br/>
+<code>&lt;br /&gt;
+# virsh undefine vm&lt;br /&gt;
+(edit)&lt;br /&gt;
+# virsh define vm.xml&lt;br /&gt;
+</code></p>
+<p>You can also use the handy command “virsh edit vm”.</p>
+<p>Keep in mind “virtio, acpi, apic” tags/attributes, they are not set by default, and can lead to several booting problems.</p>
+<h2 id="optimize-and-tweak-vm">Optimize and tweak VM</h2>
+<p>The default fully virtualized devices are generally slow for production, switching to [paravirtualized drivers][4] is advised to gain good speedups both in HDD and networking.</p>
+<p>But this speedups need some tweaks in the guest machine, basically changing “sda” or “hda” to “vda” and loading the appropiate modules during ramdisk init:<br/>
+`<br/>
+(in /boot/grub/menu.lst):&lt;/p&gt;</p>
+<p>title Debian GNU/Linux, kernel 2.6.26-2-amd64<br/>
+root (hd0,0)<br/>
+kernel /boot/vmlinuz-2.6.26-2-amd64 root=/dev/vda1 ro clocksource=acpi_pm quiet<br/>
+initrd /boot/initrd.img-2.6.26-2-amd64<br/>
+`
+`<br/>
+(in /etc/initramfs-tools/modules) add:</p>
+<p>virtio_pci<br/>
+virtio_blk<br/>
+`
+Then, update the ramdisk image by running:
+`<br/>
+# update-initramfs -u<br/>
+`
+## Bringing it up
+Now, using virt-manager, you expect to see your virtual machine booting... but it complains about not being able to connect via VNC. Looking around launchpad bug I get some pointers and manage to fix the issue and [report my case][2].
+As usual I only wish others to avoid wasting their time on those bugs, good luck <img src="http://blogs.nopcode.org/brainstorm/wp-includes/images/smilies/icon_wink.gif" alt=";)" class="wp-smiley"/>
+[1]: http://en.wikipedia.org/wiki/Open_Virtualization_Format
+[2]: https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/517478
+[3]: http://blog.bodhizazen.net/linux/convert-vmware-vmdk-to-kvm-qcow2-or-virtualbox-vdi/
+[4]: http://wiki.libvirt.org/page/Virtio
+</p>
+<div id="disqus_thread"></div> 
+</div> 
+</div> 
+<nav class="pagination" role="navigation">
+<a href="http://blogs.nopcode.org/brainstorm/2008/10/01/india-recorregut-final/" class="btn" title="India: Recorregut final">Previous</a>
+<a href="http://blogs.nopcode.org/brainstorm/2010/03/19/bioengineering-igem-and-biobricks/" class="btn" title="BioEngineering: iGEM and BioBricks">Next</a>
+</nav> 
+</article>
+</div> 
+<div class="footer-wrapper">
+<footer role="contentinfo" class="entry-wrapper">
+<span>&copy; 2014 Roman Valls Guimera. Powered by <a href="http://jekyllrb.com">Jekyll</a> using the <a href="http://mademistakes.com/so-simple/">So Simple Theme</a>.</span>
+<div class="social-icons">
+<a href="http://twitter.com/braincode" title="Roman Valls Guimera on Twitter" target="_blank"><i class="fa fa-twitter-square fa-2x"></i></a>
+<a href="http://linkedin.com/in/romanvg" title="Roman Valls Guimera on LinkedIn" target="_blank"><i class="fa fa-linkedin-square fa-2x"></i></a>
+<a href="http://stackoverflow.com/users/457116/brainstorm" title="Roman Valls Guimera on StackExchange" target="_blank"><i class="fa fa-stack-exchange fa-2x"></i></a>
+<a href="http://github.com/brainstorm" title="Roman Valls Guimera on Github" target="_blank"><i class="fa fa-github-square fa-2x"></i></a>
+<a href="http://blogs.nopcode.org/feed.xml" title="Atom/RSS feed"><i class="fa fa-rss-square fa-2x"></i></a>
+</div> 
+</footer>
+</div> 
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="http://blogs.nopcode.org/assets/js/vendor/jquery-1.9.1.min.js"><\/script>')</script>
+<script src="http://blogs.nopcode.org/assets/js/scripts.min.js"></script>
+ 
+<script>
+  $(document).ready(function() {
+      $('.search-field').jekyllSearch({
+          jsonFile: 'http://blogs.nopcode.org/search.json',
+          searchResults: '.search-results',
+          template: '<li><article><a href="{url}">{title} <span class="entry-date"><time datetime="{date}">{shortdate}</time></span></a></article></li>',
+          fuzzy: true,
+          noResults: '<p>Nothing found.</p>'
+        });
+  });
+
+  (function( $, window, undefined ) {
+    
+     var bs = {
+          close: $(".close-btn"),
+          searchform: $(".search-form"),
+          canvas: $(".js-menu-screen"),
+          dothis: $('.dosearch')
+      };
+    
+    bs.dothis.on('click', function() {
+      $('.search-wrapper').css({ display: "block" });
+      $('body').toggleClass('no-scroll');
+      bs.searchform.toggleClass('active');
+      bs.searchform.find('input').focus();
+      bs.canvas.toggleClass('is-visible');
+    });
+    
+      bs.close.on('click', function() {
+        $('.search-wrapper').removeAttr( 'style' );
+        $('body').toggleClass('no-scroll');
+        bs.searchform.toggleClass('active');
+        bs.canvas.removeClass('is-visible');
+    });
+  })( jQuery, window );
+</script>
+ 
+<script>
+  var _gaq = _gaq || [];
+  var pluginUrl = 
+ '//www.google-analytics.com/plugins/ga/inpage_linkid.js';
+  _gaq.push(['_require', 'inpage_linkid', pluginUrl]);
+  _gaq.push(['_setAccount', 'UA-11158994-2']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'stats.g.doubleclick.net/dc.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'nopcode'; // required: replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function () {
+        var s = document.createElement('script'); s.async = true;
+        s.type = 'text/javascript';
+        s.src = '//' + disqus_shortname + '.disqus.com/count.js';
+        (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+    }());
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</body>
+</html>

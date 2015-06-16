@@ -1,0 +1,79 @@
+
+fb_var_screeninfo解析  
+
+2012-01-31 20:34:30|  分类： linux gui |字号 订阅
+
+struct fb_var_screeninfo {
+__u32 xres; /* visible resolution */
+
+__u32 yres;
+__u32 xres_virtual; /* virtual resolution */
+
+__u32 yres_virtual;
+__u32 xoffset; /* offset from virtual to visible */
+
+__u32 yoffset; /* resolution */
+
+__u32 bits_per_pixel; /* guess what */
+
+__u32 grayscale; /* != 0 Graylevels instead of colors
+*/
+
+struct fb_bitfield red; /*
+bitfield in fb mem if true color, */
+
+struct fb_bitfield green; /*
+else only length is significant */
+
+struct fb_bitfield blue;
+struct fb_bitfield transp; /*
+transparency */
+
+__u32 nonstd; /* != 0 Non standard pixel format */
+
+__u32 activate; /* see FB_ACTIVATE_* */
+
+__u32 height; /* height of picture in mm???
+*/
+
+__u32 width; /* width of picture in mm????
+*/
+
+__u32 accel_flags; /* acceleration flags (hints) */
+
+/* Timing: All values in pixclocks, except pixclock (of
+course) */
+
+__u32 pixclock; /* pixel clock in ps (pico seconds) */
+
+__u32 left_margin; /* time from sync to picture */
+
+__u32 right_margin; /* time from picture to sync */
+
+__u32 upper_margin; /* time from sync to picture */
+
+__u32 lower_margin;
+__u32 hsync_len; /* length of horizontal sync */
+
+__u32 vsync_len; /* length of vertical sync */
+
+__u32 sync; /* see FB_SYNC_* */
+
+__u32 vmode; /* see FB_VMODE_* */
+
+__u32 reserved[6]; /* Reserved for future compatibility
+*/
+
+};
+
+前几个成员决定了分辨率。xres和yres是在屏幕上可见的实际分辨率，在通常的vga模式将为640和400（也许是480，by highbar）。*res-virtual决定了构建屏幕时视频卡读取屏幕内存的方式。当实际的垂直分辨率为400，虚拟分辨率可以是800。这意味着800行的数据被保存在了屏幕内存区中。因为只有400行可以被显示，决定从那一行开始显示就是你的事了。这个可以通过设置*offset来实现。给yoffset赋0将显示前400行，赋35将显示第36行到第435行，如此重复。这个功能在许多情形下非常方便实用。它可以用来做双缓冲。双缓冲就是你的程序分配了可以填充两个屏幕的内存。将offset设为0，将显示前400行（假设是标准的vga），同时可以秘密的在400行到799行构建另一个屏幕，当构建结束时，将yoffset设为400，新的屏幕将立刻显示出来。现在将开始在第一块内存区中构建下一个屏幕的数据，如此继续。这在动画中十分有用。
+
+另外一个应用就是用来平滑的滚动整个屏幕。就像在前面屏幕中一样，在内存分配800行的空间。每隔10毫秒设定一个定时器（timer，见man settimer和man
+signal / man sigaction），将offset设为1或是比上次更多，瞧，你看到了一个平滑滚动的屏幕。确保你的信号（signal）不要因为最佳输出的原因被信号处理程序阻塞。
+
+将
+bits_per_pixel 设为1，2，4，8，16，24或32来改变颜色深度（color depth）。不是所有的视频卡和驱动都支持全部颜色深度。当颜色深度改变，驱动将自动改变fb-bitfields。这些指出，在一个特定的颜色基准上，多少和哪些比特被哪种颜色使用。如果bits-per-pixel小于8，则fb-bitfields将无定义而且颜色映射将启用。
+
+在fb-var-screeninfo结构结尾的定时的设置是当你选择一个新的分辨率的时候用来设定视频定时的。（
+EXAMINE AND EXPLAIN TIMINGS! ）
+

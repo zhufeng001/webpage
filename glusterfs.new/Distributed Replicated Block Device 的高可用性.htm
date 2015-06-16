@@ -1,0 +1,1084 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+	
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+
+  <html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<title>Distributed Replicated Block Device 的高可用性</title>
+<meta http-equiv="PICS-Label" content='(PICS-1.1 "http://www.icra.org/ratingsv02.html" l gen true r (cz 1 lz 1 nz 1 oz 1 vz 1) "http://www.rsac.org/ratingsv01.html" l gen true r (n 0 s 0 v 0 l 0) "http://www.classify.org/safesurf/" l gen true r (SS~~000 1))'/>
+<link rel="schema.DC" href="http://purl.org/DC/elements/1.0/"/>
+<link rel="SHORTCUT ICON" href="http://www.ibm.com/favicon.ico"/>
+  <meta name="Owner" content="dw@cn.ibm.com"/>
+  <meta name="DC.Language" scheme="rfc1766" content="zh-CN"/>
+  <meta name="IBM.Country" content="CN"/>
+<meta name="Security" content="Public"/>
+<meta name="IBM.SpecialPurpose" content="SP001"/>
+<meta name="IBM.PageAttributes" content="sid=1003,1004"/>
+<meta name="Source" content="v16 Template Generator"/>
+<meta name="Robots" content="index,follow"/>
+<meta name="Abstract" content="2.6.33 Linux 内核引入了一个有用的新服务，称为 Distributed Replicated Block Device (DRBD)，该服务在运行期间可以将整块设备镜像到另一个网络主机上，允许数据块高可用性集群的开发。在 Linux 内核中探究 DRBD 背后蕴含的思想及其实现。"/>
+<meta name="Description" content="2.6.33 Linux 内核引入了一个有用的新服务，称为 Distributed Replicated Block Device (DRBD)，该服务在运行期间可以将整块设备镜像到另一个网络主机上，允许数据块高可用性集群的开发。在 Linux 内核中探究 DRBD 背后蕴含的思想及其实现。"/>
+<meta name="Keywords" content="Linux, availability, reliability, drbd, replication, storage, distributed_replicated_block_device, m_tim_jones, kernel_developer, 可用性, 可靠性, 复制, 存储, tttlca"/>
+<meta name="DC.Date" scheme="iso8601" content="2010-08-30"/>
+<meta name="DC.Type" scheme="IBM_ContentClassTaxonomy" content="CT316"/>
+<meta name="DC.Subject" scheme="IBM_SubjectTaxonomy" content="SWGC0"/>
+<meta scheme="IBM_WTMCategory" name="IBM.WTMCategory" content="SOFDCLNXCN" />
+<meta name="DC.Rights" content="© Copyright IBM Corporation 2010"/>
+<meta name="IBM.Effective" scheme="W3CDTF" content="2010-08-30"/>
+<meta name="title" content="Distributed Replicated Block Device 的高可用性"/>
+
+<!-- HEADER_SCRIPTS_AND_CSS_INCLUDE -->
+<link href="//dw1.s81c.com/common/v16/css/all.css" media="all" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/screen.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/screen-uas.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/cn/zh/screen-fonts.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/handheld.css" media="handheld" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/print.css" media="print" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/overlay.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+
+<!-- dW-specific CSS -->
+<link href="//dw1.s81c.com/developerworks/css/dw-screen.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/dw-mf/dw-mf2013-N.css" rel="stylesheet" title="www" type="text/css"/>	
+<link href="//dw1.s81c.com/developerworks/css/dw-local-site-N.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+
+<link href="//dw1.s81c.com/developerworks/css/dw-screen-comments-ratings-signin.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/js/jquery/cluetip98/jquery.cluetip.css" media="screen,projection" rel="stylesheet"  title="www" type="text/css" />
+
+<!-- JPP: LOCAL URL FOR TESTING V16 DEFIANT MASTHEAD/FOOTER -->
+
+<script src="//dw1.s81c.com/common/js/ibmcommon.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/common/js/dynamicnav.js" type="text/javascript">//</script>
+<script language="JavaScript" src="//dw1.s81c.com/developerworks/js/urltactic.js" type="text/javascript"></script>
+<!-- Rating_START -->
+<script language="JavaScript" type="text/javascript">
+  // <![CDATA[
+
+ dwr = {};
+  dwr.clickhere = '点击评分';
+  dwr.starIntro = ''; 
+  dwr.stars = '星';
+  dwr.star = '星'; 
+  dwr.avgRatingOf = '平均分';
+  dwr.youRated = '您的评分是';
+  dwr.avgRating = '平均分';
+  dwr.basedOnVote = '共 {1} 个评分'; // {1} to be substitue by code
+  dwr.basedOnVotes = '共 {1} 个评分';
+  dwr.leftParen = '（'; 
+  dwr.rightParen = ' ）'; 
+  dwr.space = ' '; 
+  dwr.yourRating = '您的评分';
+dwr.avgRating2 = '总共 {1} 评分的平均分';
+dwr.avgRating3 = '平均分{1} 星';
+dwr.rateThisArticle = '为本文评分';
+dwr.votes = '{1}个评分';
+dwr.vote = '{1}个评分';
+dwr.submitErr = '错误：提交失败，请重试。';
+dwr.noRatingErr = '错误：请选择一个评分并重新提交。';
+dwr.submit = '提交';
+// ]]>
+</script>
+
+<!-- Rating_START -->
+<script language="JavaScript" src="//dw1.s81c.com/developerworks/js/artrating/showrating.js" type="text/javascript"></script>
+<style type="text/css">
+  .metavalue {
+  display: none;
+  }
+</style>
+<!-- Rating_END --><!-- RESERVED_HEADER_INCLUDE -->
+<script language="javascript" src="//dw1.s81c.com/developerworks/js/ajax1.js" type="text/javascript"></script>
+<script language="javascript" src="//dw1.s81c.com/developerworks/js/search_counter-maverick.js" type="text/javascript"></script>
+<script language="javascript" src="//dw1.s81c.com/developerworks/js/request_referer_capture-maverick.js" type="text/javascript"></script>
+<script language="JavaScript" type="text/javascript">
+ <!--
+ setDefaultQuery('dwchina');
+ //-->
+</script>
+<script language="JavaScript" type="text/javascript">
+ <!--
+ function openNewWindow(url,tar,arg){window.open(url,tar,arg);}
+ //-->
+</script>
+  <!-- Include file support -->
+  <script language="JavaScript" type="text/javascript">
+    (function($) {
+    jQuery.extend({
+    getInc: function(u,d){
+    if(u==null)return;
+    jQuery.ajax({
+    type: "GET",
+    url: u,
+    dataType: "text",
+    success: function(t) {
+    jQuery(d).html(t);
+    ibmCommon.initShowHide(jQuery(d).children()[0]);	
+    },
+    async: true
+    });
+    }
+    });
+    })(jQuery);
+  </script>
+</head>
+
+<body id="ibm-com">
+<div id="ibm-top" class="ibm-landing-page">
+
+<!-- MASTHEAD_BEGIN -->
+<!-- MASTHEAD_BEGIN -->
+<div class="ibm-access"><a href="#ibm-content">跳转到主要内容</a></div>
+<div id="ibm-masthead-dw">
+  
+    <!-- TOP ROW -->    
+    <div id="dw-masthead-top-row">
+    	<ul id="ibm-mast-options-dw">
+			<li id="dw-mast-top-4">
+				<a href="http://www.ibm.com/developerworks/cn" class=""><img width="43" height="22" aria-label="dW" alt="dW" src="//dw1.s81c.com/developerworks/i/mf/dwn-dw-badge.png"></a>
+			</li>
+    		<li id="dw-mast-top-0" class="navtab"> 	
+    			<a class="dw-mf-noscript" href="#" title="登录（或注册）需启用 JavaScript">登录 (或注册)</a>
+    		</li>
+    		<li id="dw-mast-top-1" class="navtab">
+    				<a href="#SELECTLANG">日本語</a>
+			</li>
+        	<li id="dw-mast-top-2" class="navtab dw-mf-hide">
+				<a href="#">[userid]</a>
+			</li>
+    		<li id="dw-mast-top-3" class="navtab">
+				<a href="#">IBM</a>
+			</li>
+    	</ul>
+	</div>
+    
+    <!-- TOP ROW SLIDER -->
+    <div id="ibm-my-menu-dw">    
+        <div class="ibm-ribbon-pane-dw">
+            <div class="ibm-ribbon-section-dw">
+                <!-- Sign-in -->
+                <div class="dw-mast-columns">                
+					<div class="dw-mast-col-1-1">
+						<div id="dw-mast-sso">
+							<!--<div id="dw-mast-sso-reg">
+								<p class="dw-mast-sso-reg-cn">如果您还没有注册到 IBM 注册系统，我们为给您带来的不便表示道歉，并请您马上注册。 							
+									<a href="#" onclick="(function () {window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh&amp;d='+encodeURIComponent(location.href);})();">现在注册</a>。</p>
+							</div>-->
+							<div id="signin_error_mf" class="dw-mf-hide"></div>
+							<div id="dw-mast-sso-form">
+								<form id="sForm_mf" action="" method="post" name="sForm_name_mf" onsubmit="return false;">
+									<div id="dw-mast-sso-id" class="dw-mast-sso-id-cn">
+										<label for="ibmid_mf">IBM ID：</label>
+										<input id="ibmid_mf" type="text" value="" name="ibmid_name_mf" maxlength="100" onkeypress="handleEP(event,this.form,'mf');"/>
+									</div>
+									<div id="dw-mast-sso-pw" class="dw-mast-sso-pw-cn">
+										<label for="pw_mf">密码：</label>
+										<input id="pw_mf" type="password" value="" name="pw_name_mf" maxlength="100" onkeypress="handleEP(event,this.form,'mf');"/>
+									</div>
+									<div id="dw-mast-sso-target" class="dw-mast-sso-target-cn">
+										<p class="dw-mf-perm-box">
+											<input id="perm_mf" type="checkbox" name="perm_name_mf"/><label for="perm_mf"> 保持登录。</label>
+										</p>
+									</div>
+									<div id="dw-mast-sso-terms">
+										<p class="dw-mast-sso-terms-cn">单击提交则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+									<div>
+										<input class="dw-mf-submit-btn-cn" name="ibm_submit_name_mf" value="提交" onclick="signin('mf');return false;" type="submit" />
+									</div>
+								</form>
+							</div>
+							<div id="dw-mast-sso-update">
+								<div id="dw-mast-sso-update-id">
+									<ul>
+										<li><a class="ibm-forward-link" href="#" onclick="(function () {window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.href);})();">需要一个 IBM ID？</a></li>
+										
+									<li><a class="ibm-forward-link" href="/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a></li>
+									</ul>
+								</div>
+								<div id="dw-mast-sso-update-pw">
+								<ul class="dw-mf-pwupdate">
+									<li><a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Dzh_CN%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a></li>
+									<li><a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></li>
+								</ul>
+									</div>
+							</div>
+							<div id="dw-mast-sso-text">
+			<!-- lk v17 updated text -->				    
+			<p>这是您第一次登陆到 developerWorks，已经自动为您创建了您的概要文件。 <strong>选择您概要文件中可以公开的信息的信息（如姓名、国家/地区，以及公司），这些信息同时也会与您所发布的内容相关联。 </strong>您可以随时更新您的 IBM 账号。</p>
+							<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+							</div>
+							<div class="dw-mast-close">
+								<ul>
+									<li><div class="dw-mast-close-sign-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+								</ul>
+							</div>	
+						</div>
+						
+						<div id="dw-mast-dname" class="dw-mf-hide">
+							<p>当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+							<div id="signin_dname_error_mf" class="dw-mf-hide"></div>
+							<div id="dw-mast-dname-form">
+								<form id="dForm_mf" action="" method="post" name="dForm_name_mf" onsubmit="return false;">
+									<div id="dw-mast-dname-mf">
+										<label for="dname_mf">昵称：</label>
+										<input id="dname_mf" name="dname_name_mf" maxlength="31" size="25" value="" type="text" onkeypress="handleEP(event,this.form,'mf');" />
+									</div>
+									<div id="dw-mast-dname-terms">
+										<p class="dw-mast-dname-terms-cn">单击<strong>提交</strong>则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+									<div>
+										<input class="dw-mf-submit-btn-cn" name="dname_submit_name_mf" value="提交" onclick="signin('mf');return false;" type="submit" />
+									</div>
+								</form>								
+							</div>
+							<div id="dw-mast-dname-secure">
+								<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+							</div>
+							<div class="dw-mast-close">
+								<ul>
+									<li><div class="dw-mast-close-sign-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+								</ul>
+							</div>	
+						</div>
+	
+						<div id="dw-mast-auth" class="dw-mf-hide">
+							<div>
+
+								<h2>My developerWorks:</h2>
+<!-- lk v17 updated links and text -->							    
+               		<ul>
+							<li><a id="dw-mast-top-0-0" href="//www.ibm.com/developerworks/community/homepage?lang=zh">我的首页</a></li>						    
+							<li><a
+							    href="//www.ibm.com/developerworks/community/profiles/html/myProfileView.do?lang=zh">我的概要信息</a></li>
+							<li><a
+							    href="//www.ibm.com/developerworks/community/groups/service/html/mycommunities?lang=zh">我的社区</a></li>
+			                 <li><a href="/developerworks/community/news/?lang=zh">设置</a></li>
+										    
+						</ul>      
+							</div>
+							<div id="dw-mast-notify" class="dw-mf-hide">
+								<h2>我的通知：</h2>
+								<ul>
+									<li><a id="new_notify" href="/developerworks/mydeveloperworks/homepage?lang=zh">{[num_notify] 个新通知}([num_notify] 个新通知)</a></li>
+									<li><a id="new_invite" href="/developerworks/mydeveloperworks/profiles/html/wc.do?action=in&requireAuth=true&widgetId=friends&lang=[lang]">{[num_invite] 个网络请求}([num_invite] 个网络请求)</a></li>  
+								</ul>
+							</div>
+							<div class="dw-mast-more">
+								<ul class="ibm-link-list">
+									<li><a class="dw-more-link" href="#" onclick="signOut(); return false;"><strong>退出</strong></a></li>
+								</ul>
+							</div>
+							<div class="dw-mast-close">
+								<ul>
+									<li><div class="dw-mast-close-sign"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+								</ul>
+							</div>		
+						</div>
+						
+					</div>
+                	
+                </div>
+                <!-- Site selector --> 
+				<div class="dw-mast-columns">
+					<div class="dw-mast-col-2-1">
+						<h2>选择语言：</h2>
+						<ul>
+							<li><a id="dw-mast-top-1-0" href="http://www.ibm.com/developerworks/">English</a></li>
+							<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+							<li><a href="http://www.ibm.com/developerworks/jp/">日本語</a></li>
+						    <li><a href="http://www.ibm.com/developerworks/ru/">Русский</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-col-2-2">
+						<ul>
+							<li><a href="http://www.ibm.com/developerworks/br/">Português (Brasil)</a></li>
+							<li><a href="http://www.ibm.com/developerworks/ssa/">Español</a></li>
+							<li><a href="http://www.ibm.com/developerworks/vn/">Việt</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-close">
+						<ul>
+							<li><div class="dw-mast-close-lang"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+						</ul>
+                    </div>
+                </div>
+                <div class="dw-mast-columns"><!-- Authenticated --></div>
+                <!-- IBM -->
+				<div class="dw-mast-columns">
+					<div class="dw-mast-col-2-1">
+						<ul>
+							<li><a id="dw-mast-top-3-0" href="http://www.ibm.com/cn/zh/">IBM 主页</a></li>
+							<li><a href="http://www.ibm.com/solutions/cn/zh/">解决方案</a></li>
+							<li><a href="http://www.ibm.com/software/cn/">软件</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-col-2-2 dw-mast-ibm">
+						<ul>
+							<li><a href="http://www.ibm.com/support/cn/zh/">支持门户</a></li>
+							<li><a href="http://www.ibm.com/support/documentation/cn/zh/">产品文档</a></li>
+							<li><a href="http://www.ibm.com/redbooks/">Redbooks（英文）</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-close">
+						<ul>
+							<li><div class="dw-mast-close-ibm-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+						</ul>
+                    </div> 
+				</div>
+			</div>
+        </div>
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div id="ibm-universal-nav-dw">
+        <ul id="ibm-unav-links-dw">
+        <li id="ibm-unav-home-dwlogo">
+				<a href="http://www.ibm.com/developerworks/"><img width="225" height="28" alt="developerWorks&reg;" src="//dw1.s81c.com/developerworks/i/mf/dwn-dw-wordmark.png"></a>
+            </li>
+        </ul>
+    	<ul id="ibm-menu-links-dw" class="ibm-menu-links-dw-cn">
+    		<li id="dw-mast-nav-0"><a href="http://www.ibm.com/developerworks/cn/topics">技术主题</a></li>
+    		<li id="dw-mast-nav-1"><a
+    			href="http://www.ibm.com/developerworks/cn/downloads/">软件下载</a></li>
+    		<li id="dw-mast-nav-2"><a
+    			href="https://www.ibm.com/developerworks/community/?lang=zh">社区</a></li>
+    		<li id="dw-mast-nav-3"><a href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></li>
+    	</ul>
+		<form id="ibm-search-form" action="//www.ibm.com/search/csass/search/" method="get" name="form1">
+		<p>
+		<label for="q"><span class="ibm-access">搜索 developerWorks</span></label>
+		<input type="text" value="搜索 developerWorks" name="q" maxlength="100" id="q"/>
+    		<input type="hidden" name="sn" value="dw" />
+    		<input type="hidden" name="lang" value="zh" />
+    		<input type="hidden" name="cc" value="CN" />
+    		<input type="hidden" name="en" value="utf" />
+    		<input type="hidden" name="hpp" value="20" />
+    		<input type="hidden" name="dws" value="cndw" />
+    		<input type="hidden" name="lo" value="zh" />
+			<input type="submit" id="ibm-search-dw" class="ibm-btn-search-dw" name="Search" value="搜索" />
+    		</p>
+    	</form>  
+    </div>
+    
+    <!-- BOTTOM ROW SLIDER -->
+    <div id="ibm-common-menu-dw">
+        <div class="ibm-ribbon-pane-dw">
+            <div class="ibm-ribbon-section-dw">
+				<!-- Technical topics category -->
+  
+            	<div class="dw-mast-columns">
+            	<div class="dw-mast-col-5-1">
+            		<h2><a id="dw-mast-nav-0-0" href="http://www.ibm.com/developerworks/cn/topics/">技术主题</a></h2>
+            		
+            		<ul>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/agile/">Agile
+            			    transformation</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/aix/">AIX and UNIX</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/bigdata/">Big data</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/cloud/">Cloud computing</a></li>
+            		
+            			
+            		</ul>     
+            	</div>
+            	<div class="dw-mast-col-5-2">
+            		
+            		<ul>
+						<li><a href="http://www.ibm.com/developerworks/cn/ibmi/">IBM i</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/data/">Information management</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/java/">Java technology</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/linux/">Linux</a></li>
+            			
+           			
+            		</ul>
+            	</div>
+            	<div class="dw-mast-col-5-3">
+            		
+            		<ul>
+						<li><a href="http://www.ibm.com/developerworks/cn/lotus/">Lotus</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/mobile/">Mobile development</a></li>
+						<li><a href="http://www.ibm.com/developerworks/cn/opensource/">Open source</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/rational/">Rational</a></li>
+            			<!--<li><a href="http://www.ibm.com/developerworks/cn/webservices/">SOA and web services</a></li>-->
+						
+            			</ul>
+            		
+            	</div>
+            	<div class="dw-mast-col-5-4">
+            		<ul>
+					<li><a href="http://www.ibm.com/developerworks/cn/social/">Social Business</a></li> 
+             		<li><a href="http://www.ibm.com/developerworks/cn/web/">Web development</a></li>  
+					<li><a href="http://www.ibm.com/developerworks/cn/websphere/">WebSphere</a></li> 
+           		<!--	<li><a href="http://www.ibm.com/developerworks/cn/xml/">XML</a></li>-->
+            		</ul>        
+            	</div>
+            	<div class="dw-mast-col-5-5">
+            		<ul>
+            			<li><a href="http://www.ibm.com/developerworks/cn/library/"><strong>文档库</strong></a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/products/"><strong>产品 A - Z</strong></a></li>				    
+            		</ul>        
+            	</div>
+            	<div class="dw-mast-close">
+            		<ul>
+            			<li><div class="dw-mast-close-tech-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            		</ul>
+            	</div>
+            </div>
+            	<!-- Evaluation software category -->
+            	<div class="dw-mast-columns">
+            		<div class="dw-mast-col-2-1">
+            			<h2><a id="dw-mast-nav-1-0" href="http://www.ibm.com/developerworks/cn/downloads">软件下载</a></h2>
+            			<ul>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#data">Information management</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#lotus">Lotus</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#rational">Rational</a></li>
+            			</ul>            
+            		</div>
+            		<div class="dw-mast-col-2-2">
+            			<ul>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#tivoli">Tivoli</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#websphere">WebSphere</a></li>
+            				
+            			</ul>            
+            		</div>
+            		<div class="dw-mast-close">
+            			<ul>
+            				<li><div class="dw-mast-close-eval-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            			</ul>
+            		</div>
+            	</div>
+            	<!-- Community category -->
+                <!-- lk v17 removed links, updated urls -->
+            	<div class="dw-mast-columns">
+            		<div class="dw-mast-col-2-1">
+            			<h2><a id="dw-mast-nav-2-0" href="https://www.ibm.com/developerworks/community/?lang=zh">社区</a></h2>
+            			<ul>
+            				<li><a href="https://www.ibm.com/developerworks/community/homepage/?lang=zh">我的首页</a></li>
+            				<li><a href="https://www.ibm.com/developerworks/community/profiles/?lang=zh">概要信息</a></li>
+            				<li><a href="https://www.ibm.com/developerworks/community/groups/?lang=zh">群组</a></li>
+							<li><a href="https://www.ibm.com/developerworks/community/blogs/?lang=zh">博客</a></li>
+             			</ul>     
+            		</div>
+            		<div class="dw-mast-col-2-2">
+            			<ul>
+                    
+				    <li><a href="https://www.ibm.com/developerworks/community/forums/?lang=zh">论坛</a></li>
+					<li><a href="https://www.ibm.com/developerworks/community/wikis/?lang=zh">Wiki</a></li>
+					<li><a href="https://www.ibm.com/developerworks/community/activities/?lang=zh">活动</a></li>
+            			</ul>
+            		</div>
+            		<div class="dw-mast-close">
+            			<ul>
+            				<li><div class="dw-mast-close-comm-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            			</ul>
+            		</div>
+            	</div>
+            	<!-- Events category -->
+            	<div class="dw-mast-columns">
+            		<div class="dw-mast-col-1-1">
+            			<h2><a id="dw-mast-nav-3-0" href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></h2>
+            			<ul>
+            				<li><a href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/swi/">多媒体课堂</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/find/webcasts/">网络广播（英文）</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/find/events/">查找活动（技术讲座，网络广播，会议等）（英文）</a></li> 
+            			</ul>            
+            		</div>
+            		<div class="dw-mast-close">
+            			<ul>
+            				<li><div class="dw-mast-close-event-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            			</ul>
+            		</div>
+            	</div>
+            </div>
+        </div>
+    </div>
+	
+</div>
+<div id="fdiv" class="ibm-access"></div>
+<!-- MASTHEAD_END --><!-- MASTHEAD_END -->
+
+<div id="ibm-pcon">
+
+<!-- CONTENT_BEGIN -->
+<div id="ibm-content">
+
+<!-- Navigation_Trail_BEGIN -->
+<!-- &nbsp; -->
+      <div id="ibm-content-head"><ul id="ibm-navigation-trail"><li class="ibm-first"><a href="http://www.ibm.com/developerworks/cn/">developerWorks 中国</a></li><li><a href="http://www.ibm.com/developerworks/cn/linux/">Linux</a></li><li><a href="http://www.ibm.com/developerworks/cn/views/linux/libraryview.jsp">文档库</a></li></ul></div>
+<!-- Navigation_Trail_END -->
+
+<!-- dW_Summary Area_START -->
+<div id="dw-summary-article">
+
+<div class="dw-content-head">
+<h1> Distributed Replicated Block Device 的高可用性</h1><p><em>Linux 和 DRBD 的高可用性存储</em></p>
+</div>
+
+<div class="ibm-container-body ibm-two-column">
+
+<div class="ibm-column ibm-first">
+<div class="author"><a class="dwauthor" rel="#authortip1" href="#author1">M. Tim Jones</a>, 自由作者</div><div id="authortip1" class="dwauthor-onload-state ibm-no-print"><div class="position"><img src="http://www.ibm.com/developerworks/i/p-mjones.jpg" width="64" height="80" alt="M. Tim Jones"/></div>M. Tim Jones 是一名嵌入式固件架构师，他是 <em>Artificial Intelligence: A Systems Approach, GNU/Linux Application Programming</em>（第 2 版）、<em>AI Application Programming</em>（第 2 版）和 <em>BSD Sockets Programming from a Multilanguage Perspective</em> 等书的作者。他的工程背景非常广泛，从同步宇宙飞船的内核开发到嵌入式系统架构设计，再到网络协议的开发。Tim 是位于科罗拉多州 Longmont 的 Emulex Corp 的一名顾问工程师。</div>
+<p></p>
+  <p><strong>简介：</strong>&nbsp;2.6.33 Linux&#174; 内核引入了一个有用的新服务，称为 <em>Distributed Replicated Block Device</em> (DRBD)。该服务在运行期间可以将整块设备镜像到另一个网络主机上，允许进行数据块高可用性集群的开发。在 Linux 内核中探究 DRBD 背后蕴含的思想及其实现。</p>
+
+ 
+</div>
+
+<div class="ibm-column ibm-second">
+
+<p class="leading"><b>发布日期：</b>&nbsp;2010 年 8 月 30 日
+  
+<br /><b>级别：</b>&nbsp;中级
+  <br class="ibm-ind-link"/><b>原创语言：</b>&nbsp;<a onmouseover="linkQueryAppend(this)" href="http://www.ibm.com/developerworks/linux/library/l-drbd/index.html">英文</a>  
+
+<br /><strong>访问情况 ：</strong>&nbsp;4081 次浏览
+  <br /><strong>评论：</strong>&nbsp;<span id="nCmts"><img alt="" src="//dw1.s81c.com/developerworks/i/circle-preloader.gif" height="12" width="50" /><img alt="" src="//dw1.s81c.com/i/c.gif" height="14" width="1" /></span>
+  <!-- Rating_Area_Begin -->
+  <div id="art-rating-summary"></div>
+  <!-- Rating_Area_End -->
+  <br />
+</p>
+</div>
+
+</div>
+</div>
+<!-- dW_Summary_Area_END -->
+
+<!-- CONTENT_BODY -->
+<div id="ibm-content-body">
+
+<!-- MAIN_COLUMN_BEGIN -->
+<div id="ibm-content-main">
+
+<!-- Related_Searches_Area_And_Overlays_Begin -->
+
+<!-- MAIN_COLUMN_CONTAINER_BEGIN -->
+<div class="ibm-container">
+
+<!-- MAIN_COLUMN_CONTENT_BEGIN -->
+<div class="ibm-container ibm-alt-header dw-container-sidebar"><a name="author"></a><h2>联系 Tim</h2><div class="ibm-container-body">
+				
+  Tim 是我们最受欢迎、最多产的作者之一。浏览 developerWorks 上 <a href="http://www.ibm.com/developerworks/cn/views/global/libraryview.jsp?search_by=tim%20jones">Tim 的所有文章</a>。查看 <a href="https://www.ibm.com/developerworks/mydeveloperworks/profiles/user/MTimJones" onmouseover="linkQueryAppend(this)">Tim 的个人信息</a> 并在 My developerWorks 中与其他作者和各位读者联系。</div></div>
+			<p> Distributed Replicated Block Device (DRBD) 提供一个网络版的数据库镜像，属于冗余磁盘阵列（RAID）RAID-1 类。让我们首先简要介绍一下高可用性（HA）和 RAID，然后再研究 DRBD 的架构和用法。</p>
+			<p><a name="ha"><span class="atitle">高可用性简介</span></a></p>
+			<p><em>高可用性</em> 是提高可用性的一个系统设计原理。<em>可用性，</em>或者系统操作连续性的度量通常被定义为是一年中计算机正常运行时间的百分比，例如某一系统是 99% 可用的，那么一年中它的停机时间是 3.65 天。99% 通常被称为<em>两个 9。</em>与之相比，5 个 9（99.999%）最大停机时间降到每年 5.26 分钟。这差别很大，需要精心设计和高质量才能实现。 </p>
+			<p>HA 最常见的实现是故障冗余。在这个模型中，您可以为一个给定资源定义多条路径，正常情况下使用可用路径，故障发生时使用冗余路径。企业级磁盘驱动器阐述了这一概念，因为它们提供两个访问端口（相比用户级驱动器的一个访问端口而言）。</p>
+			<p>写这篇文章时，我正坐在波音 757 上。每个机翼上都有喷气发动机。尽管引擎是极为可靠，就算其中一个引擎发生故障，飞机使用剩余的一个引擎也能继续安全飞行。HA（由于它的冗余性）也是这样，可应用于多个应用程序和场景。</p>
+			<p>我的第一份工作是为一家大型防务公司建立对地同步的通信卫星。这些卫星的核心是一个抗辐射计算系统，它负责命令和遥感勘测（卫星的用户界面）、电能和热能管理、以及指示（或者称为保持电话通信和电视内容畅通）。就可用性而言，这个计算系统是一个冗余设计，有两组处理器和总线，能够在主机无应答的情况下在主机和伺服机之间进行切换。简言之，在系统设计中冗余是提高可用性一个常用技术，代价是增加额外硬件（和软件）。</p>
+			<p><a name="redundancy_storage"><span class="smalltitle">存储冗余</span></a></p>
+			<div class="ibm-container ibm-alt-header dw-container-sidebar"><a name="kernel"></a><h2>Linux 内核内容</h2><div class="ibm-container-body">
+				
+				<p> DRBD 融入到 Linux 内核的过程要从 2007 年 7 月说起。那时，DRBD 还是 8.0 版的，两年半之后，也就是 2009 年 12 月，DRBD 加入到了主流的 2.6.33 内核（DRBD 8.3.7）。今天，在当前 Linux 内核 2.6.35 中的是 DRBD 8.3.8。 </p>
+			</div></div>
+			<p>在存储系统中使用冗余是不足为奇的，特别是在企业级设计中。标准方法 &#8212; RAID &#8212; 使用各种基础算法是很常见的，每一种算法都有不同的功能和特性。 </p>
+			<p>RAID 是 1987 年在加利福尼亚大学伯克利分校第一次定义的。传统 RAID 级别包括 RAID-0 和 RAID-1，RAID-0 可以实现跨磁盘条带化（但是没有冗余），RAID-1 可以跨越两个磁盘实现镜像
+，这样一个信息就存在两个副本。对于 RAID-1，一个磁盘发生故障时，信息仍然可以通过其他副本获取。其他 RAID 级别包括 RAID-5 和 RAID-6，RAID-5 跨磁盘包含分布式奇偶校验码的块级条带化，RAID-6 包含带有双重分布式奇偶校验的块级条带化。尽管 RAID-5 支持一个驱动器故障，而 RAID-6 可以支持两个驱动器故障（尽管奇偶校验信息消耗更多的容量）。RAID-1 很简单，但是就容量利用而言太浪费。关于存储容量方面 RAID-5 和 RAID-6 更节省，但是它们通常需要额外硬件处理来避免奇偶校验计算加重处理器负荷。通常需要权衡利弊。图 1 提供了 RAID-0 和 RAID-1 模式的一个概览图。
+                     </p>
+			
+				<br /><a name="fig1"><b>图 1. Linux 中 RAID-0 和 RAID-1 模式的概览图 </b></a><br />
+				<img alt=" RAID-0 和 RAID-1 模式的概览图" height="254" src="figure1.gif" width="377"/>
+			<br />
+			<p>RAID 技术在继续发展，一些所谓的非标准技术蓄势待发。这些技术包括 Oracle 的 RAID-Z 模式（它解决了RAID-5 的 write-hold 问题）；NetApp 的 RAID-DP（<em>对角线奇偶校验</em>）
+，它扩展了 RAID-6；以及 IBM 的 RAID 1E（<em>增强版本</em>），它在奇数量的磁盘上可实现条带化（RAID-0）和镜像（RAID-1）。还有许多其他传统和非传统 RAID 模式：详细信息见 <a href="#resources">参考资料</a> 中的链接。 </p>
+			<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="operation"><span class="atitle">DRBD 操作</span></a></p>
+			<p>现在，在深入钻研架构之前，让我们先看一下 DRBD 的操作。图 2 是在两个提供独立存储资源的独立服务器的背景之下的 DRBD 的一个概览。其中一个服务器被定义为主服务器，另一个是辅助服务器（通常是集群解决方案的一部分）。用户访问 DRBD 块设备，将其作为一个传统本地块设备，或一个存储区域网或网络附加存储解决方案。DRBD 软件为用户读写操作提供主服务器和辅助服务器之间的同步操作，以及其他同步操。 </p>
+			
+				<br /><a name="fig2"><b>图 2. 基本 DRBD 操作模型</b></a><br />
+				<img alt="基本 DRBD 操作模型" height="254" src="figure2.gif" width="481"/>
+			<br />
+			<p>在主动/被动模式下，主节点用于所有用户的读写操作。如果集群解决方案检测到主节点故障，辅助节点升为主节点。写操作从主节点开始进行，同时执行本地存储和辅助存储（见图 3）。DRBD 支持两个模式的写操作，即完全同步和完全异步。</p>
+			<p>在<em>完全同步模式</em> 下，在写事务被认可之前两个节点存储中的写操作必须是安全的
+。在<em>异步模式</em> 下，写数据被存储到本地节点存储中之后，写事务被认可；对等节点中的数据的副本出现在后台中。异步模式相对来说不太安全，因为在复制数据之前，有一个窗口显示可能发生的故障，但是它比完全同步模式更快，后者是数据保护最安全的模式。尽管推荐使用完全同步模式，但在出现远距离复制的情况下（比如在广域网中进行地理灾难恢复的场景），异步模式也是很有用的。读操作是使用本地存储执行的（除非本地磁盘发生故障，那时通过辅助节点访问辅助存储）。 </p>
+			
+				<br /><a name="fig3"><b>Figure 3. 使用 DRBD 进行读/写操作
+                    </b></a><br />
+				<img alt="使用 DRBD 进行读/写操作" height="202" src="figure3.gif" width="462"/>
+			<br />
+			<p>DRBD 也支持主动/被动模式，比如读和写操作可以在两个服务器上同时进行，这就是所谓的<em>共享磁盘模式</em>。该模式依赖一个共享磁盘文件系统，比如，Global File System (GFS) 或 Oracle Cluster File System 第 2 版（OCFS2），包含分布式锁管理功能。 </p>
+			<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="architecture"><span class="atitle">DRBD 架构</span></a></p>
+			<p>DRBD 被分成独立的两部分：一个实现 DRBD 行为的内核模块和一组用于管理 DRBD 磁盘的用户空间管理应用程序（见图 4 ）。内核模块实现一个用于虚拟块设备（跨网络在本地磁盘与远程磁盘之间复制）的驱动程序。作为一个虚拟磁盘，DRBD 提供一个供各种应用程序使用的灵活模型（从文件系统到依赖于一个原始磁盘的其他应用程序，比如数据库）。DRBD 模块不仅仅实现一个基础块驱动程序接口（磁盘配置细节在 drbd.conf 中有定义），而且也实现网络堆接口（其端点通过一个 IP 地址和端口号定义，也在 drbd.conf 中）。 </p>
+			
+				<br /><a name="fig4"><b>图 4. Linux 架构中的 DRBD </b></a><br />
+				<img alt=" Linux 架构中的 DRBD" height="396" src="figure4.gif" width="579"/>
+			<br />
+			<p>在用户空间，DRBD 提供一组用于管理复制磁盘的实用工具。您可以使用 <code>drbdsetup</code> 在 Linux 内核中配置 DRBD 模快，使用 <code>drbdmeta</code> 管理 DRBD 元数据结构。一个同时使用这两个工具的包装实用工具是 <code>drbdadm</code>。高级管理工具是最常用的一个（从 /etc/drbd.conf 中的 DRBD 配置文件获取具体细节）。作为之前讨论的实用工具的一个前端，<code>drbdadm</code> 是管理 DRBD 最常用的。</p>
+			<p>使用磁盘模式，DRBD 输出一个特殊设备（/dev/drbdX），您可以像使用一个普通磁盘那样使用它。清单 1 描述如何构建一个文件系统和挂载 DRBD 供主机使用（如果忘记了其他必要的配置步骤，参考 <a href="#resources">参考资料</a> 部分）。 </p>
+			<br /><a name="list1"><b>清单 1. 在一个主 DRBD 磁盘上构建并加载一个文件系统
+	</b></a><br /><table width="65%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+				
+# mkfs.ext3 /dev/drbd0
+# mkdir /mnt/drbd
+# mount -t ext3 /dev/drbd0 /mnt/drbd
+</pre></td></tr></table><br />
+			<p>您可以像使用其他任何磁盘那样使用 DRBD 提供的虚拟磁盘，其后的复制操作是透明的。现在，我们来看一下 DRBD 的一些主要功能，包括自我修复功能。 </p>
+			<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="features"><span class="atitle">DRBD 主要功能</span></a></p>
+			<p>尽管复制磁盘的思想从概念上来说是很简单的（开发也相对比较容易），但是一个健壮的实现也有很多固有的复杂性。例如，向一个网络驱动器复制块相对比较简单，但是，处理故障和暂时断电（以及随后的驱动器同步）才是真正解决方案的开始。本节将介绍 DRBD 提供的主要功能，包括各种 DRBD 支持的故障模型。 </p>
+			<p><a name="rep_modes"><span class="smalltitle">复制模式</span></a></p>
+			<p>本文前面探究了节点之间复制数据的各种方法（尤其是这两种 &#8212; 完全同步和完全异步）。DRBD 支持每种方法的变体，这些方法比异步模式提供更多的数据保护，代价是性能略有下降。<em>内存异步模式（或半异步模式）</em> 是介于同步模式和异步模式之间的一个变体。在这种模式下，写操作是在数据存储到本地磁盘并镜像到对等节点内存后被确认的。该模式提供更多保护，因为数据被镜像到另一个节点，这仅仅是针对易失性内存，而不是非易失性磁盘。这仍然可能丢失数据（例如，如果两个节点都发生故障），但是主节点故障不会引起数据丢失，因为数据已经被复制了。 </p>
+			<p><a name="online"><span class="smalltitle">联机设备验证</span></a></p>
+			<p>DRBD 允许对本地和远程对等设备进行联网验证（在输入/输出发生的同时）。验证意味着 DRBD 可以核实本地和远程磁盘是否是相互间的副本，这是一个耗时的操作。但是相比在节点之间移动数据进行验证，DRBD 提供了一个更为高效的方法。为了保护节点间的带宽（可能是一个受限资源），DRBD 不需要在节点间移动数据进行验证，而是移动数据（hash）的加密摘要。这样一来，一个节点可以计算一个块的散列值；将较小的签名转移到对等节点，该节点也可以计算散列值，然后对两者进行比较。如果散列值是相同的，数据块已经被正确的复制了。如果散列值不相同，将过期的数据块标记为不同步，随后的同步确保数据块是正确同步的。</p>
+			<p><a name="communication"><span class="smalltitle">通信完整性</span></a></p>
+			<p>节点之间的通信可能会将错误引入复制数据（由于软件或防火墙漏洞，或者不能被 TCP/IP 的校验码检测出来的其他错误）。为了提供数据的完整性，DRBD 计算消息完整性代码，以随数据一起在节点之间移动。这支持接收节点验证输入数据，并在发现一个错误时请求重发数据。DRBD 使用 Linux 加密应用程序编程接口，因此在完整性算法使用方面是比较灵活的。 </p>
+			<p><a name="auto_recovery"><span class="smalltitle">自动恢复</span></a></p>
+			<p>DRBD 可以从多种错误中恢复，但是一个最严重的错误就是所谓的 “裂脑（split-brain）”。在这个错误场景中，节点之间的通信链发生故障，每个节点都认为自己是主节点。而对于主节点而言，每个节点支持写操作，而不会将这些操作传播到对等节点。这导致每个节点中的存储不一致。</p>
+			<p>大多数情况下，脑裂恢复是人工进行的，但是 DRBD 提供几个主动恢复这一状况的操作方法，所用恢复算法具体取决于实际的存储方式。 </p>
+			<p>发生裂脑之后，同步存储最简单的方法是在链接出现故障时其中一个节点没有发现改变。这样，已经发生改变的节点与潜在对等节点进行简单的同步。另一个方法是丢弃变更较少的那个节点中的更改。这使得最大变更集合的节点可以继续工作，但也意味着一个主机上的变更将丢失。 </p>
+			<p>还有两个方法是根据节点当时的状态丢弃更改。一种方法是将最后一次转换成主节点的那个节点中的变更丢弃，而另一种是将最老的主节点（是第一次转换成主节点的节点）中的变更丢弃。您可以在 DRBD 配置文件中操作每个节点，但是它们最终的使用取决于使用存储的应用程序以及数据是否有必要丢弃或进行人工恢复。 </p>
+			<p><a name="optimize_sync"><span class="smalltitle">优化同步</span></a></p>
+			<p>复制存储设备的一个关键因素是节点之间数据同步的方法是否高效。DRBD 使用的模式其中两个是活动日志和快速同步位图。活动日志存储最近写入的块并确定故障恢复后应同步哪些块。快速同步位图确定连接断开时同步（或不同步）的数据块。节点重新连接之后，可使用这些位图快速同步节点，彼此之间进行精确的复制。时间是很重要的，因为它代表辅助磁盘不一致时的窗口。 </p>
+			<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="N1018A"><span class="atitle">结束语</span></a></p>
+			<p>如果您想要提高您数据的可用性，甚至是商业硬件上的数据，DRBD 是一个极好的资产。它作为一个内核模块易于安装，且可使用管理工具和包装器进行配置。更好的是，DRBD 是开源的，允许您根据自己的需求进行调整（但是首先检查 DRBD 路线图，看看是否您所需要的在其计划中）。DRBD 提供大量有用的选项，因此您可以对其进行优化，使其只适合您的应用程序。</p>
+		<!-- CMA ID: 514000 --> <!-- Site ID: 10 --> <!-- XSLT stylesheet used to transform this file: dw-document-html-6.0.xsl -->
+<br />
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p><p><b>学习</b></p><ul><li>
+				<a href="http://www.drbd.org">DRBD
+                    网站</a> 提供 DRBD 的最新信息、当前功能列表、路线图以及技术介绍。您可以找到 DRBD 论文和演示列表。尽管 DRBD 是主流内核的一部分（从 2.6.33 起），您也可以在 <a href="http://oss.linbit.com/drbd/">LINBIT</a> 中获取最新源码包。 <br /><br /></li><li>
+				<a href="http://en.wikipedia.org/wiki/High_availability">高可用性</a> 是支持一定程度操作的一个系统特性。该特性通常包括 <a href="http://en.wikipedia.org/wiki/Redundancy_(engineering)">冗余性</a>，这是避免 <a href="http://en.wikipedia.org/wiki/Single_point_of_failure">单点故障</a>
+ 的一种方法。<a href="http://en.wikipedia.org/wiki/Fault-tolerant_system">容错系统</a> 的设计是提高可用性的另一个重要方面。 <br /><br /></li><li>
+				<a href="http://en.wikipedia.org/wiki/RAID">RAID</a> 的概念于 1987 年诞生于加利福尼亚大学伯克利分校。RAID 是分级别定义的，指定存储架构和保护特性。在开创性论文 “<a href="http://www-2.cs.cmu.edu/~garth/RAIDpaper/Patterson88.pdf ">A Case for Redundant Arrays of Inexpensive Disks (RAID)</a>” 中您可以了解更多原始 RAID 的概念。 <br /><br /></li><li> Ubuntu 为 <a href="https://wiki.ubuntu.com/Testing/Cases/UbuntuServer-drbd">配置和使用 DRBD</a> 提供一个很有用的页面。该页面介绍了 DRBD 在主机和辅助主机上的配置、以及如何在各种故障场景中进行 DRBD 测试。 <br /><br /></li><li>在同集群应用程序协同工作时，DRBD 是最有帮助的。幸运的是，在 DRBD 手册页中的 <a href="http://www.drbd.org/docs/applications/">DRBD-enabled
+                    applications</a> 部分，您可以更多地了解这些应用程序以及其他程序（比如 Pacemaker、Heartbeat、 Logical Volume、Manager、GFS 和 OCFS2），并了解如何将它们和 DRBD 集成。 <br /><br /></li><li> 这篇文章涉及两个共享磁盘文件系统 &#8212; 即，<a href="http://www.redhat.com/gfs/">GFS</a> 和 <a href="http://oss.oracle.com/projects/ocfs2/">OCFS2</a>。两者都是集成了高性能和 HA 的集群文件系统。 <br /><br /></li><li> 在 <a href="http://www.ibm.com/developerworks/cn/linux/"> developerWorks Linux 专区</a> 寻找为 Linux 开发人员（包括 <a href="http://www.ibm.com/developerworks/cn/linux/newto/">Linux 新手入门</a>）准备的更多参考资料，查阅我们 <a href="http://www.ibm.com/developerworks/cn/linux/best2009/index.html">最受欢迎的文章和教程</a>。 <br /><br /></li><li>在 developerWorks 上查阅所有 <a href="http://www.ibm.com/developerworks/cn/views/linux/libraryview.jsp?search_by=Linux+%E6%8A%80%E5%B7%A7"> Linux 技巧</a> 和 <a href="http://www.ibm.com/developerworks/cn/views/linux/libraryview.jsp?type_by=%E6%95%99%E7%A8%8B"> Linux 教程</a>。 <br /><br /></li><li>随时关注 developerWorks <a href="http://www.ibm.com/developerworks/cn/offers/techbriefings/">技术活动</a>和<a href="http://www.ibm.com/developerworks/cn/swi/">网络广播</a>。 <br /><br /></li><li> 
+               观看 <a href="http://www.ibm.com/developerworks/cn/offers/lp/demos/index.html">developerWorks 演示中心</a>，包括面向初学者的产品安装和设置演示，以及为经验丰富的开发人员提供的高级功能。
+            <br /><br /></li></ul><p><b>获得产品和技术</b></p><ul><li> 以最适合您的方式 <a href="http://www.ibm.com/developerworks/cn/downloads/">IBM 产品评估试用版软件</a>：下载产品试用版，在线试用产品，在云环境下试用产品，或者在 <a href="http://www.ibm.com/developerworks/cn/downloads/soasandbox/people/">IBM SOA Sandbox for People</a> 中花费几个小时来学习如何高效实现面向服务架构。<br /><br /></li></ul><p><b>讨论</b></p><ul><li>欢迎加入 <a href="http://www.ibm.com/developerworks/cn/mydeveloperworks/">My developerWorks 中文社区</a>。<br /><br /></li></ul>
+<p><a name="author"><span class="atitle">关于作者</span></a></p><div class="ibm-container ibm-portrait-module ibm-alternate-two"><div class="ibm-container-body"><img src="http://www.ibm.com/developerworks/i/p-mjones.jpg" class="dw-author-img" width="64" height="80" alt="M. Tim Jones"/><p><a name="author1"> </a>M. Tim Jones 是一名嵌入式固件架构师，他是 <em>Artificial Intelligence: A Systems Approach, GNU/Linux Application Programming</em>（第 2 版）、<em>AI Application Programming</em>（第 2 版）和 <em>BSD Sockets Programming from a Multilanguage Perspective</em> 等书的作者。他的工程背景非常广泛，从同步宇宙飞船的内核开发到嵌入式系统架构设计，再到网络协议的开发。Tim 是位于科罗拉多州 Longmont 的 Emulex Corp 的一名顾问工程师。</p></div></div>
+<!-- MAIN_COLUMN_CONTENT_END -->
+  <!-- OVERLAYS_START -->
+  <!-- Report_Abuse_Start -->
+  <div class="ibm-common-overlay ibm-no-print" id="reportabuseoverlay">
+    <div class="ibm-head"><p><a class="ibm-common-overlay-close" href="#">关闭 [x]</a></p></div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <a class="ibm-access" name="reportabuseoverlay">关于报告滥用的帮助</a>   
+        <div class="ibm-title"><h1>报告滥用</h1></div>
+        <div class="ibm-container ibm-alternate">
+          <p><strong>谢谢!</strong>  此内容已经标识给管理员注意。</p>
+          <div class="ibm-overlay-rule"><hr /></div>
+          <div class="ibm-buttons-row">
+            <input type="button" onclick="ibmCommon.Overlays.hide('reportabuseoverlay');return false;" class="ibm-btn-cancel-sec dw-btn-cancel-sec" name="ibm-cancel" value="关闭" />
+          </div>
+        </div>
+      </div> 
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Report_Abuse_Error_Start -->
+  <div class="ibm-common-overlay ibm-no-print" id="reportabuseoverlayerror">
+    <div class="ibm-head"><p><a class="ibm-common-overlay-close" href="#">关闭 [x]</a></p></div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <a class="ibm-access" name="reportabuseoverlayerror">关于报告滥用的帮助</a>   
+        <div class="ibm-title"><h1>报告滥用</h1></div>
+        <div class="ibm-container ibm-alternate">
+          <p class="ibm-ind-error"><strong>报告滥用提交失败。  请稍后重试。</strong></p>
+          <div class="ibm-overlay-rule"><hr /></div>
+          <div class="ibm-buttons-row">
+            <input type="button" onclick="ibmCommon.Overlays.hide('reportabuseoverlayerror');return false;" class="ibm-btn-cancel-sec dw-btn-cancel-sec" name="ibm-cancel" value="关闭" />
+          </div>
+        </div>
+      </div> 
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Sign in OVERLAY STARTS HERE --> 
+  <div class="ibm-common-overlay" id="signin_overlay">
+    <div class="ibm-head">
+      <p><a class="ibm-common-overlay-close" href="#" onclick="clearForm();">关闭 [x]</a></p>
+    </div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <div class="ibm-title ibm-subtitle">
+          <h1>developerWorks：登录</h1>
+          <div id="ibm-overlay-error-signin" class="no-display"></div>
+        </div>
+        
+        <div class="ibm-container ibm-alternate ibm-buttons-last">
+          <div class="ibm-container-body">
+
+            <form class="ibm-column-form" id="sFormId" action="" method="post" name="sForm" onsubmit="return false;">
+              <p><label for="ibmid">IBM ID：</label><span><input name="ibm-id" id="ibmid" size="25" value="" class="required" type="text" onkeypress="handleEP(event,this.form);" />
+                <br /><a class="ibm-forward-link" href="#" onclick="(function () {window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.href);})();">需要一个 IBM ID？</a>
+                <br /><a class="ibm-forward-link" href="/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a></span>   
+              </p> 
+              <p><label for="password">密码：</label><span><input name="password" id="password" size="25" value="" class="required" type="password" onkeypress="handleEP(event,this.form);" /><br />
+                <a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Dzh_CN%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a><br />
+                <a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></span></p> 
+
+              <p class="dw-perm-box">
+                <span><input id="perm" type="checkbox" name="perm_name"/><label for="perm"> 保持登录。</label></span>
+              </p>
+
+              <p>单击提交则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">使用条款</a></p>
+              <div class="ibm-buttons-row">
+                <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+                  <input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="clearForm();ibmCommon.Overlays.hide('signin_overlay');return false;"/></p>
+              </div>
+            </form>
+            <div class="ibm-overlay-rule"><hr /></div>
+            <p>当您初次登录到 developerWorks 时，将会为您创建一份概要信息。<strong>您在 developerWorks 概要信息中选择公开的信息将公开显示给其他人，但您可以随时修改这些信息的显示状态。</strong>您的姓名（除非选择隐藏）和昵称将和您在 developerWorks 发布的内容一同显示。</p>
+            <div class="dw-overlay-legal"><p>所有提交的信息确保安全。</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Sign in OVERLAY ENDS HERE --> 
+  
+  
+  <!-- Display name OVERLAY STARTS HERE --> 
+  <div class="ibm-common-overlay" id="displayname_overlay">
+    <div class="ibm-head">
+      <p><a class="ibm-common-overlay-close" href="#" onclick="clearForm();">关闭 [x]</a></p>
+    </div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <div class="ibm-title ibm-subtitle">
+          <h1>请选择您的昵称：</h1>
+          <div id="ibm-overlay-error-dname" class="no-display"></div>
+        </div>
+        <div class="ibm-container ibm-alternate ibm-buttons-last">
+          <div class="ibm-container-body">
+            <p class="ibm-overlay-intro">当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+            <form id="dFormId" method="post" action="" name="dForm" onsubmit="return false;" class="ibm-column-form">
+              <p><label for="displayname">昵称：</label><span><input name="displayname" id="displayname" size="25" value="" type="text" onkeypress="handleEP(event,this.form);" /></span><span class="ibm-form-note">（长度在 3 至 31 个字符之间）</span>
+              </p>
+              
+              <div class="ibm-overlay-rule"><hr />
+              </div>
+              <p>单击<strong>提交</strong>则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">使用条款</a>.</p>
+              <div class="ibm-buttons-row">
+                <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+                  <input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="clearForm();ibmCommon.Overlays.hide('displayname_overlay');return false;" /></p>
+              </div>
+            </form>
+            <div class="ibm-overlay-rule"><hr /></div>
+            <div class="dw-overlay-legal"><p>所有提交的信息确保安全。</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Display name OVERLAY ENDS HERE -->
+  <!-- OVERLAYS_END -->
+  <!-- RATINGS START -->
+  <p class="ibm-no-print"><span class="atitle"><a name="iratings">为本文评分</a></span></p>
+  <input id="art-rating" name="ratinga" type="hidden" value="0"/><div id="art-rating-module"></div>
+  <script language="JavaScript" type="text/javascript">
+    // <![CDATA[
+   // widget div id and article id as args
+   window.artRating.init('art-rating-module','art-rating-summary');
+// ]]>
+  </script>
+  <!-- RATINGS END --> 
+  
+  <!-- INLINE_COMMENTS_START -->
+  <p class="ibm-no-print"><span class="atitle"><a name="icomments">评论</a></span></p>
+    <script language="JavaScript" type="text/javascript">
+      // <![CDATA[
+dwc = {};
+dwc.cmts = '条评论';
+dwc.signInPreText = '请';
+dwc.signIn = '登录';
+dwc.or = '或';
+dwc.register = '注册';
+dwc.signInPostText = '';
+dwc.leaveCmt = '后发表评论。';
+dwc.view = '查看';
+dwc.totalCmts = '共有评论';
+dwc.postYourCmt = '添加您的评论';
+dwc.show = '显示：';
+dwc.recentCmts = '最新评论';
+dwc.allCmts = '所有评论';
+dwc.tooLongCmt = '您的评论超过了 1000 字符限制';
+dwc.numCharsLeft = '剩余 <span id="charCount">{1}</span> 字符';
+dwc.reportAbuse = '报告滥用';
+dwc.notifyMsg = '有新评论时提醒我';
+dwc.htmlWarning = '注意：评论中不支持 HTML 语法'; 
+dwc.cmt = '评论：';
+dwc.addCmts = '添加评论';
+dwc.addCmt = '添加评论';
+dwc.doNotErase = '--在下方添加评论--'; 
+dwc.viewOrAddCmts = '查看或添加评论';
+dwc.reportInapprCont = '举报不良信息';
+dwc.reportInapprContLink = 'http://www.ibm.com/developerworks/forums/forum.jspa?forumID=1834';
+dwc.postingCmt = '正在发布评论……';
+dwc.noCmt = '快来添加第一条评论';
+dwc.netwkErr = '在检索评论时出错，请稍后刷新。';
+dwc.addACmt = '添加评论';
+dwc.instructCmt = '标有星号（<span class="ibm-required">*</span>）的是必填项目。';
+dwc.btnPost = '发布';
+dwc.btnPostAnon = '匿名发布';
+dwc.btnClrCmt = '清除评论';
+dwc.btnCancel = '取消';
+dwc.showRecent = '显示最新的 {1} 条评论'; // {1} is the count to be substituted
+dwc.showNext = '显示后 {1} 条评论'; // {1} is the count to be substituted
+dwc.showAllCmts = '显示所有评论';
+dwc.enterCmt = '请输入评论内容。';
+dwc.loginErr = '暂时无法验证您的登录状态，请稍后再试。';
+dwc.postErr = '暂时无法发布您的评论，请稍后再试。';
+dwc.postBy = '由 <strong>{1}</strong>  于 {2} '; // {1} is the author to be substituted; {2} is the date
+dwc.siteId = 10;
+dwc.lang = 'zh_CN';
+dwc.viperLang = 'zh';
+// ]]>
+    </script>
+    <div id="threadShow"></div>
+  <!-- INLINE_COMMENTS_END -->
+  
+
+  <p class="ibm-ind-link ibm-back-to-top"><a class="ibm-anchor-up-link" href="#ibm-pcon">回页首</a></p>
+
+<!-- Overlays -->
+<!-- lk - pull in overlays from ww when required on cn -->
+  </div>
+<!-- MAIN_COLUMN_CONTAINER_END -->
+
+<!-- Rating_Meta_BEGIN -->
+<!--Rating_Meta_BEGIN--><div class="metavalue">static.content.url=http://www.ibm.com/developerworks/js/artrating/</div><div class="metavalue">SITE_ID=10</div><div class="metavalue">Zone=Linux</div><div class="metavalue">ArticleID=514000</div><div class="metavalue">ArticleTitle= Distributed Replicated Block Device 的高可用性</div><div class="metavalue">publish-date=08302010</div><div class="metavalue">author1-email=mtj@mtjones.com</div><div class="metavalue">author1-email-cc=</div><script language="javascript" type="text/javascript">document.write('<div class="metavalue">url='+location.href.replace(/</g, '%3C')+'</div>');</script><!--Rating_Meta_END-->
+<!-- Rating_Meta_END -->
+
+</div>
+<!-- MAIN_COLUMN_END-->
+
+<!-- RIGHT_COLUMN_BEGIN -->
+<div id="ibm-content-sidebar">
+
+<!-- RIGHT_COLUMN_CONTENT_BEGIN --> 
+<div class="ibm-container"><h2>内容</h2><div class="ibm-container-body"><img alt="" height="1" width="1" src="//www.ibm.com/i/c.gif"/><ul class="ibm-bullet-list"><li><a class="ibm-feature-link" href="#ha">高可用性简介</a></li><li><a class="ibm-feature-link" href="#operation">DRBD 操作</a></li><li><a class="ibm-feature-link" href="#architecture">DRBD 架构</a></li><li><a class="ibm-feature-link" href="#features">DRBD 主要功能</a></li><li><a class="ibm-feature-link" href="#N1018A">结束语</a></li><li><a class="ibm-feature-link" href="#resources">参考资料 </a></li><li><a class="ibm-feature-link" href="#author">关于作者</a></li><li><a class="ibm-feature-link" href="#icomments">建议</a></li></ul></div></div>
+
+ 
+
+
+<!-- Dig_Deeper -->
+
+<!-- High_Visibility_Offer -->
+
+<!-- Special_Offers -->
+
+<!-- RIGHT_COLUMN_CONTENT_END -->
+
+</div>
+<!-- RIGHT_COLUMN_END -->
+
+<!-- CONTENT_BODY_END -->
+</div>
+
+</div>
+<!-- CONTENT_END -->
+
+ <!-- END_IBM-PCON -->
+</div>
+
+<!-- FOOTER_BEGIN -->
+<div id="ibm-footer">
+<!-- IBM footer container; disabled -->
+</div>
+
+<div id="ibm-page-tools-dw">
+	<div id="dw-footer-top-row">
+		<ul id="dw-foot-options">
+			<li id="dw-print"><a class="ibm-print-link" href="#">打印此页面</a></li>
+		</ul>
+		<ul id="ibm-foot-options-dw">
+			<li id="dw-foot-0"><a href="#">分享此页面</a></li>
+			<li id="dw-foot-1"><a href="#">关注 developerWorks</a></li>
+		</ul>
+	</div>       
+	
+	
+	<!-- TOP ROW SLIDER -->
+    <div id="dw-page-tools-menu">    
+        <div class="ibm-ribbon-pane-dw">
+            <div class="ibm-ribbon-section-dw">
+				<!-- Share this page -->			
+                <div class="dw-footer-columns">
+                    <div class="dw-footer-col-4-1">
+                    	<h2>分享此页面：</h2>                            
+						<ul class="ibm-link-list">
+						  <!--<li><a id="dw-foot-0-0" class="dwcn-sina-link"
+						        href="#"
+						        onClick="javascript:location.href='http://hits.sinajs.cn/A1/weiboshare.html?&amp;appkey=&amp;title='+escape(document.title)+'&amp;url='+escape(location.href)'+'&amp;pic=&ralateUid&amp;language=zh_cn;
+						        ">新浪微博</a></li> -->
+						   <li><a id="dw-foot-0-0" class="dwcn-sina-link"
+						        href="#"
+						        onClick="javascript:location.href='http://service.weibo.com/share/share.php?title='+encodeURIComponent(document.title)+'&amp;url='+escape(location.href)+'&amp;language=zh_cn'
+						        ; ">新浪微博</a></li> 
+						   <li><a class="dwcn-renren-link"
+						        href="#" onClick="javascript:location.href='http://share.renren.com/share/buttonshare?title='+encodeURIComponent(document.title)+'&amp;link='+escape(location.href);
+						        ">人人网</a></li> 
+						    <li><a class="dwcn-tencent-link"
+						        href="#" onClick="javascript:location.href='http://v.t.qq.com/share/share.php?title='+encodeURIComponent(document.title)+'&amp;url='+escape(location.href);
+						        ">腾讯微博</a></li> 
+						   				
+						</ul>
+                    </div>
+                    <div class="dw-footer-col-4-2">
+						<ul class="ibm-link-list">
+						    <li><a class="dwcn-sohu-link"
+						        href="#"
+						        onClick="javascript:location.href='http://t.sohu.com/third/post.jsp?title='+encodeURIComponent(document.title)+'&amp;link='+escape(location.href);
+						        ">搜狐微博</a></li>
+						    
+						    <li><a class="dwcn-netease-link"
+						        href="#"
+						        onClick="javascript:location.href='http://t.163.com/article/user/checkLogin.do?info='+encodeURIComponent(document.title)+ '' +escape(location.href);
+						        ">网易微博</a></li>
+						    <li><a class="ibm-facebook-link" href="#">Facebook</a></li>
+						</ul>
+                </div>
+                    <div class="dw-footer-col-4-3">
+						<ul class="ibm-link-list">
+						 <li><a class="ibm-linkedin-link" href="#">LinkedIn</a></li>   
+						 <li><a class="ibm-twitter-link" href="#">Twitter</a></li>   
+						 <li><a class="ibm-delicious-link" href="#">Delicious</a></li>
+						
+						</ul>
+                    </div>
+                   <div class="dw-footer-col-4-4">
+						<ul class="ibm-link-list">
+						 <li><a class="ibm-digg-link" href="#">Digg</a></li>   
+						 <li><a class="ibm-email-link" href="#">发送此页面</a></li>
+						</ul>
+                    </div>
+                    <div class="dw-footer-close">
+						<ul>
+							<li><div class="dw-footer-close-share"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10"/></a></div></li>
+						</ul>
+                    </div>
+                </div>
+                  <!-- Follow developerWorks -->
+                <div class="dw-footer-columns">
+                    <div class="dw-footer-col-1-1 dw-footer-col-1-1-cn">
+                    	<h2>关注 developerWorks 中国网站：</h2>
+						<ul class="ibm-link-list">
+							<!--<li><a id="dw-foot-1-0" class="ibm-twitter-link" href="http://www.twitter.com/dwchina">Twitter</a></li>-->
+						    <li><a id="dw-foot-1-0" class="dwcn-sina-link"
+						        href="http://weibo.com/ibmdw/">新浪微博</a></li>
+						</ul>
+                    </div>
+                    <div class="dw-footer-close">
+						<ul>
+							<li><div class="dw-footer-close-follow-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10"/></a></div></li>
+						</ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="ibm-footer-module-dw">
+	<div class="dw-footer-columns">
+		<div class="dw-footer-col-6-1">
+			<ul>
+				<!--<li><a href="http://www.ibm.com/developerworks/aboutdw/">About</a></li>-->
+				<li><a href="https://www.ibm.com/developerworks/secure/feedback.jsp?domain=dwchina">帮助</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/author/">联系编辑</a></li>
+				<li><a href="https://www.ibm.com/developerworks/secure/myideas2.jsp?domain=dwchina&start=true">提交内容</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/sitemap/">网站导航</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-2">
+			<ul>
+				<li><a href="http://www.ibm.com/developerworks/cn/rss/">订阅源</a></li>
+				<li><a href="http://www.ibm.com/vrm/newsletter/10104?S_TACT=105AGX52&S_CMP=dwcntop">在线浏览每周时事通讯</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-3">
+			<ul>
+				<li><a href="https://www.ibm.com/developerworks/community/report?lang=zh">报告滥用</a></li>
+				<li><a href="https://www.ibm.com/developerworks/community/terms?lang=zh">使用条款</a></li>
+				<li><a href="http://www.ibm.com/privacy/cn/zh/">隐私条约</a></li>
+				<li><a href="http://www.ibm.com/ibm/accessibility/cn/">浏览辅助</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-4">
+			<ul>
+			<li><a href="http://www.ibm.com/developerworks/cn/academic/">IBM 教育学院教育培养计划</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/gep/">IBM 创业企业全球扶持计划</a></li>
+				<li><a href="http://www.ibm.com/partnerworld/isv/">ISV 资源 (英语)</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-5">
+		</div>
+		<div class="dw-footer-col-6-6">
+			<img src="//dw1.s81c.com/developerworks/i/mf/dwn-ibm-logo-v16.png" alt="IBM®" width="100" height="46"/>
+			<img class="dw-preload" src="//dw1.s81c.com/developerworks/i/mf/arrow-down-active.gif" alt="" width="1" height="1"/>
+		</div>
+	</div>
+	<!-- Language selector no-script -->
+	<noscript>
+	<div id="dw-footer-selectlang">
+		<h2><a name="SELECTLANG">选择语言：</a></h2>
+		<ul>
+			<li><a href="http://www.ibm.com/developerworks/">English</a></li>
+			<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+			<li><a href="http://www.ibm.com/developerworks/jp/">日本語</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ru/">Русский</a></li>
+			<li><a href="http://www.ibm.com/developerworks/br/">Português (Brasil)</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ssa/">Español</a></li>
+			<li><a href="http://www.ibm.com/developerworks/vn/">Việt</a></li>
+		</ul>
+	</div>
+	</noscript>
+</div><!-- FOOTER_END -->
+
+ <!-- END_IBM-TOP -->
+</div>
+ 
+ <!-- SCRIPTS_INCLUDE_BEGIN -->
+<!-- JQuery start -->
+<script type="text/javascript" language="JavaScript" src="//dw1.s81c.com/developerworks/js/jquery/cluetip98/jquery.hoverIntent.minified.js"></script>
+<script type="text/javascript" language="JavaScript" src="//dw1.s81c.com/developerworks/js/jquery/cluetip98/jquery.cluetip.js"></script>
+<!-- xM Masthead/Footer -->
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/jquery.tools.min.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/jquery.jscroll.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/dw_v16.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/flash-detect.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/dwsi.js" type="text/javascript">//</script>
+<script type="text/javascript" language="JavaScript" src="/developerworks/js/dw-mf/showcomments.js">//</script>
+<script language="JavaScript" type="text/javascript">
+	// <![CDATA[
+ jQuery('threadShow').showComments('95%',5,'nCmts','icomments');
+// ]]>
+</script>
+<script type="text/javascript" language="JavaScript">
+	jQuery.noConflict();     
+	// Put all your code in your document ready area
+	jQuery(document).ready(function(jQuery) {
+	// Do jQuery stuff using jQuery 
+	jQuery('a.dwauthor').cluetip({
+	local: true,
+	showTitle: false,
+	positionBy: 'bottomTop',
+	sticky: true,	
+	mouseOutClose: true,
+	closeText: '<img src="//dw1.s81c.com/developerworks/js/jquery/cluetip98/i/x.gif" alt="Close" />',
+	arrows: false,
+	dropShadow: true,
+	cluetipClass: 'dwbasic'
+	});   	
+	
+	rBHash = {};
+	rBHash['viperLang'] = 'zh';
+	rBHash['urlLang'] = 'cn';
+
+	// si
+	initSI();
+	});
+</script>
+<!-- JQuery end -->
+<!-- Overlay js -->
+<script language="JavaScript" src="//dw1.s81c.com/common/js/overlay.js" type="text/javascript"></script><!-- BEGIN: Use this section to set page specific variables for the Unica Page Tag -->
+<script language="JavaScript">var NTPT_PGEXTRA="ibmSkillLevel=3&ibmAdoptPhase=648&ibmRole=29&ibmCmaId=514000&ibmContentAreas=linux";</script>
+<!--END --><!-- SCRIPTS_INCLUDE_END -->
+
+<div id="ibm-metrics">
+<script src="//dw1.s81c.com/common/stats/stats.js" type="text/javascript">//</script>
+</div>
+
+</body>
+</html>

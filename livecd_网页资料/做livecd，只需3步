@@ -1,0 +1,107 @@
+做Live CD 只需3步：
+1. yum安装livecd-tools，装完以后在/usr/share/livecd-tools下会有配置文件例子可参考；
+2. 把fedora 8的DVD安装盘挂载到/mnt下面；
+3. cd 进一个可写的文件夹里，运行下面livecd-creator命令
+livecd-creator --config=/usr/share/livecd-tools/livecd-fedora-minimal.ks
+  
+这样子就出来了一个开发菜鸟专用的 Live CD了，大小为160MB左右。gcc/g++ & make齐全，有网络功能，能ssh登录，能挂载（被挂载）nfs，能在windows用samba访问，可用yum升级。启动真的很迅速（啥也没有，当然快）
+  
+ps
+1. 该配置文件.ks的内容语法与kickstart设置后导出的配置文件互通
+2. 如果要增加把 Live CD安装到磁盘的功能，即加入livecd-tools这个包（在fedora 8的DVD安装盘里没有），可以通过多repo方式，或把光盘内容复制到硬盘上，手动添加livecd-tools这个包，make repo。
+3. openware里有everything的源的话，配置文件里的repo路径填学校FTP的就行了，不用上面第2步，不过现在openware ftp相当混乱，可无视
+  
+下面是一个修改后的配置文件，通俗易懂
+#livecd-creator --config=/usr/share/livecd-tools/livecd-fedora-minimal.ks
+[quote]
+lang en_US.UTF-8
+keyboard us
+timezone  Asia/Shanghai
+auth --useshadow --enablemd5
+#selinux --disabled
+#selinux --enforcing
+firewall --disabled
+part / --size 1024
+  
+repo --name=fedora --baseurl=file:///mnt  
+repo --name=fedora3 --baseurl=file:///root/tmp/rd
+  
+%packages
+bash
+kernel
+passwd
+rootfiles
+  
+#common tools
+vim-minimal
+ftp
+openssh-server
+yum
+ntp
+nfs-utils
+samba
+mlocate
+which
+  
+#development-tools
+make
+gcc-c++
+  
+# tool for install livecd to disk
+#livecd-tools
+grub
+  
+%end
+[/quote]
+  
+下面是怎样把这个Live CD装到硬盘上去
+原理很简单，把启动后的系统文件，全都复制到硬盘上，装个grub引导一下就可以了
+以vmware为例，一个新建的8G虚拟硬盘
+  
+从上面的Live CD启动后，首先使用 fdisk -l 查看硬盘的标识，得知这个硬盘为/dev/sda
+下面使用parted命令进行分区（Live CD自带）
+parted /dev/sda
+新建一个分区表
+mklabel atv
+提示填入类型时，输入MSDOS
+下面建立两个分区，第一个为交换分区，从0MB到512MB位置：
+mkpart primary linux-swap 0 512
+第二个用作挂载根目录的：
+mkpart primary ext3 512 8590
+输入quit退出即可，命令是立即生效的
+  
+这时用 fdisk -l 查看，得知有两个分区sda1和sda2，分别给它们建文件系统：
+mkswap /dev/sda1  （激活时用swapaon /dev/sda1）
+mke2fs -j /dev/sda2
+  
+把第二个分区挂上
+mount /dev/sda2 /mnt
+偷个懒，把所有的东西暴力复制过去，肯定会报错的，没关系，不影响
+cp -R /* /mnt
+  
+切换过去，准备装grub引导（注意上面的.ks配置文件要加上grub这个包）
+chroot /mnt
+  
+  把stage1之类文件放到/boot/grub下面
+grub-install /dev/sda2  
+  
+进入grub，确保grub生效。补充一下，grub命令都可以用tab补全的
+grub
+root (hd0,1)
+setup (hd0)
+  
+出来以后，修改/boot/grub/grub.conf文件成以下样子，同样通俗易懂
+[quote]default=0
+timeout=5
+splashimage=(hd0,1)/boot/grub/splash.xpm.gz
+hiddenmenu
+title Fedora (2.6.23.1-42.fc8)
+root (hd0,1)
+kernel /boot/vmlinuz-2.6.23.1-42.fc8 ro root=/dev/sda2 rhgb quiet
+initrd /boot/initrd-2.6.23.1-42.fc8.img[/quote]
+  
+最后修改/etc/fstab文件，把之前留出来的交换分区给自动挂上去
+/dev/sda1 swap swap defaults 0 0
+  
+大功造成，重启。
+效果图在后面8楼，修改的帖子不知道怎么样传图片 

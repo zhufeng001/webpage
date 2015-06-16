@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+<meta charset="utf-8"/>
+<title>利用Qemu Guest Agent (Qemu-ga) 实现 Openstack 监控平台 - 梁小白 - 博客园</title>
+<link type="text/css" rel="stylesheet" href="/bundles/blog-common.css?v=gdNkSiQMyBMkpTeO1ex9qW-60UbMszQItnCUpBAT3LQ1"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="http://common.cnblogs.com/Skins/Minyx2_Lite/style.css?id=20140415"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/biangbiang/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/biangbiang/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/biangbiang/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">var currentBlogApp = 'biangbiang', cb_enable_mathjax=false;</script>
+<script src="/bundles/blog-common.js?v=15gzXd7pJ_PNpSlGpVykf0EBaNg79HWL7oD5vVw0NGA1" type="text/javascript"></script>
+<script src="http://common.cnblogs.com/Skins/Minyx2_Lite/script/skin.js" language="javascript" type="text/javascript"></script>
+</head>
+<body>
+<a name="top"></a>
+
+
+<div id="container">
+    <a class="minyx" href="http://www.cnblogs.com/">www.cnblogs.com</a>
+    <ul id="topMnu">
+        <!-- 统计数据 -->
+        <li>
+            
+                
+            
+        </li>
+        <!-- 这边可以增加一些链接 -->
+        <!-- 博客园 -->
+        <li><a href="http://www.cnblogs.com">Cnblogs</a></li>
+        <!-- 管理 -->
+        <li id="topMnu-dashboard">
+            <a id="lnkDashboard" href="http://www.cnblogs.com/biangbiang/admin/EditPosts.aspx">Dashboard</a></li>
+        <li>
+            <a id="lnkLogin" href="http://passport.cnblogs.com/login.aspx?ReturnUrl=http://www.cnblogs.com/biangbiang/p/3222458.html">Login</a></li>
+    </ul>
+
+    <script type="text/javascript">
+        var m = window.__blog.topMenuRendered;
+        if (m) { m(__$("topMnu")); }
+    </script>
+
+    <div id="header">
+        <ul id="menu">
+            <!-- 首页，当前section加上current类 -->
+            <li id="menu-home" class="current">
+                <a id="lnkHome" href="http://www.cnblogs.com/biangbiang/">Home</a></li>
+            <!-- 联系 -->
+            <li id="menu-contact">
+                <a id="lnkContact" href="http://space.cnblogs.com/msg/send/%e6%a2%81%e5%b0%8f%e7%99%bd">Contact</a></li>
+            <!-- 相册 -->
+            <li id="menu-gallary">
+                <a id="lnkGallery" href="http://www.cnblogs.com/biangbiang/gallery.html">Gallery</a></li>
+            <!-- Rss订阅 -->
+            <li id="rss">
+                <a id="lnkRss" href="http://www.cnblogs.com/biangbiang/rss">RSS</a></li>
+        </ul>
+        <div id="newmsg"></div>
+        <h1>
+            <!-- 主标题 -->
+            <a id="lnkBlogTitle" href="http://www.cnblogs.com/biangbiang/">梁小白</a>
+            <!-- 子标题 -->
+            <small>
+                妈妈说过 —— 好记性不如烂笔头</small>
+        </h1>
+    </div>
+
+    <script type="text/javascript">
+        var m = window.__blog.headerRendered;
+        if (m) { m(__$("header")); }
+    </script>
+
+    <div id="wrapper">
+        <div id="content">
+            <script type="text/javascript">
+                var m = window.__blog.preRenderPosts;
+                if (m) { m(); }
+            </script>
+            
+
+<div class="post" id="post">
+    <a name="top"></a>
+    <h2>
+        <a id="cb_post_title_url" href="http://www.cnblogs.com/biangbiang/p/3222458.html">利用Qemu Guest Agent (Qemu-ga) 实现 Openstack 监控平台</a></h2>
+    <small>
+        2013-07-29 10:54
+        by
+        梁小白,
+        <span id="post_view_count">...</span>
+        阅读,
+        <span id="post-comment-count">
+            <span id="post_comment_count">...</span></span>
+        评论,
+        <a href="#" onclick="PutInWz();return false;">收藏</a>,
+        <a id="ctl01_lnkEdit" href="http://i.cnblogs.com/EditPosts.aspx?postid=3222458">编辑</a></small>
+    <div class="entry">
+        <div id="cnblogs_post_body"><p>经常使用vmWare的同学都知道有vmware-tools这个工具，这个安装在vm内部的工具，可以实现宿主机与虚拟机的通讯，大大增强了虚拟机的性能与功能，</p>
+<p>如vmware现在的Unity mode下可以让应用程序无缝地与宿主机交互，更不用提直接复制粘帖文件及内容的小功能了。</p>
+<p>对于KVM而言，其实也有一款这样的工具叫做 Qemu Guest Agent(以下称qga).</p>
+<p>&nbsp;</p>
+<h3>原理分析：</h3>
+<p class="p17">　　qga<span style="font-family: 宋体;">是一个运行在虚拟机内部的普通应用程序（可执行文件名称默认为</span><span style="font-family: Calibri;">qemu-ga</span><span style="font-family: 宋体;">，服务名称默认为</span><span style="font-family: Calibri;">qemu-guest-agent</span><span style="font-family: 宋体;">），其目的是实现一种宿主机和虚拟机进行交互的方式，这种方式不依赖于网络，而是依赖于</span><span style="font-family: Calibri;">virtio-serial</span><span style="font-family: 宋体;">（默认首选方式）或者</span><span style="font-family: Calibri;">isa-serial</span><span style="font-family: 宋体;">，而</span><span style="font-family: Calibri;">QEMU</span><span style="font-family: 宋体;">则提供了串口设备的模拟及数据交换的通道，最终呈现出来的是一个串口设备（虚拟机内部）和一个</span><span style="font-family: Calibri;">unix&nbsp;socket</span><span style="font-family: 宋体;">文件（宿主机上）。<br /></span></p>
+<p class="p17">&nbsp;</p>
+<p class="p0">　　qga通过读写串口设备与宿主机上的<span style="font-family: Calibri;">socket</span><span style="font-family: 宋体;">通道进行交互，宿主机上可以使用普通的</span><span style="font-family: Calibri;">unix&nbsp;socket</span><span style="font-family: 宋体;">读写方式对</span><span style="font-family: Calibri;">socket</span><span style="font-family: 宋体;">文件进行读写，最终实现与</span><span style="font-family: Calibri;">qga</span><span style="font-family: 宋体;">的交互，交互的协议与</span><span style="font-family: Calibri;">qmp</span><span style="font-family: 宋体;">（</span><a href="http://wiki.qemu.org/QMP">QEMU&nbsp;Monitor&nbsp;Protocol</a>）相同（简单来说就是使用<span style="font-family: Calibri;">JSON</span><span style="font-family: 宋体;">格式进行数据交换），串口设备的速率通常都较低，所以比较适合小数据量的交换。</span></p>
+<p class="p0">&nbsp;</p>
+<p class="p0">QEMU&nbsp;virtio<span style="font-family: 宋体;">串口设备模拟参数：</span></p>
+<div class="cnblogs_code">
+<pre>/usr/bin/<span style="color: #000000;">kvm(QEMU) \
+&hellip;&hellip;\
+</span>-device virtio-serial-pci,<span style="color: #0000ff;">id</span>=virtio-serial0,bus=pci.<span style="color: #800080;">0</span>,addr=<span style="color: #800080;">0x6</span><span style="color: #000000;"> \
+</span>-device isa-serial,chardev=charserial1,<span style="color: #0000ff;">id</span>=<span style="color: #000000;">serial1 \
+</span>-chardev socket,<span style="color: #0000ff;">id</span>=charchannel0,path=/var/lib/libvirt/qemu/<span style="color: #000000;">test.agent,server,nowait \
+</span>-device virtserialport,bus=virtio-serial0.<span style="color: #800080;">0</span>,nr=<span style="color: #800080;">1</span>,chardev=charchannel0,<span style="color: #0000ff;">id</span>=<span style="color: #000000;">channel0,\
+name</span>=com.<span style="color: #800080;">163</span>.spice.<span style="color: #800080;">0</span></pre>
+</div>
+<p class="p0">&nbsp;</p>
+<p class="p0">通过上面的参数就可以在宿主机上生成一个<span style="font-family: Calibri;">unix&nbsp;socket</span><span style="font-family: 宋体;">文件，路径为：</span>/var/lib/libvirt/qemu/test.agent，同时在虚拟机内部生成一个<span style="font-family: Calibri;">serial</span><span style="font-family: 宋体;">设备，名字为</span>com.163.spice.0，设备路径为：/dev/vport0p1，映射出来的可读性比较好的路径为：/dev/virtio-ports/com.163.spice.0，可以在运行<span style="font-family: Calibri;">qga</span><span style="font-family: 宋体;">的时候通过</span><span style="font-family: Calibri;">-p</span><span style="font-family: 宋体;">参数指定读写这个设备。</span></p>
+<p class="p0"><span style="font-family: 宋体;">也可以通的XML文件来配置这个串口设备：</span></p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">channel </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">='unix'</span><span style="color: #0000ff;">&gt;</span>
+   <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">source </span><span style="color: #ff0000;">mode</span><span style="color: #0000ff;">='bind'</span><span style="color: #ff0000;"> path</span><span style="color: #0000ff;">='/var/lib/libvirt/qemu/test.agent'</span><span style="color: #0000ff;">/&gt;</span>
+   <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">target </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">='virtio'</span><span style="color: #ff0000;"> name</span><span style="color: #0000ff;">='com.163.spice.0'</span><span style="color: #0000ff;">/&gt;</span>
+ <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">channel</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p class="p0">&nbsp;</p>
+<p class="p0">注意:&nbsp;<span style="font-family: Calibri;">libvirt-qemu:kvm</span><span style="font-family: 宋体;">用户要有权限读写</span><span style="font-family: Calibri;">'/var/lib/libvirt/qemu/test.agent'</span></p>
+<p class="p0">&nbsp;</p>
+<h3 class="p17"><strong>已有功能</strong></h3>
+<p class="p0">&nbsp;</p>
+<p class="p17">目前<span style="font-family: Calibri;">qga</span><span style="font-family: 宋体;">最新版本为</span><span style="font-family: Calibri;">1.5.50</span><span style="font-family: 宋体;">，</span><span style="font-family: Calibri;">linux</span><span style="font-family: 宋体;">已经实现下面的所有功能，</span><span style="font-family: Calibri;">windows</span><span style="font-family: 宋体;">仅支持加</span><span style="font-family: Calibri;">*</span><span style="font-family: 宋体;">的那些功能：</span></p>
+<p class="p0">&nbsp;</p>
+<div class="cnblogs_code">
+<pre><span style="color: #000000;">&Oslash; guest-sync-delimited*：宿主机发送一个int数字给qga，qga返回这个数字，并且在后续返回字符串响应中加入ascii码为0xff的字符，其作用是检查宿主机与qga通信的同步状态，主要用在宿主机上多客户端与qga通信的情况下客户端间切换过程的状态同步检查，比如有两个客户端A、B，qga发送给A的响应，由于A已经退出，目前B连接到qga的socket，所以这个响应可能被B收到，如果B连接到socket之后，立即发送该请求给qga，响应中加入了这个同步码就能区分是A的响应还是B的响应；在qga返回宿主机客户端发送的int数字之前，qga返回的所有响应都要忽略；
+
+
+&Oslash; guest-sync*：与上面相同，只是不在响应中加入0xff字符；
+
+
+&Oslash; guest-ping*：Ping the guest agent, a non-error return implies success；
+
+
+&Oslash; guest-get-time*：获取虚拟机时间（返回值为相对于1970-01-01 in UTC，Time in nanoseconds.）；
+
+
+&Oslash; guest-set-time*：设置虚拟机时间（输入为相对于1970-01-01 in UTC，Time in nanoseconds.）；
+
+
+&Oslash; guest-info*：返回qga支持的所有命令；
+
+
+&Oslash; guest-shutdown*：关闭虚拟机（支持halt、powerdown、reboot，默认动作为powerdown）；
+
+
+&Oslash; guest-file-open：打开虚拟机内的某个文件（返回文件句柄）；
+
+
+&Oslash; guest-file-close：关闭打开的虚拟机内的文件；
+
+
+&Oslash; guest-file-read：根据文件句柄读取虚拟机内的文件内容（返回base64格式的文件内容）；
+
+
+&Oslash; guest-file-write：根据文件句柄写入文件内容到虚拟机内的文件；
+
+
+&Oslash; guest-file-seek：Seek to a position in the file, as with fseek(), and return the current file position afterward. Also encapsulates ftell()'s functionality, just Set offset=0, whence=SEEK_CUR；
+
+
+&Oslash; guest-file-flush：Write file changes bufferred in userspace to disk/kernel buffers；
+
+
+&Oslash; guest-fsfreeze-status：Get guest fsfreeze state. error state indicates；
+
+
+&Oslash; guest-fsfreeze-freeze：Sync and freeze all freezable, local guest filesystems；
+
+
+&Oslash; guest-fsfreeze-thaw：Unfreeze all frozen guest filesystems；
+
+
+&Oslash; guest-fstrim：Discard (or "trim") blocks which are not in use by the filesystem；
+
+
+&Oslash; guest-suspend-disk*：Suspend guest to disk；
+
+
+&Oslash; guest-suspend-ram*：Suspend guest to ram；
+
+
+&Oslash; guest-suspend-hybrid：Save guest state to disk and suspend to ram（This command requires the pm-utils package to be installed in the guest.）；
+
+
+&Oslash; guest-network-get-interfaces：Get list of guest IP addresses, MAC addresses and netmasks；
+
+
+&Oslash; guest-get-vcpus：Retrieve the list of the guest's logical processors；
+
+
+guest-set-vcpus：Attempt to reconfigure (currently: enable/disable) logical processors inside the guest。</span></pre>
+</div>
+<p><strong><span style="line-height: 1.5;"><br />功能扩展方式</span></strong></p>
+<p class="p0">&nbsp;</p>
+<p class="p0">&nbsp; &nbsp; qga<span style="font-family: 宋体;">功能扩展十分方便，只需要在</span>qapi-schema.json文件中定义好功能名称、输入输出数据类型，然后在<span style="font-family: Calibri;">commands-posix.c</span><span style="font-family: 宋体;">里面增加对应的功能函数即可，下面的补丁即在</span><span style="font-family: Calibri;">qga</span><span style="font-family: 宋体;">中增加一个通过</span><span style="font-family: Calibri;">statvfs</span><span style="font-family: 宋体;">获取虚拟机磁盘空间信息的功能：</span></p>
+<p class="p0">&nbsp;</p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">diff</span> --git a/qga/commands-posix.c b/qga/commands-<span style="color: #000000;">posix.c
+index e199738..2f42a2f </span><span style="color: #800080;">100644</span>
+--- a/qga/commands-<span style="color: #000000;">posix.c
+</span>+++ b/qga/commands-<span style="color: #000000;">posix.c
+@@ </span>-<span style="color: #800080;">21</span>,<span style="color: #800080;">6</span> +<span style="color: #800080;">21</span>,<span style="color: #800080;">7</span><span style="color: #000000;"> @@
+ #include </span>&lt;stdio.h&gt;<span style="color: #000000;">
+ #include </span>&lt;<span style="color: #0000ff;">string</span>.h&gt;<span style="color: #000000;">
+ #include </span>&lt;sys/<span style="color: #0000ff;">stat</span>.h&gt;
++#include &lt;sys/statvfs.h&gt;<span style="color: #000000;">
+ #include </span>&lt;inttypes.h&gt;<span style="color: #000000;">
+ #include </span><span style="color: #800000;">"</span><span style="color: #800000;">qga/guest-agent-core.h</span><span style="color: #800000;">"</span><span style="color: #000000;">
+ #include </span><span style="color: #800000;">"</span><span style="color: #800000;">qga-qmp-commands.h</span><span style="color: #800000;">"</span><span style="color: #000000;">
+@@ </span>-<span style="color: #800080;">1467</span>,<span style="color: #800080;">6</span> +<span style="color: #800080;">1468</span>,<span style="color: #800080;">36</span> @@ void qmp_guest_fstrim(<span style="color: #0000ff;">bool</span> has_minimum, int64_t minimum, Error **<span style="color: #000000;">err)
+ }
+ </span><span style="color: #0000ff;">#endif</span>
+ 
++GuestFileSystemStatistics *qmp_guest_get_statvfs(const <span style="color: #0000ff;">char</span> *path, Error **<span style="color: #000000;">errp)
+</span>+<span style="color: #000000;">{
+</span>+    <span style="color: #0000ff;">int</span><span style="color: #000000;"> ret;
+</span>+    GuestFileSystemStatistics *<span style="color: #000000;">fs_stat;
+</span>+    struct statvfs *<span style="color: #000000;">buf;
+</span>+    buf =<span style="color: #000000;"> g_malloc0(sizeof(struct statvfs));
+</span>+
++
++    ret =<span style="color: #000000;"> statvfs(path, buf);
+</span>+    <span style="color: #0000ff;">if</span> (ret &lt; <span style="color: #800080;">0</span><span style="color: #000000;">) {
+</span>+       error_setg_errno(errp, errno, <span style="color: #800000;">"</span><span style="color: #800000;">Failed to get statvfs</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span>+<span style="color: #000000;">       return NULL;
+</span>+<span style="color: #000000;">    }
+</span>+
++    fs_stat =<span style="color: #000000;"> g_malloc0(sizeof(GuestFileSystemStatistics));
+</span>+    fs_stat-&gt;f_bsize = buf-&gt;<span style="color: #000000;">f_bsize;
+</span>+    fs_stat-&gt;f_frsize = buf-&gt;<span style="color: #000000;">f_frsize;
+</span>+    fs_stat-&gt;f_blocks = buf-&gt;<span style="color: #000000;">f_blocks;
+</span>+    fs_stat-&gt;f_bfree = buf-&gt;<span style="color: #000000;">f_bfree;
+</span>+    fs_stat-&gt;f_bavail = buf-&gt;<span style="color: #000000;">f_bavail;
+</span>+    fs_stat-&gt;f_files = buf-&gt;<span style="color: #000000;">f_files;
+</span>+    fs_stat-&gt;f_ffree = buf-&gt;<span style="color: #000000;">f_ffree;
+</span>+    fs_stat-&gt;f_favail = buf-&gt;<span style="color: #000000;">f_favail;
+</span>+    fs_stat-&gt;f_fsid = buf-&gt;<span style="color: #000000;">f_fsid;
+</span>+    fs_stat-&gt;f_flag = buf-&gt;<span style="color: #000000;">f_flag;
+</span>+    fs_stat-&gt;f_namemax = buf-&gt;<span style="color: #000000;">f_namemax;
+</span>+
++<span style="color: #000000;">    return fs_stat;
+</span>+<span style="color: #000000;">}
+</span>+
+ <span style="color: #008000;">/*</span><span style="color: #008000;"> register init/cleanup routines for stateful command groups </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+ void ga_command_state_init(GAState </span>*s, GACommandState *<span style="color: #000000;">cs)
+ {
+</span><span style="color: #0000ff;">diff</span> --git a/qga/qapi-schema.json b/qga/qapi-<span style="color: #000000;">schema.json
+index 7155b7a..a071c3f </span><span style="color: #800080;">100644</span>
+--- a/qga/qapi-<span style="color: #000000;">schema.json
+</span>+++ b/qga/qapi-<span style="color: #000000;">schema.json
+@@ </span>-<span style="color: #800080;">638</span>,<span style="color: #800080;">3</span> +<span style="color: #800080;">638</span>,<span style="color: #800080;">52</span><span style="color: #000000;"> @@
+ { </span><span style="color: #800000;">'</span><span style="color: #800000;">command</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">guest-set-vcpus</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+   </span><span style="color: #800000;">'</span><span style="color: #800000;">data</span><span style="color: #800000;">'</span>:    {<span style="color: #800000;">'</span><span style="color: #800000;">vcpus</span><span style="color: #800000;">'</span>: [<span style="color: #800000;">'</span><span style="color: #800000;">GuestLogicalProcessor</span><span style="color: #800000;">'</span><span style="color: #000000;">] },
+   </span><span style="color: #800000;">'</span><span style="color: #800000;">returns</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">int</span><span style="color: #800000;">'</span><span style="color: #000000;"> }
+</span>+
++<span style="color: #000000;">##
+</span>+<span style="color: #000000;"># @GuestFileSystemStatistics:
+</span>+<span style="color: #000000;">#
+</span>+# Information about guest <span style="color: #0000ff;">file</span><span style="color: #000000;"> system statistics.
+</span>+<span style="color: #000000;">#
+</span>+# @f_bsize: <span style="color: #0000ff;">file</span><span style="color: #000000;"> system block size.
+</span>+<span style="color: #000000;">#
+</span>+<span style="color: #000000;"># @f_frsize: fragment size.
+</span>+<span style="color: #000000;">#
+</span>+# @f_blocks: size of fs <span style="color: #0000ff;">in</span><span style="color: #000000;"> f_frsize units.
+</span>+<span style="color: #000000;">#
+</span>+# @f_bfree: <span style="color: #0000ff;">free</span><span style="color: #000000;"> blocks.
+</span>+<span style="color: #000000;">#
+</span>+# @f_bavail: <span style="color: #0000ff;">free</span> blocks <span style="color: #0000ff;">for</span> non-<span style="color: #000000;">root.
+</span>+<span style="color: #000000;">#
+</span>+<span style="color: #000000;"># @f_files: inodes.
+</span>+<span style="color: #000000;">#
+</span>+# @f_ffree: <span style="color: #0000ff;">free</span><span style="color: #000000;"> inodes.
+</span>+<span style="color: #000000;">#
+</span>+# @f_favail: <span style="color: #0000ff;">free</span> inodes <span style="color: #0000ff;">for</span> non-<span style="color: #000000;">root.
+</span>+<span style="color: #000000;">#
+</span>+# @f_fsid: <span style="color: #0000ff;">file</span> system <span style="color: #0000ff;">id</span><span style="color: #000000;">.
+</span>+<span style="color: #000000;">#
+</span>+# @f_flag: <span style="color: #0000ff;">mount</span><span style="color: #000000;"> flags
+</span>+<span style="color: #000000;">#
+</span>+<span style="color: #000000;"># @f_namemax: maximum filename length.
+</span>+<span style="color: #000000;">#
+</span>+# Since <span style="color: #800080;">1.5</span>.<span style="color: #800080;">10</span><span style="color: #000000;">(NetEase)
+</span>+<span style="color: #000000;">##
+</span>+{ <span style="color: #800000;">'</span><span style="color: #800000;">type</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">GuestFileSystemStatistics</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+</span>+  <span style="color: #800000;">'</span><span style="color: #800000;">data</span><span style="color: #800000;">'</span>: { <span style="color: #800000;">'</span><span style="color: #800000;">f_bsize</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">int</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">f_frsize</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">int</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">f_blocks</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">int</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+</span>+            <span style="color: #800000;">'</span><span style="color: #800000;">f_bfree</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">int</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">f_bavail</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">int</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">f_files</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">int</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+</span>+            <span style="color: #800000;">'</span><span style="color: #800000;">f_ffree</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">int</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">f_favail</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">int</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">f_fsid</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">int</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+</span>+            <span style="color: #800000;">'</span><span style="color: #800000;">f_flag</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">int</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">f_namemax</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">int</span><span style="color: #800000;">'</span><span style="color: #000000;">} }
+</span>+
++<span style="color: #000000;">##
+</span>+# @guest-get-<span style="color: #000000;">statvfs:
+</span>+<span style="color: #000000;">#
+</span>+# Get the information about guest <span style="color: #0000ff;">file</span><span style="color: #000000;"> system statistics by statvfs.
+</span>+<span style="color: #000000;">#
+</span>+<span style="color: #000000;"># Returns: @GuestFileSystemStatistics.
+</span>+<span style="color: #000000;">#
+</span>+# Since <span style="color: #800080;">1.5</span>.<span style="color: #800080;">10</span><span style="color: #000000;">(NetEase)
+</span>+<span style="color: #000000;">##
+</span>+{ <span style="color: #800000;">'</span><span style="color: #800000;">command</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">guest-get-statvfs</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+</span>+  <span style="color: #800000;">'</span><span style="color: #800000;">data</span><span style="color: #800000;">'</span>:    { <span style="color: #800000;">'</span><span style="color: #800000;">path</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">str</span><span style="color: #800000;">'</span><span style="color: #000000;"> },
+</span>+  <span style="color: #800000;">'</span><span style="color: #800000;">returns</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">GuestFileSystemStatistics</span><span style="color: #800000;">'</span><span style="color: #000000;"> }
+</span>+</pre>
+</div>
+<p class="p0">&nbsp;</p>
+<p class="p17">中间复杂的类型定义代码，以及头文件包含关系处理都由一个<span style="font-family: Calibri;">python</span><span style="font-family: 宋体;">脚本在编译的时候动态生成出来，这对开发人员来说是非常方便的，开发人员在扩展功能的时候只需要关注输入、输出的数据类型，以及功能的函数内容即可。</span></p>
+<p class="p17"><span style="font-family: 宋体;">写到这里，有经验的开发人员已经知道如何用qga开发监控平台，下面是网友的实现思路，供参考：</span></p>
+<p class="p0">&nbsp;</p>
+<h3 class="p17">社区活跃度</h3>
+<p class="p17">&nbsp; &nbsp; QEMU<span style="font-family: 宋体;">社区从</span><span style="font-family: Calibri;">2011</span><span style="font-family: 宋体;">年</span><span style="font-family: Calibri;">7</span><span style="font-family: 宋体;">月</span><span style="font-family: Calibri;">20</span><span style="font-family: 宋体;">号开始在</span><span style="font-family: Calibri;">QEMU</span><span style="font-family: 宋体;">代码仓库中增加</span><span style="font-family: Calibri;">qga</span><span style="font-family: 宋体;">功能，最近一次提交在</span><span style="font-family: Calibri;">2013</span><span style="font-family: 宋体;">年</span><span style="font-family: Calibri;">5</span><span style="font-family: 宋体;">月</span><span style="font-family: Calibri;">18</span><span style="font-family: 宋体;">号，总共有</span><span style="font-family: Calibri;">100</span><span style="font-family: 宋体;">多次提交记录，代码维护人员主要来自</span><span style="font-family: Calibri;">redhat</span><span style="font-family: 宋体;">和</span><span style="font-family: Calibri;">IBM</span><span style="font-family: 宋体;">，社区的活跃度不高，但是</span><span style="font-family: Calibri;">QEMU</span><span style="font-family: 宋体;">本身的提交记录从</span><span style="font-family: Calibri;">2003</span><span style="font-family: 宋体;">年至今已有</span><span style="font-family: Calibri;">27200</span><span style="font-family: 宋体;">多条，还是比较活跃的，</span><span style="font-family: Calibri;">qga</span><span style="font-family: 宋体;">的功能及代码都比较简单，也是活跃度不高的一个重要原因。</span></p>
+<p class="p17">QEMU<span style="font-family: 宋体;">代码仓库地址：</span>git&nbsp;clone&nbsp;git://git.qemu-project.org/qemu.git</p>
+<p class="p17">qga代码位于<span style="font-family: Calibri;">QEMU</span><span style="font-family: 宋体;">代码的根目录下的</span><span style="font-family: Calibri;">qga</span><span style="font-family: 宋体;">目录中。</span></p>
+<p class="p17">&nbsp;</p>
+<h3 class="p17">监控方案现状</h3>
+<p class="p17">&nbsp;</p>
+<p class="p17">&nbsp; &nbsp; 目前普遍云主机监控的实现方法是，在创建云主机的过程中，增加监控脚本及其配置文件、定时任务及监控信息推送配置文件的注入过程，包括四个文件，其中监控信息推送配置文件<span style="font-family: Calibri;">(/etc/vm_monitor/info)</span><span style="font-family: 宋体;">由管理平台根据云主机所属用户的注册信息以及监控平台相关配置生成，并传入创建云主机的</span><span style="font-family: Calibri;">API</span><span style="font-family: 宋体;">来实现文件的注入，监控脚本</span><span style="font-family: Calibri;">(/etc/vm_monitor/</span>send_monitor_data.py)<span style="font-family: 宋体;">及其配置文件</span><span style="font-family: Calibri;">(/etc/vm_monitor/</span>monitor_settings.xml)<span style="font-family: 宋体;">、定时任务文件</span><span style="font-family: Calibri;">(/etc/</span>cron.d/inject_cron_job)<span style="font-family: 宋体;">是包含在</span><span style="font-family: Calibri;">NVS</span><span style="font-family: 宋体;">经过</span><span style="font-family: Calibri;">base64</span><span style="font-family: 宋体;">编码后的监控脚本文件</span><span style="font-family: Calibri;">inject_files.json</span><span style="font-family: 宋体;">中。</span></p>
+<p class="p17">&nbsp;</p>
+<p class="p17">工作模式为，在<span style="font-family: Calibri;">root</span><span style="font-family: 宋体;">账户增加定时任务</span>inject_cron_job，其中有一条任务为：root&nbsp;su&nbsp;-c&nbsp;'python&nbsp;/etc/vm_monitor/send_monitor_data.py'&nbsp;&gt;&nbsp;/dev/null&nbsp;2&gt;&amp;1，也即每<span style="font-family: Calibri;">60s</span><span style="font-family: 宋体;">收集并推送一次监控信息给监控平台。</span></p>
+<p class="p17">&nbsp;</p>
+<p class="p0"><strong><span style="font-family: Calibri;">当前监控方案的问题</span></strong></p>
+<p class="p0">&nbsp;</p>
+<div class="cnblogs_code">
+<ul>
+<li><span style="color: #000000;">依赖云主机内部的python解释器</span></li>
+<li><span style="color: #000000;">云主机必须存在root账户</span></li>
+<li><span style="color: #000000;">依赖NVS文件注入功能；并且为了注入这些监控文件对nova的改动也比较大，也无法与社区同步；windows镜像也会注入这些无用的文件，可能导致一些意想不到的问题；另外如果有的镜像的操作系统不在第一个分区上，则注入的监控文件会失效</span></li>
+<li><span style="color: #000000;">已经运行的云主机内部的监控相关文件更新困难，导致新监控项的添加、推送周期、推送地址等的修改也比较困难，灵活性较差</span></li>
+<li><span style="color: #000000;">Nova中base64编码的注入脚本的代码可读性很差，代码更新及维护困难</span></li>
+<li><span style="color: #000000;">定位问题一般都需要登录到云主机内部进行，对于采用密钥对登录的云主机来说定位问题比较困难</span></li>
+</ul>
+</div>
+<p class="p0">&nbsp;</p>
+<p class="p0"><strong>采用<span style="font-family: Calibri;">qga</span><span style="font-family: 宋体;">方式的监控方案</span></strong></p>
+<p class="p0">&nbsp;</p>
+<p class="p0">&nbsp; &nbsp; 首先为每个云主机增加<span style="font-family: Calibri;">virtio-serial</span><span style="font-family: 宋体;">的配置，这个只需要修改生成</span><span style="font-family: Calibri;">libvirt</span><span style="font-family: 宋体;">配置文件的代码即可，并且应该可以提交给社区；其次需要在虚拟机内部安装</span><span style="font-family: Calibri;">qga</span><span style="font-family: 宋体;">服务；最后需要在宿主机上新增一个服务进程（这里暂定为</span><span style="font-family: Calibri;">monitor</span><span style="font-family: 宋体;">服务），用来通过与</span><span style="font-family: Calibri;">qga</span><span style="font-family: 宋体;">交互从云主机内部获取监控信息；总的模块交互流程如下：</span></p>
+<p class="p0">云主机创建流程中的监控相关操作:</p>
+<p class="p0"><img src="http://images.cnitblog.com/blog/475498/201307/29104503-ed20301de47c4ad4b2d48716a4882d6c.png" alt="" /></p>
+<p class="p17">monitor服务单次监控信息获取及推送流程如下：</p>
+<p class="p0"><img src="http://images.cnitblog.com/blog/475498/201307/29104609-75c935823b114df587378f9ca8cb566c.png" alt="" /></p>
+<p class="p0">参考资料：</p>
+<p>libvirt：<a href="http://wiki.libvirt.org/page/Qemu_guest_agent">http://wiki.libvirt.org/page/Qemu_guest_agent</a></p>
+<p>RedHat ovirt:&nbsp;<a href="http://www.ovirt.org/Category:Ovirt_guest_agent">http://www.ovirt.org/Category:Ovirt_guest_agent</a></p>
+<p>qemu:&nbsp;<a href="http://wiki.qemu.org/Features/QAPI/GuestAgent">http://wiki.qemu.org/Features/QAPI/GuestAgent</a></p>
+<p class="p0">&nbsp;</p>
+<p class="p0">&nbsp;</p>
+<p class="p0">&nbsp;</p>
+<p class="p0">&nbsp;</p>
+<p class="p0">&nbsp;</p>
+<p class="p0">&nbsp;</p>
+<p class="p17">&nbsp;</p></div><div id="MySignature"></div>
+        
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="blog_post_info">
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"></div>
+</div>
+
+
+    </div>
+    <ul class="postmetadata">
+        <li id="ctl01_liCate" class="icon_cat"><strong>Categories: </strong>
+            <a href='http://www.cnblogs.com/biangbiang/category/441348.html'>Linux</a>, <a href='http://www.cnblogs.com/biangbiang/category/441349.html'>Openstack</a>, <a href='http://www.cnblogs.com/biangbiang/category/464408.html'>虚拟化</a>
+        </li>
+        <li id="ctl01_liTag" class="icon_bullet"><strong>Tags: </strong>
+            <a href="http://www.cnblogs.com/biangbiang/tag/qemu+openstack/">qemu openstack</a>
+        </li>
+    </ul>
+</div>
+<script type="text/javascript">var allowComments=true,isLogined=false,cb_blogId=135630,cb_entryId=3222458,cb_blogApp=currentBlogApp,cb_blogUserGuid='f477a05c-fb3c-e211-aa8f-842b2b196315',cb_entryCreatedDate='2013/7/29 10:54:00';loadViewCount(cb_entryId);</script>
+<script type="text/javascript">
+    var m = window.__blog.postRendered;
+    if (m) { m(__$("post")); }
+</script>
+
+<script type="text/javascript">
+    var m = window.__blog.postRenderPosts;
+    if (m) { m(); }
+</script>
+<a name="!comments"></a><div id="blog-comments-placeholder"></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="程序员的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="ad_under_post_holder"></div>
+<script type="text/javascript">
+var enableGoogleAd = true;
+var googletag = googletag || {};
+googletag.cmd = googletag.cmd || [];
+fixPostBodyFormat();
+loadAdUnderPost();
+</script>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+loadBlogSignature();
+LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);
+GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+</script>
+<script type="text/javascript">
+    $.ajax({ url: 'http://counter.cnblogs.com/blog/post/' + cb_entryId, type: 'get', dataType: 'script', cache: true });
+</script>
+</div>
+
+        </div>
+
+        <script type="text/javascript">
+            var m = window.__blog.contentRendered;
+            if (m) { m(__$("content")); }
+        </script>
+
+        <div id="sidebar">
+            
+<div id="about">
+<div>
+<h2 id="about_title">About</h2>
+<div id="about_body">
+<div id="blog-news"></div>
+<script type="text/javascript">loadBlogNews();</script>
+</div>
+</div>
+</div>
+
+            <script type="text/javascript">
+                var m = window.__blog.aboutRendered;
+                if (m) { m(__$("about")); }
+            </script>
+            
+<script type="text/javascript">
+function zzk_go()
+{
+	var blogapp = 'biangbiang';
+	var keystr = encodeURIComponent("blog:"+blogapp+" "+document.getElementById('q').value);
+    window.location = "http://zzk.cnblogs.com/s?w="+keystr;
+}
+function zzk_go_enter(event)
+{
+	if(event.keyCode == 13)
+	{
+	    zzk_go();
+	    return false;
+	}
+}
+</script>
+
+<div id="mySearchWrapper">
+    <div id="mySearch">
+        <input type="image" src="/skins/Minyx2_Lite/images/btnsearch.gif" id="btnZzk"  class="submit" onclick="zzk_go();return false;"/>
+        <label class="lb_search"><input type="text" id="q" onkeydown="return zzk_go_enter(event);" class="keyword" /></label>
+    </div>
+</div>
+
+            <script type="text/javascript">
+                var m = window.__blog.searchFormRendered;
+                if (m) { m(__$("searchform")); }
+            </script>
+            <div id="sideMain">
+            </div>
+            <div id="sideRight">
+            </div>
+            <div id="sideLeft">
+            </div>
+            
+                <div id="sideContainer">
+                </div>
+                <script type="text/javascript">
+                    $.ajax({
+                        url: '/' + currentBlogApp + '/mvc/blog/Minyx2_Lite_SideColumn.aspx',
+                        data: '{}',
+                        type: 'post',
+                        dataType: 'text',
+                        contentType: 'application/json; charset=utf-8',
+                        success: function (data) {
+                            if (data) {
+                                $("#sideContainer").html(data);
+                                loadBlogDefaultCalendar();
+                                loadBlogSideBlocks();
+                                var m = window.__blog.sideContainerRendered;
+                                if (m) { m(__$("sideContainer")); }
+                                window.__blog.sidebar.__layout();
+                            }
+                        }
+                    });
+
+                </script>
+            
+        </div>
+
+        <script type="text/javascript">
+            var m = window.__blog.sidebarRendered;
+            if (m) { m(__$("sidebar")); }
+        </script>
+
+        <div id="footer">
+            
+<p id="logoFoot">
+    <a href="http://www.spiga.com.mx/" title="Agencia Interactiva Spiga">www.spiga.com.mx</a>
+</p>
+<div class="footText">
+<p>
+Copyright &copy;2014 梁小白
+</p>
+<p>
+<a href="http://www.cnblogs.com">博客园</a>
+</p>
+</div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        var m = window.__blog.wrapperRendered;
+        if (m) { m(__$("wrapper")); }
+    </script>
+
+</div>
+<!-- end of container -->
+
+<script type="text/javascript">
+    var m = window.__blog.containerRendered;
+    if (m) { m(__$("container")); }
+</script>
+
+
+<!--end: footer -->
+
+</body>
+</html>

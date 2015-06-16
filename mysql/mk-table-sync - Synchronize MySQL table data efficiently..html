@@ -1,0 +1,1233 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>mk-table-sync - Synchronize MySQL table data efficiently.</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:mlehner@kyack.pair.com" />
+<link rel="stylesheet" href="http://search.cpan.org/s/style.css"><link rel="stylesheet" href="http://maatkit.org/doc/style.css"></head>
+
+<body><div class="nav"><p><a href="http://www.maatkit.org/"><img src="/images/maatkit-small.jpg" width="125" height="154" alt="maatkit"></a></p>
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#risks">RISKS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#output">OUTPUT</a></li>
+	<li><a href="#replication_safety">REPLICATION SAFETY</a></li>
+	<li><a href="#algorithms">ALGORITHMS</a></li>
+	<li><a href="#bidirectional_syncing">BIDIRECTIONAL SYNCING</a></li>
+	<li><a href="#exit_status">EXIT STATUS</a></li>
+	<li><a href="#options">OPTIONS</a></li>
+	<li><a href="#dsn_options">DSN OPTIONS</a></li>
+	<li><a href="#downloading">DOWNLOADING</a></li>
+	<li><a href="#environment">ENVIRONMENT</a></li>
+	<li><a href="#system_requirements">SYSTEM REQUIREMENTS</a></li>
+	<li><a href="#bugs">BUGS</a></li>
+	<li><a href="#copyright__license_and_warranty">COPYRIGHT, LICENSE AND WARRANTY</a></li>
+	<li><a href="#author">AUTHOR</a></li>
+	<li><a href="#about_maatkit">ABOUT MAATKIT</a></li>
+	<li><a href="#history_and_acknowledgments">HISTORY AND ACKNOWLEDGMENTS</a></li>
+	<li><a href="#version">VERSION</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+</div>
+<p style="border:1px solid red; background:yellow;font-weight:bold; color:black;padding:10px">Maatkit has become part of <a href="http://www.percona.com/software/percona-toolkit">Percona Toolkit</a>, and there will be no further development or releases of Maatkit separately from Percona Toolkit.</p>
+<h1><a name="name">NAME</a></h1>
+<p>mk-table-sync - Synchronize MySQL table data efficiently.</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="synopsis">SYNOPSIS</a></h1>
+<p>Usage: mk-table-sync [OPTION...] DSN [DSN...]</p>
+<p>mk-table-sync synchronizes data efficiently between MySQL tables.</p>
+<p>This tool changes data, so for maximum safety, you should back up your data
+before you use it.  When synchronizing a server that is a replication slave with
+the --replicate or --sync-to-master methods, it <strong>always</strong> makes the changes on
+the replication master, <strong>never</strong> the replication slave directly.  This is in
+general the only safe way to bring a replica back in sync with its master;
+changes to the replica are usually the source of the problems in the first
+place.  However, the changes it makes on the master should be no-op changes that
+set the data to their current values, and actually affect only the replica.
+Please read the detailed documentation that follows to learn more about this.</p>
+<p>Sync db.tbl on host1 to host2:</p>
+<pre>
+  mk-table-sync --execute h=host1,D=db,t=tbl h=host2</pre>
+<p>Sync all tables on host1 to host2 and host3:</p>
+<pre>
+  mk-table-sync --execute host1 host2 host3</pre>
+<p>Make slave1 have the same data as its replication master:</p>
+<pre>
+  mk-table-sync --execute --sync-to-master slave1</pre>
+<p>Resolve differences that <em>mk-table-checksum</em> found on all slaves of master1:</p>
+<pre>
+  mk-table-sync --execute --replicate test.checksum master1</pre>
+<p>Same as above but only resolve differences on slave1:</p>
+<pre>
+  mk-table-sync --execute --replicate test.checksum \
+    --sync-to-master slave1</pre>
+<p>Sync master2 in a master-master replication configuration, where master2's copy
+of db.tbl is known or suspected to be incorrect:</p>
+<pre>
+  mk-table-sync --execute --sync-to-master h=master2,D=db,t=tbl</pre>
+<p>Note that in the master-master configuration, the following will NOT do what you
+want, because it will make changes directly on master2, which will then flow
+through replication and change master1's data:</p>
+<pre>
+  # Don't do this in a master-master setup!
+  mk-table-sync --execute h=master1,D=db,t=tbl master2</pre>
+<p>
+</p>
+<hr />
+</div><h1><a name="risks">RISKS</a></h1>
+<p>The following section is included to inform users about the potential risks,
+whether known or unknown, of using this tool.  The two main categories of risks
+are those created by the nature of the tool (e.g. read-only tools vs. read-write
+tools) and those created by bugs.</p>
+<p>With great power comes great responsibility!  This tool changes data, so it is a
+good idea to back up your data.  It is also very powerful, which means it is
+very complex, so you should run it with the <a href="#dry_run">--dry-run</a> option to see what it
+will do, until you're familiar with its operation.  If you want to see which
+rows are different, without changing any data, use <a href="#print">--print</a> instead of
+<a href="#execute">--execute</a>.</p>
+<p>Be careful when using mk-table-sync in any master-master setup.  Master-master
+replication is inherently tricky, and it's easy to make mistakes.  You need to
+be sure you're using the tool correctly for master-master replication.  See the
+<a href="#synopsis">SYNOPSIS</a> for the overview of the correct usage.</p>
+<p>Also be careful with tables that have foreign key constraints with <code>ON DELETE</code>
+or <code>ON UPDATE</code> definitions because these might cause unintended changes on the
+child tables.</p>
+<p>In general, this tool is best suited when your tables have a primary key or
+unique index.  Although it can synchronize data in tables lacking a primary key
+or unique index, it might be best to synchronize that data by another means.</p>
+<p>At the time of this release, there is a potential bug using
+<a href="#lock_and_rename">--lock-and-rename</a> with MySQL 5.1, a bug detecting certain differences,
+a bug using <code>ROUND()</code> across different platforms, and a bug mixing collations.</p>
+<p>The authoritative source for updated information is always the online issue
+tracking system.  Issues that affect this tool will be marked as such.  You can
+see a list of such issues at the following URL:
+<a href="http://www.maatkit.org/bugs/mk-table-sync">http://www.maatkit.org/bugs/mk-table-sync</a>.</p>
+<p>See also <a href="#bugs">BUGS</a> for more information on filing bugs and getting help.</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="description">DESCRIPTION</a></h1>
+<p>mk-table-sync does one-way and bidirectional synchronization of table data.
+It does <strong>not</strong> synchronize table structures, indexes, or any other schema
+objects.  The following describes one-way synchronization.
+<a href="#bidirectional_syncing">BIDIRECTIONAL SYNCING</a> is described later.</p>
+<p>This tool is complex and functions in several different ways.  To use it
+safely and effectively, you should understand three things: the purpose
+of <a href="#replicate">--replicate</a>, finding differences, and specifying hosts.  These
+three concepts are closely related and determine how the tool will run. 
+The following is the abbreviated logic:</p>
+<pre>
+   if DSN has a t part, sync only that table:
+      if 1 DSN:
+         if --sync-to-master:
+            The DSN is a slave.  Connect to its master and sync.
+      if more than 1 DSN:
+         The first DSN is the source.  Sync each DSN in turn.
+   else if --replicate:
+      if --sync-to-master:
+         The DSN is a slave.  Connect to its master, find records
+         of differences, and fix.
+      else:
+         The DSN is the master.  Find slaves and connect to each,
+         find records of differences, and fix.
+   else:
+      if only 1 DSN and --sync-to-master:
+         The DSN is a slave.  Connect to its master, find tables and
+         filter with --databases etc, and sync each table to the master.
+      else:
+         find tables, filtering with --databases etc, and sync each
+         DSN to the first.</pre>
+<p>mk-table-sync can run in one of two ways: with <a href="#replicate">--replicate</a> or without.
+The default is to run without <a href="#replicate">--replicate</a> which causes mk-table-sync
+to automatically find differences efficiently with one of several
+algorithms (see <a href="#algorithms">ALGORITHMS</a>).  Alternatively, the value of
+<a href="#replicate">--replicate</a>, if specified, causes mk-table-sync to use the differences
+already found by having previously ran <em>mk-table-checksum</em> with its own
+<a href="#replicate"><code>--replicate</code></a> option.  Strictly speaking, you don't need to use
+<a href="#replicate">--replicate</a> because mk-table-sync can find differences, but many
+people use <a href="#replicate">--replicate</a> if, for example, they checksum regularly
+using <em>mk-table-checksum</em> then fix differences as needed with mk-table-sync.
+If you're unsure, read each tool's documentation carefully and decide for
+yourself, or consult with an expert.</p>
+<p>Regardless of whether <a href="#replicate">--replicate</a> is used or not, you need to specify
+which hosts to sync.  There are two ways: with <a href="#sync_to_master">--sync-to-master</a> or
+without.  Specifying <a href="#sync_to_master">--sync-to-master</a> makes mk-table-sync expect
+one and only slave DSN on the command line.  The tool will automatically
+discover the slave's master and sync it so that its data is the same as
+its master.  This is accomplished by making changes on the master which
+then flow through replication and update the slave to resolve its differences.
+<strong>Be careful though</strong>: although this option specifies and syncs a single
+slave, if there are other slaves on the same master, they will receive
+via replication the changes intended for the slave that you're trying to
+sync.</p>
+<p>Alternatively, if you do not specify <a href="#sync_to_master">--sync-to-master</a>, the first
+DSN given on the command line is the source host.  There is only ever
+one source host.  If you do not also specify <a href="#replicate">--replicate</a>, then you
+must specify at least one other DSN as the destination host.  There
+can be one or more destination hosts.  Source and destination hosts
+must be independent; they cannot be in the same replication topology.
+mk-table-sync will die with an error if it detects that a destination
+host is a slave because changes are written directly to destination hosts
+(and it's not safe to write directly to slaves).  Or, if you specify
+<a href="#replicate">--replicate</a> (but not <a href="#sync_to_master">--sync-to-master</a>) then mk-table-sync expects
+one and only one master DSN on the command line.  The tool will automatically
+discover all the master's slaves and sync them to the master.  This is
+the only way to sync several (all) slaves at once (because
+<a href="#sync_to_master">--sync-to-master</a> only specifies one slave).</p>
+<p>Each host on the command line is specified as a DSN.  The first DSN
+(or only DSN for cases like <a href="#sync_to_master">--sync-to-master</a>) provides default values
+for other DSNs, whether those other DSNs are specified on the command line
+or auto-discovered by the tool.  So in this example,</p>
+<pre>
+  mk-table-sync --execute h=host1,u=msandbox,p=msandbox h=host2</pre>
+<p>the host2 DSN inherits the <a href="#u"><code>u</code></a> and <a href="#p"><code>p</code></a> DSN parts from the host1 DSN.
+Use the <a href="#explain_hosts">--explain-hosts</a> option to see how mk-table-sync will interpret
+the DSNs given on the command line.</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="output">OUTPUT</a></h1>
+<p>If you specify the <a href="#verbose">--verbose</a> option, you'll see information about the 
+differences between the tables.  There is one row per table.  Each server is
+printed separately.  For example,</p>
+<pre>
+  # Syncing h=host1,D=test,t=test1
+  # DELETE REPLACE INSERT UPDATE ALGORITHM START    END      EXIT DATABASE.TABLE
+  #      0       0      3      0 Chunk     13:00:00 13:00:17 2    test.test1</pre>
+<p>Table test.test1 on host1 required 3 <code>INSERT</code> statements to synchronize
+and it used the Chunk algorithm (see <a href="#algorithms">ALGORITHMS</a>).  The sync operation
+for this table started at 13:00:00 and ended 17 seconds later (times taken
+from <code>NOW()</code> on the source host).  Because differences were found, its
+<a href="#exit_status">EXIT STATUS</a> was 2.</p>
+<p>If you specify the <a href="#print">--print</a> option, you'll see the actual SQL statements
+that the script uses to synchronize the table if <a href="#execute">--execute</a> is also
+specified.</p>
+<p>If you want to see the SQL statements that mk-table-sync is using to select
+chunks, nibbles, rows, etc., then specify <a href="#print">--print</a> once and <a href="#verbose">--verbose</a>
+twice.  Be careful though: this can print a lot of SQL statements.</p>
+<p>There are cases where no combination of <code>INSERT</code>, <code>UPDATE</code> or <code>DELETE</code>
+statements can resolve differences without violating some unique key.  For
+example, suppose there's a primary key on column a and a unique key on column b.
+Then there is no way to sync these two tables with straightforward UPDATE
+statements:</p>
+<pre>
+ +---+---+  +---+---+
+ | a | b |  | a | b |
+ +---+---+  +---+---+
+ | 1 | 2 |  | 1 | 1 |
+ | 2 | 1 |  | 2 | 2 |
+ +---+---+  +---+---+</pre>
+<p>The tool rewrites queries to <code>DELETE</code> and <code>REPLACE</code> in this case.  This is
+automatically handled after the first index violation, so you don't have to
+worry about it.</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="replication_safety">REPLICATION SAFETY</a></h1>
+<p>Synchronizing a replication master and slave safely is a non-trivial problem, in
+general.  There are all sorts of issues to think about, such as other processes
+changing data, trying to change data on the slave, whether the destination and
+source are a master-master pair, and much more.</p>
+<p>In general, the safe way to do it is to change the data on the master, and let
+the changes flow through replication to the slave like any other changes.
+However, this works only if it's possible to REPLACE into the table on the
+master.  REPLACE works only if there's a unique index on the table (otherwise it
+just acts like an ordinary INSERT).</p>
+<p>If your table has unique keys, you should use the <a href="#sync_to_master">--sync-to-master</a> and/or
+<a href="#replicate">--replicate</a> options to sync a slave to its master.  This will generally do
+the right thing.  When there is no unique key on the table, there is no choice
+but to change the data on the slave, and mk-table-sync will detect that you're
+trying to do so.  It will complain and die unless you specify
+<a href="#no_check_slave"><code>--no-check-slave</code></a> (see <a href="#no_check_slave">--[no]check-slave</a>).</p>
+<p>If you're syncing a table without a primary or unique key on a master-master
+pair, you must change the data on the destination server.  Therefore, you need
+to specify <a href="#no_bin_log"><code>--no-bin-log</code></a> for safety (see <a href="#no_bin_log">--[no]bin-log</a>).  If you don't,
+the changes you make on the destination server will replicate back to the
+source server and change the data there!</p>
+<p>The generally safe thing to do on a master-master pair is to use the
+<a href="#sync_to_master">--sync-to-master</a> option so you don't change the data on the destination
+server.  You will also need to specify <a href="#no_check_slave"><code>--no-check-slave</code></a> to keep
+mk-table-sync from complaining that it is changing data on a slave.</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="algorithms">ALGORITHMS</a></h1>
+<p>mk-table-sync has a generic data-syncing framework which uses different
+algorithms to find differences.  The tool automatically chooses the best
+algorithm for each table based on indexes, column types, and the algorithm
+preferences specified by <a href="#algorithms">--algorithms</a>.  The following algorithms are
+available, listed in their default order of preference:</p>
+<dl>
+<dt><strong><a name="chunk" class="item">Chunk</a></strong></dt>
+
+<dd>
+<p>Finds an index whose first column is numeric (including date and time types),
+and divides the column's range of values into chunks of approximately
+<a href="#chunk_size">--chunk-size</a> rows.  Syncs a chunk at a time by checksumming the entire
+chunk.  If the chunk differs on the source and destination, checksums each
+chunk's rows individually to find the rows that differ.</p>
+<p>It is efficient when the column has sufficient cardinality to make the chunks
+end up about the right size.</p>
+<p>The initial per-chunk checksum is quite small and results in minimal network
+traffic and memory consumption.  If a chunk's rows must be examined, only the
+primary key columns and a checksum are sent over the network, not the entire
+row.  If a row is found to be different, the entire row will be fetched, but not
+before.</p>
+</dd>
+<dt><strong><a name="nibble" class="item">Nibble</a></strong></dt>
+
+<dd>
+<p>Finds an index and ascends the index in fixed-size nibbles of <a href="#chunk_size">--chunk-size</a>
+rows, using a non-backtracking algorithm (see <em>mk-archiver</em> for more on this
+algorithm).  It is very similar to <a href="#chunk">Chunk</a>, but instead of pre-calculating
+the boundaries of each piece of the table based on index cardinality, it uses
+<code>LIMIT</code> to define each nibble's upper limit, and the previous nibble's upper
+limit to define the lower limit.</p>
+<p>It works in steps: one query finds the row that will define the next nibble's
+upper boundary, and the next query checksums the entire nibble.  If the nibble
+differs between the source and destination, it examines the nibble row-by-row,
+just as <a href="#chunk">Chunk</a> does.</p>
+</dd>
+<dt><strong><a name="groupby" class="item">GroupBy</a></strong></dt>
+
+<dd>
+<p>Selects the entire table grouped by all columns, with a COUNT(*) column added.
+Compares all columns, and if they're the same, compares the COUNT(*) column's
+value to determine how many rows to insert or delete into the destination.
+Works on tables with no primary key or unique index.</p>
+</dd>
+<dt><strong><a name="stream" class="item">Stream</a></strong></dt>
+
+<dd>
+<p>Selects the entire table in one big stream and compares all columns.  Selects
+all columns.  Much less efficient than the other algorithms, but works when
+there is no suitable index for them to use.</p>
+</dd>
+<dt><strong><a name="future_plans" class="item">Future Plans</a></strong></dt>
+
+<dd>
+<p>Possibilities for future algorithms are TempTable (what I originally called
+bottom-up in earlier versions of this tool), DrillDown (what I originally
+called top-down), and GroupByPrefix (similar to how SqlYOG Job Agent works).
+Each algorithm has strengths and weaknesses.  If you'd like to implement your
+favorite technique for finding differences between two sources of data on
+possibly different servers, I'm willing to help.  The algorithms adhere to a
+simple interface that makes it pretty easy to write your own.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+</div><h1><a name="bidirectional_syncing">BIDIRECTIONAL SYNCING</a></h1>
+<p>Bidirectional syncing is a new, experimental feature.  To make it work
+reliably there are a number of strict limitations:</p>
+<pre>
+  * only works when syncing one server to other independent servers
+  * does not work in any way with replication
+  * requires that the table(s) are chunkable with the Chunk algorithm
+  * is not N-way, only bidirectional between two servers at a time
+  * does not handle DELETE changes</pre>
+<p>For example, suppose we have three servers: c1, r1, r2.  c1 is the central
+server, a pseudo-master to the other servers (viz. r1 and r2 are not slaves
+to c1).  r1 and r2 are remote servers.  Rows in table foo are updated and
+inserted on all three servers and we want to synchronize all the changes
+between all the servers.  Table foo has columns:</p>
+<pre>
+  id    int PRIMARY KEY
+  ts    timestamp auto updated
+  name  varchar</pre>
+<p>Auto-increment offsets are used so that new rows from any server do not
+create conflicting primary key (id) values.  In general, newer rows, as
+determined by the ts column, take precedence when a same but differing row
+is found during the bidirectional sync.  &quot;Same but differing&quot; means that
+two rows have the same primary key (id) value but different values for some
+other column, like the name column in this example.  Same but differing
+conflicts are resolved by a &quot;conflict&quot;.  A conflict compares some column of
+the competing rows to determine a &quot;winner&quot;.  The winning row becomes the
+source and its values are used to update the other row.</p>
+<p>There are subtle differences between three columns used to achieve
+bidirectional syncing that you should be familiar with: chunk column
+(<a href="#chunk_column">--chunk-column</a>), comparison column(s) (<a href="#columns">--columns</a>), and conflict
+column (<a href="#conflict_column">--conflict-column</a>).  The chunk column is only used to chunk the
+table; e.g. &quot;WHERE id &gt;= 5 AND id &lt; 10&quot;.  Chunks are checksummed and when
+chunk checksums reveal a difference, the tool selects the rows in that
+chunk and checksums the <a href="#columns">--columns</a> for each row.  If a column checksum
+differs, the rows have one or more conflicting column values.  In a
+traditional unidirectional sync, the conflict is a moot point because it can
+be resolved simply by updating the entire destination row with the source
+row's values.  In a bidirectional sync, however, the <a href="#conflict_column">--conflict-column</a>
+(in accordance with other <code>--conflict-*</code> options list below) is compared
+to determine which row is &quot;correct&quot; or &quot;authoritative&quot;; this row becomes
+the &quot;source&quot;.</p>
+<p>To sync all three servers completely, two runs of mk-table-sync are required.
+The first run syncs c1 and r1, then syncs c1 and r2 including any changes
+from r1.  At this point c1 and r2 are completely in sync, but r1 is missing
+any changes from r2 because c1 didn't have these changes when it and r1
+were synced.  So a second run is needed which syncs the servers in the same
+order, but this time when c1 and r1 are synced r1 gets r2's changes.</p>
+<p>The tool does not sync N-ways, only bidirectionally between the first DSN
+given on the command line and each subsequent DSN in turn.  So the tool in
+this example would be ran twice like:</p>
+<pre>
+  mk-table-sync --bidirectional h=c1 h=r1 h=r2</pre>
+<p>The <a href="#bidirectional">--bidirectional</a> option enables this feature and causes various
+sanity checks to be performed.  You must specify other options that tell
+mk-table-sync how to resolve conflicts for same but differing rows.
+These options are:</p>
+<pre>
+  * L&lt;--conflict-column&gt;
+  * L&lt;--conflict-comparison&gt;
+  * L&lt;--conflict-value&gt;
+  * L&lt;--conflict-threshold&gt;
+  * L&lt;--conflict-error&gt;  (optional)</pre>
+<p>Use <a href="#print">--print</a> to test this option before <a href="#execute">--execute</a>.  The printed
+SQL statements will have comments saying on which host the statement
+would be executed if you used <a href="#execute">--execute</a>.</p>
+<p>Technical side note: the first DSN is always the &quot;left&quot; server and the other
+DSNs are always the &quot;right&quot; server.  Since either server can become the source
+or destination it's confusing to think of them as &quot;src&quot; and &quot;dst&quot;.  Therefore,
+they're generically referred to as left and right.  It's easy to remember
+this because the first DSN is always to the left of the other server DSNs on
+the command line.</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="exit_status">EXIT STATUS</a></h1>
+<p>The following are the exit statuses (also called return values, or return codes)
+when mk-table-sync finishes and exits.</p>
+<pre>
+   STATUS  MEANING
+   ======  =======================================================
+   0       Success.
+   1       Internal error.
+   2       At least one table differed on the destination.
+   3       Combination of 1 and 2.</pre>
+<p>
+</p>
+<hr />
+</div><h1><a name="options">OPTIONS</a></h1>
+<p>Specify at least one of <a href="#print">--print</a>, <a href="#execute">--execute</a>, or <a href="#dry_run">--dry-run</a>.</p>
+<p><a href="#where">--where</a> and <a href="#replicate">--replicate</a> are mutually exclusive.</p>
+<p>This tool accepts additional command-line arguments.  Refer to the
+<a href="#synopsis">SYNOPSIS</a> and usage information for details.</p>
+<dl>
+<dt><strong><a name="algorithms" class="item">--algorithms</a></strong></dt>
+
+<dd>
+<p>type: string; default: Chunk,Nibble,GroupBy,Stream</p>
+<p>Algorithm to use when comparing the tables, in order of preference.</p>
+<p>For each table, mk-table-sync will check if the table can be synced with
+the given algorithms in the order that they're given.  The first algorithm
+that can sync the table is used.  See <a href="#algorithms">ALGORITHMS</a>.</p>
+</dd>
+<dt><strong><a name="ask_pass" class="item">--ask-pass</a></strong></dt>
+
+<dd>
+<p>Prompt for a password when connecting to MySQL.</p>
+</dd>
+<dt><strong><a name="bidirectional" class="item">--bidirectional</a></strong></dt>
+
+<dd>
+<p>Enable bidirectional sync between first and subsequent hosts.</p>
+<p>See <a href="#bidirectional_syncing">BIDIRECTIONAL SYNCING</a> for more information.</p>
+</dd>
+<dt><strong><a name="no_bin_log" class="item">--[no]bin-log</a></strong></dt>
+
+<dd>
+<p>default: yes</p>
+<p>Log to the binary log (<code>SET SQL_LOG_BIN=1</code>).</p>
+<p>Specifying <a href="#no_bin_log"><code>--no-bin-log</code></a> will <code>SET SQL_LOG_BIN=0</code>.</p>
+</dd>
+<dt><strong><a name="buffer_in_mysql" class="item">--buffer-in-mysql</a></strong></dt>
+
+<dd>
+<p>Instruct MySQL to buffer queries in its memory.</p>
+<p>This option adds the <code>SQL_BUFFER_RESULT</code> option to the comparison queries.
+This causes MySQL to execute the queries and place them in a temporary table
+internally before sending the results back to mk-table-sync.  The advantage of
+this strategy is that mk-table-sync can fetch rows as desired without using a
+lot of memory inside the Perl process, while releasing locks on the MySQL table
+(to reduce contention with other queries).  The disadvantage is that it uses
+more memory on the MySQL server instead.</p>
+<p>You probably want to leave <a href="#no_buffer_to_client">--[no]buffer-to-client</a> enabled too, because
+buffering into a temp table and then fetching it all into Perl's memory is
+probably a silly thing to do.  This option is most useful for the GroupBy and
+Stream algorithms, which may fetch a lot of data from the server.</p>
+</dd>
+<dt><strong><a name="no_buffer_to_client" class="item">--[no]buffer-to-client</a></strong></dt>
+
+<dd>
+<p>default: yes</p>
+<p>Fetch rows one-by-one from MySQL while comparing.</p>
+<p>This option enables <code>mysql_use_result</code> which causes MySQL to hold the selected
+rows on the server until the tool fetches them.  This allows the tool to use
+less memory but may keep the rows locked on the server longer.</p>
+<p>If this option is disabled by specifying <a href="#no_buffer_to_client"><code>--no-buffer-to-client</code></a> then
+<code>mysql_store_result</code> is used which causes MySQL to send all selected rows to
+the tool at once.  This may result in the results &quot;cursor&quot; being held open for
+a shorter time on the server, but if the tables are large, it could take a long
+time anyway, and use all your memory.</p>
+<p>For most non-trivial data sizes, you want to leave this option enabled.</p>
+<p>This option is disabled when <a href="#bidirectional">--bidirectional</a> is used.</p>
+</dd>
+<dt><strong><a name="charset" class="item">--charset</a></strong></dt>
+
+<dd>
+<p>short form: -A; type: string</p>
+<p>Default character set.  If the value is utf8, sets Perl's binmode on
+STDOUT to utf8, passes the mysql_enable_utf8 option to DBD::mysql, and
+runs SET NAMES UTF8 after connecting to MySQL.  Any other value sets
+binmode on STDOUT without the utf8 layer, and runs SET NAMES after
+connecting to MySQL.</p>
+</dd>
+<dt><strong><a name="no_check_master" class="item">--[no]check-master</a></strong></dt>
+
+<dd>
+<p>default: yes</p>
+<p>With <a href="#sync_to_master">--sync-to-master</a>, try to verify that the detected
+master is the real master.</p>
+</dd>
+<dt><strong><a name="no_check_privileges" class="item">--[no]check-privileges</a></strong></dt>
+
+<dd>
+<p>default: yes</p>
+<p>Check that user has all necessary privileges on source and destination table.</p>
+</dd>
+<dt><strong><a name="no_check_slave" class="item">--[no]check-slave</a></strong></dt>
+
+<dd>
+<p>default: yes</p>
+<p>Check whether the destination server is a slave.</p>
+<p>If the destination server is a slave, it's generally unsafe to make changes on
+it.  However, sometimes you have to; <a href="#replace">--replace</a> won't work unless there's a
+unique index, for example, so you can't make changes on the master in that
+scenario.  By default mk-table-sync will complain if you try to change data on
+a slave.  Specify <a href="#no_check_slave"><code>--no-check-slave</code></a> to disable this check.  Use it at your own
+risk.</p>
+</dd>
+<dt><strong><a name="no_check_triggers" class="item">--[no]check-triggers</a></strong></dt>
+
+<dd>
+<p>default: yes</p>
+<p>Check that no triggers are defined on the destination table.</p>
+<p>Triggers were introduced in MySQL v5.0.2, so for older versions this option
+has no effect because triggers will not be checked.</p>
+</dd>
+<dt><strong><a name="chunk_column" class="item">--chunk-column</a></strong></dt>
+
+<dd>
+<p>type: string</p>
+<p>Chunk the table on this column.</p>
+</dd>
+<dt><strong><a name="chunk_index" class="item">--chunk-index</a></strong></dt>
+
+<dd>
+<p>type: string</p>
+<p>Chunk the table using this index.</p>
+</dd>
+<dt><strong><a name="chunk_size" class="item">--chunk-size</a></strong></dt>
+
+<dd>
+<p>type: string; default: 1000</p>
+<p>Number of rows or data size per chunk.</p>
+<p>The size of each chunk of rows for the <a href="#chunk">Chunk</a> and <a href="#nibble">Nibble</a> algorithms.
+The size can be either a number of rows, or a data size.  Data sizes are
+specified with a suffix of k=kibibytes, M=mebibytes, G=gibibytes.  Data sizes
+are converted to a number of rows by dividing by the average row length.</p>
+</dd>
+<dt><strong><a name="columns" class="item">--columns</a></strong></dt>
+
+<dd>
+<p>short form: -c; type: array</p>
+<p>Compare this comma-separated list of columns.</p>
+</dd>
+<dt><strong><a name="config" class="item">--config</a></strong></dt>
+
+<dd>
+<p>type: Array</p>
+<p>Read this comma-separated list of config files; if specified, this must be the
+first option on the command line.</p>
+</dd>
+<dt><strong><a name="conflict_column" class="item">--conflict-column</a></strong></dt>
+
+<dd>
+<p>type: string</p>
+<p>Compare this column when rows conflict during a <a href="#bidirectional">--bidirectional</a> sync.</p>
+<p>When a same but differing row is found the value of this column from each
+row is compared according to <a href="#conflict_comparison">--conflict-comparison</a>, <a href="#conflict_value">--conflict-value</a>
+and <a href="#conflict_threshold">--conflict-threshold</a> to determine which row has the correct data and
+becomes the source.  The column can be any type for which there is an
+appropriate <a href="#conflict_comparison">--conflict-comparison</a> (this is almost all types except, for
+example, blobs).</p>
+<p>This option only works with <a href="#bidirectional">--bidirectional</a>.
+See <a href="#bidirectional_syncing">BIDIRECTIONAL SYNCING</a> for more information.</p>
+</dd>
+<dt><strong><a name="conflict_comparison" class="item">--conflict-comparison</a></strong></dt>
+
+<dd>
+<p>type: string</p>
+<p>Choose the <a href="#conflict_column">--conflict-column</a> with this property as the source.</p>
+<p>The option affects how the <a href="#conflict_column">--conflict-column</a> values from the conflicting
+rows are compared.  Possible comparisons are one of these MAGIC_comparisons:</p>
+<pre>
+  newest|oldest|greatest|least|equals|matches</pre>
+<pre>
+  COMPARISON  CHOOSES ROW WITH
+  ==========  =========================================================
+  newest      Newest temporal L&lt;--conflict-column&gt; value
+  oldest      Oldest temporal L&lt;--conflict-column&gt; value
+  greatest    Greatest numerical L&lt;--conflict-column&gt; value
+  least       Least numerical L&lt;--conflict-column&gt; value
+  equals      L&lt;--conflict-column&gt; value equal to L&lt;--conflict-value&gt;
+  matches     L&lt;--conflict-column&gt; value matching Perl regex pattern
+              L&lt;--conflict-value&gt;</pre>
+<p>This option only works with <a href="#bidirectional">--bidirectional</a>.
+See <a href="#bidirectional_syncing">BIDIRECTIONAL SYNCING</a> for more information.</p>
+</dd>
+<dt><strong><a name="conflict_error" class="item">--conflict-error</a></strong></dt>
+
+<dd>
+<p>type: string; default: warn</p>
+<p>How to report unresolvable conflicts and conflict errors</p>
+<p>This option changes how the user is notified when a conflict cannot be
+resolved or causes some kind of error.  Possible values are:</p>
+<pre>
+  * warn: Print a warning to STDERR about the unresolvable conflict
+  * die:  Die, stop syncing, and print a warning to STDERR</pre>
+<p>This option only works with <a href="#bidirectional">--bidirectional</a>.
+See <a href="#bidirectional_syncing">BIDIRECTIONAL SYNCING</a> for more information.</p>
+</dd>
+<dt><strong><a name="conflict_threshold" class="item">--conflict-threshold</a></strong></dt>
+
+<dd>
+<p>type: string</p>
+<p>Amount by which one <a href="#conflict_column">--conflict-column</a> must exceed the other.</p>
+<p>The <a href="#conflict_threshold">--conflict-threshold</a> prevents a conflict from being resolved if
+the absolute difference between the two <a href="#conflict_column">--conflict-column</a> values is
+less than this amount.  For example, if two <a href="#conflict_column">--conflict-column</a> have
+timestamp values &quot;2009-12-01 12:00:00&quot; and &quot;2009-12-01 12:05:00&quot; the difference
+is 5 minutes.  If <a href="#conflict_threshold">--conflict-threshold</a> is set to &quot;5m&quot; the conflict will
+be resolved, but if <a href="#conflict_threshold">--conflict-threshold</a> is set to &quot;6m&quot; the conflict
+will fail to resolve because the difference is not greater than or equal
+to 6 minutes.  In this latter case, <a href="#conflict_error">--conflict-error</a> will report
+the failure.</p>
+<p>This option only works with <a href="#bidirectional">--bidirectional</a>.
+See <a href="#bidirectional_syncing">BIDIRECTIONAL SYNCING</a> for more information.</p>
+</dd>
+<dt><strong><a name="conflict_value" class="item">--conflict-value</a></strong></dt>
+
+<dd>
+<p>type: string</p>
+<p>Use this value for certain <a href="#conflict_comparison">--conflict-comparison</a>.</p>
+<p>This option gives the value for <code>equals</code> and <code>matches</code>
+<a href="#conflict_comparison">--conflict-comparison</a>.</p>
+<p>This option only works with <a href="#bidirectional">--bidirectional</a>.
+See <a href="#bidirectional_syncing">BIDIRECTIONAL SYNCING</a> for more information.</p>
+</dd>
+<dt><strong><a name="databases" class="item">--databases</a></strong></dt>
+
+<dd>
+<p>short form: -d; type: hash</p>
+<p>Sync only this comma-separated list of databases.</p>
+<p>A common request is to sync tables from one database with tables from another
+database on the same or different server.  This is not yet possible.
+<a href="#databases">--databases</a> will not do it, and you can't do it with the D part of the DSN
+either because in the absence of a table name it assumes the whole server
+should be synced and the D part controls only the connection's default database.</p>
+</dd>
+<dt><strong><a name="defaults_file" class="item">--defaults-file</a></strong></dt>
+
+<dd>
+<p>short form: -F; type: string</p>
+<p>Only read mysql options from the given file.  You must give an absolute pathname.</p>
+</dd>
+<dt><strong><a name="dry_run" class="item">--dry-run</a></strong></dt>
+
+<dd>
+<p>Analyze, decide the sync algorithm to use, print and exit.</p>
+<p>Implies <a href="#verbose">--verbose</a> so you can see the results.  The results are in the same
+output format that you'll see from actually running the tool, but there will be
+zeros for rows affected.  This is because the tool actually executes, but stops
+before it compares any data and just returns zeros.  The zeros do not mean there
+are no changes to be made.</p>
+</dd>
+<dt><strong><a name="engines" class="item">--engines</a></strong></dt>
+
+<dd>
+<p>short form: -e; type: hash</p>
+<p>Sync only this comma-separated list of storage engines.</p>
+</dd>
+<dt><strong><a name="execute" class="item">--execute</a></strong></dt>
+
+<dd>
+<p>Execute queries to make the tables have identical data.</p>
+<p>This option makes mk-table-sync actually sync table data by executing all
+the queries that it created to resolve table differences.  Therefore, <strong>the
+tables will be changed!</strong>  And unless you also specify <a href="#verbose">--verbose</a>, the
+changes will be made silently.  If this is not what you want, see
+<a href="#print">--print</a> or <a href="#dry_run">--dry-run</a>.</p>
+</dd>
+<dt><strong><a name="explain_hosts" class="item">--explain-hosts</a></strong></dt>
+
+<dd>
+<p>Print connection information and exit.</p>
+<p>Print out a list of hosts to which mk-table-sync will connect, with all
+the various connection options, and exit.</p>
+</dd>
+<dt><strong><a name="float_precision" class="item">--float-precision</a></strong></dt>
+
+<dd>
+<p>type: int</p>
+<p>Precision for <code>FLOAT</code> and <code>DOUBLE</code> number-to-string conversion.  Causes FLOAT
+and DOUBLE values to be rounded to the specified number of digits after the
+decimal point, with the <code>ROUND()</code> function in MySQL.  This can help avoid
+checksum mismatches due to different floating-point representations of the same
+values on different MySQL versions and hardware.  The default is no rounding;
+the values are converted to strings by the <code>CONCAT()</code> function, and MySQL chooses
+the string representation.  If you specify a value of 2, for example, then the
+values 1.008 and 1.009 will be rounded to 1.01, and will checksum as equal.</p>
+</dd>
+<dt><strong><a name="no_foreign_key_checks" class="item">--[no]foreign-key-checks</a></strong></dt>
+
+<dd>
+<p>default: yes</p>
+<p>Enable foreign key checks (<code>SET FOREIGN_KEY_CHECKS=1</code>).</p>
+<p>Specifying <a href="#no_foreign_key_checks"><code>--no-foreign-key-checks</code></a> will <code>SET FOREIGN_KEY_CHECKS=0</code>.</p>
+</dd>
+<dt><strong><a name="function" class="item">--function</a></strong></dt>
+
+<dd>
+<p>type: string</p>
+<p>Which hash function you'd like to use for checksums.</p>
+<p>The default is <code>CRC32</code>.  Other good choices include <code>MD5</code> and <code>SHA1</code>.  If you
+have installed the <code>FNV_64</code> user-defined function, <code>mk-table-sync</code> will detect
+it and prefer to use it, because it is much faster than the built-ins.  You can
+also use MURMUR_HASH if you've installed that user-defined function.  Both of
+these are distributed with Maatkit.  See <em>mk-table-checksum</em> for more
+information and benchmarks.</p>
+</dd>
+<dt><strong><a name="help" class="item">--help</a></strong></dt>
+
+<dd>
+<p>Show help and exit.</p>
+</dd>
+<dt><strong><a name="no_hex_blob" class="item">--[no]hex-blob</a></strong></dt>
+
+<dd>
+<p>default: yes</p>
+<p><code>HEX()</code> <code>BLOB</code>, <code>TEXT</code> and <code>BINARY</code> columns.</p>
+<p>When row data from the source is fetched to create queries to sync the
+data (i.e. the queries seen with <a href="#print">--print</a> and executed by <a href="#execute">--execute</a>),
+binary columns are wrapped in <code>HEX()</code> so the binary data does not produce
+an invalid SQL statement.  You can disable this option but you probably
+shouldn't.</p>
+</dd>
+<dt><strong><a name="host" class="item">--host</a></strong></dt>
+
+<dd>
+<p>short form: -h; type: string</p>
+<p>Connect to host.</p>
+</dd>
+<dt><strong><a name="ignore_columns" class="item">--ignore-columns</a></strong></dt>
+
+<dd>
+<p>type: Hash</p>
+<p>Ignore this comma-separated list of column names in comparisons.</p>
+<p>This option causes columns not to be compared.  However, if a row is determined
+to differ between tables, all columns in that row will be synced, regardless.
+(It is not currently possible to exclude columns from the sync process itself,
+only from the comparison.)</p>
+</dd>
+<dt><strong><a name="ignore_databases" class="item">--ignore-databases</a></strong></dt>
+
+<dd>
+<p>type: Hash</p>
+<p>Ignore this comma-separated list of databases.</p>
+</dd>
+<dt><strong><a name="ignore_engines" class="item">--ignore-engines</a></strong></dt>
+
+<dd>
+<p>type: Hash; default: FEDERATED,MRG_MyISAM</p>
+<p>Ignore this comma-separated list of storage engines.</p>
+</dd>
+<dt><strong><a name="ignore_tables" class="item">--ignore-tables</a></strong></dt>
+
+<dd>
+<p>type: Hash</p>
+<p>Ignore this comma-separated list of tables.</p>
+<p>Table names may be qualified with the database name.</p>
+</dd>
+<dt><strong><a name="no_index_hint" class="item">--[no]index-hint</a></strong></dt>
+
+<dd>
+<p>default: yes</p>
+<p>Add FORCE/USE INDEX hints to the chunk and row queries.</p>
+<p>By default <code>mk-table-sync</code> adds a FORCE/USE INDEX hint to each SQL statement
+to coerce MySQL into using the index chosen by the sync algorithm or specified
+by <a href="#chunk_index">--chunk-index</a>.  This is usually a good thing, but in rare cases the
+index may not be the best for the query so you can suppress the index hint
+by specifying <a href="#no_index_hint"><code>--no-index-hint</code></a> and let MySQL choose the index.</p>
+<p>This does not affect the queries printed by <a href="#print">--print</a>; it only affects the
+chunk and row queries that <code>mk-table-sync</code> uses to select and compare rows.</p>
+</dd>
+<dt><strong><a name="lock" class="item">--lock</a></strong></dt>
+
+<dd>
+<p>type: int</p>
+<p>Lock tables: 0=none, 1=per sync cycle, 2=per table, or 3=globally.</p>
+<p>This uses <code>LOCK TABLES</code>.  This can help prevent tables being changed while
+you're examining them.  The possible values are as follows:</p>
+<pre>
+  VALUE  MEANING
+  =====  =======================================================
+  0      Never lock tables.
+  1      Lock and unlock one time per sync cycle (as implemented
+         by the syncing algorithm).  This is the most granular
+         level of locking available.  For example, the Chunk
+         algorithm will lock each chunk of C&lt;N&gt; rows, and then
+         unlock them if they are the same on the source and the
+         destination, before moving on to the next chunk.
+  2      Lock and unlock before and after each table.
+  3      Lock and unlock once for every server (DSN) synced, with
+         C&lt;FLUSH TABLES WITH READ LOCK&gt;.</pre>
+<p>A replication slave is never locked if <a href="#replicate">--replicate</a> or <a href="#sync_to_master">--sync-to-master</a>
+is specified, since in theory locking the table on the master should prevent any
+changes from taking place.  (You are not changing data on your slave, right?)
+If <a href="#wait">--wait</a> is given, the master (source) is locked and then the tool waits
+for the slave to catch up to the master before continuing.</p>
+<p>If <code>--transaction</code> is specified, <code>LOCK TABLES</code> is not used.  Instead, lock
+and unlock are implemented by beginning and committing transactions.
+The exception is if <a href="#lock">--lock</a> is 3.</p>
+<p>If <a href="#no_transaction"><code>--no-transaction</code></a> is specified, then <code>LOCK TABLES</code> is used for any
+value of <a href="#lock">--lock</a>. See <a href="#no_transaction">--[no]transaction</a>.</p>
+</dd>
+<dt><strong><a name="lock_and_rename" class="item">--lock-and-rename</a></strong></dt>
+
+<dd>
+<p>Lock the source and destination table, sync, then swap names.  This is useful as
+a less-blocking ALTER TABLE, once the tables are reasonably in sync with each
+other (which you may choose to accomplish via any number of means, including
+dump and reload or even something like <em>mk-archiver</em>).  It requires exactly two
+DSNs and assumes they are on the same server, so it does no waiting for
+replication or the like.  Tables are locked with LOCK TABLES.</p>
+</dd>
+<dt><strong><a name="password" class="item">--password</a></strong></dt>
+
+<dd>
+<p>short form: -p; type: string</p>
+<p>Password to use when connecting.</p>
+</dd>
+<dt><strong><a name="pid" class="item">--pid</a></strong></dt>
+
+<dd>
+<p>type: string</p>
+<p>Create the given PID file.  The file contains the process ID of the script.
+The PID file is removed when the script exits.  Before starting, the script
+checks if the PID file already exists.  If it does not, then the script creates
+and writes its own PID to it.  If it does, then the script checks the following:
+if the file contains a PID and a process is running with that PID, then
+the script dies; or, if there is no process running with that PID, then the
+script overwrites the file with its own PID and starts; else, if the file
+contains no PID, then the script dies.</p>
+</dd>
+<dt><strong><a name="port" class="item">--port</a></strong></dt>
+
+<dd>
+<p>short form: -P; type: int</p>
+<p>Port number to use for connection.</p>
+</dd>
+<dt><strong><a name="print" class="item">--print</a></strong></dt>
+
+<dd>
+<p>Print queries that will resolve differences.</p>
+<p>If you don't trust <code>mk-table-sync</code>, or just want to see what it will do, this
+is a good way to be safe.  These queries are valid SQL and you can run them
+yourself if you want to sync the tables manually.</p>
+</dd>
+<dt><strong><a name="recursion_method" class="item">--recursion-method</a></strong></dt>
+
+<dd>
+<p>type: string</p>
+<p>Preferred recursion method used to find slaves.</p>
+<p>Possible methods are:</p>
+<pre>
+  METHOD       USES
+  ===========  ================
+  processlist  SHOW PROCESSLIST
+  hosts        SHOW SLAVE HOSTS</pre>
+<p>The processlist method is preferred because SHOW SLAVE HOSTS is not reliable.
+However, the hosts method is required if the server uses a non-standard
+port (not 3306).  Usually mk-table-sync does the right thing and finds
+the slaves, but you may give a preferred method and it will be used first.
+If it doesn't find any slaves, the other methods will be tried.</p>
+</dd>
+<dt><strong><a name="replace" class="item">--replace</a></strong></dt>
+
+<dd>
+<p>Write all <code>INSERT</code> and <code>UPDATE</code> statements as <code>REPLACE</code>.</p>
+<p>This is automatically switched on as needed when there are unique index
+violations.</p>
+</dd>
+<dt><strong><a name="replicate" class="item">--replicate</a></strong></dt>
+
+<dd>
+<p>type: string</p>
+<p>Sync tables listed as different in this table.</p>
+<p>Specifies that <code>mk-table-sync</code> should examine the specified table to find data
+that differs.  The table is exactly the same as the argument of the same name to
+<em>mk-table-checksum</em>.  That is, it contains records of which tables (and ranges
+of values) differ between the master and slave.</p>
+<p>For each table and range of values that shows differences between the master and
+slave, <code>mk-table-checksum</code> will sync that table, with the appropriate <code>WHERE</code>
+clause, to its master.</p>
+<p>This automatically sets <a href="#wait">--wait</a> to 60 and causes changes to be made on the
+master instead of the slave.</p>
+<p>If <a href="#sync_to_master">--sync-to-master</a> is specified, the tool will assume the server you
+specified is the slave, and connect to the master as usual to sync.</p>
+<p>Otherwise, it will try to use <code>SHOW PROCESSLIST</code> to find slaves of the server
+you specified.  If it is unable to find any slaves via <code>SHOW PROCESSLIST</code>, it
+will inspect <code>SHOW SLAVE HOSTS</code> instead.  You must configure each slave's
+<code>report-host</code>, <code>report-port</code> and other options for this to work right.  After
+finding slaves, it will inspect the specified table on each slave to find data
+that needs to be synced, and sync it.</p>
+<p>The tool examines the master's copy of the table first, assuming that the master
+is potentially a slave as well.  Any table that shows differences there will
+<strong>NOT</strong> be synced on the slave(s).  For example, suppose your replication is set
+up as A-&gt;B, B-&gt;C, B-&gt;D.  Suppose you use this argument and specify server B.
+The tool will examine server B's copy of the table.  If it looks like server B's
+data in table <code>test.tbl1</code> is different from server A's copy, the tool will not
+sync that table on servers C and D.</p>
+</dd>
+<dt><strong><a name="set_vars" class="item">--set-vars</a></strong></dt>
+
+<dd>
+<p>type: string; default: wait_timeout=10000</p>
+<p>Set these MySQL variables.  Immediately after connecting to MySQL, this
+string will be appended to SET and executed.</p>
+</dd>
+<dt><strong><a name="socket" class="item">--socket</a></strong></dt>
+
+<dd>
+<p>short form: -S; type: string</p>
+<p>Socket file to use for connection.</p>
+</dd>
+<dt><strong><a name="sync_to_master" class="item">--sync-to-master</a></strong></dt>
+
+<dd>
+<p>Treat the DSN as a slave and sync it to its master.</p>
+<p>Treat the server you specified as a slave.  Inspect <code>SHOW SLAVE STATUS</code>,
+connect to the server's master, and treat the master as the source and the slave
+as the destination.  Causes changes to be made on the master.  Sets <a href="#wait">--wait</a>
+to 60 by default, sets <a href="#lock">--lock</a> to 1 by default, and disables
+<a href="#no_transaction">--[no]transaction</a> by default.  See also <a href="#replicate">--replicate</a>, which changes
+this option's behavior.</p>
+</dd>
+<dt><strong><a name="tables" class="item">--tables</a></strong></dt>
+
+<dd>
+<p>short form: -t; type: hash</p>
+<p>Sync only this comma-separated list of tables.</p>
+<p>Table names may be qualified with the database name.</p>
+</dd>
+<dt><strong><a name="timeout_ok" class="item">--timeout-ok</a></strong></dt>
+
+<dd>
+<p>Keep going if <a href="#wait">--wait</a> fails.</p>
+<p>If you specify <a href="#wait">--wait</a> and the slave doesn't catch up to the master's
+position before the wait times out, the default behavior is to abort.  This
+option makes the tool keep going anyway.  <strong>Warning</strong>: if you are trying to get a
+consistent comparison between the two servers, you probably don't want to keep
+going after a timeout.</p>
+</dd>
+<dt><strong><a name="no_transaction" class="item">--[no]transaction</a></strong></dt>
+
+<dd>
+<p>Use transactions instead of <code>LOCK TABLES</code>.</p>
+<p>The granularity of beginning and committing transactions is controlled by
+<a href="#lock">--lock</a>.  This is enabled by default, but since <a href="#lock">--lock</a> is disabled by
+default, it has no effect.</p>
+<p>Most options that enable locking also disable transactions by default, so if
+you want to use transactional locking (via <code>LOCK IN SHARE MODE</code> and <code>FOR
+UPDATE</code>, you must specify <code>--transaction</code> explicitly.</p>
+<p>If you don't specify <code>--transaction</code> explicitly <code>mk-table-sync</code> will decide on
+a per-table basis whether to use transactions or table locks.  It currently
+uses transactions on InnoDB tables, and table locks on all others.</p>
+<p>If <a href="#no_transaction"><code>--no-transaction</code></a> is specified, then <code>mk-table-sync</code> will not use
+transactions at all (not even for InnoDB tables) and locking is controlled
+by <a href="#lock">--lock</a>.</p>
+<p>When enabled, either explicitly or implicitly, the transaction isolation level
+is set <code>REPEATABLE READ</code> and transactions are started <code>WITH CONSISTENT
+SNAPSHOT</code>.</p>
+</dd>
+<dt><strong><a name="trim" class="item">--trim</a></strong></dt>
+
+<dd>
+<p><code>TRIM()</code> <code>VARCHAR</code> columns in <code>BIT_XOR</code> and <code>ACCUM</code> modes.  Helps when
+comparing MySQL 4.1 to &gt;= 5.0.</p>
+<p>This is useful when you don't care about the trailing space differences between
+MySQL versions which vary in their handling of trailing spaces. MySQL 5.0 and 
+later all retain trailing spaces in <code>VARCHAR</code>, while previous versions would 
+remove them.</p>
+</dd>
+<dt><strong><a name="no_unique_checks" class="item">--[no]unique-checks</a></strong></dt>
+
+<dd>
+<p>default: yes</p>
+<p>Enable unique key checks (<code>SET UNIQUE_CHECKS=1</code>).</p>
+<p>Specifying <a href="#no_unique_checks"><code>--no-unique-checks</code></a> will <code>SET UNIQUE_CHECKS=0</code>.</p>
+</dd>
+<dt><strong><a name="user" class="item">--user</a></strong></dt>
+
+<dd>
+<p>short form: -u; type: string</p>
+<p>User for login if not current user.</p>
+</dd>
+<dt><strong><a name="verbose" class="item">--verbose</a></strong></dt>
+
+<dd>
+<p>short form: -v; cumulative: yes</p>
+<p>Print results of sync operations.</p>
+<p>See <a href="#output">OUTPUT</a> for more details about the output.</p>
+</dd>
+<dt><strong><a name="version" class="item">--version</a></strong></dt>
+
+<dd>
+<p>Show version and exit.</p>
+</dd>
+<dt><strong><a name="wait" class="item">--wait</a></strong></dt>
+
+<dd>
+<p>short form: -w; type: time</p>
+<p>How long to wait for slaves to catch up to their master.</p>
+<p>Make the master wait for the slave to catch up in replication before comparing
+the tables.  The value is the number of seconds to wait before timing out (see
+also <a href="#timeout_ok">--timeout-ok</a>).  Sets <a href="#lock">--lock</a> to 1 and <a href="#no_transaction">--[no]transaction</a> to 0
+by default.  If you see an error such as the following,</p>
+<pre>
+  MASTER_POS_WAIT returned -1</pre>
+<p>It means the timeout was exceeded and you need to increase it.</p>
+<p>The default value of this option is influenced by other options.  To see what
+value is in effect, run with <a href="#help">--help</a>.</p>
+<p>To disable waiting entirely (except for locks), specify <a href="#wait">--wait</a> 0.  This
+helps when the slave is lagging on tables that are not being synced.</p>
+</dd>
+<dt><strong><a name="where" class="item">--where</a></strong></dt>
+
+<dd>
+<p>type: string</p>
+<p><code>WHERE</code> clause to restrict syncing to part of the table.</p>
+</dd>
+<dt><strong><a name="no_zero_chunk" class="item">--[no]zero-chunk</a></strong></dt>
+
+<dd>
+<p>default: yes</p>
+<p>Add a chunk for rows with zero or zero-equivalent values.  The only has an
+effect when <a href="#chunk_size">--chunk-size</a> is specified.  The purpose of the zero chunk
+is to capture a potentially large number of zero values that would imbalance
+the size of the first chunk.  For example, if a lot of negative numbers were
+inserted into an unsigned integer column causing them to be stored as zeros,
+then these zero values are captured by the zero chunk instead of the first
+chunk and all its non-zero values.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+</div><h1><a name="dsn_options">DSN OPTIONS</a></h1>
+<p>These DSN options are used to create a DSN.  Each option is given like
+<code>option=value</code>.  The options are case-sensitive, so P and p are not the
+same option.  There cannot be whitespace before or after the <code>=</code> and
+if the value contains whitespace it must be quoted.  DSN options are
+comma-separated.  See the <em>maatkit</em> manpage for full details.</p>
+<ul>
+<li><strong><a name="a" class="item">A</a></strong>
+
+<p>dsn: charset; copy: yes</p>
+<p>Default character set.</p>
+</li>
+<li><strong><a name="d" class="item">D</a></strong>
+
+<p>dsn: database; copy: yes</p>
+<p>Database containing the table to be synced.</p>
+</li>
+<li><strong><a name="f" class="item">F</a></strong>
+
+<p>dsn: mysql_read_default_file; copy: yes</p>
+<p>Only read default options from the given file</p>
+</li>
+<li><strong><a name="h" class="item">h</a></strong>
+
+<p>dsn: host; copy: yes</p>
+<p>Connect to host.</p>
+</li>
+<li><strong><a name="p" class="item">p</a></strong>
+
+<p>dsn: password; copy: yes</p>
+<p>Password to use when connecting.</p>
+</li>
+<li><strong><a name="p" class="item">P</a></strong>
+
+<p>dsn: port; copy: yes</p>
+<p>Port number to use for connection.</p>
+</li>
+<li><strong><a name="s" class="item">S</a></strong>
+
+<p>dsn: mysql_socket; copy: yes</p>
+<p>Socket file to use for connection.</p>
+</li>
+<li><strong><a name="t" class="item">t</a></strong>
+
+<p>copy: yes</p>
+<p>Table to be synced.</p>
+</li>
+<li><strong><a name="u" class="item">u</a></strong>
+
+<p>dsn: user; copy: yes</p>
+<p>User for login if not current user.</p>
+</li>
+</ul>
+<p>
+</p>
+<hr />
+</div><h1><a name="downloading">DOWNLOADING</a></h1>
+<p>You can download Maatkit from Google Code at
+<a href="http://code.google.com/p/maatkit/">http://code.google.com/p/maatkit/</a>, or you can get any of the tools
+easily with a command like the following:</p>
+<pre>
+   wget <a href="http://www.maatkit.org/get/toolname">http://www.maatkit.org/get/toolname</a>
+   or
+   wget <a href="http://www.maatkit.org/trunk/toolname">http://www.maatkit.org/trunk/toolname</a></pre>
+<p>Where <code>toolname</code> can be replaced with the name (or fragment of a name) of any
+of the Maatkit tools.  Once downloaded, they're ready to run; no installation is
+needed.  The first URL gets the latest released version of the tool, and the
+second gets the latest trunk code from Subversion.</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="environment">ENVIRONMENT</a></h1>
+<p>The environment variable MKDEBUG enables verbose debugging output in all of the
+Maatkit tools:</p>
+<pre>
+   MKDEBUG=1 mk-....</pre>
+<p>
+</p>
+<hr />
+</div><h1><a name="system_requirements">SYSTEM REQUIREMENTS</a></h1>
+<p>You need Perl, DBI, DBD::mysql, and some core packages that ought to be
+installed in any reasonably new version of Perl.</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="bugs">BUGS</a></h1>
+<p>For a list of known bugs see: <a href="http://www.maatkit.org/bugs/mk-table-sync">http://www.maatkit.org/bugs/mk-table-sync</a>.</p>
+<p>Please use Google Code Issues and Groups to report bugs or request support:
+<a href="http://code.google.com/p/maatkit/">http://code.google.com/p/maatkit/</a>.  You can also join #maatkit on Freenode to
+discuss Maatkit.</p>
+<p>Please include the complete command-line used to reproduce the problem you are
+seeing, the version of all MySQL servers involved, the complete output of the
+tool when run with <a href="#version">--version</a>, and if possible, debugging output produced by
+running with the <code>MKDEBUG=1</code> environment variable.</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="copyright__license_and_warranty">COPYRIGHT, LICENSE AND WARRANTY</a></h1>
+<p>This program is copyright 2007-2011 Baron Schwartz.
+Feedback and improvements are welcome.</p>
+<p>THIS PROGRAM IS PROVIDED &quot;AS IS&quot; AND WITHOUT ANY EXPRESS OR IMPLIED
+WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.</p>
+<p>This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, version 2; OR the Perl Artistic License.  On UNIX and similar
+systems, you can issue `man perlgpl' or `man perlartistic' to read these
+licenses.</p>
+<p>You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place, Suite 330, Boston, MA  02111-1307  USA.</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="author">AUTHOR</a></h1>
+<p>Baron Schwartz</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="about_maatkit">ABOUT MAATKIT</a></h1>
+<p>This tool is part of Maatkit, a toolkit for power users of MySQL.  Maatkit
+was created by Baron Schwartz; Baron and Daniel Nichter are the primary
+code contributors.  Both are employed by Percona.  Financial support for
+Maatkit development is primarily provided by Percona and its clients.</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="history_and_acknowledgments">HISTORY AND ACKNOWLEDGMENTS</a></h1>
+<p>My work is based in part on Giuseppe Maxia's work on distributed databases,
+<a href="http://www.sysadminmag.com/articles/2004/0408/">http://www.sysadminmag.com/articles/2004/0408/</a> and code derived from that
+article.  There is more explanation, and a link to the code, at
+<a href="http://www.perlmonks.org/?node_id=381053">http://www.perlmonks.org/</a>.</p>
+<p>Another programmer extended Maxia's work even further.  Fabien Coelho changed
+and generalized Maxia's technique, introducing symmetry and avoiding some
+problems that might have caused too-frequent checksum collisions.  This work
+grew into pg_comparator, <a href="http://www.coelho.net/pg_comparator/">http://www.coelho.net/pg_comparator/</a>.  Coelho also
+explained the technique further in a paper titled &quot;Remote Comparison of Database
+Tables&quot; (<a href="http://cri.ensmp.fr/classement/doc/A-375.pdf">http://cri.ensmp.fr/classement/doc/A-375.pdf</a>).</p>
+<p>This existing literature mostly addressed how to find the differences between
+the tables, not how to resolve them once found.  I needed a tool that would not
+only find them efficiently, but would then resolve them.  I first began thinking
+about how to improve the technique further with my article
+<a href="http://tinyurl.com/mysql-data-diff-algorithm">http://tinyurl.com/mysql-data-diff-algorithm</a>,
+where I discussed a number of problems with the Maxia/Coelho &quot;bottom-up&quot;
+algorithm.  After writing that article, I began to write this tool.  I wanted to
+actually implement their algorithm with some improvements so I was sure I
+understood it completely.  I discovered it is not what I thought it was, and is
+considerably more complex than it appeared to me at first.  Fabien Coelho was
+kind enough to address some questions over email.</p>
+<p>The first versions of this tool implemented a version of the Coelho/Maxia
+algorithm, which I called &quot;bottom-up&quot;, and my own, which I called &quot;top-down.&quot;
+Those algorithms are considerably more complex than the current algorithms and
+I have removed them from this tool, and may add them back later.  The
+improvements to the bottom-up algorithm are my original work, as is the
+top-down algorithm.  The techniques to actually resolve the differences are
+also my own work.</p>
+<p>Another tool that can synchronize tables is the SQLyog Job Agent from webyog.
+Thanks to Rohit Nadhani, SJA's author, for the conversations about the general
+techniques.  There is a comparison of mk-table-sync and SJA at
+<a href="http://tinyurl.com/maatkit-vs-sqlyog">http://tinyurl.com/maatkit-vs-sqlyog</a></p>
+<p>Thanks to the following people and organizations for helping in many ways:</p>
+<p>The Rimm-Kaufman Group <a href="http://www.rimmkaufman.com/">http://www.rimmkaufman.com/</a>,
+MySQL AB <a href="http://www.mysql.com/">http://www.mysql.com/</a>,
+Blue Ridge InternetWorks <a href="http://www.briworks.com/">http://www.briworks.com/</a>,
+Percona <a href="http://www.percona.com/">http://www.percona.com/</a>,
+Fabien Coelho,
+Giuseppe Maxia and others at MySQL AB,
+Kristian Koehntopp (MySQL AB),
+Rohit Nadhani (WebYog),
+The helpful monks at Perlmonks,
+And others too numerous to mention.</p>
+<p>
+</p>
+<hr />
+</div><h1><a name="version">VERSION</a></h1>
+<p>This manual page documents Ver 1.0.31 Distrib 7540 $Revision: 7476 $.</p>
+
+</body>
+
+</html>

@@ -1,0 +1,183 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Chapter 15. New Widgets in PyGTK 2.2</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="prev" href="sec-GenericCellRenderer.html" title="14.12. The Generic CellRenderer"><link rel="next" href="ch-NewInPyGTK2.4.html" title="Chapter 16. New Widgets in PyGTK 2.4"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter 15. New Widgets in PyGTK 2.2</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-GenericCellRenderer.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch-NewInPyGTK2.4.html">Next</a></td></tr></table><hr></div><div class="chapter" title="Chapter 15. New Widgets in PyGTK 2.2"><div class="titlepage"><div><div><h2 class="title"><a name="ch-NewInPyGTK2.2"></a>Chapter 15. New Widgets in PyGTK 2.2</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="ch-NewInPyGTK2.2.html#sec-Clipboards">15.1. Clipboards</a></span></dt><dd><dl><dt><span class="sect2"><a href="ch-NewInPyGTK2.2.html#sec-CreatingClipboard">15.1.1. Creating A Clipboard</a></span></dt><dt><span class="sect2"><a href="ch-NewInPyGTK2.2.html#sec-UsingClipboards">15.1.2. Using Clipboards with Entry, Spinbutton and TextView</a></span></dt><dt><span class="sect2"><a href="ch-NewInPyGTK2.2.html#sec-SettingClipboardData">15.1.3. Setting Data on a Clipboard</a></span></dt><dt><span class="sect2"><a href="ch-NewInPyGTK2.2.html#sec-RetrievingClipboardContents">15.1.4. Retrieving the Clipboard Contents</a></span></dt><dt><span class="sect2"><a href="ch-NewInPyGTK2.2.html#sec-ClipboardExample">15.1.5. A Clipboard Example</a></span></dt></dl></dd></dl></div><p>The <code class="classname">Clipboard</code> object was added in PyGTK
+2.2. The <code class="classname">GtkClipboard</code> was available in GTK+ 2.0 but
+was not wrapped by PyGTK 2.0 because it was not a complete
+<code class="classname">GObject</code>. Some new objects were added to the gtk.gdk
+module in PyGTK 2.2 but they will not be described in this tutorial. See the
+<a class="ulink" href="http://www.pygtk.org/pygtk2reference/index.html" target="_top">PyGTK 2
+Reference Manual</a> for more information on the
+<code class="classname">gtk.gdk.Display</code>,
+<code class="classname">gtk.gdk.DisplayManager</code> and
+<code class="classname">gtk.gdk.Screen</code> objects.</p><div class="sect1" title="15.1. Clipboards"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-Clipboards"></a>15.1. Clipboards</h2></div></div></div><p>A <code class="classname">Clipboard</code> provides a storage area for
+sharing data between processes or between different widgets in the same
+process. Each <code class="classname">Clipboard</code> is identified by a string
+name encoded as a <code class="classname">gdk.Atom</code>. You can use any name you
+want to identify a <code class="classname">Clipboard</code> and a new one will be
+created if it doesn't exist. If you want to share a
+<code class="classname">Clipboard</code> with other processes each process will need
+to know the <code class="classname">Clipboard</code>'s name.</p><p><code class="classname">Clipboard</code>s are built on the
+<code class="classname">SelectionData</code> and selection interfaces. The default
+<code class="classname">Clipboard</code> used by the
+<code class="classname">TextView</code>, <code class="classname">Label</code> and
+<code class="classname">Entry</code> widgets is "CLIPBOARD". Other common clipboards
+are "PRIMARY" and "SECONDARY" that correspond to the primary and secondary
+selections (Win32 ignores these). These can also be specified using the
+<code class="classname">gtk.gdk.Atom</code> objects:
+<code class="literal">gtk.gdk.SELECTION_CLIPBOARD</code>,
+<code class="literal">gtk.gdk.SELECTION_PRIMARY</code> and
+<code class="literal">gtk.gdk.SELECTION_SECONDARY</code>. See the <a class="ulink" href="http://www.pygtk.org/pygtk2reference/class-gdkatom.html" target="_top">gtk.gdk.Atom
+reference documentation</a> for more information.</p><div class="sect2" title="15.1.1. Creating A Clipboard"><div class="titlepage"><div><div><h3 class="title"><a name="sec-CreatingClipboard"></a>15.1.1. Creating A Clipboard</h3></div></div></div><p>A <code class="classname">Clipboard</code> is created using the
+constructor:</p><pre class="programlisting">
+  clipboard = gtk.Clipboard(<strong class="parameter"><code>display</code></strong>, <strong class="parameter"><code>selection</code></strong>)
+</pre><p>where <em class="parameter"><code>display</code></em> is the
+<code class="classname">gtk.gdk.Display</code> associated with the
+<code class="classname">Clipboard</code> named by
+<em class="parameter"><code>selection</code></em>. The following convenience function creates
+a <code class="classname">Clipboard</code> using the default
+<code class="classname">gtk.gdk.Display</code>:</p><pre class="programlisting">
+  clipboard = gtk.clipboard_get(<strong class="parameter"><code>selection</code></strong>)
+</pre><p>Finally, a <code class="classname">Clipboard</code> can also be
+created using the <code class="classname">Widget</code> method:</p><pre class="programlisting">
+  clipboard = widget.get_clipboard(<strong class="parameter"><code>selection</code></strong>)
+</pre><p>The widget must be realized and be part of a toplevel window
+hierarchy.</p></div><div class="sect2" title="15.1.2. Using Clipboards with Entry, Spinbutton and TextView"><div class="titlepage"><div><div><h3 class="title"><a name="sec-UsingClipboards"></a>15.1.2. Using Clipboards with Entry, Spinbutton and TextView</h3></div></div></div><p><code class="classname">Entry</code>,
+<code class="classname">SpinButton</code> and <code class="classname">TextView</code>
+widgets have popup menus that provide the ability to cut and copy the
+selected text to and paste from the "CLIPBOARD" clipboard. In addition key
+bindings are set to allow keyboard accelerators to cut, copy and paste. Cut
+is activated by <span class="keycap"><strong>Control</strong></span>+<span class="keycap"><strong>X</strong></span>; copy,
+by <span class="keycap"><strong>Control</strong></span>+<span class="keycap"><strong>C</strong></span>; and,
+paste, by <span class="keycap"><strong>Control</strong></span>+<span class="keycap"><strong>V</strong></span>.</p><p>The widgets (<code class="classname">Entry</code> and
+<code class="classname">SpinButton</code>) implement the
+<code class="classname">Editable</code> interface that has the following methods to
+cut, copy and paste to and from the "CLIPBOARD" clipboard:</p><pre class="programlisting">
+  editable.cut_clipboard()
+  editable.copy_clipboard()
+  editable.paste_clipboard()
+</pre><p>A <code class="classname">Label</code> that is selectable (the
+"selectable" property is <code class="literal">TRUE</code>) also supports copying the
+selected text to the "CLIPBOARD" clipboard using a popup menu or the
+<span class="keycap"><strong>Control</strong></span>+<span class="keycap"><strong>C</strong></span>
+keyboard accelerator.</p><p><code class="classname">TextBuffer</code>s have similar methods though
+they also allow specifying the clipboard to use:</p><pre class="programlisting">
+  textbuffer.copy_clipboard(<strong class="parameter"><code>clipboard</code></strong>)
+</pre><p>The selection text will be copied to the
+<code class="classname">Clipboard</code> specified by
+<em class="parameter"><code>clipboard</code></em>.</p><pre class="programlisting">
+  textbuffer.cut_clipboard(<strong class="parameter"><code>clipboard</code></strong>, <strong class="parameter"><code>default_editable</code></strong>)
+</pre><p>The selected text will be copied to
+<em class="parameter"><code>clipboard</code></em>. If <em class="parameter"><code>default_editable</code></em>
+is <code class="literal">TRUE</code> the selected text will also be deleted from the
+<code class="classname">TextBuffer</code>. Otherwise,
+<code class="methodname">cut_clipboard</code>() will act like the
+<code class="methodname">copy_clipboard</code>() method.</p><pre class="programlisting">
+  textbuffer.paste_clipboard(<strong class="parameter"><code>clipboard</code></strong>, <strong class="parameter"><code>override_location</code></strong>, <strong class="parameter"><code>default_editable</code></strong>)
+</pre><p>If <em class="parameter"><code>default_editable</code></em> is
+<code class="literal">TRUE</code>, the contents of <em class="parameter"><code>clipboard</code></em>
+will be inserted into the <code class="classname">TextBuffer</code> at the location
+specified by the <code class="classname">TextIter</code>
+<em class="parameter"><code>override_location</code></em>. If
+<em class="parameter"><code>default_editable</code></em> is <code class="literal">FALSE</code>,
+<code class="methodname">paste_clipboard</code>() will not insert the contents of
+<em class="parameter"><code>clipboard</code></em>. If
+<em class="parameter"><code>override_location</code></em> is <code class="literal">None</code> the
+contents of <em class="parameter"><code>clipboard</code></em> will be inserted at the cursor
+location.</p><p><code class="classname">TextBuffer</code>s also have two methods to
+manage a set of <code class="classname">Clipboard</code>s that are automatically set
+with the contents of the current selection:</p><pre class="programlisting">
+  textbuffer.add_selection_clipboard(<strong class="parameter"><code>clipboard</code></strong>)
+  textbuffer.remove_selection_clipboard(<strong class="parameter"><code>clipboard</code></strong>)
+</pre><p>When a <code class="classname">TextBuffer</code> is added to a
+<code class="classname">TextView</code> the "PRIMARY" clipboard is automatically
+added to the selection clipboards. Your application can add other clipboards
+(for example, the "CLIPBOARD" clipboard).</p></div><div class="sect2" title="15.1.3. Setting Data on a Clipboard"><div class="titlepage"><div><div><h3 class="title"><a name="sec-SettingClipboardData"></a>15.1.3. Setting Data on a Clipboard</h3></div></div></div><p>You can set the <code class="classname">Clipboard</code> data
+programmatically using either of:</p><pre class="programlisting">
+  clipboard.set_with_data(<strong class="parameter"><code>targets</code></strong>, <strong class="parameter"><code>get_func</code></strong>, <strong class="parameter"><code>clear_func</code></strong>, <strong class="parameter"><code>user_data</code></strong>)
+
+  clipboard.set_text(<strong class="parameter"><code>text</code></strong>, <strong class="parameter"><code>len</code></strong>=-1)
+</pre><p>The <code class="methodname">set_with_data</code>() method indicates
+which selection data targets are supported and provides functions
+(<em class="parameter"><code>get_func</code></em> and <em class="parameter"><code>clear_func</code></em>) that
+are called when the data is asked for or the clipboard data is
+changed. <em class="parameter"><code>user_data</code></em> is passed to
+<em class="parameter"><code>get_func</code></em> or <em class="parameter"><code>clear_func</code></em> when
+called. <em class="parameter"><code>targets</code></em> is a list of 3-tuples
+containing:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">a string representing a target supported by the
+clipboard.</li><li class="listitem">a flags value used for drag and drop - use 0.</li><li class="listitem">an application assigned integer that is passed as a
+parameter to a signal handler to help identify the target type.</li></ul></div><p>The signatures of <em class="parameter"><code>get_func</code></em> and
+<em class="parameter"><code>clear_func</code></em> are:</p><pre class="programlisting">
+  def get_func(clipboard, selectiondata, info, data):
+
+  def clear_func(clipboard, data):
+</pre><p>where <em class="parameter"><code>clipboard</code></em> is the
+<code class="classname">Clipboard</code>, <em class="parameter"><code>selectiondata</code></em> is a
+<code class="classname">SelectionData</code> object to set the data in,
+<em class="parameter"><code>info</code></em> is the application assigned integer associated
+with a target, and <em class="parameter"><code>data</code></em> is
+<em class="parameter"><code>user_data</code></em>.</p><p><code class="methodname">set_text</code>() is a convenience method
+that uses the <code class="methodname">set_with_data</code>() method to set text
+data on a <code class="classname">Clipboard</code> with the targets: "STRING",
+"TEXT", "COMPOUND_TEXT", and "UTF8_STRING". It uses internal get and clear
+functions to manage the data. <code class="methodname">set_text</code>() is
+equivalent to the following:</p><pre class="programlisting">
+  def my_set_text(self, text, len=-1):
+      targets = [ ("STRING", 0, 0),
+                  ("TEXT", 0, 1),
+                  ("COMPOUND_TEXT", 0, 2),
+                  ("UTF8_STRING", 0, 3) ]
+      def text_get_func(clipboard, selectiondata, info, data):
+          selectiondata.set_text(data)
+          return
+      def text_clear_func(clipboard, data):
+          del data
+          return
+      self.set_with_data(targets, text_get_func, text_clear_func, text)
+      return
+</pre><p>Once data is set on a clipboard, it will be available until the
+application is finished or the clipboard data is changed.</p><p>To provide the behavior typical of cut to a clipboard, your
+application will have to delete the selected text or object after copying it
+to the clipboard.</p></div><div class="sect2" title="15.1.4. Retrieving the Clipboard Contents"><div class="titlepage"><div><div><h3 class="title"><a name="sec-RetrievingClipboardContents"></a>15.1.4. Retrieving the Clipboard Contents</h3></div></div></div><p>The contents of a <code class="classname">Clipboard</code> can be
+retrieved using the following method:</p><pre class="programlisting">
+  clipboard.request_contents(<strong class="parameter"><code>target</code></strong>, <strong class="parameter"><code>callback</code></strong>, <strong class="parameter"><code>user_data</code></strong>=None)
+</pre><p>The contents specified by <em class="parameter"><code>target</code></em> are
+retrieved asynchronously in the function specified by
+<em class="parameter"><code>callback</code></em> which is called with
+<em class="parameter"><code>user_data</code></em>. The signature of
+<em class="parameter"><code>callback</code></em> is:</p><pre class="programlisting">
+  def callback(clipboard, selectiondata, data):
+</pre><p>where <em class="parameter"><code>selectiondata</code></em> is a
+<code class="classname">SelectionData</code> object containing the contents of
+<em class="parameter"><code>clipboard</code></em>. <em class="parameter"><code>data</code></em> is
+<em class="parameter"><code>user_data</code></em>. The
+<code class="methodname">request_contents</code>() method is the most general way
+of retrieving the contents of a <code class="classname">Clipboard</code>. The
+following convenience method retrieves the text contents of a
+<code class="classname">Clipboard</code>:</p><pre class="programlisting">
+  clipboard.request_text(<strong class="parameter"><code>callback</code></strong>, <strong class="parameter"><code>user_data</code></strong>=None)
+</pre><p>The text string is returned to the callback function instead
+of a <code class="classname">Selectiondata</code> object. You can check which
+targets are available on the <code class="classname">Clipboard</code> by using the
+method:</p><pre class="programlisting">
+  clipboard.request_targets(<strong class="parameter"><code>callback</code></strong>, <strong class="parameter"><code>user_data</code></strong>=None)
+</pre><p>The targets are returned as a tuple of
+<code class="classname">gtk.gdk.Atom</code> objects to the callback function.</p><p>Two convenience methods are provided to return the
+<code class="classname">Clipboard</code> contents synchronously:</p><pre class="programlisting">
+  selectiondata = clipboard.wait_for_contents(target)
+
+  text = clipboard.wait_for_text()
+</pre></div><div class="sect2" title="15.1.5. A Clipboard Example"><div class="titlepage"><div><div><h3 class="title"><a name="sec-ClipboardExample"></a>15.1.5. A Clipboard Example</h3></div></div></div><p>To illustrate the use of a <code class="classname">Clipboard</code>
+the <a class="ulink" href="examples/clipboard.py" target="_top">clipboard.py</a> example program
+tracks the text items that are cut or copied to the "CLIPBOARD" clipboard
+and saves the last ten clipboard entries. There are ten buttons that provide
+access to the text of the saved entries. The button label display the first
+sixteen characters of the saved text and the tooltips display the targets
+that the entry originally had. When an entry button is clicked the text
+window is loaded with the associated saved text which is editable. The
+button below the text window saves the current text window contents to the
+clipboard.</p><p><a class="xref" href="ch-NewInPyGTK2.2.html#clipboardfig" title="Figure 15.1. Clipboard Example Program">Figure 15.1, “Clipboard Example Program”</a> illustrates the <a class="ulink" href="examples/clipboard.py" target="_top">clipboard.py</a> example program in
+operation:</p><div class="figure"><a name="clipboardfig"></a><p class="title"><b>Figure 15.1. Clipboard Example Program</b></p><div class="figure-contents"><div class="mediaobject" align="center"><img src="figures/clipboard.png" align="middle" alt="Clipboard Example Program"></div></div></div><br class="figure-break"><p>The example program polls the clipboard every 1.5 seconds to
+see if the contents have changed. The program could be changed to duplicate
+the complete set of target contents and then take ownership of the clipboard
+using the <code class="methodname">set_with_data</code>() method. Later, when
+another program sets the contents of the clipboard, the
+<em class="parameter"><code>clear_func</code></em> will be called and it can be used to
+reload the clipboard contents and retake the clipboard ownership.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-GenericCellRenderer.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ch-NewInPyGTK2.4.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">14.12. The Generic CellRenderer </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 16. New Widgets in PyGTK 2.4</td></tr></table></div></body></html>

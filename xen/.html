@@ -1,0 +1,804 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>XenStore：使用，结构和原理(1快速入门) - viktor&#39;s lab &amp; notes - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="摘要：XenStore是Xen提供的一个域间共享的存储系统，它以字符串形式存放了管理程序和前、后端驱动程序的配置信息。Dom0管理所有的数据，而DomU通过共享内存，向Dom0请求与自己相关的键值，以此实现域间通信。Xen提供了多种接口用来操作XenStore：命令行的xenstore-*命令、用户空间的xs_系列函数、内核的XenBus接口，都可以用来方便地操作XenStore的数据。" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/dark1/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/xulai1001/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/blue_green.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js?v=1.1" type="text/javascript"></script>
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="/xulai1001">viktor&#39;s lab &amp; notes</a></h1>
+            <h2>Linux，Xen，Ruby（RM）～～～原创博文，转载请注明出处～</h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="/xulai1001?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="/xulai1001?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="/xulai1001/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "xulai1001";
+    var blog_address = "http://blog.csdn.net/xulai1001";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+        
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8687376
+" target="_blank">
+<font color=blue>2013年7月微软MVP申请开始啦！ 
+   </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8664620" target="_blank"><font color=blue>CSDN博客移动开发排行榜 
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8699892" target="_blank"><font color=blue>参与活动送签名技术书籍 
+
+
+</font></a>
+
+<br />
+
+
+
+
+
+<a href="http://bbs.csdn.net/topics/390397409
+"target="_blank">
+<font color=red>【有奖提问】CSDN论坛第1期专家问答开始
+
+
+ </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8717564"target="_blank">
+<font color=red>来极客头条，赢下载积分
+ </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://bbs.csdn.net/topics/390393217"target="_blank">
+<font color=red>下载频道3月领任务~赚下载分！ 
+  </font></a>
+
+
+</div><div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Original"></span>
+    <h3>
+        <span class="link_title"><a href="/xulai1001/article/details/7070800">
+        XenStore：使用，结构和原理(1快速入门)
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/xulai1001/article/category/921344">虚拟化</a> 
+            <a href="/xulai1001/article/category/921337">XEN</a> 
+            <a href="/xulai1001/article/category/951976">XenStore</a> 
+            <a href="/xulai1001/article/category/921369">2011.11 整理</a> 
+        </span>
+    <span class="link_postdate">2011-12-14 16:10</span>
+    <span class="link_view" title="阅读次数">1110人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(2)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('XenStore：使用，结构和原理(1快速入门)','7070800');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(7070800,2);return false;" title="举报">举报</a></span>
+    
+</div>
+<div class="tag2box"><a href='http://blog.csdn.net/tag/details.html?tag=xen' target=_blank>xen</a><a href='http://blog.csdn.net/tag/details.html?tag=%e8%99%9a%e6%8b%9f%e6%9c%ba' target=_blank>虚拟机</a><a href='http://blog.csdn.net/tag/details.html?tag=%e5%ad%98%e5%82%a8%e7%b3%bb%e7%bb%9f' target=_blank>存储系统</a><a href='http://blog.csdn.net/tag/details.html?tag=domain' target=_blank>domain</a><a href='http://blog.csdn.net/tag/details.html?tag=struct' target=_blank>struct</a><a href='http://blog.csdn.net/tag/details.html?tag=%e6%b4%bb%e5%8a%a8' target=_blank>活动</a></div>
+
+
+    
+<div id="article_content" class="article_content">
+
+<div>
+<h3>摘要：<span style="font-weight:normal">XenStore<span style="font-family:宋体">是</span><span style="font-family:Calibri">Xen</span><span style="font-family:宋体">提供的一个域间共享的存储系统，它以字符串形式存放了</span><span style="font-family:宋体">管理程序和前、后端驱动程序的配置信息。</span><span style="font-family:Calibri">Dom0</span><span style="font-family:宋体">管理所有的数据，而</span><span style="font-family:Calibri">DomU</span><span style="font-family:宋体">通过共享内存，向</span><span style="font-family:Calibri">Dom0</span></span><span style="font-family:宋体"><span style="font-weight:normal">请求与自己相关的键&#20540;，以此实现域间通信。Xen<span style="font-family:宋体">提供了多种接口用来操作</span><span style="font-family:Calibri">XenStore</span><span style="font-family:宋体">：命令行的</span><span style="font-family:Calibri">xenstore-*</span><span style="font-family:宋体">命令、用户空间的</span><span style="font-family:Calibri">xs_</span><span style="font-family:宋体">系列函数、内核的</span><span style="font-family:Calibri">XenBus</span><span style="font-family:宋体">接口，都可以用来方便地操作</span><span style="font-family:Calibri">XenStore</span><span style="font-family:宋体">的数据。</span></span></span></h3>
+<div><span style="font-family:宋体"><span style="font-weight:normal"><span style="font-family:宋体"><br>
+</span></span></span></div>
+<div><span style="font-family:宋体"><span style="font-weight:normal"><span style="font-family:宋体"><br>
+</span></span></span></div>
+<div><span style="font-family:宋体"><span style="font-weight:normal"><span style="font-family:宋体"><br>
+</span></span></span></div>
+<h3>0.&nbsp;动机</h3>
+<p>在<span style="font-family:Calibri">Xen</span><span style="font-family:宋体">的半虚拟化（</span><span style="font-family:Calibri">PV</span><span style="font-family:宋体">）系统中，各个虚拟机（</span><span style="font-family:Calibri">Domain</span><span style="font-family:宋体">）之间可以利用</span><span style="font-family:Calibri">Xen</span><span style="font-family:宋体">核心提供的授权表（</span><span style="font-family:Calibri">Grant&nbsp;Table</span><span style="font-family:宋体">）和事件通道（</span><span style="font-family:Calibri">Event&nbsp;Channel</span><span style="font-family:宋体">）机制进行域间通信。但是在实际使用中有这样的问题：</span></p>
+<p></p>
+<ul>
+<li>&nbsp; Alice<span style="font-family:宋体">使用授权表共享了一个页面，但是</span><span style="font-family:Calibri">Sanae</span><span style="font-family:宋体">想要拿来用，必须事先知道它的授权引用（</span><span style="font-family:Calibri">gref</span><span style="font-family:宋体">）；</span></li><li>&nbsp; Alice<span style="font-family:宋体">打开一个事件通道（</span><span style="font-family:Calibri">unbound&nbsp;evtchn</span><span style="font-family:宋体">），但是</span><span style="font-family:Calibri">Sanae</span><span style="font-family:宋体">想要绑定这个通道，必须事先知道</span><span style="font-family:Calibri">Alice</span><span style="font-family:宋体">使用的端口号（</span><span style="font-family:Calibri">remote&nbsp;port</span><span style="font-family:宋体">）。</span></li></ul>
+<p></p>
+<p>显然，想要解决这两个问题，需要<span style="font-family:Calibri">Alice</span><span style="font-family:宋体">和</span><span style="font-family:Calibri">Sanae</span><span style="font-family:宋体">之间，在建立自定义的授权表、事件通道之前就能够互相通信。</span></p>
+<p>使用<span style="font-family:Calibri">XenStore</span><span style="font-family:宋体">可以很方便地实现这种通信。</span></p>
+<h3>1.&nbsp;快速入门</h3>
+<p>XenStore<span style="font-family:宋体">是</span><span style="font-family:Calibri">Xen</span><span style="font-family:宋体">提供的一个域间共享的存储系统，它以字符串形式存放了</span><span style="font-family:宋体">管理程序和前、后端驱动程序的配置信息。</span><strong><span style="font-family:Calibri">Dom0</span><span style="font-family:宋体">管理所有的数据，而</span><span style="font-family:Calibri">DomU</span><span style="font-family:宋体">通过共享内存，向</span><span style="font-family:Calibri">Dom0</span><span style="font-family:宋体">请求与自己相关的键&#20540;，以此实现域间通信。</span></strong></p>
+<p>XenStore<span style="font-family:宋体">的存储结构类&#20284;于</span><span style="font-family:Calibri">Dom</span><span style="font-family:宋体">树：每一个节点</span><span style="font-family:Calibri">(Node)</span><span style="font-family:宋体">有一个字符串&#20540;</span><span style="font-family:Calibri">(Value)</span><span style="font-family:宋体">，并且可以有多个子节点。在</span><span style="font-family:Calibri">Dom0</span><span style="font-family:宋体">启动后，</span><span style="font-family:Calibri">XenStore</span><span style="font-family:宋体">的结构如下：</span></p>
+<p>/</p>
+</div>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>vm</p>
+</div>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>{uuid}</p>
+</div>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>…</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>local</p>
+</div>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>domain</p>
+</div>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>0</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>vm</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>device</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>control</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>memory</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>console</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>limit</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>type</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>name</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>......</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>1</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>…</p>
+</div>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>tool</p>
+</div>
+</blockquote>
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<blockquote style="margin:0 0 0 40px; border:none; padding:0px">
+<div>
+<p>xenstored</p>
+</div>
+</blockquote>
+</blockquote>
+<div>
+<p>在根（<span style="font-family:Calibri">/</span><span style="font-family:宋体">）下有三个子目录，</span><span style="font-family:Calibri">vm</span><span style="font-family:宋体">，</span><span style="font-family:Calibri">local</span><span style="font-family:宋体">（实际上是</span><span style="font-family:Calibri">/local/domain</span><span style="font-family:宋体">）和</span><span style="font-family:Calibri">tool</span><span style="font-family:宋体">。</span><span style="font-family:Calibri">vm</span><span style="font-family:宋体">存放虚拟机管理信息。</span><span style="font-family:Calibri">tool</span><span style="font-family:宋体">暂时没有数据。而</span><span style="font-family:Calibri">/local/domain</span><span style="font-family:宋体">存放了活动虚拟机配置和驱动信息。</span><span style="font-family:Calibri">/local/domain</span><span style="font-family:宋体">中每一个目录项代表一个活动的虚拟机，例如</span><span style="font-family:Calibri">/local/domain/0</span><span style="font-family:宋体">代表</span><span style="font-family:Calibri">dom0</span><span style="font-family:宋体">。</span><strong>Dom0<span style="font-family:宋体">可以读写</span><span style="font-family:Calibri">XenStore</span><span style="font-family:宋体">的全部数据，而</span><span style="font-family:Calibri">Dom-x</span><span style="font-family:宋体">只能访问</span><span style="font-family:Calibri">/local/domain/x</span><span style="font-family:宋体">的内容。需要在</span><span style="font-family:Calibri">dom0</span><span style="font-family:宋体">和</span><span style="font-family:Calibri">domx</span><span style="font-family:宋体">之间共享的内容，一般都写在这个目录下，所以</span><span style="font-family:Calibri">/local/domain</span><span style="font-family:宋体">是最常用的目录。</span></strong></p>
+<p>Xen<span style="font-family:宋体">提供了多种接口用来操作</span><span style="font-family:Calibri">XenStore</span><span style="font-family:宋体">：命令行的</span><span style="font-family:Calibri">xenstore-*</span><span style="font-family:宋体">命令、用户空间的</span><span style="font-family:Calibri">xs_</span><span style="font-family:宋体">系列函数、内核的</span><span style="font-family:Calibri">XenBus</span><span style="font-family:宋体">接口，都可以用来方便地操作</span><span style="font-family:Calibri">XenStore</span><span style="font-family:宋体">的数据。</span></p>
+<table border="1" cellspacing="1" cellpadding="1">
+<tbody>
+<tr>
+<td valign="top">
+<p>操作</p>
+</td>
+<td valign="top">
+<p>命令行</p>
+</td>
+<td valign="top">
+<p>用户空间</p>
+<p></p>
+<pre name="code" class="cpp">#include &lt;xs.h&gt;
+-lxenstore</pre><br>
+<p></p>
+</td>
+<td valign="top">
+<p>内核空间</p>
+<p></p>
+<pre name="code" class="cpp">#include “xen/xenbus.h”</pre><br>
+<p></p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p>列目录</p>
+</td>
+<td valign="top">
+<p>xenstore-ls<span style="font-family:宋体">（递归）</span></p>
+<p>xenstore-list<span style="font-family:宋体">（不递归）</span></p>
+</td>
+<td valign="top">
+<p>xs_directory</p>
+</td>
+<td valign="top">
+<p>xenbus_directory</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p>读写</p>
+</td>
+<td valign="top">
+<p>xenstore-read</p>
+<p>xenstore-write</p>
+</td>
+<td valign="top">
+<p>xs_read</p>
+<p>xs_write</p>
+</td>
+<td valign="top">
+<p>xenbus_read</p>
+<p>xenbus_write</p>
+<p>xenbus_scanf</p>
+<p>xenbus_printf</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p>建立<span style="font-family:Calibri">/</span><span style="font-family:宋体">删除目录</span></p>
+</td>
+<td valign="top">
+<p>xenstore-mkdir</p>
+<p>xenstore-rm</p>
+</td>
+<td valign="top">
+<p>xs_mkdir</p>
+<p>xs_rm</p>
+</td>
+<td valign="top">
+<p>xenbus_mkdir</p>
+<p>xenbus_rm</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p>监视</p>
+</td>
+<td valign="top">
+<p>xenstore-watch</p>
+</td>
+<td valign="top">
+<p>xs_watch</p>
+<p>xs_unwatch</p>
+<p>xs_read_watch</p>
+</td>
+<td valign="top">
+<p>xenbus_watch</p>
+<p>xenbus_unwatch</p>
+</td>
+</tr>
+</tbody>
+</table>
+<br>
+<p></p>
+<p><strong>例子</strong></p>
+<p><strong>命令行</strong></p>
+<p></p>
+<pre name="code" class="plain">xenstore-write example/Alice hello!</pre><br>
+用户空间<br>
+<p></p>
+<p></p>
+<pre name="code" class="cpp">struct xs_handle *xh = xs_open(0);
+int xt=xs_transaction_begin(xh);
+xs_write(xh,xt,&quot;/local/domain/0/example/Alice&quot;, &quot;hello!&quot;, sizeof(&quot;hello!&quot;));
+xs_transaction_end(xh, xt, 0);
+xs_close(xh);</pre><br>
+内核空间<br>
+<p></p>
+<p></p>
+<pre name="code" class="cpp" style="background-color: rgb(255, 255, 255); ">struct xenbus_transaction trans;
+xenbus_transaction_start(&amp;trans);
+xenbus_printf(trans, &quot;example&quot;, &quot;Alice&quot;, &quot;Hello! trans_id = %d&quot;, trans.id);
+xenbus_transaction_end(trans, 0);</pre>Note:&nbsp;example/Alice<span style="font-family:宋体">相当于</span><span style="font-family:Calibri">/local/domain/{</span><span style="font-family:宋体">当前</span><span style="font-family:Calibri">domain}/example/Alice</span></div>
+<div><span style="font-family:Calibri"><br>
+</span>具体的使用方法，可以查看相应的头文件
+<p><br>
+</p>
+<p>快速参考：</p>
+<p><a href="http://wiki.xen.org/xenwiki/XenStoreReference">http://wiki.xen.org/xenwiki/XenStoreReference</a><br>
+</p>
+</div>
+
+</div>
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.1.236-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/xulai1001/article/details/6968027">Windows via C/C++ Chapter 4 notes</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/xulai1001/article/details/7070874">虚拟化体系结构下度量技术总结</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen"></div>
+<script type="text/javascript">
+    new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '7070800';
+    var commentscount = 2;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js?v=1.8"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+    <ul class="panel_head"><span>个人资料</span></ul>
+    <ul class="panel_body profile">
+        <div id="blog_userface">
+            <a href="http://my.csdn.net/xulai1001" target="_blank">
+            <img src="http://avatar.csdn.net/A/C/3/1_xulai1001.jpg" title="访问我的空间" style="max-width:90%"/>
+            </a>
+            <br />
+            <span><a href="http://my.csdn.net/xulai1001" class="user_name" target="_blank">xulai1001</a></span>
+        </div>
+<div class="interact">
+<!--<a href="#" class="attented" title="已关注"></a>-->
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+        <div id="blog_medal">
+        </div>
+        <ul id="blog_rank">
+            <li>访问：<span>19152次</span></li>
+            <li>积分：<span>576分</span></li>
+            <li>排名：<span>第19150名</span></li>
+        </ul>
+        <ul id="blog_statistics">
+            <li>原创：<span>37篇</span></li>
+            <li>转载：<span>11篇</span></li>
+            <li>译文：<span>0篇</span></li>
+            <li>评论：<span>14条</span></li>
+        </ul>
+    </ul>
+</div>
+<script type="text/javascript">
+    var _blogger = 'xulai1001';
+</script>
+
+
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+    <ul class="panel_head"><span>文章分类</span></ul>
+    <ul class="panel_body">
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1097157">LVM</a><span>(3)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/921344">虚拟化</a><span>(13)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/921337">XEN</a><span>(15)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/951976">XenStore</a><span>(6)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1093895">ruby相关</a><span>(4)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1093893">linux network</a><span>(4)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1093896">rpgmaker</a><span>(2)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/921295">LXR &amp; apache</a><span>(1)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/921431">win32</a><span>(4)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1071296">snort</a><span>(1)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1100265">pcap</a><span>(3)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1093901">linux installation</a><span>(7)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/921296">linux-shell</a><span>(2)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/921338">linux-kernel</a><span>(5)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/921425">linux-device-drivers</a><span>(1)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/921384">code snippets</a><span>(12)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/901773">eLDD notes</a><span>(3)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/921432">技巧</a><span>(3)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/921307">2011.10 整理</a><span>(10)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/921369">2011.11 整理</a><span>(5)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/951979">2011.12 整理</a><span>(6)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1071295">2012.2</a><span>(2)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1093891">2012.3</a><span>(12)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1100266">iptables/ebtables</a><span>(0)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1100267">linux misc</a><span>(2)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1136389">vmi</a><span>(2)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1136390">python</a><span>(1)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1261604">2012.10</a><span>(3)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/xulai1001/article/category/1261605">OpenNebula</a><span>(0)</span>
+        </li>
+    </ul>
+</div><div id="panel_Archive" class="panel">
+    <ul class="panel_head"><span>文章存档</span></ul>
+    <ul class="panel_body">
+        <div id="archive_list">
+        <!--归档统计-->
+        <li><a href="http://blog.csdn.net/xulai1001/article/month/2012/11">2012年11月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/xulai1001/article/month/2012/10">2012年10月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/xulai1001/article/month/2012/05">2012年05月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/xulai1001/article/month/2012/04">2012年04月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/xulai1001/article/month/2012/03">2012年03月</a><span>(12)</span></li><li><a href="http://blog.csdn.net/xulai1001/article/month/2012/02">2012年02月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/xulai1001/article/month/2011/12">2011年12月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/xulai1001/article/month/2011/11">2011年11月</a><span>(14)</span></li>
+        </div>
+    </ul>
+</div>
+<div id="hotarticls" class="panel">
+    <ul class="panel_head"><span>阅读排行</span></ul>
+    <ul class="panel_body itemlist">
+        <li>
+            <a href="/xulai1001/article/details/6936380" title="编译支持Xen的Linux 3.1.0内核">编译支持Xen的Linux 3.1.0内核</a><span>(1126)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7070800" title="XenStore：使用，结构和原理(1快速入门)">XenStore：使用，结构和原理(1快速入门)</a><span>(1110)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7330736" title="Linux Mint 12 Lisa 安装笔记(1) 安装和语言设置">Linux Mint 12 Lisa 安装笔记(1) 安装和语言设置</a><span>(910)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7614621" title="RPGMaker XP脚本 【泛用画面弹框 BGM显示】">RPGMaker XP脚本 【泛用画面弹框 BGM显示】</a><span>(888)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7071255" title="XenStore: 使用，结构和原理(2. XenStore的结构和通信流程)">XenStore: 使用，结构和原理(2. XenStore的结构和通信流程)</a><span>(854)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7343122" title="Linux Mint 12 Lisa 安装笔记(3) 编译Xen 4.1.3-rc1-pre">Linux Mint 12 Lisa 安装笔记(3) 编译Xen 4.1.3-rc1-pre</a><span>(850)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7349781" title="Xen 虚拟机使用LVM snapshot镜像">Xen 虚拟机使用LVM snapshot镜像</a><span>(771)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7084894" title="XenStore：使用，结构和原理(4. 监视: xs_watch)">XenStore：使用，结构和原理(4. 监视: xs_watch)</a><span>(755)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7078746" title="XenStore：使用，结构和原理(3. XenStore启动过程分析)">XenStore：使用，结构和原理(3. XenStore启动过程分析)</a><span>(697)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7349212" title="Xen PV DomU 的安装方法：rsync和xen-tools">Xen PV DomU 的安装方法：rsync和xen-tools</a><span>(690)</span>
+        </li>
+    </ul>
+</div>
+<div id="hotarticls2" class="panel">
+    <ul class="panel_head"><span>评论排行</span></ul>
+    <ul class="panel_body itemlist">
+        <li>
+            <a href="/xulai1001/article/details/7522631" title="用LibVMI读取虚拟机进程列表">用LibVMI读取虚拟机进程列表</a><span>(9)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7161151" title="sizeof 究竟是怎样实现的？">sizeof 究竟是怎样实现的？</a><span>(2)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7070800" title="XenStore：使用，结构和原理(1快速入门)">XenStore：使用，结构和原理(1快速入门)</a><span>(2)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7349908" title="debian DomU配置">debian DomU配置</a><span>(1)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7349781" title="Xen 虚拟机使用LVM snapshot镜像">Xen 虚拟机使用LVM snapshot镜像</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7349212" title="Xen PV DomU 的安装方法：rsync和xen-tools">Xen PV DomU 的安装方法：rsync和xen-tools</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7343232" title="Linux Mint 12 Lisa 安装笔记(4) 配置LVM和其他软件">Linux Mint 12 Lisa 安装笔记(4) 配置LVM和其他软件</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7343122" title="Linux Mint 12 Lisa 安装笔记(3) 编译Xen 4.1.3-rc1-pre">Linux Mint 12 Lisa 安装笔记(3) 编译Xen 4.1.3-rc1-pre</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7330899" title="Linux Mint 12 Lisa 安装笔记(2) 编译3.2.6内核">Linux Mint 12 Lisa 安装笔记(2) 编译3.2.6内核</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="/xulai1001/article/details/7330736" title="Linux Mint 12 Lisa 安装笔记(1) 安装和语言设置">Linux Mint 12 Lisa 安装笔记(1) 安装和语言设置</a><span>(0)</span>
+        </li>
+    </ul>
+</div>
+<div id="homepageArticles" class="panel">
+    <ul class="panel_head"><span>推荐文章</span></ul>
+    <ul class="panel_body" id="ad_commend">
+    </ul>
+</div>
+<script type="text/javascript">
+    new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/xulai1001/article/details/7161151#comments">sizeof 究竟是怎样实现的？</a>
+    <p style="margin:0px;"><a href="/zhouxiaoqingelse" class="user_name">zhouxiaoqingelse</a>:
+学习了，感谢。
+    </p>
+    </li>
+    <li>
+    <a href="/xulai1001/article/details/7522631#comments">用LibVMI读取虚拟机进程列表</a>
+    <p style="margin:0px;"><a href="/huangwei19892008" class="user_name">huangwei19892008</a>:
+楼主，你好。请问你用的是libvmi0.6还是libvmi0.8版本？我最近也在弄这个。我的计算机不...
+    </p>
+    </li>
+    <li>
+    <a href="/xulai1001/article/details/7522631#comments">用LibVMI读取虚拟机进程列表</a>
+    <p style="margin:0px;"><a href="/richie123" class="user_name">richie123</a>:
+@wwqwwqyyj:太感谢了，按照你的指导，问题解决了。
+    </p>
+    </li>
+    <li>
+    <a href="/xulai1001/article/details/7522631#comments">用LibVMI读取虚拟机进程列表</a>
+    <p style="margin:0px;"><a href="/wwqwwqyyj" class="user_name">wwqwwqyyj</a>:
+@richie123:嗯这个问题解决了，正是因为缺乏这个库导致的libvmi初始化失败。你去按上这个...
+    </p>
+    </li>
+    <li>
+    <a href="/xulai1001/article/details/7522631#comments">用LibVMI读取虚拟机进程列表</a>
+    <p style="margin:0px;"><a href="/richie123" class="user_name">richie123</a>:
+@wwqwwqyyj:请问一下，你的问题解决了吗？我也遇到一样的问题，求指导~
+    </p>
+    </li>
+    <li>
+    <a href="/xulai1001/article/details/7522631#comments">用LibVMI读取虚拟机进程列表</a>
+    <p style="margin:0px;"><a href="/richie123" class="user_name">richie123</a>:
+那个libvmi，我在./configure的时候，提示Xen Support | --enable...
+    </p>
+    </li>
+    <li>
+    <a href="/xulai1001/article/details/7522631#comments">用LibVMI读取虚拟机进程列表</a>
+    <p style="margin:0px;"><a href="/richie123" class="user_name">richie123</a>:
+博主，你好，我也遇到2楼的那个问题，求解答~
+    </p>
+    </li>
+    <li>
+    <a href="/xulai1001/article/details/7522631#comments">用LibVMI读取虚拟机进程列表</a>
+    <p style="margin:0px;"><a href="/wwqwwqyyj" class="user_name">wwqwwqyyj</a>:
+博主你好，我用libvmi 的example目录下的例子时出现了这样的错误提示：VMI_ERROR:...
+    </p>
+    </li>
+    <li>
+    <a href="/xulai1001/article/details/7522631#comments">用LibVMI读取虚拟机进程列表</a>
+    <p style="margin:0px;"><a href="/xulai1001" class="user_name">xulai1001</a>:
+@qishang_huang:你好！我没有碰到这种情况，不过libVMI的样例并不好用。首先proc...
+    </p>
+    </li>
+    <li>
+    <a href="/xulai1001/article/details/7522631#comments">用LibVMI读取虚拟机进程列表</a>
+    <p style="margin:0px;"><a href="/qishang_huang" class="user_name">qishang_huang</a>:
+博主你好！我打开debug宏运行libvmi自带的process_list，出现如下错误--conn...
+    </p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=1188110"></script>
+
+<script type="text/javascript" src="http://static.csdn.net/rabbit/note/js/publib_footer.js"></script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+</div>
+</body>
+</html>

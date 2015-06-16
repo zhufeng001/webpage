@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width" />
+
+<link rel="profile" href="http://gmpg.org/xfn/11" />
+<link rel="pingback" href="http://eduard.linux.edu/xmlrpc.php" />
+<!--[if lt IE 9]>
+<script src="http://eduard.linux.edu/wp-content/themes/f2/js/html5.js" type="text/javascript"></script>
+<![endif]-->
+
+
+<!-- This site is optimized with the Yoast WordPress SEO plugin v1.6.3 - https://yoast.com/wordpress/plugins/seo/ -->
+<title>Converting a VMware virtual machine to RHEV (KVM) - Eduard&#039;s Blog</title>
+<meta name="description" content="Converting a VMware ESX(i) virtual machine to RHEV, kvm, using virt-v2v, Red Hat Enterprise Virtualization"/>
+<meta name="keywords" content="Converting, VMware ESX(i), virtual machine, RHEV, kvm, virt-v2v, Red Hat Enterprise Virtualization, virsh"/>
+<link rel="canonical" href="http://eduard.linux.edu/converting-vmware-esx-esxi-virtual-machine-rhev/" />
+<!-- / Yoast WordPress SEO plugin. -->
+
+<link rel="alternate" type="application/rss+xml" title="Eduard&#039;s Blog &raquo; Feed" href="http://eduard.linux.edu/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Eduard&#039;s Blog &raquo; Comments Feed" href="http://eduard.linux.edu/comments/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Eduard&#039;s Blog &raquo; Converting a VMware virtual machine to RHEV (KVM) Comments Feed" href="http://eduard.linux.edu/converting-vmware-esx-esxi-virtual-machine-rhev/feed/" />
+<link rel='stylesheet' id='webfonts-css'  href='http://fonts.googleapis.com/css?family=Bitter:700|Gudea:400,700,400italic' type='text/css' media='all' />
+<link rel='stylesheet' id='style-css'  href='http://eduard.linux.edu/wp-content/themes/f2/style.css?ver=2.2.1' type='text/css' media='screen, projection' />
+<link rel='stylesheet' id='print-css'  href='http://eduard.linux.edu/wp-content/themes/f2/print.css?ver=2.2.1' type='text/css' media='print' />
+<!--[if lt IE 9]>
+<link rel='stylesheet' id='ie-style-css'  href='http://eduard.linux.edu/wp-content/themes/f2/ie.css?ver=2.2.1' type='text/css' media='screen, projection' />
+<![endif]-->
+<!--[if lt IE 8]>
+<link rel='stylesheet' id='ie7-style-css'  href='http://eduard.linux.edu/wp-content/themes/f2/ie7.css?ver=2.2.1' type='text/css' media='screen, projection' />
+<![endif]-->
+<link rel='stylesheet' id='really_simple_share_style-css'  href='http://eduard.linux.edu/wp-content/plugins/really-simple-facebook-twitter-share-buttons/style.css?ver=4.0' type='text/css' media='all' />
+<!-- This site uses the Yoast Google Analytics plugin v5.0.7 - Universal disabled - https://yoast.com/wordpress/plugins/google-analytics/ -->
+<script type="text/javascript">
+
+	var _gaq = _gaq || [];
+	_gaq.push(['_setAccount', 'UA-15351201-6']);
+	_gaq.push(['_gat._forceSSL']);
+	_gaq.push(['_trackPageview']);
+
+	(function () {
+		var ga = document.createElement('script');
+		ga.type = 'text/javascript';
+		ga.async = true;
+		ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+		var s = document.getElementsByTagName('script')[0];
+		s.parentNode.insertBefore(ga, s);
+	})();
+
+</script>
+<!-- / Yoast Google Analytics -->
+<script type='text/javascript' src='https://platform.linkedin.com/in.js?ver=4.0'></script>
+<script type='text/javascript' src='http://eduard.linux.edu/wp-includes/js/jquery/jquery.js?ver=1.11.1'></script>
+<script type='text/javascript' src='http://eduard.linux.edu/wp-includes/js/jquery/jquery-migrate.min.js?ver=1.2.1'></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://eduard.linux.edu/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://eduard.linux.edu/wp-includes/wlwmanifest.xml" /> 
+<meta name="generator" content="WordPress 4.0" />
+<link rel='shortlink' href='http://eduard.linux.edu/?p=220' />
+<script type="text/javascript">
+        //<![CDATA[
+        
+      !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="https://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");
+      
+      window.___gcfg = {lang: "en"};
+		  (function() {
+		    var po = document.createElement("script"); po.type = "text/javascript"; po.async = true;
+		    po.src = "https://apis.google.com/js/plusone.js";
+		    var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(po, s);
+		  })();
+      
+        //]]>
+  		</script>	<style type="text/css">.recentcomments a{display:inline !important;padding:0 !important;margin:0 !important;}</style>
+</head>
+
+<body class="single single-post postid-220 single-format-standard color-scheme-green one-sidebar-right medium-sidebar small-font-sidebar medium-font-content">
+<div id="page" class="hfeed site">
+		<header id="masthead" class="site-header" role="banner">
+		<hgroup>
+			<h1 class="site-title"><a href="http://eduard.linux.edu/" title="Eduard&#039;s Blog" rel="home">Eduard&#039;s Blog</a></h1>
+			<h2 class="site-description">Linux and other stuff</h2>
+					</hgroup>
+
+				<nav role="navigation" class="site-navigation main-navigation">
+			<h1 class="assistive-text">Menu</h1>
+			<div class="assistive-text skip-link"><a href="#content" title="Skip to content">Skip to content</a></div>
+
+			<div class="menu"><ul><li class="page_item page-item-6"><a href="http://eduard.linux.edu/about/">About</a></li></ul></div>
+		</nav><!-- .site-navigation .main-navigation -->
+			
+		
+	</header><!-- #masthead .site-header -->
+
+	<div id="main" class="site-main">
+		<div id="primary" class="content-area">
+			<div id="content" class="site-content" role="main">
+
+			
+				
+<article id="post-220" class="post-220 post type-post status-publish format-standard hentry category-linux category-redhat category-rhev">
+	<header class="entry-header">
+		<h1 class="entry-title">Converting a VMware virtual machine to RHEV (KVM)</h1>
+
+		<div class="entry-meta">
+			Posted by <span class="author vcard"><a class="url fn n" href="http://eduard.linux.edu/author/eduard/" title="View all posts by Eduard Goiu" rel="author">Eduard Goiu</a></span> on <a href="http://eduard.linux.edu/converting-vmware-esx-esxi-virtual-machine-rhev/" title="" rel="bookmark"><time class="entry-date" datetime="2014-05-26T13:16:55+00:00">26 May 2014, 1:16 pm</time></a>		</div><!-- .entry-meta -->
+	</header><!-- .entry-header -->
+
+	<div class="entry-content">
+				<div class="important">
+<div class="admonition">
+<h3 class="para">How to convert a VMware ESX(i)virtual machine to RHEV (kvm)!</h3>
+<div class="para">This is a very simple/fast process.</div>
+<div class="para">Before converting virtual machines to run on <a href="http://www.redhat.com/products/cloud-computing/virtualization/" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'http://www.redhat.com/products/cloud-computing/virtualization/', 'Red Hat Enterprise Virtualization']);" title="Red Hat Enterprise Virtualization">Red Hat Enterprise Virtualization</a>, you must attach an export storage domain to the <a href="http://www.redhat.com/products/cloud-computing/virtualization/" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'http://www.redhat.com/products/cloud-computing/virtualization/', 'RHEV']);" title="Red Hat Enterprise Virtualization">RHEV</a> data center being used.An export storage domain can be attached to a data center to enable the import or export of virtual machines from one data center to another. An export storage domain can also be used to backup virtual machines and templates. It is possible to have only one Export storage domain!</div>
+<div class="para"></div>
+<div class="para"><img class="alignleft wp-image-226 " src="http://eduard.linux.edu/wp-content/uploads/2014/05/rhev2-1024x94.png" alt="rhev2" width="916" height="105" /></div>
+<div class="para"></div>
+<div class="para"></div>
+<div class="para"></div>
+<div class="para"></div>
+<div class="para"></div>
+<div class="para"></div>
+<div class="para"></div>
+<div class="para">When converting a Linux or Windows virtual machine from VMware ESX ensure that <a href="http://en.wikipedia.org/wiki/VMware" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'http://en.wikipedia.org/wiki/VMware', 'VMware Tools']);" title="VMware Tools">VMware Tools</a> are uninstalled prior to the conversion process. from the virtual machine.</div>
+<div class="para"></div>
+<pre class="para">[root@rh-satellite ~]# vmware-uninstall-tools.pl 
+Uninstalling the tar installation of VMware Tools.
+
+Stopping services for VMware Tools
+
+Stopping VMware Tools services in the virtual machine:
+   Guest operating system daemon:                          [  OK  ]
+   Unmounting HGFS shares:                                 [  OK  ]
+   Guest filesystem driver:                                [  OK  ]
+   VM communication interface socket family:               [  OK  ]
+   VM communication interface:                             [  OK  ]
+
+File /etc/pulse/default.pa is backed up to /etc/pulse/default.pa.old.2.
+
+The removal of VMware Tools 9.4.5 build-1734305 for Linux completed successfully.  
+Thank you for having tried this software.
+
+</pre>
+<div class="para">If a virtual machine is converted with the <a href="http://en.wikipedia.org/wiki/VMware" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'http://en.wikipedia.org/wiki/VMware', 'VMware Tools']);" title="VMware ">VMware Tools</a> installed, it will not function properly. If the virtual machine is not stopped prior the running the v2v process then you get the below error message:</div>
+<pre class="para">virt-v2v: Guest RHN Satellite is currently running. It must be shut down first.</pre>
+</div>
+</div>
+<div class="para">To convert the virtual machine, run:</div>
+<pre>root@rhevm lib]# virt-v2v -ic esx://esx100.vmware.com/?no_verify=1 -o rhev -osd rhevh2:/exports/vms --network rhevm "RHN Satellite"
+ virt-v2v: Failed to connect to esx://esx100.vmware.com/?no_verify=1: libvirt error code: 45, message: authentication failed: Username request failed</pre>
+<p>Uh, we got an error message! Checking the connection to the esx server with virsh worked just fine&#8230;. Need more debugging or Google-ing!</p>
+<pre class="screen">[root@rhevm lib]# virsh -c esx://esx100.vmware.com/?no_verify=1
+Enter username for esx100.vmware.com
+[root]: root
+Enter root's password for esx100.vmware.com: 
+Welcome to virsh, the virtualization interactive terminal.
+
+Type:  'help' for help with commands
+       'quit' to quit
+
+virsh # list --all
+ Id    Name                           State
+----------------------------------------------------
+
+ 25    opensuse                       running
+ 26    RHN Satellite                  running
+ -     Cisco_Test                     shut off
+ -     rh6-test                       shut off
+ -     rhel-6.4                       shut off
+ -     RHEV-M                         shut off
+ -     sles                           shut off
+ -     sles-xen                       shut off
+ -     SUSE-Manager                   shut off
+....
+
+virsh # exit
+
+<strong>Solution!</strong></pre>
+<p class="screen">Connecting to the ESX server will require authentication. <code class="command">virt-v2v</code> supports password authentication when connecting to ESX / ESX(i). It reads passwords from $HOME/.netrc<code class="filename"></code>. An example entry is:</p>
+<pre class="screen">machine esx100.vmware.com login root password s3cr3t
+</pre>
+<div class="note">
+<div class="admonition_header">
+<p>The <code class="filename">.netrc</code> file must have a permission mask of 0600 to be read correctly by <code class="command">virt-v2v</code></p>
+</div>
+<div class="admonition">
+<div class="para">After creating the .netrc file and setting up the correct permissions, I started again the conversion process and went trough with no more problems.</div>
+</div>
+</div>
+<pre>root@rhevm ~]# virt-v2v -ic esx://esx100.vmware.com/?no_verify=1 -o rhev -osd rhevh2:/exports/vms --network rhevm "RHN Satellite"
+ RHN Satellite_RHN Satellite: 100% [===================================================================================================================================================================================]D 0h42m40s
+ virt-v2v: RHN Satellite configured with virtio drivers.
+ [root@rhevm ~]#
+</pre>
+<h3 class="title">When is done we can import the &#8220;<a href="http://www.redhat.com/products/enterprise-linux/satellite/" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'http://www.redhat.com/products/enterprise-linux/satellite/', 'RHN Satellite']);" title="Red Hat Satellite">RHN Satellite</a>&#8221; VM using RHEVM.</h3>
+<p>Login to the RHEVM Web Portal as Admin, choose the Storage Tab and click on VM Import Sub-tab. Right click on the VM which you want to import, in my case &#8220;RHN Satellite&#8221; and &#8220;Import&#8221;. See the example below.</p>
+<h3 class="title"></h3>
+<p><a href="http://eduard.linux.edu/wp-content/uploads/2014/05/rhev1.png" onclick="_gaq.push(['_trackEvent', 'outbound-article-int', 'http://eduard.linux.edu/wp-content/uploads/2014/05/rhev1.png', '']);" ><img class="alignleft wp-image-223 size-large" src="http://eduard.linux.edu/wp-content/uploads/2014/05/rhev1-1024x570.png" alt="rhev1" width="730" height="406" /></a></p>
+<pre></pre>
+<div style="min-height:33px;" class="really_simple_share really_simple_share_button robots-nocontent snap_nopreview"><div class="really_simple_share_specificfeeds_follow" style="width:110px;"><a href="http://www.specificfeeds.com/follow" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'http://www.specificfeeds.com/follow', ' Follow']);"   target="_blank"><img src="http://eduard.linux.edu/wp-content/plugins/really-simple-facebook-twitter-share-buttons/images/specificfeeds_follow.png" alt="Email, RSS" title="Email, RSS" /> Follow</a></div><div class="really_simple_share_facebook_like" style="width:100px;"><iframe src="//www.facebook.com/plugins/like.php?href=http%3A%2F%2Feduard.linux.edu%2Fconverting-vmware-esx-esxi-virtual-machine-rhev%2F&amp;layout=button_count&amp;width=100&amp;height=27&amp;locale=en_US" 
+							scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:100px; height:27px;" allowTransparency="true"></iframe></div><div class="really_simple_share_twitter" style="width:100px;"><a href="https://twitter.com/share" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://twitter.com/share', '']);"   class="twitter-share-button" data-count="horizontal"  data-text="Converting a VMware virtual machine to RHEV (KVM)" data-url="http://eduard.linux.edu/converting-vmware-esx-esxi-virtual-machine-rhev/"  data-via=""></a></div><div class="really_simple_share_google1" style="width:80px;"><div class="g-plusone" data-size="medium" data-href="http://eduard.linux.edu/converting-vmware-esx-esxi-virtual-machine-rhev/" ></div></div><div class="really_simple_share_linkedin" style="width:100px;"><script type="IN/Share" data-counter="right" data-url="http://eduard.linux.edu/converting-vmware-esx-esxi-virtual-machine-rhev/"></script></div></div>
+		<div class="really_simple_share_clearfix"></div>			</div><!-- .entry-content -->
+
+	<footer class="entry-meta">
+								<span class="cat-links">
+				Filed under&nbsp;<a href="http://eduard.linux.edu/category/linux/" rel="category tag">Linux</a>, <a href="http://eduard.linux.edu/category/redhat/" rel="category tag">Redhat</a>, <a href="http://eduard.linux.edu/category/redhat/rhev/" rel="category tag">RHEV</a>			</span>
+			
+					
+				<span class="sep"> | </span>
+		<span class="comments-link"><a href="http://eduard.linux.edu/converting-vmware-esx-esxi-virtual-machine-rhev/#respond" title="Comment on Converting a VMware virtual machine to RHEV (KVM)">Comment</a></span>
+				<span class="sep"> | </span>
+		<span class="permalink"><a href="http://eduard.linux.edu/converting-vmware-esx-esxi-virtual-machine-rhev/" rel="bookmark" title="Permanent Link to Converting a VMware virtual machine to RHEV (KVM)">Permalink</a></span>
+			</footer><!-- .entry-meta -->
+
+</article><!-- #post-220 -->
+
+
+				
+
+	<div id="comments" class="comments-area">
+
+	
+	
+	
+									<div id="respond" class="comment-respond">
+				<h3 id="reply-title" class="comment-reply-title">Leave a Reply <small><a rel="nofollow" id="cancel-comment-reply-link" href="/converting-vmware-esx-esxi-virtual-machine-rhev/#respond" style="display:none;">Cancel reply</a></small></h3>
+									<form action="http://eduard.linux.edu/wp-comments-post.php" method="post" id="commentform" class="comment-form">
+																			<p class="comment-notes">Your email address will not be published. Required fields are marked <span class="required">*</span></p>							<p class="comment-form-author"><label for="author">Name <span class="required">*</span></label> <input id="author" name="author" type="text" value="" size="30" aria-required='true' /></p>
+<p class="comment-form-email"><label for="email">Email <span class="required">*</span></label> <input id="email" name="email" type="text" value="" size="30" aria-required='true' /></p>
+<p class="comment-form-url"><label for="url">Website</label> <input id="url" name="url" type="text" value="" size="30" /></p>
+												<p class="comment-form-comment"><label for="comment">Comment</label> <textarea id="comment" name="comment" cols="45" rows="8" aria-required="true"></textarea></p>						<p class="form-allowed-tags">You may use these <abbr title="HyperText Markup Language">HTML</abbr> tags and attributes:  <code>&lt;a href=&quot;&quot; title=&quot;&quot;&gt; &lt;abbr title=&quot;&quot;&gt; &lt;acronym title=&quot;&quot;&gt; &lt;b&gt; &lt;blockquote cite=&quot;&quot;&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=&quot;&quot;&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=&quot;&quot;&gt; &lt;strike&gt; &lt;strong&gt; </code></p>						<p class="form-submit">
+							<input name="submit" type="submit" id="submit" value="Post Comment" />
+							<input type='hidden' name='comment_post_ID' value='220' id='comment_post_ID' />
+<input type='hidden' name='comment_parent' id='comment_parent' value='0' />
+						</p>
+						<p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="fc5631c11e" /></p><p style="display: none;"><input type="hidden" id="ak_js" name="ak_js" value="203"/></p>					</form>
+							</div><!-- #respond -->
+			
+</div><!-- #comments .comments-area -->
+
+					<nav role="navigation" id="nav-below" class="site-navigation post-navigation">
+		<h1 class="assistive-text">Post navigation</h1>
+
+	
+		<div class="nav-previous"><a href="http://eduard.linux.edu/install-openstack-rdo-redhat-6-5-dependecies-issues/" rel="prev"><span class="meta-nav">&laquo;</span> How to install Openstack RDO</a></div>		<div class="nav-next"><a href="http://eduard.linux.edu/rhevm-vm-migrating-fix/" rel="next">RHEVM &#8211; VM not migrating &#8211; Fix <span class="meta-nav">&raquo;</span></a></div>
+	
+	</nav><!-- #nav-below -->
+	
+
+			
+			</div><!-- #content .site-content -->
+		</div><!-- #primary .content-area -->
+
+	<div id="secondary" class="widget-area">
+					<div id="sidebar-1" class="sidebar" role="complementary">
+								<aside id="search-2" class="widget widget_search">	<form method="get" id="searchform" action="http://eduard.linux.edu/" role="search">
+		<label for="s" class="assistive-text">Search</label>
+		<input type="text" class="field" name="s" value="" id="s" placeholder="Search &hellip;" />
+		<input type="submit" class="submit" name="submit" id="searchsubmit" value="Search" />
+<br/><br/>
+<label><b>Tip Jar linux.edu (Donations) - bitcoins only :</b></label><br/>
+<label>1HQ11d2SeENJXPTznYQj9Bfhs1msDjmSS1</label>
+	</form>
+</aside>		<aside id="recent-posts-2" class="widget widget_recent_entries">		<h1 class="widget-title">Recent Posts</h1>		<ul>
+					<li>
+				<a href="http://eduard.linux.edu/virtualbox-vm-wont-start-failed-load-vmmr0-r0/">Virtualbox VM wont start : Failed to load VMMR0.r0</a>
+						</li>
+					<li>
+				<a href="http://eduard.linux.edu/rhevm-vm-migrating-fix/">RHEVM &#8211; VM not migrating &#8211; Fix</a>
+						</li>
+					<li>
+				<a href="http://eduard.linux.edu/converting-vmware-esx-esxi-virtual-machine-rhev/">Converting a VMware virtual machine to RHEV (KVM)</a>
+						</li>
+					<li>
+				<a href="http://eduard.linux.edu/install-openstack-rdo-redhat-6-5-dependecies-issues/">How to install Openstack RDO</a>
+						</li>
+					<li>
+				<a href="http://eduard.linux.edu/wpa_supplicants-connection-issues-deauthenticating-reason3/">WPA_supplicants connection issues , deauthenticating, reason=3</a>
+						</li>
+				</ul>
+		</aside><aside id="recent-comments-2" class="widget widget_recent_comments"><h1 class="widget-title">Recent Comments</h1><ul id="recentcomments"><li class="recentcomments"><span class="comment-author-link">WooWoo</span> on <a href="http://eduard.linux.edu/virtualbox-fix-failed-to-create-the-virtualbox-com-object-result-code-ns_error_failure-0x80004005/#comment-12194">Failed to create the VirtualBox COM object &#8211; Result Code: NS_ERROR_FAILURE (0x80004005)</a></li><li class="recentcomments"><span class="comment-author-link"><a href='http://www.ad-hocsys.com' rel='external nofollow' class='url'>david</a></span> on <a href="http://eduard.linux.edu/virtualbox-fix-failed-to-create-the-virtualbox-com-object-result-code-ns_error_failure-0x80004005/#comment-10693">Failed to create the VirtualBox COM object &#8211; Result Code: NS_ERROR_FAILURE (0x80004005)</a></li><li class="recentcomments"><span class="comment-author-link">abhi</span> on <a href="http://eduard.linux.edu/virtualbox-fix-failed-to-create-the-virtualbox-com-object-result-code-ns_error_failure-0x80004005/#comment-9914">Failed to create the VirtualBox COM object &#8211; Result Code: NS_ERROR_FAILURE (0x80004005)</a></li><li class="recentcomments"><span class="comment-author-link">Eduard Goiu</span> on <a href="http://eduard.linux.edu/install-openstack-rdo-redhat-6-5-dependecies-issues/#comment-8656">How to install Openstack RDO</a></li><li class="recentcomments"><span class="comment-author-link">Biswajit</span> on <a href="http://eduard.linux.edu/install-openstack-rdo-redhat-6-5-dependecies-issues/#comment-8654">How to install Openstack RDO</a></li></ul></aside><aside id="archives-2" class="widget widget_archive"><h1 class="widget-title">Archives</h1>		<ul>
+	<li><a href='http://eduard.linux.edu/2014/08/'>August 2014</a></li>
+	<li><a href='http://eduard.linux.edu/2014/05/'>May 2014</a></li>
+	<li><a href='http://eduard.linux.edu/2014/01/'>January 2014</a></li>
+	<li><a href='http://eduard.linux.edu/2013/12/'>December 2013</a></li>
+	<li><a href='http://eduard.linux.edu/2013/09/'>September 2013</a></li>
+	<li><a href='http://eduard.linux.edu/2013/05/'>May 2013</a></li>
+	<li><a href='http://eduard.linux.edu/2013/01/'>January 2013</a></li>
+	<li><a href='http://eduard.linux.edu/2012/12/'>December 2012</a></li>
+		</ul>
+</aside><aside id="categories-2" class="widget widget_categories"><h1 class="widget-title">Categories</h1>		<ul>
+	<li class="cat-item cat-item-8"><a href="http://eduard.linux.edu/category/debian/" >Debian</a>
+</li>
+	<li class="cat-item cat-item-12"><a href="http://eduard.linux.edu/category/dns/" >DNS</a>
+</li>
+	<li class="cat-item cat-item-4"><a href="http://eduard.linux.edu/category/filesystem/" >Filesystem</a>
+</li>
+	<li class="cat-item cat-item-80"><a href="http://eduard.linux.edu/category/juniper-2/" >Juniper</a>
+</li>
+	<li class="cat-item cat-item-29"><a href="http://eduard.linux.edu/category/kernel/" >kernel</a>
+</li>
+	<li class="cat-item cat-item-2"><a href="http://eduard.linux.edu/category/linux/" >Linux</a>
+</li>
+	<li class="cat-item cat-item-3"><a href="http://eduard.linux.edu/category/mysql/" >MySQL</a>
+</li>
+	<li class="cat-item cat-item-81"><a href="http://eduard.linux.edu/category/juniper-2/netscreen/" >Netscreen</a>
+</li>
+	<li class="cat-item cat-item-84"><a href="http://eduard.linux.edu/category/openstack/" >Openstack</a>
+</li>
+	<li class="cat-item cat-item-6"><a href="http://eduard.linux.edu/category/redhat/" >Redhat</a>
+</li>
+	<li class="cat-item cat-item-5"><a href="http://eduard.linux.edu/category/rhce/" >RHCE</a>
+</li>
+	<li class="cat-item cat-item-93"><a href="http://eduard.linux.edu/category/redhat/rhev/" >RHEV</a>
+</li>
+	<li class="cat-item cat-item-82"><a href="http://eduard.linux.edu/category/juniper-2/netscreen/screenos-netscreen/" >ScreenOS</a>
+</li>
+	<li class="cat-item cat-item-7"><a href="http://eduard.linux.edu/category/suse/" >SUSE</a>
+</li>
+	<li class="cat-item cat-item-9"><a href="http://eduard.linux.edu/category/ubuntu/" >Ubuntu</a>
+</li>
+	<li class="cat-item cat-item-1"><a href="http://eduard.linux.edu/category/uncategorized/" >Uncategorized</a>
+</li>
+	<li class="cat-item cat-item-83"><a href="http://eduard.linux.edu/category/virtualbox/" >VirtualBox</a>
+</li>
+		</ul>
+</aside><aside id="meta-2" class="widget widget_meta"><h1 class="widget-title">Meta</h1>			<ul>
+						<li><a rel="nofollow" href="http://eduard.linux.edu/wp-login.php">Log in</a></li>
+			<li><a href="http://eduard.linux.edu/feed/">Entries <abbr title="Really Simple Syndication">RSS</abbr></a></li>
+			<li><a href="http://eduard.linux.edu/comments/feed/">Comments <abbr title="Really Simple Syndication">RSS</abbr></a></li>
+<li><a href="https://wordpress.org/" title="Powered by WordPress, state-of-the-art semantic personal publishing platform.">WordPress.org</a></li>			</ul>
+</aside>			</div><!-- #sidebar-right -->
+		
+			</div>
+
+	</div><!-- #main .site-main -->
+
+	<footer id="colophon" class="site-footer" role="contentinfo">
+		<div class="site-info">
+			<div>&copy; 2013 Eduard&#039;s Blog</div>		</div>
+			</footer><!-- #colophon .site-footer -->
+</div><!-- #page .hfeed .site -->
+
+<script type='text/javascript' src='http://eduard.linux.edu/wp-content/plugins/akismet/_inc/form.js?ver=3.0.2'></script>
+<script type='text/javascript' src='http://eduard.linux.edu/wp-content/themes/f2/js/jquery.fitvids.min.js?ver=2.2.1'></script>
+<script type='text/javascript' src='http://eduard.linux.edu/wp-content/themes/f2/js/small-menu.js?ver=2.2.1'></script>
+<script type='text/javascript' src='http://eduard.linux.edu/wp-includes/js/comment-reply.min.js?ver=4.0'></script>
+
+</body>
+</html>
+<!-- Dynamic page generated in 1.529 seconds. -->
+<!-- Cached page generated by WP-Super-Cache on 2014-11-13 03:01:50 -->
+
+<!-- super cache -->

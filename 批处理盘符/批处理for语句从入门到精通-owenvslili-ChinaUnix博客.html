@@ -1,0 +1,1686 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="/css/default/style.css" />
+<link rel="stylesheet" type="text/css" href="/css/qqface/qqFace.css" />
+<link rel="stylesheet" type="text/css" href="/css/asyncbox/skins/Chrome/asyncbox.css" />
+<link rel="stylesheet" type="text/css" href="/assets/6d60aeb8/pager.css" />
+<script type="text/javascript" src="/js/jquery.min.js"></script>
+<script type="text/javascript" src="/js/jquery.cookies.min.js"></script>
+<script type="text/javascript" src="/js/AsyncBox.v1.4.5.js"></script>
+<title>批处理for语句从入门到精通-owenvslili-ChinaUnix博客</title>
+<meta name="description" content='
+
+
+
+
+
+
+
+[系列教程]批处理for语句从入门到精通[2010.5.26更新]
+　　批处理是一门简单的脚本语言，虽然不能独当一面，但是，若作为工作中的辅助工具，绝对会让大家有随用随写、称心如意的畅快感。　　和其他语言相'/>
+<script language="javascript">
+//用户是否在线
+var isOnLine = '';
+$(document).ready(function(){
+	var blog = {'name': '', 'name_url': '', 'brief': ''};
+	//消息通知显示和隐藏控制
+	$('#show_message_slide_button').hover(
+		function(){
+			$('#message_slide_div').slideDown(100);											   
+		},
+		function(){
+			
+		}
+	);
+
+	$('#message_slide_div').hover(
+		function(){
+			
+		},
+		function(){
+			$('#message_slide_div').slideUp(100);
+		}
+	);
+	
+	//编辑博客名
+	$('#editbna').click(function(){
+		blog.name = $('#bnaspan a').text();
+		var val = '<input id="bnainput" type="text" style="float:left" value="" rel="' +$(this).attr('rel') + '" /><input id="bnasub" type="button" style="float:left" class="btn1"><input id="bnacanl" type="button" style="float:left" class="btn2"><div class="clear"></div>';
+		$('#bnaspan').html(val);
+		$('#bnainput').val(blog.name);
+		$(this).parent().hide();
+	});
+	
+	$('#bnasub').live('click', function(){
+	    var rel = eval('({' + $('#bnainput').attr('rel') + '})');
+		var name = $('#bnainput').val();
+		if(name != blog.name){
+	        $.ajax({
+			    type: "POST",
+			    url: rel.url,	
+			    data: {
+				    'name' : name
+			    },
+			    success:function(data){
+				    if(data == 0){
+						$('#bnaspan').html(blog.name);
+						$('#bnaspan').html('<a href="' + rel.href + '">' + $('#bnaspan').html() + '</a>');
+				    }else{
+						$('#bnaspan').html(data);
+						$('#bnaspan').html('<a href="' + rel.href + '">' + $('#bnaspan').html() + '</a>');
+				    }
+					$('#editbna').parent().show();
+				}
+			});
+		}else{
+		    $('#bnaspan').text(blog.name).html();
+			$('#bnaspan').html('<a href="' + rel.href + '">' + $('#bnaspan').html() + '</a>');
+			$('#editbna').parent().show();
+		}
+	});
+	
+	$('#bnacanl').live('click', function(){
+		var rel = eval('({' + $('#bnainput').attr('rel') + '})');
+		$('#bnaspan').html('<a href="' + rel.href + '">' + blog.name + '</a>');
+		$('#editbna').parent().show();
+	});
+	
+	//编辑签名
+	$('#editbrief').click(function(){
+	    blog.brief = $('#briefem').text();
+		var val = '<input id="brfinput" type="text" style="float:left" value="" rel="' + $(this).attr('rel') + '" /><input id="brfsub" style="float:left"  type="button" class="btn1"><input style="float:left"  id="brfcanl" type="button" class="btn2"><div class="clear"></div>';
+		$('#briefem').html(val);
+		$('#brfinput').val(blog.brief);
+		$(this).parent().hide();
+	});
+	
+	$('#brfsub').live('click', function(){
+	    var url = $('#brfinput').attr('rel');
+		var brief = $('#brfinput').val();
+		if(brief != blog.brief){
+	        $.ajax({
+			    type: "POST",
+			    url: url,	
+			    data: {
+				    'brief' : brief
+			    },
+			    success:function(data){
+				    if(data == 0){
+				        $('#briefem').html(blog.brief);
+				    }else{
+						$('#briefem').html(data);
+				    }
+					$('#editbrief').parent().show();
+				}
+			});
+		}else{
+		    $('#briefem').text(blog.brief).html();
+			$('#editbrief').parent().show();
+		}
+	});
+	
+	$('#brfcanl').live('click', function(){
+		$('#briefem').html(blog.brief);
+		$('#editbrief').parent().show();
+	});
+
+});
+</script>
+</head>
+<body>
+<div class="box">
+  <!-- 一级导航 -->
+  <div class="Blog_nav1">
+    <div class="Blog_nav1_2"><a href="/"><img src="/image/default/1.png"></a><a href="http://www.chinaunix.net" class="Blog_a1">Chinaunix首页</a>　| 　<a href="http://bbs.chinaunix.net" target="_blank">论坛</a>　| 　<a href="http://ask.chinaunix.net" target="_blank">问答</a>　| 　<a href="http://blog.chinaunix.net" target="_blank">博客</a><span class="Blog_span1"></span>
+            <a href="/site/login.html" class="Blog_a1">登录</a> | <a href="http://u.it168.com/Register?webid=5&returnUrl=http%3A%2F%2Fblog.chinaunix.net%2Fuid-23230109-id-255072.html" class="Blog_a1">注册</a>
+          </div>
+	<!--自动提示层-->
+	<style>
+	.bor13221{border:1px #bbb solid;width:206px;position:absolute;top:34px;left:0;background:#fff; z-index:9999;display:none}
+	.bor13221 li{height:26px;line-height:26px;padding-left:6px;color:#555;font-size:14px;cursor:pointer;}
+	.here{background:#f3f3f3;}
+    </style>
+
+	<!--自动提示层-->
+    <div class="Blog_nav1_3" style="position:relative; z-index:9999;">
+	 <div class="bor13221">
+      <ul>
+      </ul>
+    </div>
+	  <form action='/site/search.html' method='post'>
+		<input type="text"  autocomplete="off"  class="Blog_txt1" id='search_input_id' name='keywords'>
+		<select class="Bolg_sel1" name='type' id='search_type_blog'>
+		  <option value='blog'>博文</option>
+		  <option value='author'>博主</option>
+		</select>
+		<input type="submit" value='' name='submit' class="Blog_btn1">
+	 </form>
+    </div>
+    <div class="clear"></div>
+    <div class="Blog_nav1_layer1" id="message_slide_div" style="display:none;">
+	    <ul>
+	    	<li><a href="/message/private.html">私人消息()</a></li>
+	    	<li><a href="/message/system.html">系统消息()</a></li>
+	    	<li><a href="/member/request.html">好友请求()</a></li>
+	    	<li><a href="/member/notification.html">通知管理()</a></li>
+	    </ul>
+    </div>
+  </div>
+   <script type="text/javascript">
+  	$(function(){
+		//点击添加进文本框
+		$(".bor13221 li").live( 'click' , function(e){
+			if ( e && e.stopPropagation )
+			{
+				//因此它支持W3C的stopPropagation()方法
+				e.stopPropagation();
+			}
+			else
+			{
+				//否则，我们需要使用IE的方式来取消事件冒泡
+				window.event.cancelBubble = true; 
+			}
+			$('#search_input_id').val($(this).text());
+			$(".bor13221 ul").html('');
+			$(".bor13221").hide();
+		});
+		$(".bor13221 ul li").live({
+			mouseenter:
+			function()
+			{
+				$(".bor13221 ul li").removeClass("here");
+				$(this).addClass('here');
+			},
+			mouseleave:
+			function()
+			{
+				$(".bor13221 ul li").removeClass("here");
+				$(this).removeClass('here');
+			}
+		});
+		//自动提示
+		$('#search_input_id').keyup(function(event){
+			//取消博主的提示
+			var search_type_blog = $('#search_type_blog').val();
+			if(search_type_blog == 'author') return false;
+
+			var key = $(this).val();
+			//获取键值
+			var keycode = event.which; //38 上 40 下
+			var count = $('.bor13221 ul li').length;
+			if(key != '' && keycode != 38 && keycode != 40)
+			{
+				$.getJSON("http://api.sou.it168.com/autoWenKuCloud?jsoncallback=?",{"ty":"json","offset":"0","limit":"10","q":key}, function(result)
+					{
+						var arr = result.data;
+
+						var html ='';
+						for (i=0;i<arr.length ;i++ )   
+						{   
+							html += '<li>'+arr[i]+'</li>';
+						} 
+						
+						$('.bor13221 ul').html(html);
+						(arr.length > 1) ?  $(".bor13221").show() : $(".bor13221").hide();
+					}
+				);
+			}
+			else if(keycode == 38)
+			{
+				if(count > 0)
+				{
+					//遍历li
+					var curr_li_num;
+					$('.bor13221 ul li').each(function(index , dom){
+						if($(dom).attr('class') == 'here')
+						{
+							curr_li_num = index;
+							return false;
+						}
+					}); 
+					var next_li_num;
+					if(typeof(curr_li_num) == 'undefined')
+					{
+						next_li_num = count - 1;
+					}
+					else
+					{
+						if(curr_li_num == 0)
+						{
+							next_li_num = count - 1;
+						}
+						else
+						{
+							next_li_num = curr_li_num - 1;
+						}
+					}
+					$(".bor13221 ul li").removeClass("here");
+					$(".bor13221 ul li:eq(" + next_li_num + ")").addClass("here");
+					$('#search_input_id').val($(".bor13221 ul li:eq(" + next_li_num + ")").text());
+				}
+			}
+			else if(keycode == 40)
+			{
+				if(count > 0)
+				{
+					//遍历li
+					var curr_li_num;
+					$('.bor13221 ul li').each(function(index , dom){
+						if($(dom).attr('class') == 'here')
+						{
+							curr_li_num = index;
+							return false;
+						}
+					}); 
+					var next_li_num;
+					if(typeof(curr_li_num) == 'undefined')
+					{
+						next_li_num = 0;
+					}
+					else
+					{
+						if(curr_li_num == count - 1)
+						{
+							next_li_num = 0;
+						}
+						else
+						{
+							next_li_num = curr_li_num + 1;
+						}
+					}
+					$(".bor13221 ul li").removeClass("here");
+					$(".bor13221 ul li:eq(" + next_li_num + ")").addClass("here");
+					$('#search_input_id').val($(".bor13221 ul li:eq(" + next_li_num + ")").text());
+				}
+			}
+		});
+		$(document).click(function(e){
+			$(".bor13221").hide();
+		});
+
+	});
+  </script>
+  <!-- 头 -->
+  <!-- 推荐博客-->
+  <div class="Blog_header1">
+	    <div class="Blog_header1_1">
+      <p class="Blog_p1" ><em><a href="/uid/23230109.html">Driving way</a></em>      <p class="Blog_p2" style="color:#125A94">If ask,get more!</p>
+    </div>
+        <div class="Blog_header1_2" id="hide_div1">
+    	<span class="Blog_span3"></span>
+    	<div class="float_div1" style="white-space:nowrap;" onmouseover="javascript:isMove=false" onmouseout="javascript:isMove=true">
+	    <ul id="noticev2">  
+		    		    <li><a href="http://blog.chinaunix.net/uid-24789255-id-4019728.html" target="_blank">【原创评选】12-02月原创博文评选</a></li>
+		    		    <li><a href="http://blog.chinaunix.net/uid-24789255-id-3938601.html" target="_blank">2013第三季度“ChinaUnix博客之星”评选</a></li>
+		    		    <li><a href="http://hadoop.it168.com/index.aspx " target="_blank">2013 Hadoop中国技术峰会（11.22-11.23，北京） </a></li>
+		    	    </ul>
+	    </div>
+    </div>
+            <div class="Blog_header1_3"><a href="/uid/23230109.html">首页</a>　| 　<a href="/uid/23230109/abstract/1.html">博文目录</a>　| 　<a href="/member/profile/uid/23230109.html">关于我</a></div>
+  </div>
+    
+  <!-- 内容部分 -->
+  	<script type="text/javascript" src="/highlight/scripts/XRegExp.js"></script> <!-- XRegExp is bundled with the final shCore.js during build -->
+<script type="text/javascript" src="/highlight/scripts/shCore.js"></script>
+<script type="text/javascript" src="/highlight/scripts/shAutoloader.js"></script>
+<link type="text/css" rel="stylesheet" href="/highlight/styles/shCore.css"/>
+<link type="text/css" rel="Stylesheet" href="/highlight/styles/shThemeDefault.css" />
+<link href="/code/css/fck_editorarea.css" rel="stylesheet" type="text/css" />
+  <div class="Blog_contain"> 
+    <!-- 左 -->
+	<script language="javascript">
+$(document).ready(function(){
+	$('#ConcernBtn').bind('click',function(){
+			var cuid = '23230109';
+			var url =  '/member/concern.html';
+			var type = $(this).attr('rel');
+		
+			if(type == 'addConcern'){
+				$.ajax({
+					type : 'get',
+					url  : url,
+					data : {'op' : 'ajaxadd' , 'cuid' : cuid, 'random' : Math.random()},
+					success : function(msg){	
+					   if(msg == -1){
+						   showErrorMsg('参数错误！');
+					   } else if (msg == 0){
+						   showErrorMsg('关注失败，没有该用户！');
+					   } else if (msg == 1){
+						   showErrorMsg('关注失败，您已经关注了该用户！');
+					   } else if (msg == 2){
+						   $('#ConcernBtn').val('已关注');
+						   $('#ConcernBtn').attr('rel','delConcern');
+						   showSucceedMsg('关注成功!');
+					   } else if (msg == 3){
+						   showErrorMsg('未知错误');
+					   }
+					}
+				});	
+			} else if ( type == 'delConcern'){
+				$.ajax({
+					type : 'get',
+					url  : url,
+					data : {'op' : 'ajaxdel' , 'cuid' : cuid, 'random' : Math.random()},
+					success : function(msg){
+					   if(msg == 0){
+						   showErrorMsg('参数错误！','消息提示');
+					   } else if (msg == 1){
+						   showErrorMsg('操作失败，请尝试刷新页面重试！','消息提示');
+					   } else if (msg == 2){
+						   $('#ConcernBtn').val('加关注');
+						   $('#ConcernBtn').attr('rel','addConcern');
+						   showSucceedMsg('成功取消关注！','消息提示');
+					   } else if (msg == 3){
+						   showErrorMsg('未知错误！','消息提示'); 
+					   }
+					}
+				});	
+			}
+	});					   
+});
+
+//加好友
+function addFriend(fuid, url){
+	if(fuid == '' || fuid.length == 0){
+		showErrorMsg('缺少参数！','信息提示');
+		return false;
+	}
+	$.ajax({
+		   type : 'get',
+		   url : url,
+		   data : {'op' : 'add', 'fuid' : fuid , 'random' : Math.random()},
+		   success : function(msg){
+				if(msg == -1){
+					showErrorMsg('参数错误！','消息提示');
+				} else if (msg == -2){
+					showErrorMsg('添加好友失败,没有该用户的信息！','消息提示');
+				} else if (msg == -3){
+					showErrorMsg('添加好友失败,你不能添加自己为好友！','消息提示');
+				} else if (msg == -4){
+					showErrorMsg('添加好友未知错误,该错误已被记录！','消息提示');
+				} else if (msg == -5){
+					showErrorMsg('添加好友失败,你之前已经发送过好友请求,请耐心等待对方同意申请！','消息提示');
+				} else if (msg == -6){
+					showErrorMsg('添加好友失败,你们已经是好友了！','消息提示');
+				} else {
+					$.cover(true);
+					asyncbox.open({
+						id : 'addFriend',
+						title : '添加好友',
+						url : url,
+						data : {'op' : 'add', 'fuid' : fuid , 'random' : Math.random()},
+						width : 490,
+						height : 180,
+						scroll : 'no',
+						callback : function(action) {
+							if (action == 'close'){
+								$.cover(false);
+							}	
+						}
+					});	
+				}
+		   }
+	});	
+	
+}
+
+//发送短消息
+function postMessage(msguid, url){
+	if(msguid == '' || msguid.length == 0){
+		showErrorMsg('缺少参数！','信息提示');
+		return false;
+	}
+	
+	$.ajax({
+		   type : 'post',
+		   url : url,
+		   data : {'op' : 'ajaxpost', 'msguid' : msguid , 'random' : Math.random()},
+		   success : function(msg){
+				if(msg == -1){
+					showErrorMsg('发送失败，缺少收件人对象！','消息提示');
+				} else if(msg == -2){
+					showErrorMsg('发送失败，自己不能给自己发送短消息！','消息提示');
+				} else {
+					$.cover(true);
+					asyncbox.open({
+						id : 'postMessage',
+						title : '发送短消息',
+						url : url,
+						data : {'op' : 'ajaxpost', 'msguid' : msguid , 'random' : Math.random()},
+						width : 510,
+						height : 255,
+						scroll : 'no',
+						callback : function(action) {
+							if (action == 'close'){
+								$.cover(false);
+							}	
+						}
+					});	
+				}
+		   }
+	});	
+}
+
+</script>
+<div class="Blog_left">
+      <div class="Blog_left1 Blog_bg1">
+        <div class="Blog_left1_1">
+			<!-- 专家博客-->
+			<a href="/uid/23230109.html"><img src="http://passport.ixpub.net/data/avatar/023/23/01/09_avatar_middle.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_middle.gif'" /></a>
+            <p><a href="/uid/23230109.html">owenvslili</a></p>
+        </div>
+        <ul class="Blog_ul1 Blog_noline1">
+          <li>博客访问： 16059 </li>
+          <li>博文数量： 13 </li>
+          <li>博客积分： 410 </li>
+          <!--<li>专家积分： 180</li>-->
+          <li>博客等级： 一等列兵 </li>
+		  <li>技术积分： 114 </li>
+          <li>用  户  组：  普通用户</li>
+          <li>注册时间： 2010-01-23 01:10 </li>
+          <li></li>
+        </ul>  
+        
+                <div class="HT_line3 HT_line3_1"></div>
+        <ul class="Blog_ul2">
+          <li><input type="button" value="加关注" id="ConcernBtn" onclick="showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html')"></li>
+          <li><input type="button" value="短消息" id="postMessageBtn" onclick="showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html')"></li>
+          <li><input type="button" value="论坛" onclick="location.href='http://bbs.chinaunix.net'"></li>
+          <li><input type="button" value="加好友" id="addFriendBtn" onclick="showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html')"></li>
+        </ul>
+              </div>
+        
+         
+      <div class="Blog_left2 Blog_bg1">
+        <div class="Blog_tit1">文章分类</div>
+        <div class="Blog_left2_1">
+          <p class="Blog_p4"><a href="/uid/23230109/list/1.html">全部博文</a>（13）</p>
+          <ul id="blogCla">
+                            <li><a href="/uid/23230109/cid-160461-list-1.html" title="iOS">iOS</a>（2）
+                                </li>
+                            <li><a href="/uid/23230109/cid-19020-list-1.html" title="QT">QT</a>（0）
+                                </li>
+                            <li><a href="/uid/23230109/cid-13576-list-1.html" title="图像处理">图像处理</a>（1）
+                                </li>
+                            <li><a href="/uid/23230109/cid-19019-list-1.html" title="Linux">Linux</a>（5）
+                                </li>
+                            <li><a href="/uid/23230109/cid-19018-list-1.html" title="DOS">DOS</a>（4）
+                                </li>
+                            <li><a href="/uid/23230109/cid--1-list-1.html" title="未分配的博文">未分配的博文</a>（1）
+                                </li>
+                      </ul>
+        </div>
+      </div>
+      	              <div class="Blog_left2 Blog_bg1">
+        <div class="Blog_tit1">文章存档</div>
+        <div class="Blog_left2_1" id="blogdtr">
+                    <p class="Blog_p4"><span class="Blog_jia1"></span><a href="/uid/23230109/year-2013-list-1.html">2013年</a>（1）</p>
+          <ul style="display:none;" class="Blog_ul3 zk">
+                        <li><a href="/uid/23230109/year-201307-list-1.html">2013年07月</a>（1）</li>
+                      </ul>
+                    <p class="Blog_p4"><span class="Blog_jia1"></span><a href="/uid/23230109/year-2012-list-1.html">2012年</a>（2）</p>
+          <ul style="display:none;" class="Blog_ul3 zk">
+                        <li><a href="/uid/23230109/year-201210-list-1.html">2012年10月</a>（1）</li>
+                        <li><a href="/uid/23230109/year-201206-list-1.html">2012年06月</a>（1）</li>
+                      </ul>
+                    <p class="Blog_p4"><span class="Blog_jia1"></span><a href="/uid/23230109/year-2011-list-1.html">2011年</a>（3）</p>
+          <ul style="display:none;" class="Blog_ul3 zk">
+                        <li><a href="/uid/23230109/year-201104-list-1.html">2011年04月</a>（1）</li>
+                        <li><a href="/uid/23230109/year-201103-list-1.html">2011年03月</a>（1）</li>
+                        <li><a href="/uid/23230109/year-201102-list-1.html">2011年02月</a>（1）</li>
+                      </ul>
+                    <p class="Blog_p4"><span class="Blog_jia1"></span><a href="/uid/23230109/year-2010-list-1.html">2010年</a>（7）</p>
+          <ul style="display:none;" class="Blog_ul3 zk">
+                        <li><a href="/uid/23230109/year-201007-list-1.html">2010年07月</a>（4）</li>
+                        <li><a href="/uid/23230109/year-201001-list-1.html">2010年01月</a>（3）</li>
+                      </ul>
+                  </div>
+      </div>
+      	  	        <div class="Blog_left2 Blog_bg1">
+        <div class="Blog_tit1">我的朋友</div>
+        <ul class="Blog_ul4">
+                  </ul>
+      </div>
+	  	        <div class="Blog_left2 Blog_bg1">
+        <div class="Blog_tit1">最近访客</div>
+        <ul class="Blog_ul4">
+                    <li><a href="/uid/25659882.html"><img src="http://passport.ixpub.net/data/avatar/025/65/98/82_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/25659882.html" title="ngyouxi321">ngyouxi3</a></p>
+          </li>
+                    <li><a href="/uid/28894518.html"><img src="http://passport.ixpub.net/data/avatar/028/89/45/18_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/28894518.html" title="sendy1211">sendy121</a></p>
+          </li>
+                    <li><a href="/uid/9239235.html"><img src="http://passport.ixpub.net/data/avatar/009/23/92/35_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/9239235.html" title="rollstone">rollston</a></p>
+          </li>
+                    <li><a href="/uid/11958000.html"><img src="http://passport.ixpub.net/data/avatar/011/95/80/00_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a>
+            <p><a href="/uid/11958000.html" title="fyggyf">fyggyf</a></p>
+          </li>
+                  </ul>
+      </div>
+	        <div class="Blog_left2 Blog_bg1">
+        <div class="Blog_tit1">订阅</div>
+        <ul class="Blog_ul5">
+          <li><a href="/blog/rss/uid/23230109.html" class="Blog_a4"></a></li>
+          <li><a href="http://www.google.com/ig/add?feedurl=http%3A%2F%2Fblog.chinaunix.net%2Fuid%2F23230109.html" class="Blog_a5"></a></li>
+        </ul>
+      </div>
+      <div class="Blog_left2 Blog_left3 Blog_bg1">
+        <div class="Blog_tit1">推荐博文</div>
+        <ul class="Blog_ul6">
+				  			<li>·<a href="/uid-29414826-id-4057950.html" title="ORACLE 数据迁移方法">ORACLE 数据迁移方法</a></li>
+		  			<li>·<a href="/uid-27717694-id-4051339.html" title="KGDB环境搭建及调试">KGDB环境搭建及调试</a></li>
+		  			<li>·<a href="/uid-23896361-id-4056399.html" title="FreeBSD安装出现Unable to find device node for /dev/*** in /dev">FreeBSD安装出现Unable to fi...</a></li>
+		  			<li>·<a href="/uid-8874157-id-4055045.html" title="在Windows下Oracle11g中使用外部操作系统用户验证">在Windows下Oracle11g中使用...</a></li>
+		  			<li>·<a href="/uid-28813259-id-4056943.html" title="文件描述符与输入输出重定向">文件描述符与输入输出重定向...</a></li>
+		  		        </ul>
+      </div>
+      <div class="Blog_left2 Blog_left3 Blog_bg1">
+        <div class="Blog_tit1">热词专题</div>
+        <ul class="Blog_ul6">
+                        <li >·<a href="/zt/1002/ubuntuibus_1002311.shtml" target='blank' title='ubuntu 安装ibus输入法'>ubuntu 安装ibus输入法</a></li>
+                        <li >·<a href="/zt/1015/setuid_1015163.shtml" target='blank' title='setuid'>setuid</a></li>
+                        <li >·<a href="/zt/1018/java_1018423.shtml" target='blank' title='JAVA'>JAVA</a></li>
+                        <li >·<a href="/zt/1011/linuxtopjiehuha_1011897.shtml" target='blank' title='Linux TOP命令详解'>Linux TOP命令详解</a></li>
+                        <li class="no_line1">·<a href="/zt/1014/cgroup_1014618.shtml" target='blank' title='cgroup框架'>cgroup框架</a></li>
+                  </ul>
+      </div>
+	  
+
+	</div>
+<script language="javascript">
+$(document).ready(function(){
+    /*目录树JS效果*/
+	$('#blogCla li > span').click(function(){
+		var cla = $(this).attr('class');
+		if(cla == 'Blog_jia1'){
+			//$('#blogCla li > span').removeClass('Blog_jian1').addClass('Blog_jia1');
+			//$('#blogCla li > .zk').css('display', 'none');
+				
+			$(this).removeClass('Blog_jia1').addClass('Blog_jian1');
+            $(this).parent().children('.zk').css('display', 'block');
+		}else{
+			$(this).removeClass('Blog_jian1').addClass('Blog_jia1');
+            $(this).parent().children('.zk').css('display', 'none');
+		}
+	});
+		
+	$('#blogdtr > p > span').click(function(){
+		var cla = $(this).attr('class');
+		if(cla == 'Blog_jia1'){
+			//$('#blogdtr > .Blog_p4 > span').removeClass('Blog_jian1').addClass('Blog_jia1');
+			//$('#blogdtr ul').css('display', 'none');
+				
+			$(this).removeClass('Blog_jia1').addClass('Blog_jian1');
+            $(this).parent().next().css('display', 'block');
+		}else{
+			$(this).removeClass('Blog_jian1').addClass('Blog_jia1');
+            $(this).parent().next().css('display', 'none');
+		}
+	});
+});
+</script>    <!-- 右 -->
+    <div class="Blog_right1">
+      <div class="Blog_right1_1 Blog_right1_11">
+        <div class="Blog_right1_2 ">
+			<!--推荐博文-->
+          <div class="Blog_tit4 Blog_tit5">
+                        <b class="Blog_b1"></b>
+            <a href="/uid-23230109-id-255072.html">批处理for语句从入门到精通</a>
+            <em>2010-07-20 20:55:20</em>
+          </div>
+          <div class="Blog_con2">
+            <div class="Blog_con3">
+              <p>分类： <span></span></p>
+			                </p>
+            </div>
+           <div class="Blog_wz1" style='word-wrap: break-word;'>
+			<DIV>
+<TABLE id=pid12582 cellSpacing=0 cellPadding=0 summary=pid12582>
+<TBODY>
+<TR>
+<TD class=postcontent>
+<DIV class="postmessage defaultpost">
+<DIV id=ad_thread3_0></DIV>
+<DIV id=ad_thread4_0></DIV>
+<H2>[系列教程]批处理for语句从入门到精通[2010.5.26更新]</H2><!-- 为了折叠指定版块的回帖以达到隐藏目的，此处屏蔽了一条语句，若要恢复原有语句，请复制下一条语句中else之后和if之前的那一句 2008.9.5 by namejm --><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm -->
+<DIV class=t_msgfont id=postmessage_12582><BR>　　批处理是一门简单的脚本语言，虽然不能独当一面，但是，若作为工作中的辅助工具，绝对会让大家有随用随写、称心如意的畅快感。<BR><BR>　　和其他语言相比，批处理语言有其先天性的优势：<BR><BR>　　1、系统自带，无需另行安装；<BR>　　2、命令少，语句简洁，上手非常快；<BR>　　3、编写出来的脚本小巧玲珑，随写随用；<BR><BR>　　但是，因为它以命令行方式工作，操作多有不便，在图形界面大行其道的windows世界里，多多少少会让大众望而却步；就算是对命令行有好感的新手，面对微软有如天书的帮助文件，很多人也会败下阵来，因此，论坛里很多会员也发出了编写系统的批处理教程的呼声。<BR><BR>　　编写系统的批处理新手教程，一直是论坛管理层讨论的热点问题，但是，各位管理人员大多都有工作在身，而系统的教程涉及的面是如此之广，面对如此浩大的工程，仅凭一两个人的力量，是难以做好的，因此，本人退而求其次，此次发布的教程，以专题的形式编写，日后人手渐多之后，再考虑组织人力编写全面的教程。<BR><BR>　　之所以选择最难的for，一是觉得for最为强大，是大多数人最希望掌握的；二是若写其他命令教程，如果没有for的基础，展开来讲解会无从下手；三是for也是批处理中最复杂最难掌握的语句，把它攻克了，批处理的学习将会一片坦途。<BR><BR>　　这次的for语句系列教程，打算按照for语句的5种句式逐一展开，在讲解 for /f 的时候，会穿插讲解批处理中一个最为关键、也是新手最容易犯错的概念：变量延迟，大纲如下： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE><BR>一 前言<BR>二 for语句的基本用法<BR>三 for /f （含变量延迟）<BR>四 for /r<BR>五 for /d<BR>六 for /l</BLOCKQUOTE></DIV></DIV><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm -->
+<FIELDSET><FONT color=#ff0000></FONT></FIELDSET> </DIV>
+<DIV class=signatures style="WIDTH: 580px; HEIGHT: 17px; maxHeightIE: "><FONT color=blue><STRONG></STRONG></FONT></DIV>
+<DIV>&nbsp;</DIV></TD></TR>
+<TR>
+<TD class=postauthor>
+<P>&nbsp;</P></TD>
+<TD class=postcontent>
+<DIV class=postactions>
+<P><FONT color=#0000ff></FONT><!-- 在每个帖子中添加删除帖子/主题的功能按钮 2008.9.9 by namejm --><!-- 在每个帖子中添加删除帖子/主题的功能按钮 2008.9.9 by namejm --><!-- 在每个帖子中添加屏蔽此帖的功能按钮 2008.9.10 by namejm --><!-- 在每个帖子中添加屏蔽此帖的功能按钮 2008.9.10 by namejm --></P></DIV></TD></TR></TBODY></TABLE>
+<DIV id=ad_interthread></DIV>
+<DIV class="mainbox viewthread">
+<TABLE id=pid12583 cellSpacing=0 cellPadding=0 summary=pid12583>
+<TBODY>
+<TR>
+<TD class=postauthor>
+<DIV id=filter>
+<DIV class=avatar>&nbsp;</DIV></DIV>
+<CENTER>
+<UL class=popupmenu_popup id=mod_12583_menu style="DISPLAY: none">
+<TABLE cellSpacing=0 cellPadding=4 border=0>
+<TBODY>
+<TR>
+<TD class=popupmenu_option><FONT color=#0066cc></FONT></TD></TR>
+<TR>
+<TD class=popupmenu_option><FONT color=#0066cc></FONT></TD></TR>
+<TR>
+<TD class=popupmenu_option><FONT color=red></FONT></TD></TR>
+<TR>
+<TD class=popupmenu_option><FONT color=red></FONT></TD></TR>
+<TR>
+<TD class=popupmenu_option></TD></TR>
+<TR>
+<TD class=popupmenu_option><FONT color=#0066cc></FONT></TD></TR></TBODY></TABLE></UL></CENTER></TD>
+<TD class=postcontent>
+<DIV class="postmessage defaultpost"><!-- 为了折叠指定版块的回帖以达到隐藏目的，此处屏蔽了一条语句，若要恢复原有语句，请复制下一条语句中else之后和if之前的那一句 2008.9.5 by namejm --><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm -->
+<DIV class=t_msgfont id=postmessage_12583>　　在批处理中，for是最为强大的命令语句，它的出现，使得解析文本内容、遍历文件路径、数值递增/递减等操作成为可能；配合if、call、goto等流程控制语句，更是可以实现脚本复杂的自动化、智能化操作；合理使用for语句，还能使代码大为简化，免除各位编写大量重复语句之苦。而能否熟练使用for语句，已经成为衡量一个人批处理水平高低最主要的标准。<BR><BR>　　在这个系列教程中，我将通过实际应用中频繁出现的例子，带领大家步入for语句的神奇之门，一步步迈向for语句的魔幻殿堂，使得大家在实际的应用中，能独立写出简洁高效的代码，在批处理的世界里自由驰骋。<BR><BR>　　注意：以下的讲解，都是基于简体中文版Windows XP Pro SP3的操作系统环境。</DIV><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm --><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm --><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm --></DIV>
+<DIV class=signatures style="WIDTH: 329px; HEIGHT: 18px; maxHeightIE: "><FONT color=blue><STRONG></STRONG></FONT></DIV>
+<DIV></DIV></TD></TR>
+<TR>
+<TD class=postauthor>
+<P class="popupmenu_popup userinfopanel" style="DISPLAY: none">&nbsp;</P></TD>
+<TD class=postcontent>
+<DIV class=postactions>
+<P><!-- 在每个帖子中添加删除帖子/主题的功能按钮 2008.9.9 by namejm --><!-- 在每个帖子中添加删除帖子/主题的功能按钮 2008.9.9 by namejm --><!-- 在每个帖子中添加屏蔽此帖的功能按钮 2008.9.10 by namejm --><!-- 在每个帖子中添加屏蔽此帖的功能按钮 2008.9.10 by namejm --></P></DIV></TD></TR></TBODY></TABLE></DIV>
+<DIV class="mainbox viewthread">
+<TABLE id=pid12584 cellSpacing=0 cellPadding=0 summary=pid12584>
+<TBODY>
+<TR>
+<TD class=postauthor>
+<P>&nbsp;</P></TD>
+<TD class=postcontent>
+<DIV class=postinfo><STRONG id=postnum_12584 title=复制帖子链接到剪贴板 onclick="setcopy('http://bbs.bathome.net/viewthread.php?tid=2189&amp;page=1#pid12584', '帖子链接已经复制到剪贴板')"></STRONG>&nbsp;</DIV>
+<DIV id=ad_thread2_2></DIV>
+<DIV class="postmessage defaultpost"><SPAN class=postratings></SPAN>
+<DIV id=ad_thread3_2></DIV>
+<DIV id=ad_thread4_2></DIV>
+<H2>二、for语句的基本用法[2008.11.9更新]</H2><!-- 为了折叠指定版块的回帖以达到隐藏目的，此处屏蔽了一条语句，若要恢复原有语句，请复制下一条语句中else之后和if之前的那一句 2008.9.5 by namejm --><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm -->
+<DIV class=t_msgfont id=postmessage_12584>　　正如色彩缤纷的七彩光芒是由红绿蓝三原色构成的一样，最复杂的for语句，也有其基本形态，它的模样是这样的：<BR>　　在cmd窗口中： 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code0'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code0><FONT face=NSimsun>for %I in (command1) do command2</FONT></CODE></DIV>　　在批处理文件中： 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code1'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code1><FONT face=NSimsun>for %%I in (command1) do command2</FONT></CODE></DIV>　　之所以要区分cmd窗口和批处理文件两种环境，是因为在这两种环境下，命令语句表现出来的行为虽然基本一样，但是在细节上还是稍有不同，最明显的一个差异就是：在cmd窗口中，for之后的形式变量I必须使用单百分号引用，即%I；而在批处理文件中，引用形式变量I必须使用双百分号，即%%I。为了方便起见，若不是特别强调，以下的讲解都以批处理文件环境为例。<BR><BR>　　我们先来看一下for语句的基本要素都有些什么： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>　　1、for、in和do是for语句的关键字，它们三个缺一不可；<BR>　　2、%%I是for语句中对形式变量的引用，就算它在do后的语句中没有参与语句的执行，也是必须出现的；<BR>　　3、in之后，do之前的括号不能省略；<BR>　　4、command1表示字符串或变量，command2表示字符串、变量或命令语句；</BLOCKQUOTE></DIV>　　现在，你可能已经会写一个简单的for语句了，比如：<BR><FONT color=blue>[code1]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code2'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code2><FONT face=NSimsun>@echo off<BR>for %%I in (bbs.bathome.net) do echo %%I<BR>pause</FONT></CODE></DIV>　　保存为批处理文件并执行，将会在弹出的批处理窗口中看到这样的信息：<BR><FONT color=blue>[result1]</FONT> 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>bbs.bathome.net<BR>请按任意键继续...</BLOCKQUOTE></DIV>　　很快地，你会觉得这个for语句是如此的简单，简单到你丝毫感受不出它的强大：这个for语句，和我直接用echo语句没什么两样啊！<BR><BR>　　是的，演示代码永远都只是演示而已，就像大多数高级语言的教科书一样，在引导新手学习的时候，基本上都是千篇一律地告诉大家如何编写一个能显示 hello world! 的窗口，从这些演示代码中，你看不到它们具有多少实用性，你只是感到有点好奇：咦，居然弹出了一个窗口？片刻之后，你就会觉得索然无味。<BR><BR>　　那好吧，为了让大家对for更加感兴趣，我们先来分析一下for语句的一些注意事项，之后，再让大家看看更为强大的for语句实例。<BR>　　 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>　　1、for语句的形式变量I，可以换成26个字母中的任意一个，这些字母会区分大小写，也就是说，%%I和%%i会被认为不是同一个变量；形式变量I还可以换成其他的字符，但是，为了不与批处理中的%0～%9这10个形式变量发生冲突，请不要随意把%%I替换为%%0 ～%%9中的任意一个；<BR>　　2、in和do之间的command1表示的字符串或变量可以是一个，也可以是多个，每一个字符串或变量，我们称之为一个元素，每个元素之间，用空格键、跳格键、逗号、分号或等号分隔；<BR>　　3、for语句依次提取command1中的每一个元素，把它的值赋予形式变量I,带到do后的command2中参与命令的执行；并且每次只提取一个元素，然后执行一次do后的命令语句，而无论这个元素是否被带到command2中参与了command2的运行；当执行完一次do后的语句之后，再提取command1中的下一个元素，再执行一次command2，如此循环，直到command1中的所有元素都已经被提取完毕，该for语句才宣告执行结束；</BLOCKQUOTE></DIV>　　其中，第3点是最为关键的，它描述了for语句的执行过程，是for语句的精髓所在，大家一定要牢记这一条，才能深刻理解更为复杂的for流程。<BR><BR>　　有了以上的基础，我们再来看一个例子，这个例子修改了[code1]的部分内容，结果将大不一样：<BR><FONT color=blue>[code2]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code3'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code3><FONT face=NSimsun>@echo off<BR>for %%I in (bbs,bathome,net) do echo %%I<BR>pause</FONT></CODE></DIV>　　和[code1]的执行结果[result1]相比，[result2]发生了如下变化：<BR><BR>　　1、显示结果分成了3行（不算最后一行中文提示）；<BR>　　2、每一行都从逗号处被切分；<BR><BR>　　如果把 bbs.bathome.net 这个字符串中的点号换为空格、跳格或等号，执行结果将和example2的执行结果别无二致。<BR><BR>　　现在，我们来分析一下[code2]代码中for语句的执行过程：<BR><BR>　　首先，for语句以逗号为分隔符，把 bbs,bathome.net 这个字符串切分成三个元素：bbs、bathome和cn，由此决定了do后的语句将会被执行3次；<BR>　　然后，第一次执行过程是这样的：先把 bbs 这个字符串作为形式变量I的值，带入do后的语句中加以执行，也就是执行 echo %%I 语句，此时的I值为bbs，因此，第一次执行的结果，将会在屏幕上显示bbs这个字符串；第二次执行和第一次执行的过程是一样的，只不过此时I的值已经被替换为command1中的第二个元素了，也就是 bathome 这个字符串；如此循环，当第三次echo执行完毕之后，整条for语句才算执行完毕，此时，将执行下一条语句，也就是pause命令。<BR><BR>　　其实，这个例子只比上一个例子多了一点花样，有趣了那么一点点：一条for语句的执行结果居然被分成了3行！<BR><BR>　　为了让大家见识一下for的真正威力，本人绞尽脑汁，翻帖无数，不得要领，万般无奈之下，只好亮出了尘封在箱底多年的一段代码：检测当前硬盘都有哪些分区^_^<BR><FONT color=blue>[code3]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code4'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code4><FONT face=NSimsun>@echo off<BR>set str=c d e f g h i j k l m n o p q r s t u v w x y z<BR>echo 当前硬盘的分区有：<BR>for %%i in (%str%) do if exist %%i: echo %%i:<BR>pause</FONT></CODE></DIV>　　这段代码能检测硬盘都有哪些分区，包括U盘和移动硬盘的分区，但是，当光驱中有盘的时候，也会被列出来，这是本代码的一个缺憾，在以后的讲解中，我将向大家讲述如何消除这个瑕疵，敬请关注本系列的后续章节。<BR><BR>　　<FONT color=blue>高级应用：</FONT><BR><BR>　　想知道当前目录下都有哪些文件吗？请用下面的代码： 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code5'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code5><FONT face=NSimsun>@echo off<BR>for %%i in (*.*) do echo "%%i"<BR>pause</FONT></CODE></DIV>　　想列出当前目录下所有的文本文件吗？请用下面的代码： 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code6'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code6><FONT face=NSimsun>@echo off<BR>for %%i in (*.txt) do echo "%%i"<BR>pause</FONT></CODE></DIV>　　想列出只用两个字符作为文件名的文本文件吗？请用下面的代码： 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code7'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code7><FONT face=NSimsun>@echo off<BR>for %%i in (??.txt) do echo "%%i"<BR>pause</FONT></CODE></DIV>　　<FONT color=blue>题外话：</FONT><BR><BR>　　1、列出当前目录下各种文件的方法，最简单的还是用dir命令，但是，从以上代码中，各位可以加深对for语句执行流程的理解（用到了通配符*和?）；<BR>　　2、注意：以上代码不能列出含有隐藏或系统属性的文件；<BR><BR>　　练习：用for语句建立test1.txt、test2.txt和test3.txt三个文本文件。<BR><BR>　　更全面的练习请看这个帖子：<A href="http://bbs.bathome.net/thread-2336-1-1.html" target=_blank><FONT color=blue>for语句从入门到精通配套练习题</FONT></A></DIV><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm --><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm --><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm -->
+<FIELDSET><!-- 为了折叠评分记录，屏蔽了该语句 2008.9.7 by namejm
+									  <legend><a href="misc.php?action=viewratings&amp;tid=2189&amp;pid=12584" title="查看评分记录">本帖最近评分记录</a></legend>
+                <ul>
+为了折叠评分记录，屏蔽了该语句 2008.9.7 by namejm --><!-- 折叠评分记录 2008.9.7 by namejm --><CITE><FONT color=#0066cc></FONT></CITE></FIELDSET> </DIV>
+<DIV class=signatures style="WIDTH: 491px; HEIGHT: 5px; maxHeightIE: "><FONT color=blue><STRONG></STRONG></FONT></DIV>
+<DIV></DIV></TD></TR>
+<TR>
+<TD class=postauthor>
+<DIV class="popupmenu_popup userinfopanel" id=userinfo12584_menu style="DISPLAY: none">
+<DL>
+<DT>&nbsp;</DT>
+<DT>&nbsp;</DT></DL></DIV></TD>
+<TD class=postcontent>
+<DIV class=postactions>
+<P><!-- 在每个帖子中添加删除帖子/主题的功能按钮 2008.9.9 by namejm --><!-- 在每个帖子中添加删除帖子/主题的功能按钮 2008.9.9 by namejm --><!-- 在每个帖子中添加屏蔽此帖的功能按钮 2008.9.10 by namejm --><!-- 在每个帖子中添加屏蔽此帖的功能按钮 2008.9.10 by namejm --></P>
+<DIV class=ad_textlink1 id=ad_thread1_2><FONT color=blue>切记：不要参与骂战，金钱、时间、精力都比你丰富的人多得很。 </FONT></DIV></DIV></TD></TR></TBODY></TABLE></DIV>
+<DIV class="mainbox viewthread">
+<TABLE id=pid12585 cellSpacing=0 cellPadding=0 summary=pid12585>
+<TBODY>
+<TR>
+<TD class=postauthor><CITE><!-- 本条被注释的为原始文件，下一条 href 语句为修改后的语句  2008.8.28 by namejm
+							<a href="space.php?uid=5" target="_blank" id="userinfo12585" class="dropmenu" onmouseover="showMenu(this.id)">namejm</a></cite>
+本条被注释的为原始文件，下一条 href 语句为修改后的语句  2008.8.28 by namejm --><!-- 楼主名字旁用红色的[楼主]字样标注，不同组别的用户ID用不同颜色标注 2008.8.28 by namejm --></CITE>
+<P class=offline>&nbsp;</P></TD>
+<TD class=postcontent>
+<DIV class=postinfo>&nbsp;</DIV>
+<DIV id=ad_thread2_3></DIV>
+<DIV class="postmessage defaultpost">
+<DIV id=ad_thread3_3></DIV>
+<DIV id=ad_thread4_3></DIV>
+<H2>三、文本解析显神威：for /f 用法详解[2009.2.10更新]</H2><!-- 为了折叠指定版块的回帖以达到隐藏目的，此处屏蔽了一条语句，若要恢复原有语句，请复制下一条语句中else之后和if之前的那一句 2008.9.5 by namejm --><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm -->
+<DIV class=t_msgfont id=postmessage_12585>　　　　<STRONG>前言</STRONG><BR><BR>　　for /f 是个十分强大的家伙。<BR><BR>　　如果说，for语句是批处理中最强大的语句的话，那么，for /f 就是精华中的精华。<BR><BR>　　for /f 的强大，和它拥有众多的开关密切相关。因为开关众多，所以用法复杂，本章将分成若干小节，为大家逐一介绍强大的 for /f 语句。<BR><BR>　　　　<STRONG>（一） 为解析文本而生：for /f 的基本用法</STRONG><BR><BR>　　所有的对象，无论是文件、窗体、还是控件，在所有的非机器语言看来，无外乎都是形如"c:\test.txt"、"CWnd"之类的文本信息；而所有的对象，具体的如ini文件中的某条配置信息、注册表中的某个键值、数据库中的某条记录……都只有转化为具有一定格式的文本信息，方可被代码识别、操控。可以说，编程的很大一部分工作，都是在想方设法绞尽脑汁如何提取这些文本信息。<BR><BR>　　而提取文本信息，则是for /f的拿手好戏：读取文件内容；提取某几行字符；截取某个字符片段；对提取到的内容再切分、打乱、杂糅……只要你所能想到的花样，for /f 都会想方设法帮你办到，因为，for /f 就是被设计成专门用于解析文本的。<BR><BR>　　先来看个例子。<BR><BR>　　假如有个文本文件test.txt，内容如下：<BR><FONT color=blue>[txt1]</FONT> 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>论坛的目标是：不求最大，但求最好，做最实用的批处理论坛。<BR>论坛地址：bbs.bathome.net。<BR>这里是：新手晋级的福地，高手论剑的天堂。</BLOCKQUOTE></DIV>　　那么，将如下代码保存为test.cmd，并放在test.txt同一目录下运行，将会在屏幕上原样显示test.txt的内容：<BR><FONT color=blue>[code4]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code8'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code8><FONT face=NSimsun>@echo off<BR>for /f %%i in (test.txt) do echo %%i<BR>pause</FONT></CODE></DIV>　　这段代码，主要是让你树立这样一种观念：读取文本文件的内容，请使用 for /f 语句！<BR><BR>　　<FONT color=blue>进阶话题：for /f 语句是把整个test.txt一次性显示出来的？</FONT><BR><FONT color=#0000ff></FONT><BR>　　在这段代码中，虽然执行结果是把test.txt中的所有内容都显示出来了，貌似 for /f 语句是把整个test.txt一次性显示到屏幕上，实际上并非如此。<BR><BR>　　无论for语句做何种变化，它的执行过程仍然遵循基本的for流程：依次处理每个元素，直到所有的元素都被处理为止。只不过在for /f语句中，这里的元素是指文件中的每一行，也就是说，for /f 语句是以行为单位处理文本文件的。这是一条极为重要的规则，在上一章中也强调过它的重要性，希望在接下来的学习过程中，你能时刻牢记这一原则，那么，很多问题将会迎刃而解。以下是验证这一说法的演示代码（在[code4]的基础上添加了&amp;pause语句）：<BR><FONT color=blue>[code5]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code9'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code9><FONT face=NSimsun>@echo off<BR>for /f %%i in (test.txt) do echo %%i&amp;pause<BR>pause</FONT></CODE></DIV>　　　　<STRONG>（二） 切分字符串的利器：delims=</STRONG><BR><BR>　　也许你对[code4]这段代码不屑一顾：不就是把test.txt的内容显示出来了么？好像用处不大啊。<BR><BR>　　好吧，我们来玩个魔术。<BR><BR>　　还是[txt1]这段文本，把[code4]改造一下：<BR><FONT color=blue>[code6]<BR></FONT>
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code10'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code10><FONT face=NSimsun>@echo off<BR>for /f "delims=，" %%i in (test.txt) do echo %%i<BR>pause</FONT></CODE></DIV>　　再次运行test.cmd，看到什么变化了吗？！<BR><FONT color=blue>[result2]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code11'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code11><FONT face=NSimsun>论坛的目标是：不求最大<BR>论坛地址：bbs.bathome.net。<BR>这里是：新手晋级的福地<BR>请按任意键继续...</FONT></CODE></DIV>　　结果，你惊奇地发现，每行第一个逗号之后的所有内容都不见了（如果有不存在逗号的行，则保留原样），也就说，你成功地提取到了每行第一个逗号之前的所有内容！<BR><BR>　　试想一下，这段代码会有什么用呢？<BR><BR>　　如果别人给了你一个软件清单，每行都是"英文软件名（逗号）中文软件名"的格式，而你却只想保留英文名的时候，这段代码将是多么有用啊！再假设，有这么一个IP文件，第一列是数字格式的IP地址，第二列是具体的空间地址，列与列之间用逗号分隔，而你想提取其中数字格式的IP，呵呵，我不说你也知道该怎么办了吧？<BR><BR>　　要是文本内容不是以逗号分隔，而是以其他符号分隔，那么，把"delims=,"的逗号换成相应的符号就可以了。<BR><BR>　　在这里，我们引入了一个新的开关："delims=，"，它的含义是：以逗号作为被处理的字符串的分隔符号。<BR><BR>　　在批处理中，指定分隔符号的方法是：添加一个形如 "delims=符号列表" 的开关，这样，被处理的每行字符串都会被符号列表中罗列出来的符号切分开来。<BR><BR>　　需要注意的是：如果没有指定"delims=符号列表"这个开关，那么，for /f 语句默认以空格键或跳格键作为分隔符号。请把[txt1]中不同位置上的标点符号改为空格或跳格，再运行[code4]试试。<BR><BR>　　<FONT color=blue>进阶话题：如果我要指定的符号不止一个，该怎么办？</FONT><BR><FONT color=#0000ff></FONT><BR>　　在上面的讲解中，我提到了指定分隔符号的方法：添加一个形如"delims=符号列表"的开关。不知道你注意到没有，我的说法是"符号列表"而非"符号"，这是大有讲究的，因为，你可以一次性指定多个分隔符号！<BR><BR>　　还是以[txt1]为例，把[code6]再改造一下：<BR><FONT color=blue>[code7]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code12'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code12><FONT face=NSimsun>@echo off<BR>for /f "delims=.，" %%i in (test.txt) do echo %%i<BR>pause</FONT></CODE></DIV>　　结果显示：<BR><FONT color=blue>[result3]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code13'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code13><FONT face=NSimsun>论坛的目标是：不求最大<BR>论坛地址：bbs<BR>这里是：新手晋级的福地<BR>请按任意键继续...</FONT></CODE></DIV>　　这样，第一个点号或第一个逗号之前的内容都被提取出来了。<BR><BR>　　[code7]的执行过程是：逐行读取test.txt中的内容，以点号和逗号切分每一行的内容（不存在点号和逗号的行，则不再切分，为了描述的方便，我们把被点号或逗号切分的一个一个的字符串片段，称之为节），然后，for /f 会提取第一节的内容作为最终结果，显示在屏幕上。需要注意的是，在这里，所有行的字符串被切分成了两个以上的节，但是，[code7]的代码只会提取第一节字符串的内容，因为 for /f 语句默认只提取第一节的符串。<BR><BR><BR>　　　　<STRONG>（三） 定点提取：tokens=</STRONG><BR><BR>　　上一节在讲解 delims= 的时候，我一再强调 for /f 默认只能提取到第一节的内容，现在我们来思考一个问题：如果我要提取的内容不在第一节上，那怎么办？<BR><BR>　　这回，就该轮到 tokens= 出马了。<BR><BR>　　tokens= 后面一般跟的是数字，如 tokens=2，也可以跟多个，但是每个数字之间用逗号分隔，如 tokens=3,5,8，它们的含义分别是：提取第2节字符串、提取第3、第5和第8节字符串。注意，这里所说的“节”，是由 delims= 这一开关划分的，它的内容并不是一成不变的。<BR><BR>　　下面来看一个例子：<BR><FONT color=blue>[txt2]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code14'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code14><FONT face=NSimsun>尺有所短，寸有所长，学好批处理没商量，考虑问题复杂化，解决问题简洁化。</FONT></CODE></DIV>　　对[txt2]这段文本，假设它们保存在文件test.txt中，如果我想提取“学好批处理没商量”这句话，该如何写代码呢？<BR><BR>　　我们稍微观察一下[txt2]就会发现，如果以逗号作为切分符号，就正好可以把“学好批处理没商量”化为单独的一“节”，结合上一节的讲解，我们知道，"delims=，" 这个开关是不可缺少的，而要提取的内容在以逗号切分的第3节上，那么，tokens= 后面的数字就应该是3了，最终的代码如下：<BR><FONT color=blue>[code8]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code15'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code15><FONT face=NSimsun>@echo off<BR>for /f "delims=， tokens=3" %%i in (test.txt) do echo %%i<BR>pause</FONT></CODE></DIV>　　如果我们现在要提取的不只一个“节”，而是多个，那又怎么办呢？比如，要提取以逗号切分的第2节和第5节字符串，是写成这样吗？<BR><FONT color=blue>[code9]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code16'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code16><FONT face=NSimsun>@echo off<BR>for /f "delims=， tokens=2,5" %%i in (test.txt) do echo %%i<BR>pause</FONT></CODE></DIV>　　运行批处理后发现，执行结果只显示了第2节的内容。<BR><BR>　　原来，echo 后面的 %%i 只接收到了 tokens=2,5 中第一个数值2所代表的那个字符串，而第二个数值5所代表的字符串因为没有变量来接收，所以就无法在执行结果中显示出来了。<BR><BR>　　那么，要如何接收 tokens= 后面多个数值所指代的内容呢？<BR><BR>　　for /f 语句对这种情况做如下规定：<BR><BR>　　如果 tokens= 后面指定了多个数字，如果形式变量为%%i，那么，第一个数字指代的内容用第一个形式变量%%i来接收，第二个数字指代的内容用第二个形式变量%%j来接收，第三个数字指代的内容用第三个形式变量%%k来接收……第N个数字指代的内容用第N个形式变量来接收，其中，形式变量遵循字母的排序，第N个形式变量具体是什么符号，由第一个形式变量来决定：如果第一个形式变量是%%i，那么，第二个形式变量就是%%j；如果第一个形式变量用的是%%x，那么，第二个形式变量就是%%y。<BR><BR>　　现在回头去看[code9]，你应该知道如何修改才能满足题目的要求了吧？修改结果如下：<BR><FONT color=blue>[code10]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code17'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code17><FONT face=NSimsun>@echo off<BR>for /f "delims=， tokens=2,5" %%i in (test.txt) do echo %%i %%j<BR>pause</FONT></CODE></DIV>　　如果有这样一个要求：显示[txt2]中的内容，但是逗号要替换成空格，如何编写代码？<BR><BR>　　结合上面所学的内容，稍加思索，你可能很快就得出了答案：<BR><FONT color=blue>[code11]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code18'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code18><FONT face=NSimsun>@echo off<BR>for /f "delims=， tokens=1,2,3,4,5" %%i in (test.txt) do echo %%i %%j %%k %%l %%m<BR>pause</FONT></CODE></DIV>　　写完之后，你可能意识到这样一个问题：假如要提取的“节”数不是5，而是10，或者20，或者更多，难道我也得从1写到10、20或者更多吗？有没有更简洁的写法呢？<BR><BR>　　答案是有的，那就是：如果要提取的内容是连续的多“节”的话，那么，连续的数字可以只写最小值和最大值，中间用短横连接起来即可，比如 tokens=1,2,3,4,5 可以简写为 tokens=1-5 。<BR><BR>　　还可以把这个表达式写得更复杂一点：tokens=1,2-5，tokens=1-3,4,5，tokens=1-4,5……怎么方便就怎么写吧。<BR><BR>　　大家可能还看到一种比较怪异的写法：<BR><FONT color=blue>[code12]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code19'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code19><FONT face=NSimsun>for /f "delims=， tokens=1,*" %%i in (test.txt) do echo %%i %%j<BR>pause</FONT></CODE></DIV>　　结果，第一个逗号不见了，取代它的是一个空格符号，其余部分保持不变。<BR><BR>　　其中奥妙就在这个星号上面。<BR><BR>　　tokens=后面所接的星号具备这样的功能：字符串从左往右被切分成紧跟在*之前的数值所表示的节数之后，字符串的其余部分保持不变，整体被*所表示的一个变量接收。<BR><BR>　　理论讲解是比较枯燥的，特别是为了严密起见，还使用了很多限定性的修饰词，导致句子很长，增加了理解的难度，我们还是结合[code12]来讲解一下吧。<BR><BR>　　[txt2] 的内容被切分，切分符号为逗号，当切分完第一节之后，切分动作不再继续下去，因为 tokens=1,* 中，星号前面紧跟的是数字1；第一节字符串被切分完之后，其余部分字符串不做任何切分，整体作为第二节字符串，这样，[txt2]就被切分成了两节，分别被变量%%i和变量%%j接收。<BR><BR>　　以上几种切分方式可以结合在一起使用。不知道下面这段代码的含义你是否看得懂，如果看不懂的话，那就运行一下代码，然后反复揣摩，你一定会更加深刻地理解本节所讲解的内容的：<BR><FONT color=blue>[code13]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code20'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code20><FONT face=NSimsun>@echo off<BR>for /f "delims=， tokens=1,3-4,*" %%i in (test.txt) do echo %%i %%j %%k %%l<BR>pause</FONT></CODE></DIV>　　　　<STRONG>（四） 跳过无关内容，直奔主题：skip=n</STRONG><BR><BR>　　很多时候，有用的信息并不是贯穿文本内容的始终，而是位于第N行之后的行内，为了提高文本处理的效率，或者不受多余信息的干扰，for /f 允许你跳过这些无用的行，直接从第N+1行开始处理，这个时候，就需要使用参数 skip=n，其中，n是一个正整数，表示要跳过的行数。例如：<BR><FONT color=blue>[code14]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code21'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code21><FONT face=NSimsun>@echo off<BR>for /f "skip=2" %%i in (test.txt) do echo %%i<BR>pause</FONT></CODE></DIV>　　这段代码将跳过头两行内容，从第3行起显示test.txt中的信息。<BR><BR><BR>　　　　<STRONG>（五） 忽略以指定字符打头的行：eol=</STRONG><BR><BR>　　在cmd窗口中敲入：for /?，相关的解释为： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>eol=c&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;- 指一个行注释字符的结尾(就一个)</BLOCKQUOTE></DIV>
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>FOR /F "eol=; tokens=2,3* delims=, " %i in (myfile.txt) do @echo %i %j %k<BR>&nbsp; &nbsp; 会分析 myfile.txt 中的每一行，忽略以分号打头的那些行……</BLOCKQUOTE></DIV>　　第一条解释狗屁不通，颇为费解：行注释字符的结尾是什么意思？“(就一个)”怎么回事？结合第二条解释，才知道eol有忽略指定行的功能。但是，这两条解释是互相矛盾的：到底是忽略以指定字符打头的行，还是忽略以指定字符结尾的行？<BR><BR>　　实践是检验真理的唯一标准，还是用代码来检验一下eol的作用吧：<BR><FONT color=blue>[code15]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code22'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code22><FONT face=NSimsun>@echo off<BR>for /f "eol=;" %%i in (test.txt) do echo %%i<BR>pause</FONT></CODE></DIV>　　结果，那些以分号打头的行没有显示出来。<BR><BR>　　由此可见，第二条解释是正确的，eol= 的准确含义是：忽略以指定字符打头的行。而第一条的“结尾”纯属微软在信口开河。<BR><BR>　　那么，“(就一个)”又作何解释呢？<BR><BR>　　试试这个代码：<BR><FONT color=blue>[code16]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code23'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code23><FONT face=NSimsun>@echo off<BR>for /f "eol=,;" %%i in (test.txt) do echo %%i<BR>pause</FONT></CODE></DIV>　　此时，屏幕上出现 <STRONG>此时不应有 ;"。</STRONG> 的报错信息。可见，在指定字符的时候，只能指定1个——在很多时候，我对这样的设计颇有微词而又无可奈何：为什么只能指定1个而不是多个？要忽略多个还得又是if又是findstr加管道来多次过滤，那效率实在太低下了——能用到的功能基本上都提供，但是却又做不到更好，批处理，你的功能为什么那么弱？<BR><BR>　　不知道大家注意到没有，如果test.txt中有以分号打头的行，那么，这些行在代码[code14]的执行结果中将凭空消失。<BR><BR>　　<FONT color=red>原来，for /f 语句是默认忽略以分号打头的行内容的，正如它默认以空格键或跳格键作为字符串的切分字符一样。</FONT><BR><FONT color=#ff0000></FONT><BR>　　很多时候，我们可以充分利用这个特点，比如，在设计即将用for读取的配置文件的时候，可以在注释文字的行首加上分号，例如在编写病毒文件查杀代码的时候，可以通过for语句来读取病毒文件列表，那么，病毒文件列表.ini这个配置文件可以这样写： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>;以下是常见的病毒文件，请见一个杀一个^_^<BR>;copyleft:没有<BR>qq.exe<BR>msn.exe<BR>iexplore.exe</BLOCKQUOTE></DIV>　　如果要取消这个默认设置，可选择的办法是：<BR><BR>　　1、为eol=指定另外一个字符；<BR>　　2、使用 for /f "eol=" 语句，也就是说，强制指定字符为空，就像对付delims=一样。<BR><BR><BR><STRONG>　　　　（六）如何决定该使用 for /f 的哪种句式？（兼谈usebackq的使用）</STRONG><BR><BR>　　for /f %%i in (……) do (……) 语句有好几种变形语句，不同之处在于第一个括号里的内容：有的是用单引号括起来，有的是用双引号包住，有的不用任何符号包裹，具体格式为： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>　　1、for /f %%i in (文件名) do (……)<BR>　　2、for /f %%i in ('命令语句') do (……)<BR>　　3、for /f %%i in ("字符串") do (……)</BLOCKQUOTE></DIV>　　看到这里，我想很多人可能已经开始犯了迷糊了：如果要解决一个具体问题，面对这么多的选择，如何决定该使用哪一条呢？<BR><BR>　　实际上，当我在上面罗列这些语句的时候，已经有所提示了，不知道你是否注意到了。<BR><BR>　　如果你一时无法参透其中奥妙，那也无妨，请听我一一道来便是。<BR><BR>　　<FONT color=blue>1、当你希望读取文本文件中的内容的话，第一个括号中不用任何符号包裹，应该使用的是第1条语句；</FONT>例如：你想显示test.txt中的内容，那么，就使用 for /f %%i in (test.txt) do echo %%i；<BR>　　<FONT color=blue>2、当你读取的是命令语句执行结果中的内容的话，第一个括号中的命令语句必须使用单引号包裹，应该使用的是第2条语句；</FONT>例如：你想显示当前目录下文件名中含有test字符串的文本文件的时候，应该使用 for /f %%i in ('dir /a-d /b *test*.txt') do echo %%i 这样的语句；<BR>　　<FONT color=blue>3、当你要处理的是一个字符串的时候，第一个括号中的内容必须用双引号括起来，应该是用的是第3条语句；</FONT>例如：当你想把bbs.bathome.net这串字符中的点号换为短横线并显示出来的话，可以使用 for /f "delims=. tokens=1-3" %%i in ("bbs.bathome.net") do echo %%i-%%j-%%k 这样的语句。<BR><BR>　　<STRONG>很显然，第一个括号里是否需要用符号包裹起来，以及使用什么样的符号包裹，取决于要处理的对象属于什么类型：如果是文件，则无需包裹；如果是命令语句，则用单引号包裹；如果是字符串，则使用双引号括起来。</STRONG><BR><BR>　　当然，事情并不是绝对如此，如果细心的你想到了批处理中难缠的特殊字符，你肯定会头大如斗。<BR><BR>　　或许你头脑中灵光一闪，已经想到了一个十分头痛的问题：在第1条语句中，如果文件名中含有空格或&amp;，该怎么办？<BR><BR>　　照旧吗？<BR><BR>　　拿个叫 test 1.txt 的文件来试试。<BR><BR>　　你很快写好了代码，新建文件--&gt;码字--&gt;保存为批处理，前后费时不到1分钟：<BR><FONT color=blue>[code17]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code24'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code24><FONT face=NSimsun>@echo off<BR>for /f %%i in (test 1.txt) do echo %%i<BR>pause</FONT></CODE></DIV>　　你兴冲冲地双击批处理，运行后，屏幕上出现了可耻的报错信息：系统找不到文件 test 。<BR><BR>　　当你把 test 1.txt 换成 test&amp;1.txt 后，更怪异的事情发生了：CMD窗口在你眼前一闪而过，然后，优雅地消失了。<BR><BR>　　你可能觉得自己的代码写错了某些符号，你再仔细的检查了一次，确认没有笔误，然后，你再次双击批处理，结果问题照旧；你开始怀疑其他程序对它可能有影响，于是关掉其他窗口，再运行了一次，问题依旧；你不服气地连续运行了好几次，还是同样的结果。<BR><BR>　　怪哉！<BR><BR>　　你一拍大腿，猛然想起了一件事：当路径中含有特殊字符的时候，应该使用引号把路径括起来。对，就是它了！<BR><BR>　　但是，当你把代码写出来之后，你很快就焉了：for /f %%i in ("test 1.txt") do echo %%i，这不就是上面提到的第3条 for /f 命令的格式吗？批处理会把 test 1.txt 这个文件名识别为字符串啊！<BR><BR>　　你百无聊赖地在CMD窗口中输入 for /? ，并重重地敲下了回车，漫无目的地在帮助信息中寻找，希望能找到点什么。<BR><BR>　　结果还真让你到了点什么。<BR><BR>　　你看到了这样的描述： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;usebackq&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;- 指定新语法已在下类情况中使用:<BR>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;在作为命令执行一个后引号的字符串并且一个单<BR>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;引号字符为文字字符串命令并允许在 filenameset<BR>&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;中使用双引号扩起文件名称。</BLOCKQUOTE></DIV>　　但是，通读一遍之后，你却如坠五里雾中，不知所云。<BR><BR>　　还好，下面有个例子，并配有简单的说明： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE><BR>&nbsp; &nbsp;&nbsp; &nbsp;FOR /F "usebackq delims==" %i IN (`set`) DO @echo %i<BR>&nbsp; &nbsp; 会枚举当前环境中的环境变量名称。</BLOCKQUOTE></DIV>　　你仔细对比了for /f语句使用usebackq和不使用usebackq时在写法上的差别，很快就找到了答案：当使用了usebackq之后，如果第一个括号中是一条命令语句，那么，就要把单引号'改成后引号`（键盘左上角esc键下面的那个按键，与~在同一键位上）。<BR><BR>　　回过头去再看那段关于usebackq的描述，字斟句酌，反复揣摩，终于被你破译了天机：<FONT color=blue>usebackq 是一个增强型参数，当使用了这个参数之后，原来的for语句中第一个括号内的写法要做如下变动：如果第一个括号里的对象是一条命令语句的话，原来的单引号'要改为后引号`；如果第一个括号里的对象是字符串的话，原来的双引号"要改为单引号'；如果第一个括号里的对象是文件名的话，要用双引号"括起来。</FONT><BR><FONT color=#0000ff></FONT><BR>　　验证一下，把[code17]改写成如下代码：<BR><FONT color=blue>[code18]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code25'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code25><FONT face=NSimsun>@echo off<BR>for /f "usebackq" %%i in ("test 1.txt") do echo %%i<BR>pause</FONT></CODE></DIV>　　测试通过！<BR><BR>　　此时，你很可能会仰天长叹：Shit，微软这该死的机器翻译！<BR><BR>　　至于把[code17]代码中的空格换成&amp;后，CMD窗口会直接退出，那是因为&amp;是复合语句的连接符，CMD在预处理的时候，会优先把&amp;前后两部分作为两条语句来解析，而不是大家想象中的一条完整的for语句，从而产生了严重的语法错误。因为牵涉到预处理机制问题，不属于本节要讨论的内容，在此不做详细讲解。<BR><BR>　　这个时候，我们会吃惊地发现，区区一条for语句，竟然有多达6种句型： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>　　1、for /f %%i in (文件名) do (……)<BR>　　2、for /f %%i in ('命令语句') do (……)<BR>　　3、for /f %%i in ("字符串") do (……)<BR>　　4、for /f "usebackq" %%i in ("文件名") do (……)<BR>　　5、for /f "usebackq" %%i in (`命令语句`) do (……)<BR>　　6、for /f "usebackq" %%i in ('字符串') do (……)</BLOCKQUOTE></DIV>　　其中，4、5、6由1、2、3发展而来，他们有这样的对应关系：1--&gt;4、2--&gt;5、3--&gt;6。<BR><BR>　　好在后3种情形并不常用，所以，牢牢掌握好前三种句型的适用情形就可以了，否则，要在这么多句型中确定选择哪一条语句来使用，还真有点让人头脑发懵。<BR><BR>　　至于 for /f 为什么要增加usebacq参数，我只为第4条语句找到了合理的解释：为了兼容文件名中所带的空格或&amp;。它在第5、6条语句中为什么还有存在的必要，我也不是很明白，这有待于各位去慢慢发现。</DIV><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm --><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm --><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm --></DIV>
+<DIV class=signatures style="HEIGHT: 67px; maxHeightIE: "><FONT color=blue><STRONG>尺有所短寸有所长，学好批处理没商量；<BR>考虑问题复杂化，解决问题简洁化。</STRONG></FONT><BR><FONT color=darkgreen><STRONG>心在天山，身老沧州。</STRONG></FONT> </DIV>
+<DIV></DIV></TD></TR>
+<TR>
+<TD class=postauthor><A href="http://bbs.bathome.net/space.php?action=viewpro&amp;uid=5" target=_blank><FONT color=#0066cc></FONT></A></TD>
+<TD class=postcontent>
+<DIV class=postactions>
+<P><FONT color=red></FONT>&nbsp;</P></DIV></TD></TR></TBODY></TABLE></DIV>
+<DIV class="mainbox viewthread">
+<TABLE id=pid12586 cellSpacing=0 cellPadding=0 summary=pid12586>
+<TBODY>
+<TR>
+<TD class=postauthor><CITE><!-- 本条被注释的为原始文件，下一条 href 语句为修改后的语句  2008.8.28 by namejm
+							<a href="space.php?uid=5" target="_blank" id="userinfo12586" class="dropmenu" onmouseover="showMenu(this.id)">namejm</a></cite>
+本条被注释的为原始文件，下一条 href 语句为修改后的语句  2008.8.28 by namejm --><!-- 楼主名字旁用红色的[楼主]字样标注，不同组别的用户ID用不同颜色标注 2008.8.28 by namejm --><FONT color=#0066cc></FONT></CITE></TD>
+<TD class=postcontent>
+<DIV class=postinfo>&nbsp;</DIV>
+<DIV id=ad_thread2_4></DIV>
+<DIV class="postmessage defaultpost">
+<DIV id=ad_thread3_4></DIV>
+<DIV id=ad_thread4_4></DIV>
+<H2>（七）变量延迟详解[2009.2.12更新]</H2><!-- 为了折叠指定版块的回帖以达到隐藏目的，此处屏蔽了一条语句，若要恢复原有语句，请复制下一条语句中else之后和if之前的那一句 2008.9.5 by namejm --><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm -->
+<DIV class=t_msgfont id=postmessage_12586>　　变量延迟在for语句中起着至关重要的作用，不只是在for语句中，在其他的复合语句中，它也在幕后默默地工作着，为了突出它的重要性，本节内容在单独的楼层中发出来，希望引起大家的重视。<BR><BR>　　对于批处理新手而言，“变量延迟”这个概念很可能闻所未闻，但是，它却像一堵横亘在你前进道路上的无形高墙，你感受不到它的存在，但当你试图往前冲时，它会把你狠狠地弹回来，让你无法逾越、无功而返；而一旦找到了越过它的方法，你就会发现，在for的世界里，前面已经是一片坦途，而你对批处理的理解，又上升到了一个新的境界。<BR><BR>　　例如，你编写了这样一个代码：<BR><FONT color=blue>[code19]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code26'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code26><FONT face=NSimsun>@echo off<BR>set num=0&amp;&amp;echo %num%<BR>pause</FONT></CODE></DIV>　　你的本意是想对变量num赋值之后，再把这个值显示出来，结果，显示出来的并不是0，而是显示：ECHO 处于关闭状态。<BR><BR>　　之所以会出错，是因为“变量延迟”这个家伙在作怪。<BR><BR>　　在讲解变量延迟之前，我们需要了解一下批处理的执行过程，它将有助于我们深入理解变量延迟。<BR><BR>　　批处理的执行过程是怎样的呢？<BR><BR>　　“自上而下，逐条执行”，我想，这个经典的说法大家都已经耳熟能详了，没事的时候倒着念，也还别有一番古韵呢^_^，但是，我想问大家的是，大家真的深刻地理解了这句话的含义了吗？<BR><BR>　　“自上而下”，这一条和我们本节的讲解关系不大，暂时略过不说，后一条，“逐条执行”和变量延迟有着莫大的干系，它是我们本节要关注的重点。<BR><BR>　　很多人往往认为一行代码就是一条语句，从而把“逐条执行”与“逐行执行”等同起来，这就大错特错了。<BR><BR>　　莫非“逐条执行”里暗藏着玄机？<BR><BR>　　正是如此。<BR><BR>　　“逐条”并不等同于“逐行”。这个“条”，是“一条完整的语句”的意思，并不是指“一行代码”。在批处理中，是不是一条完整的语句，并不是以行来论的，而是要看它的作用范围。<BR><BR>　　什么样的语句才算“一条完整的语句”呢？<BR><BR>　　1、在复合语句中，整个复合语句是一条完整的语句，而无论这个复合语句占用了多少行的位置。常见的复合语句有：for语句、if……else语句、用连接符&amp;、||和&amp;&amp;连接的语句，用管道符号|连接的语句，以及用括号括起来的、由多条语句组合而成的语句块；<BR>　　2、在非复合语句中，如果该语句占据了一行的位置，则该行代码为一条完整的语句。<BR>　　例如：<BR><FONT color=blue>[code20]<BR></FONT>
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code27'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code27><FONT face=NSimsun>@echo off<BR>set num=0<BR>for /f %%i in ('dir /a-d /b *.exe') do (<BR>&nbsp; &nbsp; set /a num+=1<BR>&nbsp; &nbsp; echo num 当前的值是 %num%<BR>)<BR>echo 当前目录下共有 %num% 个exe文件<BR>dir /a-d /b *.txt|findstr "test"&gt;nul&amp;&amp;(<BR>&nbsp; &nbsp; echo 存在含有 test 字符串的文本本件<BR>)||echo 不存在含有 test 字符串的文本文件<BR>if exist test.ini (<BR>&nbsp; &nbsp; echo 存在 test.ini 文件<BR>) else echo 不存在 test.ini 文件<BR>pause</FONT></CODE></DIV>　　上面的代码共有14行，但是只有完整的语句只有7条，它们分别是：<BR><BR>　　第1条：第1行的echo语句；<BR>　　第2条：第2行的set语句；<BR>　　第3条：第3、4、5、6行上的for复合语句；<BR>　　第4条：第7行的echo语句；<BR>　　第5条：第8、9、10行上用&amp;&amp;和||连接的复合语句；<BR>　　第6条：第11、12、13行上的if……else复合语句；<BR>　　第7条：第14行上的pause语句。<BR><BR>　　在这里，我之所以要花这么长的篇幅来说明一行代码并不见得就是一条语句，是因为批处理的执行特点是“逐条”执行而不是“逐行”执行，澄清了这个误解，将会更加理解批处理的预处理机制。<BR><BR>　　在代码“逐条”执行的过程中，cmd.exe这个批处理解释器会对每条语句做一些预处理工作，这就是批处理中大名鼎鼎的“预处理机制”。<BR><BR>　　<FONT color=red>预处理的大致情形是这样的：首先，把一条完整的语句读入内存中（不管这条语句有多少行，它们都会被一起读入），然后，识别出哪些部分是命令关键字，哪些是开关、哪些是参数，哪些是变量引用……如果代码语法有误，则给出错误提示或退出批处理环境；如果顺利通过，接下来，就把该条语句中所有被引用的变量及变量两边的百分号对，用这条语句被读入内存之就已经赋予该变量的具体值来替换……当所有的预处理工作完成之后，批处理才会执行每条完整语句内部每个命令的原有功能。也就是说，如果命令语句中含有变量引用（变量及紧邻它左右的百分号对），并且某个变量的值在命令的执行过程中被改变了，即使该条语句内部的其他地方也用到了这个变量，也不会用最新的值去替换它们，因为某条语句在被预处理的时候，所有的变量引用都已经被替换成字符串常量了，变量值在复合语句内部被改变，不会影响到语句内部的其他任何地方。</FONT><BR><FONT color=#ff0000></FONT><BR>　　顺便说一下，运行代码[code20]之后，将在屏幕上显示当前目录下有多少个exe文件，是否存在含有 test 字符串的文本文件，以及是否存在 test.ini 这个文件等信息。让很多人百思不得其解的是：如果当前目录下存在exe文件，那么，有多少个exe文件，屏幕上就会提示多少次 "num 当前的值是 0" ，而不是显示1到N（N是exe文件的个数）。<BR><BR>　　结合上面两个例子，我们再来分析一下，为什么这两段代码的执行结果和我们的期望有一些差距。<BR><BR>　　在[code19]中，set num=0&amp;&amp;echo %num%是一条复合语句，它的含义是：把0赋予变量num，成功后，显示变量num的值。<BR><BR>　　虽然是在变量num被赋值成功后才显示变量num的值，但是，因为这是一条复合语句，在预处理的时候，&amp;&amp;后的%num%只能被set语句之前的语句赋予变量num的具体值来替换，而不能被复合语句内部、&amp;&amp;之前的set语句对num所赋予的值来替换，可见，此num非彼num。可是，在这条复合语句之前，我们并没有对变量num赋值，所以，&amp;&amp;之后的%num%是空值，相当于在&amp;&amp;之后只执行了 echo 这一命令，所以，会显示 echo 命令的当前状态，而不是显示变量num的值（虽然该变量的值被set语句改变了）。<BR><BR>　　在[code20]中，for语句的含义是：列举当前目录下的exe文件，每发现一个exe文件，变量num的值就累加1，并显示变量num的值。<BR><BR>　　看了对[code19]的分析之后，再来分析[code20]就不再那么困难了：第3、4、5行上的代码共同构成了一条完整的for语句，而语句"echo num 当前的值是 %num%"与"set /a num+=1"同处复合语句for的内部，那么，第4行上set改变了num的值之后，并不能对第5行上的变量num有任何影响，因为在预处理阶段，第5行上的变量引用%num%已经被在for之前就赋予变量num的具体值替换掉了，它被替换成了0（是被第2行上的set语句赋予的）。<BR><BR>　　如果想让代码[code19]的执行结果中显示&amp;&amp;之前赋予num的值，让代码[code20]在列举exe文件的时候，从1到N地显示exe文件的数量，那又该怎么办呢？<BR><BR>　　对代码[code19]，可以把用&amp;&amp;连接复合语句拆分为两条单独的语句，写成： 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code28'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code28><FONT face=NSimsun>@echo off<BR>set num=0<BR>echo %num%<BR>pause</FONT></CODE></DIV>　　但是，这不是我们这次想要的结果。<BR><BR>　　对这两段代码都适用的办法是：使用变量延迟扩展语句，让变量的扩展行为延迟一下，从而获取我们想要的值。<BR><BR>　　在这里，我们先来充下电，看看“变量扩展”有是怎么一回事。<BR><BR>　　用CN-DOS里批处理达人willsort的原话，那就是：“<FONT color=blue>在许多可见的官方文档中，均将使用一对百分号闭合环境变量以完成对其值的替换行为称之为“扩展（expansion）”，这其实是一个第一方的概念，是从命令解释器的角度进行称谓的，而从我们使用者的角度来看，则可以将它看作是引用（Reference）、调用（Call）或者获取（Get）。</FONT>”（见：什么情况下该使用变量延迟？<A href="http://www.cn-dos.net/forum/viewthread.php?tid=20733" target=_blank><FONT color=#800080>http://www.cn-dos.net/forum/viewthread.php?tid=20733</FONT></A>）说得直白一点，所谓的“变量扩展”，实际上就是很简单的这么一件事情：用具体的值去替换被引用的变量及紧贴在它左右的那对百分号。<BR><BR>　　既然只要延迟变量的扩展行为，就可以获得我们想要的结果，那么，具体的做法又是怎样的呢？<BR><BR><FONT color=blue>　　一般说来，延迟变量的扩展行为，可以有如下选择：</FONT><BR><FONT color=#0000ff></FONT><BR><FONT color=blue>　　1、在适当位置使用 setlocal enabledelayedexpansion 语句；<BR>　　2、在适当的位置使用 call 语句。</FONT><BR><FONT color=#0000ff></FONT><BR>　　使用 setlocal enabledelayedexpansion 语句，那么，[code19]和[code20]可以分别修改为： 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code29'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code29><FONT face=NSimsun>@echo off<BR>setlocal enabledelayedexpansion<BR>set num=0&amp;&amp;echo !num!<BR>pause</FONT></CODE></DIV>
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code30'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code30><FONT face=NSimsun>@echo off<BR>set num=0<BR>setlocal enabledelayedexpansion<BR>for /f %%i in ('dir /a-d /b *.exe') do (<BR>&nbsp; &nbsp; set /a num+=1<BR>&nbsp; &nbsp; echo num 当前的值是 !num!<BR>)<BR>echo 当前目录下共有 %num% 个exe文件<BR>dir /a-d /b *.txt|findstr "test"&gt;nul&amp;&amp;(<BR>&nbsp; &nbsp; echo 存在含有 test 字符串的文本本件<BR>)||echo 不存在含有 test 字符串的文本文件<BR>if exist test.ini (<BR>&nbsp; &nbsp; echo 存在 test.ini 文件<BR>) else echo 不存在 test.ini 文件<BR>pause</FONT></CODE></DIV>　　使用第call语句，那么，[code19]和[code20]可以分别修改为： 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code31'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code31><BR><FONT face=NSimsun>@echo off<BR>set num=0&amp;&amp;call echo %%num%%<BR>pause</FONT></CODE></DIV>
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code32'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code32><BR><FONT face=NSimsun>@echo off<BR>set num=0<BR>for /f %%i in ('dir /a-d /b *.exe') do (<BR>&nbsp; &nbsp; set /a num+=1<BR>&nbsp; &nbsp; call echo num 当前的值是 %%num%%<BR>)<BR>echo 当前目录下共有 %num% 个exe文件<BR>dir /a-d /b *.txt|findstr "test"&gt;nul&amp;&amp;(<BR>&nbsp; &nbsp; echo 存在含有 test 字符串的文本本件<BR>)||echo 不存在含有 test 字符串的文本文件<BR>if exist test.ini (<BR>&nbsp; &nbsp; echo 存在 test.ini 文件<BR>) else 不存在 test.ini 文件<BR>pause</FONT></CODE></DIV>　　由此可见，<FONT color=red>如果使用 setlocal enabledelayedexpansion 语句来延迟变量，就要把原本使用百分号对闭合的变量引用改为使用感叹号对来闭合；如果使用call语句，就要在原来命令的前部加上 call 命令，并把变量引用的单层百分号对改为双层。</FONT> 其中，因为call语句使用的是双层百分号对，容易使人犯迷糊，所以用得较少，常用的是使用 setlocal enabledelayedexpansion 语句（set是设置的意思，local是本地的意思，enable是能够的意思，delayed是延迟的意思，expansion是扩展的意思，合起来，就是：让变量成为局部变量，并延迟它的扩展行为）。<BR><BR>　　通过上面的分析，我们可以知道：<BR><BR><STRONG>　　<FONT color=red>1、为什么要使用变量延迟？</FONT>因为要让复合语句内部的变量实时感知到变量值的变化。<BR>　　<FONT color=red>2、在哪些场合需要使用变量延迟语句？</FONT>在复合语句内部，如果某个变量的值发生了改变，并且改变后的值需要在复合语句内部的其他地方被用到，那么，就需要使用变量延迟语句。而复合语句有：for语句、if……else语句、用连接符&amp;、||和&amp;&amp;连接的语句、用管道符号|连接的语句，以及用括号括起来的、由多条语句组合而成的语句块。最常见的场合，则是for语句和if……else语句。<BR>　　<FONT color=red>3、怎样使用变量延迟？</FONT></STRONG><BR><STRONG><FONT color=#ff0000>　　</FONT>方法有两种：<BR>　　① 使用 setlocal enabledelayedexpansion 语句：在获取变化的变量值语句之前使用setlocal enabledelayedexpansion，并把原本使用百分号对闭合的变量引用改为使用感叹号对来闭合；<BR>　　② 使用 call 语句：在原来命令的前部加上 call 命令，并把变量引用的单层百分号对改为双层。</STRONG> <BR><BR>　　“变量延迟”是批处理中一个十分重要的机制，它因预处理机制而生，用于复合语句，特别是大量使用于强大的for语句中。只有熟练地使用这一机制，才能在for的世界中如鱼得水，让自己的批处理水平更上一层楼。很多时候，对for的处理机制，我们一直是雾里看花，即使偶有所得，也只是只可意会难以言传。希望大家反复揣摩，多加练习，很多细节上的经验，是只有通过大量的摸索才能得到的。Good Luck！<BR><BR>　　本节内容在原理上参考了这篇文章：什么情况下该使用变量延迟？<A href="http://www.cn-dos.net/forum/viewthread.php?tid=20733" target=_blank><FONT color=#800080>http://www.cn-dos.net/forum/viewthread.php?tid=20733</FONT></A>，在本论坛中的地址是：<A href="http://bbs.bathome.net/viewthread.php?tid=2899" target=_blank><FONT color=#0066cc>http://bbs.bathome.net/viewthread.php?tid=2899</FONT></A></DIV><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm --><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm --><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm --></DIV>
+<DIV class=signatures style="WIDTH: 226px; HEIGHT: 12px; maxHeightIE: "><FONT color=blue><STRONG></STRONG></FONT></DIV>
+<DIV></DIV></TD></TR>
+<TR>
+<TD class=postauthor>
+<P>&nbsp;</P></TD>
+<TD class=postcontent>
+<DIV class=postactions>
+<P><FONT color=#0066cc></FONT><!-- 主题列表显示版主已阅 2008.9.4 by namejm --><!-- 主题列表显示版主已阅 2008.9.4 by namejm --></P>
+<DIV class=ad_textlink1 id=ad_thread1_4><FONT color=red></FONT>&nbsp;</DIV></DIV></TD></TR></TBODY></TABLE></DIV>
+<DIV class="mainbox viewthread">
+<TABLE id=pid12587 cellSpacing=0 cellPadding=0 summary=pid12587>
+<TBODY>
+<TR>
+<TD class=postauthor><CITE><!-- 本条被注释的为原始文件，下一条 href 语句为修改后的语句  2008.8.28 by namejm
+							<a href="space.php?uid=5" target="_blank" id="userinfo12587" class="dropmenu" onmouseover="showMenu(this.id)">namejm</a></cite>
+本条被注释的为原始文件，下一条 href 语句为修改后的语句  2008.8.28 by namejm --><!-- 楼主名字旁用红色的[楼主]字样标注，不同组别的用户ID用不同颜色标注 2008.8.28 by namejm --><FONT color=#0066cc></FONT></CITE></TD>
+<TD class=postcontent>
+<DIV class=postinfo>&nbsp;<!-- 横排显示 所发主题、加为好友 2008.9.28 by namejm --><!-- 在顶楼帖子顶部显示阅览次数及回复帖数 2008.10.2 by namejm --><!-- 在顶楼帖子顶部显示阅览次数及回复帖数 2008.10.2 by namejm --></DIV>
+<DIV id=ad_thread2_5></DIV>
+<DIV class="postmessage defaultpost">
+<DIV id=ad_thread3_5></DIV>
+<DIV id=ad_thread4_5></DIV><!-- 为了折叠指定版块的回帖以达到隐藏目的，此处屏蔽了一条语句，若要恢复原有语句，请复制下一条语句中else之后和if之前的那一句 2008.9.5 by namejm --><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm -->
+<DIV class=t_msgfont id=postmessage_12587><STRONG>四、翻箱倒柜遍历文件夹：for /r</STRONG><BR><BR><STRONG>　　（一）for /r 的作用及用法</STRONG><BR><BR>　　按照帮助信息里文绉绉的说法，for /r 的作用是“递归”，我们换一个通俗一点的，叫“遍历文件夹”。<BR><BR>　　更详细的解释就是：在下面的语句中，如果“元素集合”中只是一个点号，那么，这条语句的作用就是：列举“目录”及其之下的所有子目录，对这些文件夹都执行“命令语句集合”中的命令语句。其作用与嵌套进 for /f 复合语句的 "dir /ad /b /s 路径" 功能类似。如果省略了“目录”，将在当前目录下执行前面描述的操作。 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>for /r 目录 %%i in (元素集合) do 命令语句集合</BLOCKQUOTE></DIV>　　先来个代码增强一下印象：<BR><FONT color=blue>[code21]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code33'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code33><FONT face=NSimsun>@echo off<BR>for /r d:\test %%i in (.) do echo %%i<BR>pause</FONT></CODE></DIV>　　执行的结果如下所示： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>d:\test<STRONG><FONT color=red>\.<BR></FONT></STRONG>d:\test\1<STRONG><FONT color=red>\.</FONT></STRONG><BR>d:\test\2<STRONG><FONT color=red>\.<BR></FONT></STRONG>d:\test\3<FONT color=red><STRONG>\.</STRONG></FONT></BLOCKQUOTE></DIV>　　效果就是显示 d:\test 目录及其之下是所有子目录的路径，其效果与 dir /ad /b /s d:\test 类似。若要说到两者的区别，可以归纳出3点：<BR><BR>　　1、for /r 列举出来的路径最后都带有斜杠和点号，而 dir 语句则没有，会对获取到的路径进行进一步加工产生影响；<BR>　　2、for /r 不能列举带隐藏属性的目录，而 dir 语句则可以通过指定 /a 后面紧跟的参数来获取带指定属性的目录，更加灵活；<BR>　　3、若要对获取到的路径进行进一步处理，则需要把 dir 语句放入 for /f 语句中进行分析，写成 for /f %%i in ('dir /ad /b /s') do …… 的形式；由于 for /r 语句是边列举路径边进行处理，所以，在处理大量路径的时候，前期不会感到有停顿，而 for /f 语句则需要等到 dir /ad /b /s 语句把所有路径都列举完之后，再读入内存进行处理，所以，在处理大量路径的时候，前期会感到有明显的停顿。<BR><BR>　　第2点差别很容易被大家忽视，导致用 for /r 列举路径的时候会造成遗漏；而第3点则会让大家有更直观的感受，很容易感觉到两者之间的差别。<BR><BR>　　要是“元素集合”不是点号呢？那又如何？<BR><BR>　　来看看这个代码：<BR><FONT color=blue>[code22]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code34'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code34><FONT face=NSimsun>@echo off<BR>for /r d:\test %%i in (a b c) do echo %%i<BR>pause</FONT></CODE></DIV>　　运行的结果是： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>D:\test\1\a<BR>D:\test\1\b<BR>D:\test\1\c<BR>D:\test\2\a<BR>D:\test\2\b<BR>D:\test\2\c<BR>D:\test\3\a<BR>D:\test\3\b<BR>D:\test\3\c</BLOCKQUOTE></DIV>　　原来，它的含义是：列举 d:\test 及其所有的子目录，对所有的目录路径都分别添加a、b、c之后再显示出来。<BR><BR>　　再来看一个代码：<BR><FONT color=blue>[code23]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code35'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code35><FONT face=NSimsun>@echo off<BR>for /r d:\test %%i in (*.txt) do echo %%i<BR>pause</FONT></CODE></DIV>　　运行结果是： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>D:\test\test.txt<BR>D:\test\1\1.txt<BR>D:\test\1\2.txt<BR>D:\test\2\a.txt<BR>D:\test\2\b.txt<BR>D:\test\3\1.txt</BLOCKQUOTE></DIV>　　这段代码的含义是：列举 d:\test 及其所有子目录下的txt文本文件（以.txt结尾的文件夹不会被列出来）。<BR><BR>　　我们再回过头来归纳一下这个语句的作用： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>for /r 目录 %%i in (元素集合) do 命令语句集合</BLOCKQUOTE></DIV>　　上面语句的作用是：<BR><BR>　　1、列举“目录”及该目录路径下所有子目录，并把列举出来的目录路径和元素集合中的每一个元素拼接成形如“目录路径\元素”格式的新字符串，然后，对每一条这样的新<BR>字符串执行“命令语句集合”中的每一条命令；<BR>　　特别的是：当“元素集合”带以点号分隔的通配符?或*的时候，把“元素集合”视为文件（不视为文件夹），整条语句的作用是匹配“目录”所指文件夹及其所有子文件夹下<BR>匹配的文件；若不以点号分隔，则把“元素集合”视为文件夹（不视为文件）；<BR>　　2、当省略掉“目录”时，则针对当前目录；<BR>　　3、当元素集合中仅仅是一个点号的时候，将只列举目录路径；<BR><BR><STRONG>　　（二）for /r 还是 dir /ad /b /s？列举目录时该如何选择</STRONG><BR><BR>　　前面已经说过，当列举目录时，for /r 和 dir /ad /b /s 的效果是非常类似的，这就产生了一个问题：当我要获取目录路径并进行进一步处理的时候，两者之间，我该如何选择？<BR><BR>　　这个问题，前面其实已经有过一些讨论，现在我们再来作详细的分析。<BR><BR>　　我们来看一下两者各自的优缺点：<BR><BR>　　1、for /r：<BR><BR>　　　　1）优点：<BR><BR>　　　　① 只通过1条语句就可以同时实现获取目录路径和处理目录路径的操作；<BR>　　　　② 遍历文件夹的时候，是边列举边处理的，获取到一条路径就处理一条路径，内存占用小，处理大量路径的时候不会产生停顿感；<BR><BR>　　　　2）缺点： <BR><BR>　　　　① 不能获取到带隐藏属性的目录，会产生遗漏；<BR>　　　　② 不能获取带指定属性的目录<BR><BR>　　2、dir /ad /s：<BR><BR>　　　　1）优点：<BR><BR>　　　　① 能一次性获取带任意属性的目录，不会产生遗漏；<BR>　　　　② 能通过指定不同的参数获取带任意属性的目录，更具灵活性。<BR><BR>　　　　2）缺点：<BR><BR>　　　　① dir /ad /s 语句仅能获取到目录路径，若要实现进一步的处理，还需要嵌入 for /f 语句中才能实现，写法不够简洁；<BR>　　　　② 嵌入 for /f 语句之后，需要写成 for /f "delims=" %%i in ('dir /ad /b /s') do …… 的格式，受 for /f 语句运行机制的制约，需要先列举完所有的路径放入内存之后，才能对每一条路径进行进一步的处理，处理大量路径时，内存占用量偏大，并且在前期会产生明显的停顿感，用户体验度不够好；<BR><BR>　　综合上述分析，可以做出如下选择：<BR><BR>　　1、若仅仅是为了获取某文件夹及其所有子文件夹的路径的话，请选择 dir /ad /b /s 语句；<BR>　　2、若需要过滤带隐藏属性的文件夹的话，for /r 和 dir 语句都可以实现，但 for /r 内存占用小，处理速度快，是上上之选；<BR>　　3、若需要获取所有文件夹，则除了 dir /ad /b /s 外，别无选择，因为 for /r 语句会遗漏带隐藏属性的文件夹；<BR><BR>　　在实际的使用中，我更喜欢使用 for /f 和 dir 的组合，因为它不会产生遗漏，并能给我带来更灵活的处理方式，唯一需要忍受的，就是它在处理大量路径时前期的停顿感，以及在这背后稍微有点偏高的内存占用；在我追求速度且可以忽略带隐藏属性的目录的时候，我会换用 for /r 的方案，不过这样的情形不多——有谁会愿意为了追求速度而容忍遗漏呢？</DIV><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm --><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm --><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm --></DIV>
+<DIV class=signatures style="WIDTH: 177px; HEIGHT: 10px; maxHeightIE: "><FONT color=blue><STRONG></STRONG></FONT></DIV>
+<DIV></DIV></TD></TR>
+<TR>
+<TD class=postauthor>
+<P>&nbsp;</P></TD>
+<TD class=postcontent>
+<DIV class=postactions>
+<P><FONT color=#ff0000></FONT><!-- 在每个帖子中添加删除帖子/主题的功能按钮 2008.9.9 by namejm --><!-- 在每个帖子中添加删除帖子/主题的功能按钮 2008.9.9 by namejm --><!-- 在每个帖子中添加屏蔽此帖的功能按钮 2008.9.10 by namejm --><!-- 在每个帖子中添加屏蔽此帖的功能按钮 2008.9.10 by namejm --></P></DIV></TD></TR></TBODY></TABLE></DIV>
+<DIV class="mainbox viewthread">
+<TABLE id=pid12588 cellSpacing=0 cellPadding=0 summary=pid12588>
+<TBODY>
+<TR>
+<TD class=postauthor><CITE><!-- 本条被注释的为原始文件，下一条 href 语句为修改后的语句  2008.8.28 by namejm
+							<a href="space.php?uid=5" target="_blank" id="userinfo12588" class="dropmenu" onmouseover="showMenu(this.id)">namejm</a></cite>
+本条被注释的为原始文件，下一条 href 语句为修改后的语句  2008.8.28 by namejm --><!-- 楼主名字旁用红色的[楼主]字样标注，不同组别的用户ID用不同颜色标注 2008.8.28 by namejm --><FONT color=#0066cc></FONT></CITE></TD>
+<TD class=postcontent>
+<DIV id=ad_thread2_6></DIV>
+<DIV class="postmessage defaultpost">
+<DIV id=ad_thread3_6></DIV>
+<DIV id=ad_thread4_6></DIV><!-- 为了折叠指定版块的回帖以达到隐藏目的，此处屏蔽了一条语句，若要恢复原有语句，请复制下一条语句中else之后和if之前的那一句 2008.9.5 by namejm --><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm -->
+<DIV class=t_msgfont id=postmessage_12588><STRONG>五、仅仅为了匹配第一层目录而存在：for /d</STRONG><BR><BR>　　for /d 中 /d ，完整的含义是 /directory，本意是为了处理文件夹，它的完整语句应该是这样的： 
+<DIV class=quote>
+<H5>引用:</H5>
+<BLOCKQUOTE>for /d %%i in (元素集合) do 命令语句集合</BLOCKQUOTE></DIV>　　当“元素集合”中包含有通配符?或*时，它会匹配文件夹，但是，相比 for /r 而言，这个时候的for /d，其作用就小得可怜了：它仅能匹配当前目录下的第一级文件夹，或是指定位置上的文件夹，而不能匹配更深层次的子文件夹。<BR><BR>　　例如：for /d %%i in (d:\test*) do echo %%i 这样的语句 ，会匹配到形如：d:\test、d:\test1、d:\test2之类的文件夹，若不存在这样的路径，将不会有任何回显。<BR><BR>　　当“元素集合”中不包含任何的通配符时，它的作用和 "for %%i in (元素集合) do 命令语句集合" 这样的语句别无二致。<BR><BR>　　因此，for /d 的角色就变得很微妙了：当“元素集合”中包含通配符?或*时，它的作用就是匹配文件夹，此时，它仅能匹配当前目录下的第一级文件夹，或是指定位置上的文件夹，在层次深度上不及 for /r，但和 for /r 一样的坏脾气：不能匹配带隐藏属性的文件夹；在灵活性上不及for /f和dir的组合；当“元素集合”中不包含任何统配符的时候，它完全是 "for %%i in (元素集合) do ……" 语句的翻版，但是又稍显复杂。<BR><BR>　　for /d 的作用是如此有限，我使用的次数是如此之少，以至于我一度找不到它的用武之地，认为它食之无味，弃之可惜，完全是鸡肋一块。<BR><BR>　　某年某月，我在cmd窗口里写下了这样的代码：<BR><FONT color=blue>[code24]</FONT> 
+<DIV class=blockcode><SPAN class=headactions onclick="copycode($('code36'));">复制内容到剪贴板</SPAN> 
+<H5>代码:</H5><CODE id=code36><FONT face=NSimsun>for /d %i in (test*) do @echo %i</FONT></CODE></DIV>　　我的本意是想查看在我的临时目录下，长年累月的测试工作到底建立了多少测试文件夹，以便我随后把echo换成rd删除之。这个时候，我发现这条代码是如此的简洁，是 for /r 或 for和 dir /ad /b 的组合所无法替代的（echo换成rd就可以直接删除掉这些测试目录）。<BR><BR>　　简洁的代码给我带来的喜悦仅仅持续了短短10几秒的时间，我便开始了迷惘——能用到for /d的类似情形，貌似少之又少且乏善可陈啊。</DIV><!-- 折叠指定版块的回帖以达到隐藏目的 2008.9.5 by namejm --><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm --><!-- 使用楼主热帖插件时增添此句 2008.9.4 by namejm --></DIV></TD></TR></TBODY></TABLE></DIV></DIV>           </div>
+            <!-- <div class="Blog_con3_1">管理员在2009年8月13日编辑了该文章文章。</div> -->
+            <div class="Blog_con2_1 Blog_con3_2">
+              <div>
+			  <!--<img src="/image/default/tu_8.png">-->
+			  <!-- JiaThis Button BEGIN -->
+				<DIV class="bshare-custom icon-medium-plus"><A class=bshare-qzone title=分享到QQ空间></A><A class=bshare-sinaminiblog title=分享到新浪微博></A><A class=bshare-renren title=分享到人人网></A><A class=bshare-qqmb title=分享到腾讯微博></A><A class=bshare-douban title=分享到豆瓣></A><A class="bshare-more bshare-more-icon more-style-addthis" title=更多平台></A></DIV>
+				<SCRIPT type=text/javascript charset=utf-8 src="http://static.bshare.cn/b/buttonLite.js#style=-1&amp;uuid=&amp;pophcol=3&amp;lang=zh"></SCRIPT>
+
+				<SCRIPT type=text/javascript charset=utf-8 src="http://static.bshare.cn/b/bshareC0.js"></SCRIPT>
+				<!-- JiaThis Button END -->
+			  </div>
+              阅读(3720) | 评论(1) | 转发(0) |
+			                <div class="HT_line3"></div>
+            </div>
+            <div class="Blog_con3_3">
+              <div><span id='digg_num'>0</span><a href="javascript:void(0)" id='digg' bid='255072' url='/blog/digg.html' ></a></div>
+              <p>上一篇：<a href="/uid-23230109-id-255071.html">DOS:变量延迟详解(新手推荐)</a></p>
+              <p>下一篇：<a href="/uid-23230109-id-255075.html">纠正你的Qt编程习惯：主窗体的创建问题</a></p>
+            </div>
+          </div>
+          <div class="Blog_con3_4">
+            <div class="Blog_tit2 Blog_tit6">相关热门文章</div>
+			            <ul class="Blog_ul7">
+						  <li><span class="Blog_span6"></span><a href="http://blog.chinaunix.net/uid-18971611-id-4058093.html" title='世界上主要BIOS厂家介绍（Phoenix，AMI，Insyde，Byosoft） ' target='blank' >世界上主要BIOS厂家介绍（Phoe...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://blog.chinaunix.net/uid-28806348-id-4058089.html" title='大数据的冲击' target='blank' >大数据的冲击</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://blog.chinaunix.net/uid-29076366-id-4057473.html" title=' C语言堆栈入门——堆和栈的区别' target='blank' > C语言堆栈入门——堆和栈的区...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://blog.chinaunix.net/uid-28379399-id-4056400.html" title='CSS框架960Grid从入门到精通一步登天' target='blank' >CSS框架960Grid从入门到精通一...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://blog.chinaunix.net/uid-26793016-id-4056141.html" title='实模式跳转保护模式，代码全注释' target='blank' >实模式跳转保护模式，代码全注...</a></li>
+			            </ul>
+			            <ul class="Blog_ul7">
+						  <li><span class="Blog_span7"></span><a href="/uid-20393955-id-345558.html" title='承接自动化测试培训、外包、实施等' target='blank' >承接自动化测试培训、外包、实...</a></li>
+						  <li><span class="Blog_span7"></span><a href="/uid-7357143-id-2058354.html" title='Solaris PowerTOP 1.0 发布' target='blank' >Solaris PowerTOP 1.0 发布</a></li>
+						  <li><span class="Blog_span7"></span><a href="/uid-400601-id-2408126.html" title='For STKMonitor' target='blank' >For STKMonitor</a></li>
+						  <li><span class="Blog_span7"></span><a href="/uid-537631-id-2098311.html" title='busybox的httpd使用CGI脚本(BusyBox httpd CGI scripts)' target='blank' >busybox的httpd使用CGI脚本(Bu...</a></li>
+						  <li><span class="Blog_span7"></span><a href="/uid-233938-id-162610.html" title='项目小体会' target='blank' >项目小体会</a></li>
+			            </ul>
+            <ul class="Blog_ul7">
+						  <li><span class="Blog_span6"></span><a href="http://ask.chinaunix.net/question/785377" title='kvm上的两台windows虚拟机不能相互ping通' target='blank'  >kvm上的两台windows虚拟机不能...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://ask.chinaunix.net/question/785376" title='关于ip_route_output_key和ip_local_out的疑问' target='blank'  >关于ip_route_output_key和ip_...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://ask.chinaunix.net/question/785375" title='test a  tests' target='blank'  >test a  tests</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://ask.chinaunix.net/question/785371" title='linux inode中磁盘地址列表有几个块号组成?' target='blank'  >linux inode中磁盘地址列表有...</a></li>
+						  <li><span class="Blog_span6"></span><a href="http://ask.chinaunix.net/question/785370" title='LNMP 老是会出现502？' target='blank'  >LNMP 老是会出现502？</a></li>
+			            </ul>
+            <div class="clear"></div>
+          </div>
+		  <!--
+          <div class="Blog_con3_4 Blog_con3_5">
+            <div class="Blog_tit2 Blog_tit7">热门推荐</div>
+            <ul>
+			              <li><a href="" title="" target='blank' ></a></li>
+			            </ul>
+          </div>
+		  -->
+        </div>
+      </div>
+      <div class="Blog_right1_7" id='replyList'>
+		<div class="Blog_tit3">给主人留下些什么吧！~~</div>
+														<!--不包含引用-->
+					<div class="Blog_right1_8">
+					  <div class="Blog_right_img1"><a href='/uid/9239235.html' ><img src="http://passport.ixpub.net/data/avatar/009/23/92/35_avatar_small.jpg" onerror="this.onerror=null;this.src='http://passport.ixpub.net/images/noavatar_small.gif'" /></a></div>
+					  <div class="Blog_right_font1">
+						<p class="Blog_p5"><span><a href='/uid/9239235.html' >rollstone</a></span>2013-05-22 20:31:22</p>
+						<p class="Blog_p6">顶一个，解决了我的问题，谢谢~</p>
+						<div class="div1"><a href="javascript:void(0);" class="Blog_a10"  toid='9239235' bid='255072' cid='589489' tname='rollstone'>回复</a> | <a href="javascript:;" onclick="showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');" class='box_report'>举报</a></div>
+						<!-- 评论占位框-->
+						<div class='z_move_comment' style='display:none'>
+						</div>
+					  </div>
+					  <div class="Blog_line1"></div>
+					</div>
+											<!-- 评论分页-->
+		<div class="Blog_right1_6 Blog_right1_12">
+        		</div>
+		<!-- 评论分页-->
+        <div class="Blog_right1_10">
+          <div class="Blog_tit3">评论热议</div>
+		  		 <!--未登录 -->
+        <div class="Blog_right1_8">
+          <div class="nologin_con1"> 请登录后评论。
+            <p><a href="/site/login.html">登录</a> <a href="http://sso.chinaunix.net/Register?return_url=http%3A%2F%2Ft.cublog.com%2F">注册</a></p>
+          </div>
+        </div>
+		
+        </div>
+      </div>
+    </div>
+  </div>
+  <input type='hidden' id='report_url' value='/blog/ViewReport.html' />
+
+<script type="text/javascript">
+  	//测试字符串的长度 一个汉字算2个字节
+	function mb_strlen(str)
+	{
+		var len=str.length;
+		var totalCount=0;
+		for(var i=0;i<len;i++)
+		{
+			var c = str.charCodeAt(i);
+			if ((c >= 0x0001 && c <= 0x007e) || (0xff60<=c && c<=0xff9f)) {
+				totalCount++;
+			}else{
+				totalCount+=2;
+			}
+		}
+		return totalCount;
+	}
+	/*
+	var Util = {};
+	Util.calWbText = function (text, max){
+		if(max === undefined)
+			max = 500;
+		var cLen=0;
+		var matcher = text.match(/[^\x00-\xff]/g),
+			wlen  = (matcher && matcher.length) || 0;
+		//匹配url链接正则 http://***
+		var pattern = /http:\/\/([\w-]+\.)+[\w-]+(\/*[\w-\.\/\?%&=][^\s^\u4e00-\u9fa5]*)?/gi;
+		//匹配的数据存入数组
+		var arrPt = new Array();
+		var i = 0;
+		while((result = pattern.exec(text)) != null){
+			arrPt[i] = result[0];
+			i++;
+		}
+		//替换掉原文本中的链接
+		for(var j = 0;j<arrPt.length;j++){
+			text = text.replace(arrPt[j],"");
+		}
+		//减掉链接所占的长度
+		return Math.floor((max*2 - text.length - wlen)/2 - 12*i);
+	};
+	*/
+	var allowComment = '0';
+	
+	//举报弹出层
+	function showJuBao(url, cid){
+		
+			$.cover(false);
+			asyncbox.open({
+				id  : 'report_thickbox',
+				url : url,
+				title : '举报违规',
+				width : 378,
+				height : 240,
+				scroll : 'no',
+				data : {
+					'cid'	 : cid,
+					'idtype' : 2 
+				},
+				callback : function(action){
+					if(action == 'close'){
+						$.cover(false);
+					}
+				}
+			});
+	}
+
+	$(function(){
+
+		//创建管理员删除的弹出层
+		$('#admin_article_del').click(function(){
+			$.cover(false);
+			asyncbox.open({
+				id : 'class_thickbox',
+				html : '<div class="HT_layer3_1"><ul><li class="HT_li1">操作原因：<select class="HT_sel7" id="del_type" name="del_type"><option value="广告文章">广告文章</option><option value="违规内容">违规内容</option><option value="标题不明">标题不明</option><option value="文不对题">文不对题</option></select></li><li class="HT_li1" ><input class="HT_btn4" id="admin_delete"  type="button" /></li></ul></div>',
+				title : '选择类型',
+				width : 300,
+				height : 150,
+				scroll : 'no',
+				callback : function(action){
+					if(action == 'close'){
+						$.cover(false);
+					}
+				}
+			});
+		});
+		$('#admin_delete').live('click' , function(){
+			///blog/logicdel/id/3480184/url/%252Fblog%252Findex.html.html
+			var type = $('#del_type').val();
+			var url = '/blog/logicdel/id/255072/url/%252Fuid%252F23230109.html.html';
+			window.location.href= url + '?type=' + type;
+		});
+
+
+		//顶  js中暂未添加&过滤 
+		$('#digg').live('click' , function(){
+
+			if(isOnLine == '' )
+			{
+				//showErrorMsg('登录之后才能进行此操作' , '消息提示');
+				showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				return false;
+			}
+
+			var bid = $('#digg').attr('bid');
+			var url = $('#digg').attr('url');
+
+			var digg_str = $.cookie('digg_id');
+			if(digg_str != null)
+			{
+				var arr= new Array(); //定义一数组
+
+				arr = digg_str.split(","); //字符分割     
+				for( i=0 ; i < arr.length ; i++ )   
+				{   
+					if(bid == arr[i])
+					{
+						showErrorMsg('已经赞过该文章', '消息提示'); 
+						return false;
+					}
+				} 
+			}
+			$.ajax({
+				type:"POST",
+				url:url,	
+				data: {
+					'bid' : bid 
+				},
+				dataType: 'json',
+				success:function(msg){
+					if(msg.error == 0)
+					{
+						var num = parseInt($('#digg_num').html(),10);
+						num += 1;
+						$('#digg_num').html(num);
+						$('#digg').die();
+
+						if(digg_str == null)
+						{
+							$.cookie('digg_id', bid, {expires: 30 , path: '/'});
+						}
+						else
+						{
+							$.cookie('digg_id', digg_str + ',' + bid, {expires: 30 , path: '/'});
+						}
+						showSucceedMsg('谢谢' , '消息提示');
+					}
+					else if(msg.error == 1)
+					{
+						//showErrorMsg(msg.error_content , '消息提示'); 
+						showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+					}
+					else if(msg.error == 2)
+					{
+						showErrorMsg(msg.error_content , '消息提示'); 
+					}
+				}
+			});
+		});
+		//举报弹出层
+		/*$('.box_report').live('click' , function(){
+			if(isOnLine == '' )
+			{
+				//showErrorMsg('登录之后才能进行此操作' , '消息提示');
+				showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				return false;
+			}
+			var url = $('#report_url').val();
+			var cid = $(this).attr('cid');
+			$.cover(false);
+			asyncbox.open({
+				id  : 'report_thickbox',
+				url : url,
+				title : '举报违规',
+				width : 378,
+				height : 240,
+				scroll : 'no',
+				data : {
+					'cid'	 : cid,
+					'idtype' : 2 
+				},
+				callback : function(action){
+					if(action == 'close'){
+						$.cover(false);
+					}
+				}
+			});
+		});*/
+
+
+		//评论相关代码
+		
+		//点击回复显示评论框
+		$('.Blog_a10').live('click' , function(){
+			if(isOnLine == '' )
+			{
+				//showErrorMsg('登录之后才能进行此操作' , '消息提示');
+				showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				return false;
+			}
+
+			if(allowComment == 1)
+			{
+				showErrorMsg('该博文不允许评论' , '消息提示'); 
+				return false;
+			}
+			var tid = $(this).attr('toid');//留言作者id
+			var bid = $(this).attr('bid');//blogid
+			var cid = $(this).attr('cid');//留言id
+			var tname = $(this).attr('tname');
+			var tpl  = '<div class="Blog_right1_9">';
+				tpl +=	 '<div class="div2">';
+				tpl +=     '<textarea name="" cols="" rows="" class="Blog_ar1_1" id="rmsg">文明上网，理性发言...</textarea>';
+				tpl +=	 '</div>';
+				tpl +=   '<div class="div3">';
+				tpl +=		'<div class="div3_2"><a href="javascript:void(0);" class="Blog_a11" id="quota_sbumit" url="/Comment/PostComment.html" tid="'+tid+'" bid="'+bid+'" cid="'+cid+'" tname="'+tname+'" ></a><a href="javascript:void(0)" id="qx_comment" class="Blog_a12"></a></div>';
+				tpl +=		'<div class="div3_1"><a href="javascript:void(0);" id="mface"><span></span>表情</a></div>';
+				tpl +=		'<div class="clear"></div>';
+				tpl +=	 '</div>';
+				tpl +=  '</div>';
+			$('.z_move_comment').html('');
+			$(this).parents('.Blog_right1_8').find('.z_move_comment').html(tpl).show();
+		});
+		//引用的评论提交
+		$('#quota_sbumit').live('click' , function(){
+
+			if(isOnLine == '' )
+			{
+				//showErrorMsg('登录之后才能进行此操作' , '消息提示');
+				showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				return false;
+			}
+
+			var bid   = $(this).attr('bid');
+			var tid   = $(this).attr('tid');//被引用人的id
+			var qid   = $(this).attr('cid');//引用的id
+			var url = $(this).attr('url');
+			var text = $('#rmsg').val();
+			var tname = $(this).attr('tname');
+			if(text == '' || text=='文明上网，理性发言...')
+			{
+				showErrorMsg('评论内容不能为空！' , '消息提示'); 
+				return false;
+			}
+			else
+			{
+				if(mb_strlen(text) > 1000){
+					showErrorMsg('评论内容不能超过500个汉字' , '消息提示'); 
+					return false;
+				}
+			}
+		    $.ajax({
+		        type: "post",
+			    url: url ,
+			    data: {'bid': bid , 'to' : tid , 'qid' : qid , 'text': text , 'tname' : tname },
+				dataType: 'json',
+			    success: function(data){
+				    if(data.code == 1){
+						var tpl =  '<div class="Blog_right1_8">';
+							tpl+=     '<div class="Blog_right_img1"><a href="' +data.info.url+ '" >' + data.info.header + '</a></div>';
+							tpl+=     '<div class="Blog_right_font1">';
+							tpl+=         '<p class="Blog_p5"><span><a href="' +data.info.url+ '" >' + data.info.username + '</a></span>' + data.info.dateline + '</p>';
+							tpl+=         '<p class="Blog_p7"><a href="' + data.info.quota.url + '">' + data.info.quota.username + '</a>：'+ data.info.quota.content + '</p>';
+							tpl+=         '<p class="Blog_p8">' + data.info.content + '</p><span class="span_text1"><a href="javascript:void(0);" class="Blog_a10" toid=' + data.info.fuid + ' bid=' + data.info.bid + ' cid=' + data.info.cid + '  tname = ' + data.info.username + ' >回复</a> | 　<a class="comment_del_mark" style="cursor:pointer" url="' + data.info.delurl + '" >删除</a>　| 　<a href="javascript:showJuBao(\'/blog/ViewReport.html\','+data.info.cid+')" class="box_report" cid="' + data.info.cid + '" >举报</a></span></div>';
+							tpl+=         '<div class="z_move_comment" style="display:none"></div>';
+							tpl+=	      '<div class="Blog_line1"></div></div>';
+							$('#replyList .Blog_right1_8:first').before(tpl);
+							$('.z_move_comment').html('').hide();
+				    }
+					else if(data.code == -1){
+						//showErrorMsg(data.info , '消息提示'); 
+						showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+			        }
+                },
+			    error: function(){//请求出错处理
+                        
+                }
+			});
+		});
+		//底部发表评论
+		$('#submitmsg').click(function(){
+			if(allowComment == 1)
+			{
+				showErrorMsg('该博文不允许评论' , '消息提示'); 
+				return false;
+			}
+			var bid   = $(this).attr('bid');
+			var toid  = $(this).attr('toid');
+			var text = $('#reply').val();
+			var url = $(this).attr('url');
+			if(text == '' || text=='文明上网，理性发言...')
+			{
+				showErrorMsg('评论内容不能为空！' , '消息提示'); 
+				return false;
+			}
+			else
+			{
+				if(mb_strlen(text) > 1000){
+					showErrorMsg('评论内容不能超过500个汉字' , '消息提示'); 
+					return false;
+				}
+			}
+		    $.ajax({
+		        type: "post",
+			    url: url ,
+			    data: {'bid': bid , 'to' : toid ,'text': text},
+				dataType: 'json',
+			    success: function(data){
+				    if(data.code == 1)
+					{
+						var tpl   = '<div class="Blog_right1_8">';
+							tpl  +=   '<div class="Blog_right_img1"><a href="' +data.info.url+ '" >' + data.info.header + '</a></div>';
+							tpl  +=	  '<div class="Blog_right_font1">';
+							tpl  +=       '<p class="Blog_p5"><span><a href="' +data.info.url+ '" >' + data.info.username + '</a></span>' + data.info.dateline + '</p>';
+							tpl  +=       '<p class="Blog_p6">' + data.info.content + '</p>';
+							tpl  +=		  '<div class="div1"><a href="javascript:void(0);" class="Blog_a10"  toid=' + data.info.fuid + ' bid=' + data.info.bid + ' cid=' + data.info.cid + '>回复</a> | 　<a class="comment_del_mark" style="cursor:pointer" url="' + data.info.delurl + '">删除</a>　| 　<a href="javascript:showJuBao(\'/blog/ViewReport.html\','+data.info.cid+')" class="box_report" cid="' + data.info.cid + '">举报</a></div>';
+							tpl  +=		  '<div class="z_move_comment" style="display:none"></div>';
+							tpl  +=    '</div><div class="Blog_line1"></div></div>';
+							$('.Blog_tit3:first').after(tpl);
+							$('#reply').val('文明上网，理性发言...');
+					}
+					else if(data.code == -1)
+					{
+						showErrorMsg(data.info , '消息提示'); 
+			        }
+                },
+			    error: function(){//请求出错处理
+                        
+                }
+		    });
+			
+		});
+		//底部评论重置
+		$('#reset_comment').click(function(){
+			$('#reply').val('文明上网，理性发言...');
+		});
+		//取消回复
+		$('#qx_comment').live('click' , function(){
+			$('.z_move_comment').html('').hide();
+		});
+
+
+		$('#rmsg, #reply').live({
+		    focus:function(){
+			    if($(this).val() == '文明上网，理性发言...'){
+			        $(this).val('');
+			    }
+			},
+			blur:function(){
+		        if($(this).val() == ''){
+			        $(this).val('文明上网，理性发言...');
+			    }
+			}
+		});
+		//删除留言确认
+		$('.comment_del_mark').live('click' , function(){
+			var url = $(this).attr('url');
+			asyncbox.confirm('删除留言','确认', function(action){
+				if(action == 'ok')
+				{
+					location.href = url;
+				}
+			});
+		});
+		//删除时间确认
+		$('.del_article_id').click(function(){
+			var delurl = $(this).attr('delurl');
+			asyncbox.confirm('删除文章','确认', function(action){
+				if(action == 'ok')
+				{
+					location.href = delurl;
+				}
+			});
+		});
+		/*
+		//字数限制
+		$('#rmsg, #reply').live('keyup', function(){
+			var id = $(this).attr('id');
+			var left = Util.calWbText($(this).val(), 500);
+			var eid = '#errmsg';
+			
+			if(id == 'reply') eid =  '#rerrmsg';
+			if (left >= 0)
+		        $(eid).html('您还可以输入<span>' + left + '</span>字');
+		    else
+		        $(eid).html('<font color="red">您已超出<span>' + Math.abs(left) + '</span>字 </font>');
+		});
+		*/
+		//加载表情
+	    $('#face').qqFace({id : 'facebox1', assign : 'reply', path : '/image/qqface/'});
+	    $('#mface').qqFace({id : 'facebox', assign : 'rmsg', path:'/image/qqface/'});
+	    
+		/*
+		$('#class_one_id').change(function(){
+			alert(123213);
+			var id = parseInt($(this).val() , 10);
+			if(id == 0) return false;
+			$('.hidden_son_class span').each(function( index , dom ){
+				if( dom.attr('cid')  == id )
+				{
+				}
+			});
+		});
+		*/
+		//转载文章
+		var turn_url = "/blog/viewClassPart.html";
+		$('#repost_bar').click(function(){
+			if(isOnLine == '' )
+			{
+				//showErrorMsg('登录之后才能进行此操作' , '消息提示');
+				showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				return false;
+			}
+			var id = $(this).attr('bid');
+			asyncbox.open({
+				id  : 'turn_class_thickbox',
+				url : turn_url,
+				title : '转载文章',
+				width : 330,
+				height : 131,
+				scroll : 'no',
+				data : {
+					'id'	 : id
+				},
+				callback : function(action){
+					if(action == 'close'){
+						$.cover(false);
+					}
+				}
+			});
+		});
+		/*
+	    //转发文章
+	    $('#repost_bar').live('click' , function(){
+			if(isOnLine == '' )
+			{
+				//showErrorMsg('登录之后才能进行此操作' , '消息提示');
+				showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				return false;
+			}
+	    	var bid  = $(this).attr('bid');
+	    	var url  = $(this).attr('url');
+	    	asyncbox.confirm('转载文章','确认', function(action){
+	    	  if(action == 'ok'){
+	    	    $.ajax({
+				type:"POST",
+				url:url,	
+				data: {
+					'bid' : bid 
+				},
+				dataType: 'json',
+				success:function(msg){
+				  if(msg.error == 0){
+				    showSucceedMsg('转发成功！', '消息提示');
+				  }else if(msg.error == 1){
+				    //location.href = '/index.php?r=site/login';
+					showErrorMsg('操作失败,您需要先登录!', '消息提示', '/site/login.html');
+				  }else{
+				    showErrorMsg(msg.error_content, '消息提示');
+			      }
+				}
+			  });
+	    	  }
+	    	});
+
+		});
+		*/
+
+	});
+</script>
+<!--该部分应该放在输出代码块的后面才起作用 -->
+<script type="text/javascript">
+
+SyntaxHighlighter.autoloader(
+	'applescript			/highlight/scripts/shBrushAppleScript.js',
+	'actionscript3 as3		/highlight/scripts/shBrushAS3.js',
+	'bash shell				/highlight/scripts/shBrushBash.js',
+	'coldfusion cf			/highlight/scripts/shBrushColdFusion.js',
+	'cpp c					/highlight/scripts/shBrushCpp.js',
+	'c# c-sharp csharp		/highlight/scripts/shBrushCSharp.js',
+	'css					/highlight/scripts/shBrushCss.js',
+	'delphi pascal			/highlight/scripts/shBrushDelphi.js',
+	'diff patch pas			/highlight/scripts/shBrushDiff.js',
+	'erl erlang				/highlight/scripts/shBrushErlang.js',
+	'groovy					/highlight/scripts/shBrushGroovy.js',
+	'java					/highlight/scripts/shBrushJava.js',
+	'jfx javafx				/highlight/scripts/shBrushJavaFX.js',
+	'js jscript javascript	/highlight/scripts/shBrushJScript.js',
+	'perl pl				/highlight/scripts/shBrushPerl.js',
+	'php					/highlight/scripts/shBrushPhp.js',
+	'text plain				/highlight/scripts/shBrushPlain.js',
+	'py python				/highlight/scripts/shBrushPython.js',
+	'ruby rails ror rb		/highlight/scripts/shBrushRuby.js',
+	'scala					/highlight/scripts/shBrushScala.js',
+	'sql					/highlight/scripts/shBrushSql.js',
+	'vb vbnet				/highlight/scripts/shBrushVb.js',
+	'xml xhtml xslt html	/highlight/scripts/shBrushXml.js'
+);
+SyntaxHighlighter.all();
+
+
+function code_hide(id){
+	var code = document.getElementById(id).style.display;
+	if(code == 'none'){
+		document.getElementById(id).style.display = 'block';
+	}else{
+		document.getElementById(id).style.display = 'none';
+	}
+}
+</script>
+  <!-- footer -->
+  <div class="Blog_footer" style='clear:both'>
+    <div><a href="http://www.chinaunix.net/about/index.shtml" target="_blank" rel="nofollow">关于我们</a> | <a href="http://www.it168.com/bottomfile/it168.shtml" target="_blank" rel="nofollow">关于IT168</a> | <a href="http://www.chinaunix.net/about/connect.html" target="_blank" rel="nofollow">联系方式</a> | <a href="http://www.chinaunix.net/about/service.html" target="_blank" rel="nofollow">广告合作</a> | <a href="http://www.it168.com//bottomfile/flgw/fl.htm" target="_blank" rel="nofollow">法律声明</a> | <a href="http://sso.chinaunix.net/Register?return_url=http%3A%2F%2Fblog.chinaunix.net%2F
+" target="_blank" rel="nofollow">免费注册</a>
+      <p>Copyright  2001-2010 ChinaUnix.net All Rights Reserved 北京皓辰网域网络信息技术有限公司. 版权所有 </p>
+      <div>感谢所有关心和支持过ChinaUnix的朋友们
+        <p>京ICP证041476号 京ICP证060528号</p>
+      </div>
+    </div>
+  </div>
+</div>
+<script language="javascript">
+
+//全局错误提示弹出框
+function showErrorMsg(content, title, url){
+	var url = url || '';
+	var title = title || '消息提示';
+	var html = '';
+	html += '<div class="HT_layer3_1 HT_layer3_2"><ul><li><p><span class="login_span1"></span>' + content + '</p></li>';
+	if(url == '' || url.length == 0){
+		html += '<li class="HT_li1"><input type="button" class="HT_btn2"  onclick=\'close_windows("error_msg")\'></li>';	
+	} else {
+		html += '<li class="HT_li1"><input type="button" class="login_btn1" onclick="location.href=\'' + url + '\'"></li>';
+	}
+	html += '</ul></div>';
+	$.cover(true);
+	   asyncbox.open({
+		 id: 'error_msg',
+		 title : title,
+		 html : html,
+		 'callback' : function(action){
+			 if(action == 'close'){
+				 $.cover(false);
+			 }
+		 }
+	});
+}
+
+//全局正确提示
+function showSucceedMsg(content, title , url ){
+	var url = url || '';
+	var title = title || '消息提示';
+	var html = '';
+	html += '<div class="HT_layer3_1 HT_layer3_2"><ul><li><p><span class="login_span2"></span>' + content + '</p></li>';
+	if(url == '' || url.length == 0){
+		html += '<li class="HT_li1"><input type="button" class="HT_btn2"  onclick=\'close_windows("error_msg")\'></li>';	
+	} else {
+		html += '<li class="HT_li1"><input type="button" class="HT_btn2" onclick="location.href=\'' + url + '\'"></li>';
+	}
+	html += '</ul></div>';
+	$.cover(true);
+	asyncbox.open({
+		 id: 'error_msg',
+		 title : title,
+		 html : html,
+		 'callback' : function(action){
+			 if(action == 'close'){
+				 $.cover(false);
+			 }
+		 }
+	});
+}
+
+//关闭指定id的窗口
+function close_windows(id){
+	$.cover(false);
+	$.close(id);
+}
+
+
+//公告
+var tID;
+var tn;                        // 高度
+var nStopTime = 5000;        // 不同行间滚动时间隔的时间，值越小，移动越快
+var nSpeed = 50;            // 滚动时，向上移动一像素间隔的时间，值越小，移动越快
+var isMove = true;
+var nHeight = 25;
+var nS = 0;
+var nNewsCount = 3;
+
+/**
+ * n 用于表示是否为第一次运行
+ **/
+function moveT(n)
+{
+    clearTimeout(tID)
+    var noticev2 = document.getElementById("noticev2")
+    nS = nSpeed;
+    
+    // 只在第一次调用时运行，初始化环境（有没有参数）
+    if (n)
+    {
+        // 设置行高
+        noticev2.style.lineHeight = nHeight + "px";
+        // 初始化显示位置
+        tn = 0;
+        // 刚进入时在第一行停止时间
+        nS = nStopTime;
+    }
+    
+    // 判断鼠标是否指向层
+    if (isMove)
+    {
+        // 向上移动一像素
+        tn--;
+        // 如果移动到最下面一行了，则移到顶行
+        if (Math.abs(tn) == nNewsCount * nHeight)
+        {
+            tn = 0;
+        }
+        // 设置位置
+        noticev2.style.marginTop = tn + "px";
+        // 完整显示一行时，停止一段时间
+        if (tn % nHeight == 0)
+        {
+            nS = nStopTime;
+        }
+    }
+
+    tID = setTimeout("moveT()", nS);
+}
+moveT(1);    // 此处可以传入任何参数
+</script>
+<script language="javascript" src="http://stat.it168.com/pv.js"></script>
+<script>
+function sendPV(){
+    var pvTrack = new PvTrack();
+    pvTrack.type = 35; // 频道类别ID
+    pvTrack.channel = 189; // 频道ID
+    pvTrack.pageType = 0;
+    pvTrack.track();
+}
+window.setTimeout("sendPV()", 1000);
+</script>
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-20237423-2']);
+  _gaq.push(['_setDomainName', '.chinaunix.net']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+<script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F0ee5e8cdc4d43389b3d1bfd76e83216b' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript" src="/js/jquery.qqFace.js"></script>
+</body>
+</html>

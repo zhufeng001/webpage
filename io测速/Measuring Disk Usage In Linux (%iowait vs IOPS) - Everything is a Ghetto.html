@@ -1,0 +1,214 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class=no-js lang=en><!--<![endif]-->
+<head>
+<meta charset=utf-8>
+<title>Measuring Disk Usage In Linux (%iowait vs IOPS) - Everything is a Ghetto</title>
+<meta name=author content=thattommyhall>
+<meta name=description content="Shameless plug: If you are doing anything with storage and 45 drives in 3U is interesting to you then please check out Backblaze Storage Pods &hellip;">
+<meta name=HandheldFriendly content=True>
+<meta name=MobileOptimized content=320>
+<meta name=viewport content="width=device-width, initial-scale=1">
+<script type='text/javascript'>window.mod_pagespeed_start = Number(new Date());</script><link rel=canonical href="http://www.thattommyhall.com/2011/02/18/iops-linux-iostat">
+<link href="http://1-ps.googleusercontent.com/h/www.thattommyhall.com/favicon.png.pagespeed.ce.wfCmp-rgrq.png" rel=icon>
+<style media=screen>html,body,div,span,iframe,h1,h2,p,pre,a,code,img,strong,ul,li,fieldset,form,article,aside,footer,header,hgroup,nav,section,time{margin:0;padding:0;border:0;font:inherit;font-size:100%;vertical-align:baseline}html{line-height:1}ul{list-style:none}a img{border:none}article,aside,footer,header,hgroup,nav,section{display:block}article,aside,footer,header,hgroup,nav,section{display:block}a{color:#1863a1}a:visited{color:#751590}a:focus{color:#0181eb}a:hover{color:#0181eb}a:active{color:#01579f}aside.sidebar a{color:#1863a1}aside.sidebar a:focus{color:#0181eb}aside.sidebar a:hover{color:#0181eb}aside.sidebar a:active{color:#01579f}a{-webkit-transition:color .3s;-moz-transition:color .3s;-o-transition:color .3s;transition:color .3s}html{background:#252525 url(/h/www.thattommyhall.com/images/line-tile.png,q1370386872.pagespeed.ce.qGpdcPsAJN.png) top left}body>div#main{background:#f2f2f2 url(/h/www.thattommyhall.com/images/noise.png,q1370386872.pagespeed.ce.qDmuOR-7sK.png) top left;border-bottom:1px solid #bfbfbf}body>div#main>div{background:#f8f8f8 url(/h/www.thattommyhall.com/images/noise.png,q1370386872.pagespeed.ce.qDmuOR-7sK.png) top left;border-right:1px solid #e0e0e0}body>header h1,h1,h2{font-family:"PT Serif","Georgia","Helvetica Neue",Arial,sans-serif}body>header h2,article header p.meta,article>footer,aside.sidebar section,body>footer{font-family:"PT Sans","Helvetica Neue",Arial,sans-serif}body{font-family:"PT Serif",Georgia,Times,"Times New Roman",serif}pre,code{font-family:Menlo,Monaco,"Andale Mono","lucida console","Courier New",monospace}body>header h1{font-size:2.2em;font-family:"PT Serif","Georgia","Helvetica Neue",Arial,sans-serif;font-weight:normal;line-height:1.2em;margin-bottom:.6667em}body>header h2{font-family:"PT Serif","Georgia","Helvetica Neue",Arial,sans-serif}body{line-height:1.5em;color:#222}h1{font-size:2.2em;line-height:1.2em}@media only screen and (min-width:992px){body{font-size:1.15em}h1{font-size:2.6em;line-height:1.2em}}h1,h2{text-rendering:optimizelegibility;margin-bottom:1em;font-weight:bold}h2,section h1{font-size:1.5em}p,ul{margin-bottom:1.5em}ul{list-style-type:disc}ul{margin-left:1.3em}strong{font-weight:bold}strong{font-weight:bold}article a,aside.sidebar a{white-space:-moz-pre-wrap;white-space:-pre-wrap;white-space:-o-pre-wrap;white-space:pre-wrap;word-wrap:break-word}body>header,body>nav,body>footer,body #content>div>article,body #content>div>section,aside.sidebar,#main,#content,.sidebar{*zoom:1}body>header:after,body>nav:after,body>footer:after,body #content>div>section:after,#main:after,#content:after,.sidebar:after{content:"";display:table;clear:both}body{-webkit-text-size-adjust:none;max-width:1200px;position:relative;margin:0 auto}body>header,body>nav,body>footer,body #content>div>article,body #content>div>section{padding-left:18px;padding-right:18px}@media only screen and (min-width:480px){body>header,body>nav,body>footer,body #content>div>article,body #content>div>section{padding-left:25px;padding-right:25px}}@media only screen and (min-width:768px){body>header,body>nav,body>footer,body #content>div>article,body #content>div>section{padding-left:35px;padding-right:35px}}@media only screen and (min-width:992px){body>header,body>nav,body>footer,body #content>div>article,body #content>div>section{padding-left:55px;padding-right:55px}}body>header{font-size:1em;padding-top:1.5em;padding-bottom:1.5em}#content{overflow:hidden}#content>div{width:100%}aside.sidebar{float:none;padding:0 18px 1px;background-color:#f7f7f7;border-top:1px solid #e0e0e0}aside.sidebar img{max-width:100%;height:auto}.basic-alignment.left{float:left;margin-right:1.5em}.basic-alignment.right{float:right;margin-left:1.5em}.basic-alignment.left,.basic-alignment.right{margin-bottom:.8em}.toggle-sidebar{display:none}@media only screen and (min-width:550px){body>header{font-size:1em}}@media only screen and (min-width:750px){aside.sidebar{float:none;width:auto;clear:left;margin:0;padding:0 35px 1px;background-color:#f7f7f7;border-top:1px solid #eaeaea}aside.sidebar section.odd,aside.sidebar section.even{float:left;width:48%}aside.sidebar section.odd{margin-left:0}aside.sidebar section.even{margin-left:4%}aside.sidebar.thirds section{width:30%;margin-left:5%}aside.sidebar.thirds section.first{margin-left:0;clear:both}}@media only screen and (min-width:768px){body{-webkit-text-size-adjust:auto}body>header{font-size:1.2em}#main{padding:0;margin:0 auto}#content{overflow:visible;margin-right:240px;position:relative}#content>div{padding-top:17.5px;padding-bottom:17.5px;float:left}aside.sidebar{width:210px;padding:0 15px 15px;background:none;clear:none;float:left;margin:0 -100% 0 0}aside.sidebar section{width:auto;margin-left:0}aside.sidebar section.odd,aside.sidebar section.even{float:none;width:auto;margin-left:0}}@media only screen and (min-width:992px){body>header{font-size:1.3em}#content{margin-right:300px}#content>div{padding-top:27.5px;padding-bottom:27.5px}aside.sidebar{width:260px;padding:1.2em 20px 20px}}@media only screen and (min-width:768px){ul{margin-left:0}}body>header{background:#333}body>header h1{display:inline-block;margin:0}body>header h1 a,body>header h1 a:visited,body>header h1 a:hover{color:#f2f2f2;text-decoration:none}body>header h2{margin:.2em 0 0;font-size:1em;color:#aaa;font-weight:normal}body>nav{position:relative;background-color:#ccc;background:url('http://www.thattommyhall.com/images/noise.png?1370386872'),-webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #e0e0e0), color-stop(50%, #cccccc), color-stop(100%, #b0b0b0));background:url('http://www.thattommyhall.com/images/noise.png?1370386872'),-webkit-linear-gradient(#e0e0e0,#cccccc,#b0b0b0);background:url('http://www.thattommyhall.com/images/noise.png?1370386872'),-moz-linear-gradient(#e0e0e0,#cccccc,#b0b0b0);background:url('http://www.thattommyhall.com/images/noise.png?1370386872'),-o-linear-gradient(#e0e0e0,#cccccc,#b0b0b0);background:url('http://www.thattommyhall.com/images/noise.png?1370386872'),linear-gradient(#e0e0e0,#cccccc,#b0b0b0);border-top:1px solid #f2f2f2;border-bottom:1px solid #8c8c8c;padding-top:.35em;padding-bottom:.35em}body>nav form{-webkit-background-clip:padding;-moz-background-clip:padding;background-clip:padding-box;margin:0;padding:0}body>nav form .search{padding:.3em .5em 0;font-size:.85em;font-family:"PT Sans","Helvetica Neue",Arial,sans-serif;line-height:1.1em;width:95%;-webkit-border-radius:.5em;-moz-border-radius:.5em;-ms-border-radius:.5em;-o-border-radius:.5em;border-radius:.5em;-webkit-background-clip:padding;-moz-background-clip:padding;background-clip:padding-box;-webkit-box-shadow:#d1d1d1 0 1px;-moz-box-shadow:#d1d1d1 0 1px;box-shadow:#d1d1d1 0 1px;background-color:#f2f2f2;border:1px solid #b3b3b3;color:#888}body>nav form .search:focus{color:#444;border-color:#80b1df;-webkit-box-shadow:#80b1df 0 0 4px,#80b1df 0 0 3px inset;-moz-box-shadow:#80b1df 0 0 4px,#80b1df 0 0 3px inset;box-shadow:#80b1df 0 0 4px,#80b1df 0 0 3px inset;background-color:#fff;outline:none}body>nav fieldset[role="search"]{float:right;width:48%}body>nav fieldset.mobile-nav{float:left;width:48%}body>nav fieldset.mobile-nav select{width:100%;font-size:.8em;border:1px solid #888}body>nav ul{display:none}@media only screen and (min-width:550px){body>nav{font-size:.9em}body>nav ul{margin:0;padding:0;border:0;overflow:hidden;*zoom:1;float:left;display:block;padding-top:.15em}body>nav ul li{list-style-image:none;list-style-type:none;margin-left:0;white-space:nowrap;display:inline;float:left;padding-left:0;padding-right:0}body>nav ul li:first-child{padding-left:0}body>nav ul li:last-child{padding-right:0}body>nav ul.subscription{margin-left:.8em;float:right}body>nav ul.subscription li:last-child a{padding-right:0}body>nav ul li{margin:0}body>nav a{color:#6b6b6b;font-family:"PT Sans","Helvetica Neue",Arial,sans-serif;text-shadow:#ebebeb 0 1px;float:left;text-decoration:none;font-size:1.1em;padding:.1em 0;line-height:1.5em}body>nav a:visited{color:#6b6b6b}body>nav a:hover{color:#2b2b2b}body>nav li+li{border-left:1px solid #b0b0b0;margin-left:.8em}body>nav li+li a{padding-left:.8em;border-left:1px solid #dedede}body>nav form{float:right;text-align:left;padding-left:.8em;width:175px}body>nav form .search{width:93%;font-size:.95em;line-height:1.2em}body>nav fieldset.mobile-nav{display:none}body>nav fieldset[role="search"]{width:99%}}@media only screen and (min-width:992px){body>nav form{width:215px}}.maskImage ul.subscription{position:relative;top:.2em}.maskImage ul.subscription li,.maskImage ul.subscription a{border:0;padding:0}.maskImage a[rel="subscribe-rss"]{position:relative;top:0px;text-indent:-999999em;background-color:#dedede;border:0;padding:0}.maskImage a[rel="subscribe-rss"],.maskImage a[rel="subscribe-rss"]:after{-webkit-mask-image:url(/images/rss.png?1370386872);-moz-mask-image:url(/images/rss.png?1370386872);-ms-mask-image:url(/images/rss.png?1370386872);-o-mask-image:url(/images/rss.png?1370386872);mask-image:url(/images/rss.png?1370386872);-webkit-mask-repeat:no-repeat;-moz-mask-repeat:no-repeat;-ms-mask-repeat:no-repeat;-o-mask-repeat:no-repeat;mask-repeat:no-repeat;width:22px;height:22px}.maskImage a[rel="subscribe-rss"]:after{content:"";position:absolute;top:-1px;left:0;background-color:#ababab}.maskImage a[rel="subscribe-rss"]:hover:after{background-color:#9e9e9e}article{padding-top:1em}article header{position:relative;padding-top:2em;padding-bottom:1em;margin-bottom:1em;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAABCAYAAACsXeyTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAFUlEQVQIHWNIS0sr/v//PwMMDzY+ADqMahlW4J91AAAAAElFTkSuQmCC) bottom left repeat-x}article header h1{margin:0}article header p{font-size:.9em;color:#aaa;margin:0}article header p.meta{text-transform:uppercase;position:absolute;top:0}@media only screen and (min-width:768px){article header{margin-bottom:1.5em;padding-bottom:1em;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAABCAYAAACsXeyTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAFUlEQVQIHWNIS0sr/v//PwMMDzY+ADqMahlW4J91AAAAAElFTkSuQmCC) bottom left repeat-x}}article>footer{padding-bottom:2.5em;margin-top:2em}article>footer p.meta{margin-bottom:.8em;font-size:.85em;clear:both;overflow:hidden}.separator,article>footer .byline+time:before,article>footer time+time:before,article>footer .comments:before,article>footer .byline ~ .categories:before{content:"\2022 ";padding:0 .4em 0 .2em;display:inline-block}p.meta+.sharing{padding-top:1em;padding-left:0;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAABCAYAAACsXeyTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAFUlEQVQIHWNIS0sr/v//PwMMDzY+ADqMahlW4J91AAAAAElFTkSuQmCC) top left repeat-x}#fb-root{display:none}pre{-webkit-box-shadow:rgba(0,0,0,.06) 0 0 10px;-moz-box-shadow:rgba(0,0,0,.06) 0 0 10px;box-shadow:rgba(0,0,0,.06) 0 0 10px}pre{background:#002b36 url(/h/www.thattommyhall.com/images/noise.png,q1370386872.pagespeed.ce.qDmuOR-7sK.png) top left;-webkit-border-radius:.4em;-moz-border-radius:.4em;-ms-border-radius:.4em;-o-border-radius:.4em;border-radius:.4em;border:1px solid #05232b;line-height:1.45em;font-size:13px;margin-bottom:2.1em;padding:.8em 1em;color:#93a1a1;overflow:auto}aside.sidebar section h1,aside.sidebar li{-webkit-box-shadow:#fff 0 1px;-moz-box-shadow:#fff 0 1px;box-shadow:#fff 0 1px}aside.sidebar{overflow:hidden;color:#4b4b4b;text-shadow:#fff 0 1px}aside.sidebar section{font-size:.8em;line-height:1.4em;margin-bottom:1.5em}aside.sidebar section h1{margin:1.5em 0 0;padding-bottom:.2em;border-bottom:1px solid #e0e0e0}aside.sidebar img{-webkit-border-radius:.3em;-moz-border-radius:.3em;-ms-border-radius:.3em;-o-border-radius:.3em;border-radius:.3em;-webkit-box-shadow:rgba(0,0,0,.15) 0 1px 4px;-moz-box-shadow:rgba(0,0,0,.15) 0 1px 4px;box-shadow:rgba(0,0,0,.15) 0 1px 4px;-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;border:#fff .3em solid}aside.sidebar ul{margin-bottom:.5em;margin-left:0}aside.sidebar li{list-style:none;padding:.5em 0;margin:0;border-bottom:1px solid #e0e0e0}aside.sidebar li p:last-child{margin-bottom:0}aside.sidebar a{color:inherit;-webkit-transition:color .5s;-moz-transition:color .5s;-o-transition:color .5s;transition:color .5s}aside.sidebar:hover a{color:#1863a1}aside.sidebar:hover a:hover{color:#0181eb}@media only screen and (min-width:768px){.toggle-sidebar{outline:none;position:absolute;right:-10px;top:0;bottom:0;display:inline-block;text-decoration:none;color:#cecece;width:9px;cursor:pointer}.toggle-sidebar:hover{background:#e9e9e9;background:-webkit-gradient(linear,0% 50%,100% 50%,color-stop(0%,rgba(224,224,224,.5)),color-stop(100%,rgba(224,224,224,0)));background:-webkit-linear-gradient(left,rgba(224,224,224,.5),rgba(224,224,224,0));background:-moz-linear-gradient(left,rgba(224,224,224,.5),rgba(224,224,224,0));background:-o-linear-gradient(left,rgba(224,224,224,.5),rgba(224,224,224,0));background:linear-gradient(left,rgba(224,224,224,.5),rgba(224,224,224,0))}.toggle-sidebar:after{position:absolute;right:-11px;top:0;width:20px;font-size:1.2em;line-height:1.1em;padding-bottom:.15em;-moz-border-radius-bottomright:.3em;-webkit-border-bottom-right-radius:.3em;border-bottom-right-radius:.3em;text-align:center;background:#f8f8f8 url(/h/www.thattommyhall.com/images/noise.png,q1370386872.pagespeed.ce.qDmuOR-7sK.png) top left;border-bottom:1px solid #e0e0e0;border-right:1px solid #e0e0e0;content:"\00BB";text-indent:-1px}}.googleplus h1{-moz-box-shadow:none!important;-webkit-box-shadow:none!important;-o-box-shadow:none!important;box-shadow:none!important;border-bottom:0px none!important}.googleplus a{text-decoration:none;white-space:normal!important;line-height:32px}.googleplus a img{float:left;margin-right:.5em;border:0 none}body>footer{font-size:.8em;color:#888;text-shadow:#d9d9d9 0 1px;background-color:#ccc;background:url('http://www.thattommyhall.com/images/noise.png?1370386872'),-webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #e0e0e0), color-stop(50%, #cccccc), color-stop(100%, #b0b0b0));background:url('http://www.thattommyhall.com/images/noise.png?1370386872'),-webkit-linear-gradient(#e0e0e0,#cccccc,#b0b0b0);background:url('http://www.thattommyhall.com/images/noise.png?1370386872'),-moz-linear-gradient(#e0e0e0,#cccccc,#b0b0b0);background:url('http://www.thattommyhall.com/images/noise.png?1370386872'),-o-linear-gradient(#e0e0e0,#cccccc,#b0b0b0);background:url('http://www.thattommyhall.com/images/noise.png?1370386872'),linear-gradient(#e0e0e0,#cccccc,#b0b0b0);border-top:1px solid #f2f2f2;position:relative;padding-top:1em;padding-bottom:1em;margin-bottom:3em;-moz-border-radius-bottomleft:.4em;-webkit-border-bottom-left-radius:.4em;border-bottom-left-radius:.4em;-moz-border-radius-bottomright:.4em;-webkit-border-bottom-right-radius:.4em;border-bottom-right-radius:.4em;z-index:1}body>footer a{color:#6b6b6b}body>footer a:visited{color:#6b6b6b}body>footer a:hover{color:#484848}body>footer p:last-child{margin-bottom:0}</style>
+<link href="/feed" rel=alternate title="Everything is a Ghetto" type="application/atom+xml">
+<script src="http://1-ps.googleusercontent.com/h/www.thattommyhall.com/javascripts/modernizr-2.0.js.pagespeed.jm.1D7XITYyiU.js" type="text/psajs" orig_index=0></script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js" type="text/psajs" orig_index=1></script>
+<script type="text/psajs" orig_index=2>!window.jQuery&&document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+<script src="http://1-ps.googleusercontent.com/h/www.thattommyhall.com/javascripts/octopress.js.pagespeed.jm.YeVkuULTy_.js" type="text/psajs" orig_index=3></script>
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel=stylesheet type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel=stylesheet type="text/css">
+<script type="text/psajs" orig_index=4>var _gaq=_gaq||[];_gaq.push(['_setAccount','UA-871424-3']);_gaq.push(['_trackPageview']);(function(){var ga=document.createElement('script');ga.type='text/javascript';ga.async=true;ga.src=('https:'==document.location.protocol?'https://ssl':'http://www')+'.google-analytics.com/ga.js';var s=document.getElementsByTagName('script')[0];s.parentNode.insertBefore(ga,s);})();</script>
+</head>
+<body><noscript><meta HTTP-EQUIV="refresh" content="0;url='http://www.thattommyhall.com/2011/02/18/iops-linux-iostat/?ModPagespeed=noscript'" /><style><!--table,div,span,font,p{display:none} --></style><div style="display:block">Please click <a href="http://www.thattommyhall.com/2011/02/18/iops-linux-iostat/?ModPagespeed=noscript">here</a> if you are not redirected within a few seconds.</div></noscript>
+<header role=banner><hgroup>
+<h1><a href="/">Everything is a Ghetto</a></h1>
+<h2>While reading this controversial link bait, consider buying my product/service</h2>
+</hgroup>
+</header>
+<nav role=navigation><ul class=subscription data-subscription=rss>
+<li><a href="/feed" rel=subscribe-rss title="subscribe via RSS">RSS</a></li>
+</ul>
+<form action="http://google.com/search">
+<fieldset role=search>
+<input type=hidden name=q value=site:www.thattommyhall.com />
+<input class=search type=text name=q results=0 placeholder=Search />
+</fieldset>
+</form>
+<ul class=main-navigation>
+<li><a href="/">Blog</a></li>
+<li><a href="/blog/archives">Archives</a></li>
+<li><a href="/about">About</a></li>
+</ul>
+</nav>
+<div id=main>
+<div id=content>
+<div>
+<article class=hentry role=article>
+<header>
+<h1 class=entry-title>Measuring Disk Usage in Linux (%iowait vs IOPS)</h1>
+<p class=meta>
+<time datetime="2011-02-18T15:43:20+00:00" pubdate data-updated=true>Feb 18<span>th</span>, 2011</time>
+</p>
+</header>
+<div class=entry-content><p>Shameless plug: If you are doing anything with storage and 45 drives in 3U is interesting to you then please check out <a href="/2013/07/03/backblaze-storage-pod/">Backblaze Storage Pods Available in EU</a></p>
+<p>This occurred to me when looking at our Hadoop servers today, lots of our devs use IOWait as an indicator of IO performance but there are better measures. IOWait is a CPU metric, measuring the percent of time the CPU is idle, but waiting for an I/O to complete. Strangely - <strong>It is possible to have healthy system with nearly 100% iowait, or have a disk bottleneck with 0% iowait.</strong> A much better metric is to look at disk IO directly and you want to find the IOPS (IO Operations Per Second). </p>
+<p><strong>Measuring IOPS</strong>
+In linux I like the iostat command, though there are a few ways to get at the info. In debian/ubuntu it is in the sysstat package (ie: sudo apt-get install sysstat)</p>
+<pre><code>root@MACHINENAME:/home/deploy# iostat 1
+Linux 2.6.24-28-server (MACHINENAME.forward.co.uk) 	18/02/11
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+    45.51    0.00    1.85    0.62       0.00       52.03
+
+Device:        tps   Blk_read/s   Blk_wrtn/s   Blk_read   Blk_wrtn
+cciss/c0d0     4.00       0.00       40.00          0       40
+cciss/c0d1     4.00       0.00       64.00          0       64
+cciss/c0d2    12.00       0.00      248.00          0       248
+cciss/c0d3     0.00       0.00        0.00          0       0
+cciss/c0d4    25.00       0.00      320.00          0       320
+cciss/c0d5     0.00       0.00        0.00          0       0
+cciss/c0d6    30.00       0.00      344.00          0       344
+cciss/c0d7    42.00    3144.00        0.00         3144     0
+</code></pre>
+<p>iostat 1 refreshes everysecond, if you do it over a longer period it will average the results. tps is what you are interested in, Transactions Per Second (ie IOPS). -x will give a more detailed output and separate out reads and writes and let you know how much data is going in and out per second.</p>
+<p><strong>What is a good or bad number though?</strong>
+As with most metrics, if the first time you look at it is when you are in trouble then it’s less helpful. You should have an idea of how much IO you typically do, then if you experience issues and are doing 10x that or only getting 1/10 from the disks then you have a good candidate explanation for them.</p>
+<p><strong>How much can I expect from my storage?</strong>
+It depends how fast the disks are spinning, and how many there is.
+As a rule of thumb I assume for a single disk:
+7.2k RPM -&gt; ~100 IOPS
+10k RPM -&gt; ~150 IOPS
+15k RPM -&gt; ~200 IOPS
+Our hadoop servers were pushing about 70 IOPS to each disk at peak and they are 7.2k ones so that is in line with this estimate.</p>
+<p>See <a href="http://www.zdnetasia.com/calculate-iops-in-a-storage-array-62061792.htm">here</a> for a breakdown of why these are good estimates for random IOs from a single disk. Interestingly a large amount of it comes from the latency of the platter spinning, which is why SSDs do so well for random IO (Compared to a 15k disk, ~50x for writes, ~200x reads)
+<strong>See also:</strong>
+A concrete example of faster CPU causing higher %iowait while actually doing more transactions <a href="http://www.ee.pw.edu.pl/~pileckip/aix/iowait.htm">here</a></p>
+<p>Extreme Linux Performance Monitoring and Tuning: <a href="http://www.ufsdump.org/papers/uuasc-june-2006.pdf">Part 1 (pdf)</a> and <a href="http://www.ufsdump.org/papers/io-tuning.pdf">Part 2 (pdf)</a> from <a href="http://www.ufsdump.org/">ufsdump.org/</a></p>
+</div>
+<footer>
+<p class=meta>
+<span class="byline author vcard">Posted by <span class=fn>tom</span></span>
+<time datetime="2011-02-18T15:43:20+00:00" pubdate data-updated=true>Feb 18<span>th</span>, 2011</time>
+<span class=categories>
+<a class=category href='/blog/categories/linux/'>linux</a>
+</span>
+</p>
+<div class=sharing>
+<a href="http://twitter.com/share" class=twitter-share-button data-url="http://www.thattommyhall.com/2011/02/18/iops-linux-iostat/" data-via=thattommyhall data-counturl="http://www.thattommyhall.com/2011/02/18/iops-linux-iostat/">Tweet</a>
+<div class=g-plusone data-size=medium></div>
+<div class=fb-like data-send=true data-width=450 data-show-faces=false></div>
+</div>
+<p class=meta>
+<a class="basic-alignment left" href="/2011/02/14/srvany-sinatra-ruby-windows-service/" title="Previous Post: Running Any Executable As A Windows Service (Ruby / Sinatra)">&laquo; Running Any Executable As A Windows Service (Ruby / Sinatra)</a>
+<a class="basic-alignment right" href="/2011/02/20/ruby-on-windows-running-other-executables/" title="Next Post: Ruby On Windows - Forking other processes ">Ruby On Windows - Forking other processes &raquo;</a>
+</p>
+</footer>
+</article>
+<section>
+<h1>Comments</h1>
+<div id=disqus_thread aria-live=polite><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+</section>
+</div>
+<aside class=sidebar>
+<section>
+<h1>Recent Posts</h1>
+<ul id=recent_posts>
+<li class=post>
+<a href="/2014/02/24/101-goals-day-200-update/">101 Goals Day 200 Update</a>
+</li>
+<li class=post>
+<a href="/2014/02/24/concurrency-and-parallelism-in-clojure/">Concurrency and Parallelism in Clojure</a>
+</li>
+<li class=post>
+<a href="/2013/12/14/101-goals-day-100-update/">101 Goals Day 100 Update</a>
+</li>
+<li class=post>
+<a href="/2013/11/25/facebook-hackercup-2014-1/">Hackercup 2014 - Qualifier</a>
+</li>
+<li class=post>
+<a href="/2013/10/27/async-game-of-life/">Asynchronous Game of Life</a>
+</li>
+</ul>
+</section>
+<section>
+<h1>GitHub Repos</h1>
+<ul id=gh_repos>
+<li class=loading>Status updating...</li>
+</ul>
+<a href="https://github.com/thattommyhall">@thattommyhall</a> on GitHub
+<script type="text/psajs" orig_index=5>$(document).ready(function(){if(!window.jXHR){var jxhr=document.createElement('script');jxhr.type='text/javascript';jxhr.src='/javascripts/libs/jXHR.js';var s=document.getElementsByTagName('script')[0];s.parentNode.insertBefore(jxhr,s);}
+github.showRepos({user:'thattommyhall',count:5,skip_forks:true,target:'#gh_repos'});});</script>
+<script type="text/psajs" orig_index=6>var github=(function(){function escapeHtml(str){return $('<div/>').text(str).html();}
+function render(target,repos){var i=0,fragment='',t=$(target)[0];for(i=0;i<repos.length;i++){fragment+='<li><a href="'+repos[i].html_url+'">'+repos[i].name+'</a><p>'+escapeHtml(repos[i].description||'')+'</p></li>';}
+t.innerHTML=fragment;}
+return{showRepos:function(options){$.ajax({url:"https://api.github.com/users/"+options.user+"/repos?sort=pushed&callback=?",dataType:'jsonp',error:function(err){$(options.target+' li.loading').addClass('error').text("Error loading feed");},success:function(data){var repos=[];if(!data||!data.data){return;}
+for(var i=0;i<data.data.length;i++){if(options.skip_forks&&data.data[i].fork){continue;}
+repos.push(data.data[i]);}
+if(options.count){repos.splice(options.count);}
+render(options.target,repos);}});}};})();</script>
+</section>
+<section class=googleplus>
+<h1>
+<a href="https://plus.google.com/114659187896389159195?rel=author">
+<script pagespeed_no_defer="">(function(){var e=window,g=document,h="documentElement",k="CriticalImages",l="scrollTop",n="prototype",p="body",q="getAttribute",r=function(a,b,c){if(a.addEventListener)a.addEventListener(b,c,!1);else if(a.attachEvent)a.attachEvent("on"+b,c);else{var d=a["on"+b];a["on"+b]=function(){c.call(this);d&&d.call(this)}}};e.pagespeed=e.pagespeed||{};
+var s=e.pagespeed,t=function(a){this.d=[];this.e=0;this.c=!1;this.h=a;this.f=null;this.i=0;this.b=!1;this.a=0},u=function(a,b){var c=b[q]("pagespeed_lazy_position");if(c)return parseInt(c,0);var c=b.offsetTop,d=b.offsetParent;d&&(c+=u(a,d));c=Math.max(c,0);b.setAttribute("pagespeed_lazy_position",c);return c},v=function(a,b){var c,d,f;if(!a.b&&(0==b.offsetHeight||0==b.offsetWidth))return!1;e:if(b.currentStyle)d=b.currentStyle.position;else{if(g.defaultView&&g.defaultView.getComputedStyle&&(d=g.defaultView.getComputedStyle(b,
+null))){d=d.getPropertyValue("position");break e}d=b.style&&b.style.position?b.style.position:""}if("relative"==d)return!0;f=0;"number"==typeof e.pageYOffset?f=e.pageYOffset:g[p]&&g[p][l]?f=g[p][l]:g[h]&&g[h][l]&&(f=g[h][l]);c=e.innerHeight||g[h].clientHeight||g[p].clientHeight;d=f;f=f+c;var m=b.getBoundingClientRect();m?(f=m.top-c,d=m.bottom):(m=u(a,b),c=m+b.offsetHeight,f=m-f,d=c-d);return f<=a.e&&0<=d+a.e};
+t[n].j=function(a){x(a);var b=this;e.setTimeout(function(){var c=a[q]("pagespeed_lazy_src");if(null!=c)if((b.c||v(b,a))&&-1!=a.src.indexOf(b.h)){var d=a.parentNode,f=a.nextSibling;d&&d.removeChild(a);a.g&&(a.getAttribute=a.g);a.removeAttribute("onload");a.tagName&&"IMG"==a.tagName&&s[k]&&r(a,"load",function(){s[k].checkImageForCriticality(this);b.b&&(b.a--,0==b.a&&s[k].checkCriticalImages())});a.removeAttribute("pagespeed_lazy_src");a.removeAttribute("pagespeed_lazy_replaced_functions");d&&d.insertBefore(a,
+f);a.src=c}else b.d.push(a)},0)};t[n].loadIfVisibleAndMaybeBeacon=t[n].j;t[n].k=function(){this.c=!0;y(this)};t[n].loadAllImages=t[n].k;var y=function(a){var b=a.d,c=b.length;a.d=[];for(var d=0;d<c;++d)a.j(b[d])},A=function(a,b){return a.a?null!=a.a(b):null!=a[q](b)};t[n].l=function(){for(var a=g.getElementsByTagName("img"),b=0,c;c=a[b];b++)A(c,"pagespeed_lazy_src")&&x(c)};t[n].overrideAttributeFunctions=t[n].l;
+var x=function(a){A(a,"pagespeed_lazy_replaced_functions")||(a.g=a[q],a.getAttribute=function(a){"src"==a.toLowerCase()&&A(this,"pagespeed_lazy_src")&&(a="pagespeed_lazy_src");return this.g(a)},a.setAttribute("pagespeed_lazy_replaced_functions","1"))};
+s.m=function(a,b){var c=new t(b);s.lazyLoadImages=c;r(e,"load",function(){c.b=!0;c.c=a;c.e=200;if(s[k]){for(var b=0,d=g.getElementsByTagName("img"),z=0,w;w=d[z];z++)-1!=w.src.indexOf(c.h)&&A(w,"pagespeed_lazy_src")&&b++;c.a=b;0==c.a&&s[k].checkCriticalImages()}y(c)});0!=b.indexOf("data")&&((new Image).src=b);var d=function(){if(!(c.b&&a||c.f)){var b=200;200<(new Date).getTime()-c.i&&(b=0);c.f=e.setTimeout(function(){c.i=(new Date).getTime();y(c);c.f=null},b)}};r(e,"scroll",d);r(e,"resize",d)};
+s.lazyLoadInit=s.m;})();
+
+pagespeed.lazyLoadInit(true, "//1-ps.googleusercontent.com/h/www.gstatic.com/psa/static/1.gif");
+</script><img pagespeed_lazy_src="http://1-ps.googleusercontent.com/x/www.thattommyhall.com/www.google.com/images/icons/ui/gprofile_button-32.png.pagespeed.ce.ydJ0dA_Cfw.png" width=32 height=32 src="//1-ps.googleusercontent.com/h/www.gstatic.com/psa/static/1.gif" onload="pagespeed.lazyLoadImages.loadIfVisibleAndMaybeBeacon(this);">
+Google+
+</a>
+</h1>
+</section>
+</aside>
+</div>
+</div>
+<footer role=contentinfo><p>
+Copyright &copy; 2014 - thattommyhall -
+<span class=credit>Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+</footer>
+<script type="text/javascript" pagespeed_no_defer="">pagespeed.lazyLoadImages.overrideAttributeFunctions();</script><script type="text/psajs" orig_index=7>var disqus_shortname='thattommyhall';var disqus_identifier='http://www.thattommyhall.com/2011/02/18/iops-linux-iostat/';var disqus_url='http://www.thattommyhall.com/2011/02/18/iops-linux-iostat/';var disqus_script='embed.js';(function(){var dsq=document.createElement('script');dsq.type='text/javascript';dsq.async=true;dsq.src='http://'+disqus_shortname+'.disqus.com/'+disqus_script;(document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(dsq);}());</script>
+<div id=fb-root></div>
+<script type="text/psajs" orig_index=8>(function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(d.getElementById(id)){return;}
+js=d.createElement(s);js.id=id;js.async=true;js.src="//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";fjs.parentNode.insertBefore(js,fjs);}(document,'script','facebook-jssdk'));</script>
+<script type="text/psajs" orig_index=9>(function(){var script=document.createElement('script');script.type='text/javascript';script.async=true;script.src='https://apis.google.com/js/plusone.js';var s=document.getElementsByTagName('script')[0];s.parentNode.insertBefore(script,s);})();</script>
+<script type="text/psajs" orig_index=10>(function(){var twitterWidgets=document.createElement('script');twitterWidgets.type='text/javascript';twitterWidgets.async=true;twitterWidgets.src='http://platform.twitter.com/widgets.js';document.getElementsByTagName('head')[0].appendChild(twitterWidgets);})();</script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  jax: ["input/TeX", "output/HTML-CSS"],
+  tex2jax: {
+    inlineMath: [ ['$', '$'] ],
+    displayMath: [ ['$$', '$$']],
+    processEscapes: true,
+    skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+  },
+  messageStyle: "none",
+  "HTML-CSS": { preferredFont: "TeX", availableFonts: ["STIX","TeX"] }
+});
+</script>
+<script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML" type="text/psajs" orig_index=11></script>
+</script>
+<noscript class=psa_add_styles><link href="http://1-ps.googleusercontent.com/h/www.thattommyhall.com/stylesheets/A.screen.css.pagespeed.cf.tzI0CVUNxv.css" media="screen, projection" rel=stylesheet type="text/css"><link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel=stylesheet type="text/css"><link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel=stylesheet type="text/css"></noscript><script pagespeed_no_defer="">(function(){var e=window,g=document,h=this,k=function(a,d){var b=a.split("."),c=h;b[0]in c||!c.execScript||c.execScript("var "+b[0]);for(var f;b.length&&(f=b.shift());)b.length||void 0===d?c[f]?c=c[f]:c=c[f]={}:c[f]=d};var m=function(){var a=e,d=l;if(a.addEventListener)a.addEventListener("load",d,!1);else if(a.attachEvent)a.attachEvent("onload",d);else{var b=a.onload;a.onload=function(){d.call(this);b&&b.call(this)}}};var n=!1,l=function(){if(!n){n=!0;for(var a=g.getElementsByClassName("psa_add_styles"),d=0,b;b=a[d];++d)if("NOSCRIPT"==b.nodeName){var c=g.createElement("div");c.innerHTML=b.textContent;g.body.appendChild(c)}}};k("pagespeed.CriticalCssLoader.addAllStyles",l);k("pagespeed.CriticalCssLoader.Run",function(){var a=e.requestAnimationFrame||e.webkitRequestAnimationFrame||e.mozRequestAnimationFrame||e.oRequestAnimationFrame||e.msRequestAnimationFrame||null;a?a(function(){e.setTimeout(l,0)}):m()});})();
+pagespeed.CriticalCssLoader.Run();</script><script pagespeed_no_defer="">(function(){var e=window,f=Math,g="round",h="performance";e.pagespeed=e.pagespeed||{};var q=e.pagespeed;
+q.getResourceTimingData=function(){if(e[h]&&(e[h].getEntries||e[h].webkitGetEntries)){for(var r=0,s=0,k=0,t=0,l=0,u=0,m=0,v=0,n=0,w=0,p=0,c={},d=e[h].getEntries?e[h].getEntries():e[h].webkitGetEntries(),b=0;b<d.length;b++){var a=d[b].duration;0<a&&(r+=a,++k,s=f.max(s,a));a=d[b].connectEnd-d[b].connectStart;0<a&&(u+=a,++m);a=d[b].domainLookupEnd-d[b].domainLookupStart;0<a&&(t+=a,++l);a=d[b].initiatorType;c[a]?++c[a]:c[a]=1;a=d[b].requestStart-d[b].fetchStart;0<a&&(w+=a,++p);a=d[b].responseStart-d[b].requestStart;
+0<a&&(v+=a,++n)}return"&afd="+(k?f[g](r/k):0)+"&nfd="+k+"&mfd="+f[g](s)+"&act="+(m?f[g](u/m):0)+"&nct="+m+"&adt="+(l?f[g](t/l):0)+"&ndt="+l+"&abt="+(p?f[g](w/p):0)+"&nbt="+p+"&attfb="+(n?f[g](v/n):0)+"&nttfb="+n+(c.css?"&rit_css="+c.css:"")+(c.link?"&rit_link="+c.link:"")+(c.script?"&rit_script="+c.script:"")+(c.img?"&rit_img="+c.img:"")}return""};q.getResourceTimingData=q.getResourceTimingData;})();
+(function(){var c=encodeURIComponent,g=window,h="performance";g.pagespeed=g.pagespeed||{};var l=g.pagespeed,m=function(f,a,d,b){this.c=f;this.a=a;this.b=d;this.d=b};l.beaconUrl="";
+var n=function(f){var a=f.c,d=g.mod_pagespeed_start,b=Number(new Date)-d,a=a+(-1==a.indexOf("?")?"?":"&"),a=a+"ets="+("load"==f.a?"load:":"unload:"),a=a+b;if("beforeunload"!=f.a||!g.mod_pagespeed_loaded){a+="&r"+f.a+"=";if(g[h]){var b=g[h].timing,e=b.navigationStart,k=b.requestStart,a=a+(b[f.a+"EventStart"]-e),a=a+("&nav="+(b.fetchStart-e)),a=a+("&dns="+(b.domainLookupEnd-b.domainLookupStart)),a=a+("&connect="+(b.connectEnd-b.connectStart)),a=a+("&req_start="+(k-e)),a=a+("&ttfb="+(b.responseStart-
+k)),a=a+("&dwld="+(b.responseEnd-b.responseStart)),a=a+("&dom_c="+(b.domContentLoadedEventStart-e));g[h].navigation&&(a+="&nt="+g[h].navigation.type);e=-1;b.msFirstPaint?e=b.msFirstPaint:g.chrome&&g.chrome.loadTimes&&(e=Math.floor(1E3*g.chrome.loadTimes().firstPaintTime));e=e-k;0<=e&&(a+="&fp="+e)}else a+=b;l.getResourceTimingData&&g.parent==g&&(a+=l.getResourceTimingData());a+=g.parent!=g?"&ifr=1":"&ifr=0";"load"==f.a&&(g.mod_pagespeed_loaded=!0,(b=g.mod_pagespeed_num_resources_prefetched)&&(a+=
+"&nrp="+b),(b=g.mod_pagespeed_prefetch_start)&&(a+="&htmlAt="+(d-b)));l.panelLoader&&(d=l.panelLoader.getCsiTimingsString(),""!=d&&(a+="&b_csi="+d));l.criticalCss&&(d=l.criticalCss,a+="&ccis="+d.total_critical_inlined_size+"&cces="+d.total_original_external_size+"&ccos="+d.total_overhead_size+"&ccrl="+d.num_replaced_links+"&ccul="+d.num_unreplaced_links);""!=f.b&&(a+=f.b);document.referrer&&(a+="&ref="+c(document.referrer));a+="&url="+c(f.d);l.beaconUrl=a;(new Image).src=a}};
+l.e=function(f,a,d,b){var e=new m(f,a,d,b);g.addEventListener?g.addEventListener(a,function(){n(e)},!1):g.attachEvent("on"+a,function(){n(e)})};l.addInstrumentationInit=l.e;})();
+
+pagespeed.addInstrumentationInit('http://1-ps.googleusercontent.com/beacon?org=116_1_go', 'load', '&id=1398134380283929', 'http://www.thattommyhall.com/2011/02/18/iops-linux-iostat/');</script></body>
+</html>
+<script type="text/javascript" src="//www.gstatic.com/psa/static/f44fa64fa2f6eb07d93dee4b015a98b8-blink.js"></script><script type="text/javascript">pagespeed.panelLoaderInit();</script>
+<script>pagespeed.panelLoader.bufferNonCriticalData({});</script>

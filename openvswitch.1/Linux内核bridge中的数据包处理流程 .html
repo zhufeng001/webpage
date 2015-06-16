@@ -1,0 +1,812 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Linux内核bridge中的数据包处理流程 - d419192480的专栏 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="转自：http://blog.sina.com.cn/s/blog_630ebdb50100pg8y.htmlLinux内核bridge中的数据包处理流程本文档的Copyleft归yfydz所有，使用GPL发布，可以自由拷贝，转载，转载时请保持文档的完整性，严禁用于任何商业用途。msn: yfydz_no1@hotmail.com来源：http://yfydz.cublog.cn" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/d419192480/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="/d419192480">d419192480的专栏</a></h1>
+            <h2></h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="/d419192480?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="/d419192480?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="/d419192480/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "d419192480";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/d419192480";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8899926" target="_blank">
+<font color=red>有奖征集活动系列——【HTML5游戏编程之旅】 
+   </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2013-05-13/2815252" target="_blank"><font color=blue>专访雷果国：我从1.5K到18K的成长之路 
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8863634" target="_blank"><font color=red>【限时优惠】第五届云计算大会社区门票抢购
+
+
+
+
+</font></a>
+
+<br />
+
+
+
+
+
+<a href="http://events.csdn.net/wy/APC/invite.html
+"target="_blank">
+<font color=red>探究云计算数据中心节能增效之道
+
+
+ </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8900468 "target="_blank">
+<font color=red>CSDN博客第一期云计算最佳博主评选
+ </font></a>
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8853291"target="_blank">
+<font color=blue>CSDN博客第二期最佳移动开发博主评选
+ </font></a>
+
+
+
+
+</div>
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Repost"></span>
+    <h3>
+        <span class="link_title"><a href="/d419192480/article/details/7542261">
+        Linux内核bridge中的数据包处理流程
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/d419192480/article/category/598626">嵌入式Linux开发</a> 
+        </span>
+    <span class="link_postdate">2012-05-07 14:16</span>
+    <span class="link_view" title="阅读次数">130人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('Linux内核bridge中的数据包处理流程','7542261');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(7542261,2);return false;" title="举报">举报</a></span>
+    
+</div>
+<div class="tag2box"><a href='http://blog.csdn.net/tag/details.html?tag=linux%e5%86%85%e6%a0%b8' target=_blank>linux内核</a><a href='http://blog.csdn.net/tag/details.html?tag=struct' target=_blank>struct</a><a href='http://blog.csdn.net/tag/details.html?tag=hook' target=_blank>hook</a><a href='http://blog.csdn.net/tag/details.html?tag=module' target=_blank>module</a><a href='http://blog.csdn.net/tag/details.html?tag=null' target=_blank>null</a><a href='http://blog.csdn.net/tag/details.html?tag=output' target=_blank>output</a></div>
+
+
+    
+<div id="article_content" class="article_content">
+
+<p>转自：<a href="http://blog.sina.com.cn/s/blog_630ebdb50100pg8y.html">http://blog.sina.com.cn/s/blog_630ebdb50100pg8y.html</a></p>
+<p>Linux内核bridge中的数据包处理流程</p>
+<p>本文档的Copyleft归yfydz所有，使用GPL发布，可以自由拷贝，转载，转载时请保持文档的完整性，严禁用于任何商业用途。<br>
+msn: <a href="mailto:yfydz_no1@hotmail.com"><span style="color:#3e73a0">yfydz_no1@hotmail.com</span></a><br>
+来源：<a href="http://yfydz.cublog.cn/"><span style="color:#3e73a0">http://yfydz.cublog.cn</span></a></p>
+<p>1. 前言</p>
+<p>本文简要介绍数据包在进入桥网卡后在Linux网络协议栈的处理流程，并描述netfilter的hook点的挂接处理情况，具体各部分的详细处理待后续文章中说明。</p>
+<p>以下内核代码版本为2.6.19.2.</p>
+<p>2. 函数处理流程</p>
+<p>bridge入口点handle_bridge()</p>
+<p><br>
+int netif_receive_skb(struct sk_buff *skb)<br>
+{<br>
+......<br>
+if (handle_bridge(&amp;skb, &amp;pt_prev, &amp;ret, orig_dev))<br>
+&nbsp;&nbsp; goto out;<br>
+......<br>
+}</p>
+<p>bridge基本挂接点处理函数:br_handle_frame_hook()<br>
+static __inline__ int handle_bridge(struct sk_buff **pskb,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct packet_type **pt_prev, int *ret,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct net_device *orig_dev)<br>
+{<br>
+struct net_bridge_port *port;</p>
+<p>if ((*pskb)-&gt;pkt_type == PACKET_LOOPBACK ||<br>
+&nbsp;&nbsp;&nbsp;&nbsp; (port = rcu_dereference((*pskb)-&gt;dev-&gt;br_port)) == NULL)<br>
+&nbsp;&nbsp; return 0;</p>
+<p>if (*pt_prev) {<br>
+&nbsp;&nbsp; *ret = deliver_skb(*pskb, *pt_prev, orig_dev);<br>
+&nbsp;&nbsp; *pt_prev = NULL;<br>
+}<br>
+return br_handle_frame_hook(port, pskb);<br>
+}</p>
+<p>bridge_handle_frame_hook()的实际实现:</p>
+<p>static int __init br_init(void)<br>
+{<br>
+......<br>
+br_handle_frame_hook = br_handle_frame;<br>
+......<br>
+}</p>
+<p>br_handle_frame: PF_BEIDGE的prerouting点</p>
+<p>int br_handle_frame(struct net_bridge_port *p, struct sk_buff **pskb)<br>
+{<br>
+struct sk_buff *skb = *pskb;<br>
+const unsigned char *dest = eth_hdr(skb)-&gt;h_dest;</p>
+<p>if (!is_valid_ether_addr(eth_hdr(skb)-&gt;h_source))<br>
+&nbsp;&nbsp; goto err;</p>
+<p>if (unlikely(is_link_local(dest))) {<br>
+// 自身包进入PF_BEIDGE的INPUT点, 一般处理的包数不多<br>
+&nbsp;&nbsp; skb-&gt;pkt_type = PACKET_HOST;<br>
+// 正常是返回1的, 然后就返回1, 表示桥模块全权处理该包了<br>
+&nbsp;&nbsp; return NF_HOOK(PF_BRIDGE, NF_BR_LOCAL_IN, skb, skb-&gt;dev,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NULL, br_handle_local_finish) != 0;<br>
+}</p>
+<p>if (p-&gt;state == BR_STATE_FORWARDING || p-&gt;state == BR_STATE_LEARNING) {<br>
+// br_should_route_hook函数一般没定义<br>
+&nbsp;&nbsp; if (br_should_route_hook) {<br>
+&nbsp;&nbsp;&nbsp; if (br_should_route_hook(pskb))<br>
+&nbsp;&nbsp;&nbsp;&nbsp; return 0;<br>
+&nbsp;&nbsp;&nbsp; skb = *pskb;<br>
+&nbsp;&nbsp;&nbsp; dest = eth_hdr(skb)-&gt;h_dest;<br>
+&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp; if (!compare_ether_addr(p-&gt;br-&gt;dev-&gt;dev_addr, dest))<br>
+&nbsp;&nbsp;&nbsp; skb-&gt;pkt_type = PACKET_HOST;</p>
+<p>// PF_BRIDGE的prerouting处理结束后进入br_handle_frame_finish<br>
+&nbsp;&nbsp; NF_HOOK(PF_BRIDGE, NF_BR_PRE_ROUTING, skb, skb-&gt;dev, NULL,<br>
+&nbsp;&nbsp;&nbsp; br_handle_frame_finish);<br>
+// 处理后始终返回1, 表示不再进行其他协议族处理,该数据包已经完全由bridge处理完毕<br>
+&nbsp;&nbsp; return 1;<br>
+}</p>
+<p>err:<br>
+kfree_skb(skb);<br>
+// 处理后始终返回1, 表示不再进行其他协议族处理,该数据包已经完全由bridge处理完毕<br>
+return 1;<br>
+}</p>
+<p>通过br_handle_frame_finish进入bridge的转发:</p>
+<p><br>
+int br_handle_frame_finish(struct sk_buff *skb)<br>
+{<br>
+const unsigned char *dest = eth_hdr(skb)-&gt;h_dest;<br>
+struct net_bridge_port *p = rcu_dereference(skb-&gt;dev-&gt;br_port);<br>
+struct net_bridge *br;<br>
+struct net_bridge_fdb_entry *dst;<br>
+int passedup = 0;</p>
+<p>if (!p || p-&gt;state == BR_STATE_DISABLED)<br>
+&nbsp;&nbsp; goto drop;</p>
+<p><br>
+br = p-&gt;br;<br>
+br_fdb_update(br, p, eth_hdr(skb)-&gt;h_source);</p>
+<p>if (p-&gt;state == BR_STATE_LEARNING)<br>
+&nbsp;&nbsp; goto drop;</p>
+<p>if (br-&gt;dev-&gt;flags &amp; IFF_PROMISC) {<br>
+&nbsp;&nbsp; struct sk_buff *skb2;</p>
+<p>&nbsp;&nbsp; skb2 = skb_clone(skb, GFP_ATOMIC);<br>
+&nbsp;&nbsp; if (skb2 != NULL) {<br>
+&nbsp;&nbsp;&nbsp; passedup = 1;<br>
+&nbsp;&nbsp;&nbsp; br_pass_frame_up(br, skb2);<br>
+&nbsp;&nbsp; }<br>
+}</p>
+<p>if (is_multicast_ether_addr(dest)) {<br>
+// 多播转发,也是调用广播处理<br>
+&nbsp;&nbsp; br-&gt;statistics.multicast&#43;&#43;;<br>
+&nbsp;&nbsp; br_flood_forward(br, skb, !passedup);<br>
+&nbsp;&nbsp; if (!passedup)<br>
+&nbsp;&nbsp;&nbsp; br_pass_frame_up(br, skb);<br>
+&nbsp;&nbsp; goto out;<br>
+}<br>
+// 根据目的MAC找目的出口<br>
+dst = __br_fdb_get(br, dest);<br>
+if (dst != NULL &amp;&amp; dst-&gt;is_local) {<br>
+&nbsp;&nbsp; if (!passedup)<br>
+&nbsp;&nbsp;&nbsp; br_pass_frame_up(br, skb);<br>
+&nbsp;&nbsp; else<br>
+&nbsp;&nbsp;&nbsp; kfree_skb(skb);<br>
+&nbsp;&nbsp; goto out;<br>
+}</p>
+<p>if (dst != NULL) {<br>
+// 单播转发<br>
+&nbsp;&nbsp; br_forward(dst-&gt;dst, skb);<br>
+&nbsp;&nbsp; goto out;<br>
+}<br>
+// 广播转发<br>
+br_flood_forward(br, skb, 0);</p>
+<p>out:<br>
+return 0;<br>
+drop:<br>
+kfree_skb(skb);<br>
+goto out;<br>
+}</p>
+<p>广播/多播转发: br_flood_forward/br_flood</p>
+<p><br>
+void br_flood_forward(struct net_bridge *br, struct sk_buff *skb, int clone)<br>
+{<br>
+br_flood(br, skb, clone, __br_forward);<br>
+}</p>
+<p><br>
+static void br_flood(struct net_bridge *br, struct sk_buff *skb, int clone,<br>
+void (*__packet_hook)(const struct net_bridge_port *p,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct sk_buff *skb))<br>
+{<br>
+struct net_bridge_port *p;<br>
+struct net_bridge_port *prev;</p>
+<p>if (clone) {<br>
+&nbsp;&nbsp; struct sk_buff *skb2;</p>
+<p>&nbsp;&nbsp; if ((skb2 = skb_clone(skb, GFP_ATOMIC)) == NULL) {<br>
+&nbsp;&nbsp;&nbsp; br-&gt;statistics.tx_dropped&#43;&#43;;<br>
+&nbsp;&nbsp;&nbsp; return;<br>
+&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp; skb = skb2;<br>
+}</p>
+<p>prev = NULL;</p>
+<p>list_for_each_entry_rcu(p, &amp;br-&gt;port_list, list) {<br>
+&nbsp;&nbsp; if (should_deliver(p, skb)) {<br>
+&nbsp;&nbsp;&nbsp; if (prev != NULL) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; struct sk_buff *skb2;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; if ((skb2 = skb_clone(skb, GFP_ATOMIC)) == NULL) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; br-&gt;statistics.tx_dropped&#43;&#43;;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; kfree_skb(skb);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return;<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+// 这里实际是__br_forward<br>
+&nbsp;&nbsp;&nbsp;&nbsp; __packet_hook(prev, skb2);<br>
+&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp; prev = p;<br>
+&nbsp;&nbsp; }<br>
+}</p>
+<p>if (prev != NULL) {<br>
+// 这里实际是__br_forward<br>
+&nbsp;&nbsp; __packet_hook(prev, skb);<br>
+&nbsp;&nbsp; return;<br>
+}</p>
+<p>kfree_skb(skb);<br>
+}</p>
+<p>单播转发: br_forward</p>
+<p><br>
+<br>
+void br_forward(const struct net_bridge_port *to, struct sk_buff *skb)<br>
+{<br>
+if (should_deliver(to, skb)) {<br>
+// 也是调用__br_forward<br>
+&nbsp;&nbsp; __br_forward(to, skb);<br>
+&nbsp;&nbsp; return;<br>
+}</p>
+<p>kfree_skb(skb);<br>
+}</p>
+<p>FORWARD点:<br>
+static void __br_forward(const struct net_bridge_port *to, struct sk_buff *skb)<br>
+{<br>
+struct net_device *indev;</p>
+<p>indev = skb-&gt;dev;<br>
+skb-&gt;dev = to-&gt;dev;<br>
+skb-&gt;ip_summed = CHECKSUM_NONE;<br>
+// 进入PF_BRIDGE的forward hook, 结束后进入br_forward_finish()<br>
+NF_HOOK(PF_BRIDGE, NF_BR_FORWARD, skb, indev, skb-&gt;dev,<br>
+&nbsp;&nbsp;&nbsp; br_forward_finish);<br>
+}</p>
+<p>POSTROUTING点:<br>
+// 从FORWARD点处理后直接进入POSTROUTING点处理<br>
+int br_forward_finish(struct sk_buff *skb)<br>
+{<br>
+// 进入PF_BRIDGE的postrouting hook, 结束后进入br_dev_queue_push_xmit()<br>
+return NF_HOOK(PF_BRIDGE, NF_BR_POST_ROUTING, skb, NULL, skb-&gt;dev,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; br_dev_queue_push_xmit);</p>
+<p>}</p>
+<p>数据包发出:</p>
+<p>int br_dev_queue_push_xmit(struct sk_buff *skb)<br>
+{<br>
+<br>
+if (packet_length(skb) &gt; skb-&gt;dev-&gt;mtu &amp;&amp; !skb_is_gso(skb))<br>
+&nbsp;&nbsp; kfree_skb(skb);<br>
+else {<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp; if (nf_bridge_maybe_copy_header(skb))<br>
+&nbsp;&nbsp;&nbsp; kfree_skb(skb);<br>
+&nbsp;&nbsp; else {<br>
+&nbsp;&nbsp;&nbsp; skb_push(skb, ETH_HLEN);<br>
+// 此处调用dev设备的hard_start_xmit()函数<br>
+&nbsp;&nbsp;&nbsp; dev_queue_xmit(skb);<br>
+&nbsp;&nbsp; }<br>
+}</p>
+<p>return 0;<br>
+}</p>
+<p>桥网卡设备的hard_start_xmit()函数定义为:<br>
+</p>
+<p>void br_dev_setup(struct net_device *dev)<br>
+{<br>
+......<br>
+dev-&gt;hard_start_xmit = br_dev_xmit;<br>
+......<br>
+}</p>
+<p><br>
+int br_dev_xmit(struct sk_buff *skb, struct net_device *dev)<br>
+{<br>
+struct net_bridge *br = netdev_priv(dev);<br>
+const unsigned char *dest = skb-&gt;data;<br>
+struct net_bridge_fdb_entry *dst;</p>
+<p>br-&gt;statistics.tx_packets&#43;&#43;;<br>
+br-&gt;statistics.tx_bytes &#43;= skb-&gt;len;</p>
+<p>skb-&gt;mac.raw = skb-&gt;data;<br>
+skb_pull(skb, ETH_HLEN);</p>
+<p>if (dest[0] &amp; 1)<br>
+// 多播发送<br>
+&nbsp;&nbsp; br_flood_deliver(br, skb, 0);<br>
+else if ((dst = __br_fdb_get(br, dest)) != NULL)<br>
+// 单播发送<br>
+&nbsp;&nbsp; br_deliver(dst-&gt;dst, skb);<br>
+else<br>
+// 广播发送<br>
+&nbsp;&nbsp; br_flood_deliver(br, skb, 0);<br>
+// 这些发送函数最终都会调用__br_deliver()函数<br>
+return 0;<br>
+}</p>
+<p><br>
+static void __br_deliver(const struct net_bridge_port *to, struct sk_buff *skb)<br>
+{<br>
+skb-&gt;dev = to-&gt;dev;<br>
+// 此处是PF_BRIDGE的OUTPUT点<br>
+NF_HOOK(PF_BRIDGE, NF_BR_LOCAL_OUT, skb, NULL, skb-&gt;dev,<br>
+&nbsp;&nbsp;&nbsp; br_forward_finish);<br>
+}</p>
+<p>总结: PF_BRIDGE中的各个hook点和PF_INET不同, 可用下面的图表示:</p>
+<p>PREROUTING --&#43;--FORWARD-----POSTROUTING------&#43;----OUTPUT<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; INPUT</p>
+<p>3. BF_BRIDGE的hook点</p>
+<p>在net/bridge/br_netfilter.c中定义了以下hook点,注意这些hook点主要是PF_BRIDGE协议族的。</p>
+<p><br>
+static struct nf_hook_ops br_nf_ops[] = {<br>
+// PF_BRIDGE的挂接点<br>
+// PREROUTING点<br>
+{ .hook = br_nf_pre_routing,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_BRIDGE,<br>
+&nbsp;&nbsp; .hooknum = NF_BR_PRE_ROUTING,<br>
+&nbsp;&nbsp; .priority = NF_BR_PRI_BRNF, },<br>
+// INPUT点<br>
+{ .hook = br_nf_local_in,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_BRIDGE,<br>
+&nbsp;&nbsp; .hooknum = NF_BR_LOCAL_IN,<br>
+&nbsp;&nbsp; .priority = NF_BR_PRI_BRNF, },<br>
+// FORWARD点<br>
+{ .hook = br_nf_forward_ip,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_BRIDGE,<br>
+&nbsp;&nbsp; .hooknum = NF_BR_FORWARD,<br>
+&nbsp;&nbsp; .priority = NF_BR_PRI_BRNF - 1, },<br>
+// FORWARD点<br>
+{ .hook = br_nf_forward_arp,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_BRIDGE,<br>
+&nbsp;&nbsp; .hooknum = NF_BR_FORWARD,<br>
+&nbsp;&nbsp; .priority = NF_BR_PRI_BRNF, },<br>
+// OUTPUT点<br>
+{ .hook = br_nf_local_out,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_BRIDGE,<br>
+&nbsp;&nbsp; .hooknum = NF_BR_LOCAL_OUT,<br>
+&nbsp;&nbsp; .priority = NF_BR_PRI_FIRST, },<br>
+// POSTROUTING点<br>
+{ .hook = br_nf_post_routing,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_BRIDGE,<br>
+&nbsp;&nbsp; .hooknum = NF_BR_POST_ROUTING,<br>
+&nbsp;&nbsp; .priority = NF_BR_PRI_LAST, },</p>
+<p>// 后面是PF_INET/PF_INET6的挂接点, 其实也没进行什么数据包操作,<br>
+// 就是自身的输入输出包不通过桥处理,要短路掉<br>
+{ .hook = ip_sabotage_in,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_INET,<br>
+&nbsp;&nbsp; .hooknum = NF_IP_PRE_ROUTING,<br>
+&nbsp;&nbsp; .priority = NF_IP_PRI_FIRST, },<br>
+{ .hook = ip_sabotage_in,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_INET6,<br>
+&nbsp;&nbsp; .hooknum = NF_IP6_PRE_ROUTING,<br>
+&nbsp;&nbsp; .priority = NF_IP6_PRI_FIRST, },<br>
+{ .hook = ip_sabotage_out,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_INET,<br>
+&nbsp;&nbsp; .hooknum = NF_IP_FORWARD,<br>
+&nbsp;&nbsp; .priority = NF_IP_PRI_BRIDGE_SABOTAGE_FORWARD, },<br>
+{ .hook = ip_sabotage_out,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_INET6,<br>
+&nbsp;&nbsp; .hooknum = NF_IP6_FORWARD,<br>
+&nbsp;&nbsp; .priority = NF_IP6_PRI_BRIDGE_SABOTAGE_FORWARD, },<br>
+{ .hook = ip_sabotage_out,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_INET,<br>
+&nbsp;&nbsp; .hooknum = NF_IP_LOCAL_OUT,<br>
+&nbsp;&nbsp; .priority = NF_IP_PRI_BRIDGE_SABOTAGE_LOCAL_OUT, },<br>
+{ .hook = ip_sabotage_out,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_INET6,<br>
+&nbsp;&nbsp; .hooknum = NF_IP6_LOCAL_OUT,<br>
+&nbsp;&nbsp; .priority = NF_IP6_PRI_BRIDGE_SABOTAGE_LOCAL_OUT, },<br>
+{ .hook = ip_sabotage_out,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_INET,<br>
+&nbsp;&nbsp; .hooknum = NF_IP_POST_ROUTING,<br>
+&nbsp;&nbsp; .priority = NF_IP_PRI_FIRST, },<br>
+{ .hook = ip_sabotage_out,<br>
+&nbsp;&nbsp; .owner = THIS_MODULE,<br>
+&nbsp;&nbsp; .pf = PF_INET6,<br>
+&nbsp;&nbsp; .hooknum = NF_IP6_POST_ROUTING,<br>
+&nbsp;&nbsp; .priority = NF_IP6_PRI_FIRST, },<br>
+};</p>
+<p>// PF_BRIDGE的PRROUTING点处理函数<br>
+static unsigned int br_nf_pre_routing(unsigned int hook, struct sk_buff **pskb,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; const struct net_device *in,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; const struct net_device *out,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int (*okfn)(struct sk_buff *))<br>
+{<br>
+......</p>
+<p>// 此处继续调用PF_INET族的PREROUTING点的hook处理<br>
+NF_HOOK(PF_INET, NF_IP_PRE_ROUTING, skb, skb-&gt;dev, NULL,<br>
+&nbsp;&nbsp; br_nf_pre_routing_finish);</p>
+<p>return NF_STOLEN;</p>
+<p>inhdr_error:<br>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; IP_INC_STATS_BH(IpInHdrErrors);<br>
+out:<br>
+return NF_DROP;<br>
+}</p>
+<p>// PF_BRIDGE的FORWARD点处理<br>
+static unsigned int br_nf_forward_ip(unsigned int hook, struct sk_buff **pskb,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; const struct net_device *in,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; const struct net_device *out,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int (*okfn)(struct sk_buff *))<br>
+{<br>
+......<br>
+// 此处继续调用PF_INET/PF_INET6族的FORWARD点的hook处理<br>
+NF_HOOK(pf, NF_IP_FORWARD, skb, bridge_parent(in), parent,<br>
+&nbsp;&nbsp; br_nf_forward_finish);</p>
+<p>return NF_STOLEN;<br>
+}</p>
+<p>// PF_BRIDGE的OUTPUT点处理<br>
+static unsigned int br_nf_local_out(unsigned int hook, struct sk_buff **pskb,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; const struct net_device *in,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; const struct net_device *out,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int (*okfn)(struct sk_buff *))<br>
+{<br>
+......<br>
+<br>
+if (realindev != NULL) {<br>
+&nbsp;&nbsp; if (!(nf_bridge-&gt;mask &amp; BRNF_DONT_TAKE_PARENT)) {<br>
+&nbsp;&nbsp;&nbsp; struct net_device *parent = bridge_parent(realindev);<br>
+&nbsp;&nbsp;&nbsp; if (parent)<br>
+&nbsp;&nbsp;&nbsp;&nbsp; realindev = parent;<br>
+&nbsp;&nbsp; }<br>
+// 此处继续调用PF_INET/PF_INET6族的FORWARD点的hook处理, 不过优先权&#20540;要在//</p>
+<p>NF_IP_PRI_BRIDGE_SABOTAGE_FORWARD &#43; 1以上<br>
+&nbsp;&nbsp; NF_HOOK_THRESH(pf, NF_IP_FORWARD, skb, realindev,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; realoutdev, br_nf_local_out_finish,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NF_IP_PRI_BRIDGE_SABOTAGE_FORWARD &#43; 1);<br>
+} else {<br>
+// 此处继续调用PF_INET/PF_INET6族的FORWARD点的hook处理, 不过优先权&#20540;要在<br>
+// NF_IP_PRI_BRIDGE_SABOTAGE_LOCAL_OUT &#43; 1以上<br>
+&nbsp;&nbsp; NF_HOOK_THRESH(pf, NF_IP_LOCAL_OUT, skb, realindev,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; realoutdev, br_nf_local_out_finish,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NF_IP_PRI_BRIDGE_SABOTAGE_LOCAL_OUT &#43; 1);<br>
+}</p>
+<p>out:<br>
+return NF_STOLEN;<br>
+}</p>
+<p>// PF_BRIDGE的POSTROUTING点<br>
+static unsigned int br_nf_post_routing(unsigned int hook, struct sk_buff **pskb,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; const struct net_device *in,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; const struct net_device *out,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int (*okfn)(struct sk_buff *))<br>
+{<br>
+......<br>
+// 此处继续调用PF_INET/PF_INET6族的POSTROUTING点的hook处理<br>
+NF_HOOK(pf, NF_IP_POST_ROUTING, skb, NULL, realoutdev,<br>
+&nbsp;&nbsp; br_nf_dev_queue_xmit);</p>
+<p>return NF_STOLEN;</p>
+<p>#ifdef CONFIG_NETFILTER_DEBUG<br>
+print_error:<br>
+if (skb-&gt;dev != NULL) {<br>
+&nbsp;&nbsp; printk(&quot;[%s]&quot;, skb-&gt;dev-&gt;name);<br>
+&nbsp;&nbsp; if (realoutdev)<br>
+&nbsp;&nbsp;&nbsp; printk(&quot;[%s]&quot;, realoutdev-&gt;name);<br>
+}<br>
+printk(&quot; head:%p, raw:%p, data:%p\n&quot;, skb-&gt;head, skb-&gt;mac.raw,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; skb-&gt;data);<br>
+dump_stack();<br>
+return NF_ACCEPT;<br>
+#endif<br>
+}</p>
+<p>由此可见, PF_INET的各个hook点也被PF_BRIDGE的各个hook点调用，因此可以在桥网卡中进行过滤或NAT等操作。</p>
+<p>4. 结论</p>
+<p>BRIDGE的数据处理流程是是一个独立的处理过程, 如果处理正常的话就不再返回到其他协议处理。<br>
+在桥的处理层次也和IP协议一样，可以挂接多个PF_BRIDGE的挂接点，这些挂接点中又调用了PF_INET族的挂接点，从而实现了桥下的过滤、NAT等功能。</p>
+<p>&nbsp;</p>
+
+</div>
+
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.1.237-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/d419192480/article/details/7468388">无线网络安全讨论－wep&amp;wpa&amp;wpa2</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/d419192480/article/details/7572272">IPV6邻居发现协议----路由器发现</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen">
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "117306";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<script type="text/javascript">
+    //new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '7542261';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/d419192480" target="_blank">
+    <img src="http://avatar.csdn.net/8/A/9/1_d419192480.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/d419192480" class="user_name" target="_blank">d419192480</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>8623次</span></li>
+    <li>积分：<span>168分</span></li>
+    <li>排名：<span>千里之外</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>5篇</span></li>
+    <li>转载：<span>18篇</span></li>
+    <li>译文：<span>0篇</span></li>
+    <li>评论：<span>2条</span></li>
+</ul>
+</ul>
+</div>
+
+
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/d419192480/article/category/428902">C++习题</a><span>(0)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/d419192480/article/category/337508">Windows程序设计笔记</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/d419192480/article/category/598626">嵌入式Linux开发</a><span>(17)</span>
+</li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/d419192480/article/month/2012/05">2012年05月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/d419192480/article/month/2012/04">2012年04月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/d419192480/article/month/2012/03">2012年03月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/d419192480/article/month/2012/02">2012年02月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/d419192480/article/month/2011/12">2011年12月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/d419192480/article/month/2011/11">2011年11月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/d419192480/article/month/2011/09">2011年09月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/d419192480/article/month/2009/10">2009年10月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/d419192480/article/month/2009/09">2009年09月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/d419192480/article/month/2008/07">2008年07月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/d419192480/article/month/2007/09">2007年09月</a><span>(2)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/d419192480/article/details/1798850" title="没有找到MSVCR80d.dll,怎么办？">没有找到MSVCR80d.dll,怎么办？</a><span>(1187)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/7004329" title="grep 或 egrep 或awk 过滤两个或多个关键词|使用grep匹配“与”或者“或”模式">grep 或 egrep 或awk 过滤两个或多个关键词|使用grep匹配“与”或者“或”模式</a><span>(1136)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/6999743" title="无线网卡的Master，Managed，ad-hoc，monitor等模式">无线网卡的Master，Managed，ad-hoc，monitor等模式</a><span>(750)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/7312935" title="证书及认证过程">证书及认证过程</a><span>(625)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/7572272" title="IPV6邻居发现协议----路由器发现">IPV6邻居发现协议----路由器发现</a><span>(484)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/2656095" title="编一个程序统计文件中特定单词出现的次数（要求使用string类的运算符==来查找单词）">编一个程序统计文件中特定单词出现的次数（要求使用string类的运算符==来查找单词）</a><span>(384)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/2656088" title="编写一个程序用来打开文件并统计文件中以空格隔开的单词数目">编写一个程序用来打开文件并统计文件中以空格隔开的单词数目</a><span>(351)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/7590797" title="linux内核IOCTL网络控制框架实现分析">linux内核IOCTL网络控制框架实现分析</a><span>(320)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/7468388" title="无线网络安全讨论－wep&amp;wpa&amp;wpa2">无线网络安全讨论－wep&amp;wpa&amp;wpa2</a><span>(316)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/1798700" title="第一个Windows程序，MsgBox函数">第一个Windows程序，MsgBox函数</a><span>(305)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/d419192480/article/details/1798850" title="没有找到MSVCR80d.dll,怎么办？">没有找到MSVCR80d.dll,怎么办？</a><span>(1)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/2656404" title="编一个程序，一次显示文件的一行，然后等待用户按回车键后显示下一行">编一个程序，一次显示文件的一行，然后等待用户按回车键后显示下一行</a><span>(1)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/1798700" title="第一个Windows程序，MsgBox函数">第一个Windows程序，MsgBox函数</a><span>(0)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/7066555" title="[转载]浅析linux网桥设置MAC地址时的行为">[转载]浅析linux网桥设置MAC地址时的行为</a><span>(0)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/7285133" title="madwifi学习记录">madwifi学习记录</a><span>(0)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/7312935" title="证书及认证过程">证书及认证过程</a><span>(0)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/7457794" title="WEP的四次握手过程">WEP的四次握手过程</a><span>(0)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/7465644" title="转载：关于 /proc文件系统">转载：关于 /proc文件系统</a><span>(0)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/7468388" title="无线网络安全讨论－wep&amp;wpa&amp;wpa2">无线网络安全讨论－wep&amp;wpa&amp;wpa2</a><span>(0)</span>
+</li>
+<li>
+<a href="/d419192480/article/details/7542261" title="Linux内核bridge中的数据包处理流程">Linux内核bridge中的数据包处理流程</a><span>(0)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/d419192480/article/details/2656404#comments">编一个程序，一次显示文件的一行，然后等待用户按回车键后显示下一行</a>
+    <p style="margin:0px;"><a href="/wchengshen" class="user_name">wchengshen</a>:
+//我改写了你的程序。//:2-7.cpp//Display a file a line at a ...
+    </p>
+    </li>
+    <li>
+    <a href="/d419192480/article/details/1798850#comments">没有找到MSVCR80d.dll,怎么办？</a>
+    <p style="margin:0px;"><a href="/lichengyu" class="user_name">lichengyu</a>:
+受教了！谢谢！
+    </p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=121099"></script>
+
+<script type="text/javascript">
+document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date()/120000).toString(36) + '="></'+'script>');
+</script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js?v=1"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+
+</div>
+</body>
+</html>

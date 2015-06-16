@@ -1,0 +1,990 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang='zh-CN' xml:lang='zh-CN' xmlns='http://www.w3.org/1999/xhtml'>
+
+<head>
+<title>Memcache 详细介绍 - OPEN 开发经验库</title>
+<meta content="text/html; charset=utf-8" http-equiv=content-type>
+<meta name=robots content=index,follow>
+<meta name=keywords content="Memcache,Memcached">
+<meta name=description content="Memcached一些特性和限制
+•在 Memcached中可以保存的item数据量是没有限制的，只有内存足够
+• Memcached单进程最大使用内存为2G，要使用更多内存，可以分多个端口开启多个Memcached进程
+•最大30天的数据过期时间,设置为永久的也会在这个时间过期，常量REALTIME_MAXDELTA
+">
+<link rel="shortcut icon" href="/lib/favicon.ico">
+<link rel=copyright href="http://www.open-open.com/">
+
+
+
+<link type="text/css" rel="stylesheet" href="/lib/syntaxhighlighter_3.0.83/styles/shCore.css"/>
+<link type="text/css" rel="stylesheet" href="/lib/syntaxhighlighter_3.0.83/styles/shCoreRDark.css"/>
+ 
+<style type="text/css" media="screen, projection">
+		/*<![CDATA[*/
+			@import "/lib/css/common.css";
+			@import "/lib/css/main.css";
+			@import "/lib/css/thickbox.css";
+			@import "/lib/css/jquery.ui.css";
+		/*]]>*/
+</style> 
+<style type="text/css">
+ 
+.search {
+	margin: 8px 0 0 0;
+	overflow: hidden;
+}
+.search .TXT {
+	float: left;
+}
+
+.search .BTN {
+	float: left;
+	font-size: 10.5pt;
+	color: #999;
+	background: #3385FF;
+	border: 0;
+	color: #fff;
+	height: 32px;
+	padding: 0 10px;
+	cursor: pointer;
+	border-bottom: 1px solid #2D78F4;
+}
+
+.search .BTN:hover {
+	background:#2D78F4;
+	color:#fff;
+}
+  </style>
+
+
+<script type="text/javascript">
+	var rooturl="/lib";
+	var wgDocKey='1324368304530';
+	var wgDocTitle='Memcache 详细介绍';
+	var wgDocStatusFlag='';
+	var wgUserFolders=null;
+	var wgDownFrame=null;
+	var wgCostByUser=null;
+	var wgDocFavoriteByUser=false;
+	var wgDocScoreByUser=null;
+	var wgUserLogined=0;
+	var tb_pathToImage = "/lib/images/loadingAnimation.gif";
+
+
+</script>
+</head>
+<body id=view>
+
+        
+
+
+<div id=topnav>
+<div id=Personal>
+	
+		<a href="/lib/members/login?keepThis=true&TB_iframe=true&height=177&width=280" title="登录OPEN经验库" class="thickbox"">登录</a>&nbsp;&nbsp;
+		<a href="/lib/members/register?keepThis=true&TB_iframe=true&height=460&width=710" title="注册新的账号" class="thickbox">注册</a>
+	
+		
+</div>
+<div id=topmenu>
+<ul>
+		<li><a title=Java开源 href="http://www.open-open.com/">Java开源</a></li>
+		<li><a title=PHP开源 href="http://www.php-open.com/">PHP开源</a></li>
+		<li><a title=JS脚本大全 href="http://www.open-open.com/ajax/">JS脚本</a></li>
+		<li><a title=OPEN家园 href="http://www.open-open.com/home/">OPEN家园</a></li>
+		<li><a title='OPEN文档频道' href="http://www.open-open.com/doc/">OPEN文档</a></li>
+		<li><a title='OPEN资讯频道' href="http://www.open-open.com/news/">OPEN资讯</a></li>
+		<li><a title='OPEN论坛频道' href="http://www.open-open.com/bbs">OPEN论坛</a></li>
+		<li><a href="http://www.open-open.com/github/">Github日报</a></li>
+		<li><a href="http://www.open-open.com/code/"><strong>OPEN代码</strong></a><img src="http://www.open-open.com/image/new.gif" alt='最新上线'/></li>
+
+
+</ul>
+</div>
+</div>
+<!--end top nav-->
+<div id=head>
+<div id=head-logo><a title=OPEN开发经验库 href="http://www.open-open.com/lib/"><img border=0 alt=OPEN开发经验库 src="/lib/images/logo.jpg"></a></div>
+<div id=head-search>
+<form method=get name=search class=search action="/lib/search" accept-charset="GBK" onsubmit="document.charset='GBK';">
+
+<table border=0 cellspacing=0 cellpadding=0>
+		
+		<tbody>
+				<tr>
+						<td align=left>
+							<input id=searchinput class="TXT" type="text" maxlength="1048" style="height: 25px;font-size:18px"  value="" x-webkit-speech size=45 name=q>
+							<input id=searchbutton class="BTN" value="经验搜索" type="submit" style="height: 28px;font-size:17">
+							<input id=od  type=hidden name=od value="0">
+&nbsp;&nbsp;&nbsp;&nbsp;<font style="font-size: 9.5pt"><b>推荐：</b></font><a href="http://www.miniui.com/demo/#src=datagrid/celledit.html" title="jQuery MiniUI，Web界面控件库！" target="_blank" rel="nofollow"><font color="red" style="font-size: 9.5pt"><b>jQuery MiniUI，Web界面控件库！</b></font></a>
+						</td>
+						</tr>
+		</tbody>
+</table>
+</form>
+
+</div>
+<div id=head-ad>
+
+</div>
+
+</div>
+<!-- end head -->
+
+<div id=content>
+<div id=content-nav>
+<a href="/lib/list/all">所有分类</a>
+
+	&nbsp;&gt;&nbsp;
+	<a href="/lib/list/75">服务器软件</a>
+
+	&nbsp;&gt;&nbsp;
+	<a href="/lib/list/80">缓存服务器</a>
+
+	&nbsp;&gt;&nbsp;
+	<a href="/lib/list/184">Memcached</a>
+
+</div>
+
+
+<div id=view-main>
+
+
+<div id=view-titleh>
+<div id=view-title>
+	<h3>Memcache 详细介绍</h3>
+</div>
+<div id=view-summary>
+<table>
+		<tbody>
+				<tr>
+						<td><strong>您的评价</strong>:</td>
+						<td>
+						<div id=rate class=rate-container><span id=star1 class=star-big-off title=很差>&nbsp;</span><span id=star2 class=star-big-off title=较差>&nbsp;</span><span id=star3 class=star-big-off title=还行>&nbsp;</span><span
+								id=star4 class=star-big-off title=不错>&nbsp;</span><span id=star5 class=star-big-off title=力荐>&nbsp;</span></div>
+						</td>
+						<td width=30>
+						<div id=rate-tip></div>
+						</td>
+						
+						<td>
+						<div id=favorite-container><span class="icon favorite">&nbsp;</span><a id=favorite href="javascript:void(0)"><strong>收藏该经验</strong></a>&nbsp;&nbsp;&nbsp;&nbsp;
+						 </div>
+
+</td>
+				</tr>
+		</tbody>
+</table>
+<div id=favorite-box>
+<table>
+		<tbody>
+				<tr>
+						<td width=70 align=right>文件夹</td>
+						<td><select id=fav_folderlist name=folder>
+								<option selected value=0>请选择...</option>
+								<option id=newfolder-sp disabled value="">-------------</option>
+								<option value=-1>新增文件夹...</option>
+						</select></td>
+				</tr>
+				<tr style="display: none" id=newfolder-input>
+						<td align=right>新增文件夹</td>
+						<td><input id=fav_newfolder maxlength=50 type=text name=newfolder></td>
+				</tr>
+				<tr>
+						<td align=right>标签</td>
+						<td><input id=fav_tags maxlength=135 size=20 type=text name=tags></td>
+				</tr>
+				<tr>
+						<td></td>
+						<td colspan=2>(多个标签用逗号分隔)</td>
+				</tr>
+		</tbody>
+</table>
+</div>
+
+</div>
+
+</div>
+
+
+<div id=readercontainer>
+ <div id="toc"></div>
+<!-- google_ad_section_start -->
+<html>
+ <head></head> 
+ <body> 
+  <div>
+    Memcache 详细介绍 
+  </div> 
+  <pre class="brush:cpp; toolbar: true; auto-links: false;">#include “stdio.h”
+#include “stdlib.h”
+#include “string.h”
+#include “libmemcached/memcached.h”
+//gcc -o cc cc.c  -L /usr/local/lib -lmemcached
+int main(int argc, char *argv[])
+{
+memcached_st *memc;
+memcached_return rc;
+memcached_server_st *servers;
+char value[8191];
+//connect multi server
+memc = memcached_create(NULL);
+servers = memcached_server_list_append(NULL, “localhost”, 11211, &amp;rc);
+//servers = memcached_server_list_append(servers, “localhost”, 11212, &amp;rc);
+rc = memcached_server_push(memc, servers);
+memcached_server_free(servers);
+//Save multi data
+size_t i;
+char *keys[]= {“key1″, “key2″, “key3″};
+size_t key_length[]= {4, 4, 4};
+char *values[] = {“This is c first value”, “This is c second value”, “This is c third value”};
+size_t val_length[]= {21, 22, 21};
+for (i=0; i ＜3; i++)
+{
+rc = memcached_set(memc, keys[i],
+key_length[i], values[i], val_length[i], (time_t)180,
+(uint32_t)0);
+if (rc == MEMCACHED_SUCCESS)
+{
+printf(“Save key:%s data:”%s” success.n”,keys[i], values[i]);
+}
+}
+
+char return_key[MEMCACHED_MAX_KEY];
+size_t return_key_length;
+char *return_value;
+size_t return_value_length;
+uint32_t flags;
+rc = memcached_mget(memc, keys, key_length, 3);
+while ((return_value = memcached_fetch(memc, return_key,&amp;return_key_length, &amp;return_value_length, &amp;flags, &amp;rc))) {
+if (rc == MEMCACHED_SUCCESS)
+{
+printf(“Fetch key:%s data:%sn”, return_key, return_value);
+}
+}
+//Delete multi data
+for (i=0; i ＜3; i++)
+{
+rc = memcached_set(memc, keys[i], key_length[i],
+values[i], val_length[i], (time_t)180, (uint32_t)0);
+rc = memcached_delete(memc, keys[i],
+key_length[i], (time_t)0);
+if (rc == MEMCACHED_SUCCESS)
+{
+printf(“Delete %s successn”, keys[i], values[i]);
+}
+}
+//free
+memcached_free(memc);
+return 0;
+}</pre> 
+  <br /> 
+  <div> 
+   <div> 
+    <div>
+      Memcached一些特性和限制 
+     <br /> •在 Memcached中可以保存的item数据量是没有限制的，只有内存足够 
+     <br /> • Memcached单进程最大使用内存为2G，要使用更多内存，可以分多个端口开启多个Memcached进程 
+     <br /> •最大30天的数据过期时间,设置为永久的也会在这个时间过期，常量REALTIME_MAXDELTA 
+     <br /> 60*60*24*30控制 
+     <br /> •最大键长为250字节，大于该长度无法存储，常量KEY_MAX_LENGTH 250控制 
+     <br /> •单个item最大数据是1MB，超过1MB数据不予存储，常量POWER_BLOCK 1048576进行控制， 
+     <br /> 它是默认的slab大小 
+     <br /> •最大同时连接数是200，通过 conn_init()中的freetotal进行控制，最大软连接数是1024，通过 
+     <br /> settings.maxconns=1024 进行控制 
+     <br /> •跟空间占用相关的参数：settings.factor=1.25, settings.chunk_size=48, 影响slab的数据占用和步进方式 
+     <p>memcached是一种无阻塞的socket通信方式服务，基于libevent库，由于无阻塞通信，对内存读写速度非常之快。<br /> memcached分服务器端和客户端，可以配置多个服务器端和客户端，应用于分布式的服务非常广泛。<br /> memcached作为小规模的数据分布式平台是十分有效果的。</p> 
+    </div> 
+    <div id="more">
+      memcached是键值一一对应，key默认最大不能超过128个字 节，value默认大小是1M，也就是一个slabs，如果要存2M的值（连续的），不能用两个slabs，因为两个slabs不是连续的，无法在内存中 存储，故需要修改slabs的大小，多个key和value进行存储时，即使这个slabs没有利用完，那么也不会存放别的数据。 
+     <p>目前memcached支持C/C++、Perl、PHP、Python、Ruby、Java、C#、Postgres、Chicken Scheme、Lua、MySQL和Protocol等语言客户端。</p> 
+     <p>memcached本身的服务是用C语言编写的，启动非常简单：</p> 
+     <blockquote> 
+      <pre>memcached -d -m 2048 -l 10.0.0.40 -p 11211</pre> 
+     </blockquote> 
+     <pre>-d表示memcached启动作为一个守护进程；
+-m表示启用多大的内存支持，这里的单位是兆(M)，2048表示2个G的内存
+-l表示服务的IP地址，最好不要写成localhost
+-p表示服务的端口，默认为11211</pre> 
+    </div> 
+    <p>协议</p> 
+    <p>结束会话不需要发送任何命令。当不再需memcached服务时，要客户端可以在任何时候关闭连接。需要注意的是，鼓励客户端缓存这些连接，而不是 每次需要存取数据时都重新打开连接。这是因为memcached 被特意设计成及时开启很多连接也能够高效的工作（数百个，上千个如果需要的话）。缓存这些连接，可以消除建立连接所带来的开销（/*/相对而言，在服务器 端建立一个新连接的准备工作所带来的开销，可以忽略不计。）。</p> 
+    <p>在memcache协议中发送的数据分两种：文本行 和 自由数据。文本行被用于来自客户端的命令和服务器的回应。自由数据用于客户端从服务器端存取数据时。同样服务器会以字节流的方式传回自由数据。/*/服务 器不用关心自由数据的字节顺序。自由数据的特征没有任何限制；但是通过前文提到的文本行，这项数据的接受者（服务器或客户端），便能够精确地获知所发送的 数据库的长度。</p> 
+    <p>文本行固定以“rn”(回车符紧跟一个换行符)结束。 自由数据也是同样会以“rn”结束，但是 r(回车符)、n(换行符)，以及任何其他8位字符，均可出现在数据中。因此，当客户端从服务器取回数据时，必须使用数据区块的长度来确定数据区块的结束 位置，而不要依据数据区块末尾的“rn”，即使它们固定存在于此。</p> 
+    <p><strong>键值</strong><br /> 存储在memcached中的数据通过键值来标识。键值是一个文本字符串，对于需要存取这项数据的客户端而言，它必须是唯一的。键值当前的长度限制设定为250字符（当然，客户端通常不会用到这么长的键）；键值中不能使用制表符和其他空白字符（例如空格，换行等）。</p> 
+    <p><strong>命令</strong><br /> 所有命令分为3种类型：<br /> 存储命令（有3项：’set’、’add’、’repalce’）指示服务器储存一些由键值标识的数据。客户端发送一行命令，后面跟着数据区块；然后，客户端等待接收服务器回传的命令行，指示成功与否。<br /> 取回命令（只有一项：’get’）指示服务器返回与所给键值相符合的数据（一个请求中右一个或多个键值）。客户端发送一行命令，包括所有请求的键值；服务 器每找到一项内容，都会发送回客户端一行关于这项内容的信息，紧跟着是对应的数据区块；直到服务器以一行“END”回应命令结束。<br /> /*?*/其他的命令都不能携带自由数据。在这些命令中，客户端发送一行命令，然后等待（由命令所决定）一行回应，或最终以一行“END”结束的多行命令。</p> 
+    <p>一行命令固定以命令名称开始，接着是以空格隔开的参数（如果有参数的话）。命令名称大小写敏感，并且必须小写。一些客户端发送给服务器的命令会包含 一些时限（针对内容或客户端请求的操作）。这时，时限的具体内容既可以是Unix时间戳（从1970年1月1日开始的秒钟数），或当前时间开始的秒钟数。 对后者而言，不能超过 60*60*24*30（30天）；如果超出，服务器将会理解为Unix时间戳，而不是从当前时间起的秒偏移。</p> 
+    <p><strong>错误字串</strong><br /> 每一个由客户端发送的命令，都可能收到来自服务器的错误字串回复。这些错误字串会以三种形式出现：<br /> - “ERRORrn”<br /> 意味着客户端发送了不存在的命令名称。<br /> - “CLIENT_ERROR rn”<br /> 意味着输入的命令行里存在一些客户端错误，例如输入未遵循协议。部分是人类易于理解的错误解说……<br /> - “SERVER_ERROR rn”<br /> 意味着一些服务器错误，导致命令无法执行。部分是人类易于理解的错误解说。在一些严重的情形下（通常应该不会遇到），服务器将在发送这行错误后关闭连接。这是服务器主动关闭连接的唯一情况。<br /> 在后面每项命令的描述中，这些错误行不会再特别提到，但是客户端必须考虑到这些它们存在的可能性。</p> 
+    <p><strong>存储命令</strong></p> 
+    <table class="ke-zeroborder" border="0" cellspacing="1" cellpadding="4" width="100%"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#cccccc" valign="top" colspan="2">＜command name＞ ＜key＞ ＜flags＞ ＜exptime＞ ＜bytes＞rn</td> 
+      </tr> 
+      <tr> 
+       <td valign="top">- ＜command name＞ 是 set, add, 或者 repalce</td> 
+      </tr> 
+     </tbody> 
+    </table> 
+    <ul> 
+     <li>set 意思是 “储存此数据”</li> 
+     <li>add 意思是 “储存此数据，只在服务器*未*保留此键值的数据时”</li> 
+     <li>replace意思是 “储存此数据，只在服务器*曾*保留此键值的数据时”</li> 
+    </ul> 
+    <table class="ke-zeroborder" border="0" cellspacing="1" cellpadding="4" width="100%"> 
+     <tbody> 
+      <tr> 
+       <td valign="top">- ＜key＞ 是接下来的客户端所要求储存的数据的键值</td> 
+       <td valign="top"><br /> </td> 
+      </tr> 
+      <tr> 
+       <td valign="top">- ＜flags＞ 是在取回内容时，与数据和发送块一同保存服务器上的任意16位无符号整形（用十进制来书写）。客户端可以用它作为“位域”来存储一些特定的信息；它对服务器是不透明的。</td> 
+      </tr> 
+     </tbody> 
+    </table> 
+    <p>- ＜exptime＞ 是终止时间。如果为0，该项永不过期(虽然它可能被删除，以便为其他缓存项目腾出位置)。如果非0（Unix时间戳或当前时刻的秒偏移），到达终止时间后，客户端无法再获得这项内容。<br /> - ＜bytes＞ 是随后的数据区块的字节长度，不包括用于分野的“rn”。它可以是0（这时后面跟随一个空的数据区块）。</p> 
+    <p>发送命令行和数据区块以后，客户端等待回复，可能的回复如下：<br /> - “STOREDrn”<br /> 表明成功.<br /> - “NOT_STOREDrn”<br /> 表明数据没有被存储，但不是因为发生错误。这通常意味着add 或 replace命令的条件不成立，或者，项目已经位列删除队列（参考后文的“delete”命令）。</p> 
+    <p><strong>取回命令</strong></p> 
+    <table class="ke-zeroborder" border="0" cellspacing="1" cellpadding="4" width="100%"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#cccccc" valign="top" colspan="2">get ＜key＞*rn</td> 
+      </tr> 
+      <tr> 
+       <td valign="top">- ＜key＞* 表示一个或多个键值，由空格隔开的字串</td> 
+      </tr> 
+     </tbody> 
+    </table> 
+    <p>这行命令以后，客户端的等待0个或多个项目，每项都会收到一行文本，然后跟着数据区块。所有项目传送完毕后，服务器发送以下字串：<br /> “ENDrn”<br /> 来指示回应完毕。<br /> 服务器用以下形式发送每项内容：<br /> VALUE rn<br /> rn<br /> - 是所发送的键名<br /> - 是存储命令所设置的记号<br /> - 是随后数据块的长度，*不包括* 它的界定符“rn”<br /> - 是发送的数据如果在取回请求中发送了一些键名，而服务器没有送回项目列表，这意味着服务器没这些键名（可能因为它们从未被存储，或者为给其他内容腾出空间而被删除，或者到期，或者被已客户端删除）。</p> 
+    <p><strong>删除</strong><br /> 命令“delete”允许从外部删除内容：<br /> delete rn<br /> - 是客户端希望服务器删除的内容的键名<br /> - 是一个单位为秒的时间（或代表直到某一刻的Unix时间），在该时间内服务器会拒绝对于此键名的“add”和 “replace”命令。此时内容被放入 delete队列，无法再通过“get”得到该内容，也无法是用“add”和“replace”命令（但是“set”命令可用）。直到指定时间，这些内容 被最终从服务器的内存中彻底清除。<br /> 参数 是可选的，缺省为0（表示内容会立刻清除，并且随后的存储命令均可用）。<br /> 此命令有一行回应：<br /> - “DELETEDrn”<br /> 表示执行成功<br /> - “NOT_FOUNDrn”<br /> 表示没有找到这项内容</p> 
+    <p>参考随后的“flush_all”命令使所有内容无效</p> 
+    <p><strong>增加/减少</strong><br /> 命令 “incr” 和 “decr”被用来修改数据，当一些内容需要 替换、增加或减少时。这些数据必须是十进制的32位无符号整新。如果不是，则当作0来处理。修改的内容必须存在，当使用“incr”/“decr”命令修 改不存在的内容时，不会被当作0处理，而是操作失败。</p> 
+    <p>客户端发送命令行：<br /> incr rn<br /> 或<br /> decr rn<br /> - 是客户端希望修改的内容的建名<br /> - 是客户端要增加/减少的总数。</p> 
+    <p>回复为以下集中情形：<br /> - “NOT_FOUNDrn”<br /> 指示该项内容的值，不存在。<br /> - rn ，是 增加/减少 。<br /> 注意”decr”命令发生下溢：如果客户端尝试减少的结果小于0时，结果会是0。”incr” 命令不会发生溢出。</p> 
+    <p><strong>状态</strong><br /> 命令”stats” 被用于查询服务器的运行状态和其他内部数据。有两种格式。不带参数的：<br /> statsrn<br /> 这会在随后输出各项状态、设定值和文档。另一种格式带有一些参数：<br /> stats rn<br /> 通过，服务器传回各种内部数据。因为随时可能发生变动，本文不提供参数的种类及其传回数据。</p> 
+    <p><strong>各种状态</strong><br /> 受到无参数的”stats”命令后，服务器发送多行内容，如下：<br /> STAT rn<br /> 服务器用以下一行来终止这个清单：<br /> ENDrn<br /> 在每行状态中， 是状态的名字， 使状态的数据。 以下清单，是所有的状态名称，数据类型，和数据代表的含义。<br /> 在“类型”一列中，”32u”表示32位无符号整型，”64u”表示64位无符号整型，”32u:32u”表示用冒号隔开的两个32位无符号整型。</p> 
+    <table class="ke-zeroborder" border="0" cellspacing="1" cellpadding="2" width="94%" bgcolor="#003366"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#cc9933" width="100" align="middle"><strong>名称</strong></td> 
+       <td bgcolor="#cc9933" width="80" align="middle"><strong>类型</strong></td> 
+       <td bgcolor="#cc9933" colspan="2" align="middle"><strong>含义</strong></td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">pid</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">服务器进程ID</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">uptime</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">服务器运行时间，单位秒</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">time</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">服务器当前的UNIX时间</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">version</td> 
+       <td bgcolor="#ffe3aa">string</td> 
+       <td bgcolor="#ffe3aa">服务器的版本号</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">rusage_user</td> 
+       <td bgcolor="#ffe3aa">32u:32u</td> 
+       <td bgcolor="#ffe3aa">该进程累计的用户时间<br /> (秒:微妙)</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">rusage_system</td> 
+       <td bgcolor="#ffe3aa">32u:32u</td> 
+       <td bgcolor="#ffe3aa">该进程累计的系统时间<br /> (秒:微妙)</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">curr_items</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">服务器当前存储的内容数量</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">total_items</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">服务器启动以来存储过的内容总数</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">bytes</td> 
+       <td bgcolor="#ffe3aa">64u</td> 
+       <td bgcolor="#ffe3aa">服务器当前存储内容所占用的字节数</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">curr_connections</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">连接数量</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">total_connections</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">服务器运行以来接受的连接总数</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">connection_structures</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">服务器分配的连接结构的数量</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">cmd_get</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">取回请求总数</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">cmd_set</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">存储请求总数</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">get_hits</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">请求成功的总次数</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">get_misses</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">请求失败的总次数</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">bytes_read</td> 
+       <td bgcolor="#ffe3aa">64u</td> 
+       <td bgcolor="#ffe3aa">服务器从网络读取到的总字节数</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">bytes_written</td> 
+       <td bgcolor="#ffe3aa">64u</td> 
+       <td bgcolor="#ffe3aa">服务器向网络发送的总字节数</td> 
+      </tr> 
+      <tr> 
+       <td bgcolor="#ffe3aa">limit_maxbytes</td> 
+       <td bgcolor="#ffe3aa">32u</td> 
+       <td bgcolor="#ffe3aa">服务器在存储时被允许使用的字节总数</td> 
+      </tr> 
+     </tbody> 
+    </table> 
+    <p><strong>其它命令</strong><br /> “flush_all”命令有一个可选的数字参数。它总是执行成功，服务器会发送“OKrn”回应。它的效果是使已经存在的项目立即失效（缺省），或在指 定的时间后。此后执行取回命令，将不会有任何内容返回（除非重新存储同样的键名）。flush_all 实际上没有立即释放项目所占用的内存，而是在随后陆续有新的项目被储存时执行。flush_all 效果具体如下：它导致所有更新时间早于flush_all所设定时间的项目，在被执行取回命令时命令被忽略。<br /> “version”命令没有参数：<br /> versionrn<br /> 在回应中，服务器发送：<br /> “VERSION rn”<br /> 是服务器的版本字串。<br /> “quit”命令没有参数：<br /> quitrn<br /> 接收此命令后，服务器关闭连接。不过，客户端可以在不再需要时，简单地关闭连接就行，并不一定需要发送这个命令。</p> 
+    <p><strong>UDP 协议</strong><br /> 当来自客户端的连接数远大于TCP连接的上限时，可以使用基于UDP的接口。UDP接口不能保证传输到位，所以只有在不要求成功的操作中使用；比如被用于一个“get”请求时，会因不当的缓存处理而发生错误或回应有遗失。</p> 
+    <p>每个UDP数据包都包含一个简单的帧头，数据之后的内容与TCP协议的描述类似。在执行所产生的数据流中，请求必须被包含在单独的一个UDP数据包中，但是回应可能跨越多个数据包。（只有“get”和“set”请求例外，跨越了多个数据包）</p> 
+    <p>帧头有8字节长，如下（均由16位整数组成，网络字节顺序，高位在前）：</p> 
+    <ul> 
+     <li>0-1 请求ID</li> 
+     <li>2-3 序号</li> 
+     <li>4-5 该信息的数据包总数</li> 
+     <li>6-7 保留位，必须为0</li> 
+    </ul> 
+    <p>请求ID有客户端提供。一般它会是一个从随机基数开始的递增值，不过客户端想用什么样的请求ID都可以。服务器的回应会包含一个和请求中的同样的 ID。客户端使用请求ID来区分每一个回应。任何一个没有请求ID的数据包，可能是之前的请求遭到延迟而造成的，应该被丢弃。序号的返回是从0到n- 1，n是该条信息的数据包数量。<br /> memcached 的客户端使用TCP链接 与 服务器通讯。（UDP接口也同样有效，参考后文的 “UDP协议” ）一个运行中的memcached服务器监视一些（可设置）端口。客户端连接这些端口，发送命令到服务器，读取回应，最后关闭连接。</p> 
+   </div> 
+  </div>  
+ </body>
+</html>
+
+
+</div>
+
+<div style="margin-top: 10px;margin-bottom: 2px;">
+<script type="text/javascript"><!--
+google_ad_client = "pub-7963911354665843";
+/* 728x90, 创建于 11-1-27 */
+google_ad_slot = "5890482646";
+google_ad_width = 728;
+google_ad_height = 90;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+
+</div>
+
+			<table width='100%'><tr>
+				<td  valign='top' width="49%" class="Related">
+                <div style="border-bottom: 1px #ccc solid;margin-top: 5px"><strong>相关资讯</strong> 　—　<a href="http://www.open-open.com/news" target="_blank" rel="nofollow">更多</a></div>
+            	<ul>
+            		
+            	     <li><a href="http://www.open-open.com/news/view/115ce21" target="_blank" rel="nofollow" title="lanmp v2.2一键安装包发布(包括lamp,lnmp,lnamp安装)">lanmp v2.2一键安装包发布(包括lamp,lnmp,lnamp安装)</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/10f652c" target="_blank" rel="nofollow" title="Go语言应用框架，beego 1.4.0 版本发布">Go语言应用框架，beego 1.4.0 版本发布</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/14bb980" target="_blank" rel="nofollow" title="Google App Engine 1.6.4 发布，改善了对 Python 和 Java 的支持">Google App Engine 1.6.4 发布，改善了对 Python 和 Java 的支持</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/e123f1" target="_blank" rel="nofollow" title="轻量级Groovy框架 Gaelyk 1.1 发布">轻量级Groovy框架 Gaelyk 1.1 发布</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/1887edd" target="_blank" rel="nofollow" title="ACE开发者平台 - 基于阿里云引擎的应用托管平台">ACE开发者平台 - 基于阿里云引擎的应用托管平台</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/1a7a52d" target="_blank" rel="nofollow" title="MicroPHP 2.3.0 发布，PHP 开发框架">MicroPHP 2.3.0 发布，PHP 开发框架</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/f8a2df" target="_blank" rel="nofollow" title="PHP缓存管理，HybridCache 0.8.5 发布">PHP缓存管理，HybridCache 0.8.5 发布</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/130acc5" target="_blank" rel="nofollow" title="Craigslist向Perl基金会捐赠10万美元">Craigslist向Perl基金会捐赠10万美元</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/ac2e81" target="_blank" rel="nofollow" title="学习Mozilla如何扩展网站">学习Mozilla如何扩展网站</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/9beef6" target="_blank" rel="nofollow" title="Google App Engine 1.6 预览版发布">Google App Engine 1.6 预览版发布</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/10f8188" target="_blank" rel="nofollow" title="10个实用的Django建议">10个实用的Django建议</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/1bc2204" target="_blank" rel="nofollow" title="Dropbox 开源其 Go 语言库  -  godropbox">Dropbox 开源其 Go 语言库  -  godropbox</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/b9ed03" target="_blank" rel="nofollow" title="JS和CSS优化工具，Minify 2.1.5 发布">JS和CSS优化工具，Minify 2.1.5 发布</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/9b5c2f" target="_blank" rel="nofollow" title="Web服务器： ASCOOS Web Server (AWS) 发布 1.6  版本">Web服务器： ASCOOS Web Server (AWS) 发布 1.6  版本</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/1838f89" target="_blank" rel="nofollow" title="基于开源软件在Azure平台建立大规模系统的最佳实践">基于开源软件在Azure平台建立大规模系统的最佳实践</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/175237b" target="_blank" rel="nofollow" title="基于PHP开发的Memcached管理与监控工具 MemAdmin 简介">基于PHP开发的Memcached管理与监控工具 MemAdmin 简介</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/16f4ee" target="_blank" rel="nofollow" title="分布式监控系统，Ganglia 3.3.0 发布">分布式监控系统，Ganglia 3.3.0 发布</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/ccc55" target="_blank" rel="nofollow" title="适用于 Go 1.0 版的 Google App Engine SDK 发布">适用于 Go 1.0 版的 Google App Engine SDK 发布</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/17a1d44" target="_blank" rel="nofollow" title="8个新的PHP开发工具和应用程序">8个新的PHP开发工具和应用程序</a></li>            
+            	     
+            	     <li><a href="http://www.open-open.com/news/view/1cae8b9" target="_blank" rel="nofollow" title="10个Web开发人员必须考虑的便利工具">10个Web开发人员必须考虑的便利工具</a></li>            
+            	     
+            	     
+            	</ul>
+        		 <div style="clear: both; font-size: 1px; line-height: 0;"></div>
+            </td>
+			<td width="5px"></td>
+			<td valign='top' width="49%" class="Relatedb">
+			 	<div style="border-bottom: 1px #ccc solid;margin-top: 5px"><strong>相关文档</strong> 　—　<a href="http://www.open-open.com/doc" rel="nofollow" target="_blank">更多</a></div>
+            	<ul >
+            		
+            	     <li><a  href="http://www.open-open.com/doc/view/5b7db18654264b3f8859669b5afd5467" rel="nofollow" target="_blank" title="深入了解memcache.ppt">深入了解memcache.ppt</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/8a225e69d4ec4f2b9e4a89681b304ea3" rel="nofollow" target="_blank" title="memcache 集群哈希.docx">memcache 集群哈希.docx</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/deae4381265c41529a8047f2f2852d7d" rel="nofollow" target="_blank" title="关于memcache、redis、mongodb 的对比.pdf">关于memcache、redis、mongodb 的对比.pdf</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/c71f168dacef4943b4f58af84acac6a7" rel="nofollow" target="_blank" title="Apache+Tomcat+Session+Memcache高性能群集搭建.docx">Apache+Tomcat+Session+Memcache高性能群集搭建.docx</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/3fcf2fe401104331922aad9885778afc" rel="nofollow" target="_blank" title="Memcache服务器安装及spymemcached的使用.doc">Memcache服务器安装及spymemcached的使用.doc</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/926fa200e8bf4562bfc8dc5de76824dc" rel="nofollow" target="_blank" title="Memcache培训(来自1号店).ppt">Memcache培训(来自1号店).ppt</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/b0e516955fe941c9ba28ddd9ef10291f" rel="nofollow" target="_blank" title="Java开发中的Memcache原理及实现.pdf">Java开发中的Memcache原理及实现.pdf</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/ee7ce5fa88b642888851e92005d122b0" rel="nofollow" target="_blank" title="php操作memcache的使用测试总结.docx">php操作memcache的使用测试总结.docx</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/6e939bd678e54468a6251c4ff65b0a1b" rel="nofollow" target="_blank" title="windows环境下php程序使用memcache.docx">windows环境下php程序使用memcache.docx</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/771483e083724aed98cd92aff9739d56" rel="nofollow" target="_blank" title="Java 开发中的 Memcache 原理及实现.pdf">Java 开发中的 Memcache 原理及实现.pdf</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/85a3a380d7434e759462f04e54c208bd" rel="nofollow" target="_blank" title="Memcache 的使用.docx">Memcache 的使用.docx</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/4e264782ad80474c88a3f836ab9f1c61" rel="nofollow" target="_blank" title="Memcache 原理及实际应用.docx">Memcache 原理及实际应用.docx</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/4527d0db22c242258466cee44f108caa" rel="nofollow" target="_blank" title="memcache常用命令.doc">memcache常用命令.doc</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/c17dbd8d49fb493cbdaf452911dfd8bb" rel="nofollow" target="_blank" title="memcache 常用命令.doc">memcache 常用命令.doc</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/d72603824e7f4aec81f0914ec1f5f819" rel="nofollow" target="_blank" title="Fast Database Restarts at Facebook.pdf">Fast Database Restarts at Facebook.pdf</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/67ce985365e448beb14053f5065217eb" rel="nofollow" target="_blank" title="Memcache客户端代理使用指南.pdf">Memcache客户端代理使用指南.pdf</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/97ce1f7d85b7425c9c5bcc09a6bb0b39" rel="nofollow" target="_blank" title="Memagent 负载均衡配置.pptx">Memagent 负载均衡配置.pptx</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/c5d24b54dcbe40958c8c89b2613e7ce9" rel="nofollow" target="_blank" title="Memcached 入门资料.ppt">Memcached 入门资料.ppt</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/5cc3b80a6bb94d428d61f755d3525dfd" rel="nofollow" target="_blank" title="豆瓣数据存储实践.pdf">豆瓣数据存储实践.pdf</a></li>            
+            	    
+            	     <li><a  href="http://www.open-open.com/doc/view/dfe1196bef4d494bb34fc9f746d8c3e2" rel="nofollow" target="_blank" title="Yii 1.1 Application Development Cookbook.pdf">Yii 1.1 Application Development Cookbook.pdf</a></li>            
+            	    
+            	</ul>
+            </td>
+			</tr></table>
+<div style="margin-top: 10px;margin-bottom: 10px;">
+<div id="baiduad1" style="margin-bottom: 5px;">
+</div>	
+
+</div>
+
+
+
+<div style="margin-top: 10px;margin-bottom: 10px;">
+<script type="text/javascript"><!--
+google_ad_client = "ca-pub-7963911354665843";
+/* 横向单元 */
+google_ad_slot = "6546082871";
+google_ad_width = 728;
+google_ad_height = 15;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</div>	
+	
+</div>
+
+<div id=view-side>
+<div id=upload-box class="box-blue angle">
+<div class=box-bg>
+<div class=box-body><a id=upload class=upload href="#"></a>
+</div>
+</div>
+</div>
+
+<div class="box-blue angle-footer">
+<div class=box_1></div>
+<div class=box_2></div>
+<div class=box_3></div>
+<div class=box-bg>
+<div class=box-title>内容信息</div>
+<div id=docinfo class=box-body>
+<div id=doc-score><span id=score-stars class=stars-big-8 title=经验评价得分：4.0分>&nbsp;</span><span id=score-num>4.0</span><br>
+<div id=score-ratecount>(已有1个人评价)</div>
+<div id=score-scale>
+<span class="starscale stars-small-10" title=力荐>&nbsp;</span>
+<div style="width: 0px" class=power></div>
+0%<br>
+<span class="starscale stars-small-8" title=不错>&nbsp;</span>
+<div style="width: 100px" class=power></div>
+100%<br>
+<span class="starscale stars-small-6" title=还行>&nbsp;</span>
+<div style="width: 0px" class=power></div>
+0%<br>
+<span class="starscale stars-small-4" title=较差>&nbsp;</span>
+<div style="width: 0px" class=power></div>
+0%<br>
+<span class="starscale stars-small-2" title=很差>&nbsp;</span>
+<div style="width: 0px" class=power></div>
+0%<br>
+</div>
+</div>
+<div class=sp></div>
+<div id=doc-status>
+<span class=item>收藏：0人</span>
+
+<span class=item>发布时间：2011-12-20 16:37:00</span>
+</div>
+</div>
+</div>
+</div>
+
+
+<div id=upload-box1 class="box-blue angle">
+<div class=box-bg>
+<div class=box-body>
+<a href="http://www.lagou.com/?utm_source=AD__open-open_banner2&utm_medium=final&utm_campaign=toufang" target="_blank" rel="nofollow" >
+	<img src="http://static.open-open.com/300-250java.png">
+</a>
+</div>
+</div>
+</div>
+
+
+
+<div id=view-tag class="box-blue angle">
+<div class=box-bg>
+<div class=box-title>经验标签</div>
+<div id=tag-list class=box-body>
+	
+		<a href="/lib/tag/Memcache">Memcache</a>
+	 
+</div>
+
+
+
+</div>
+</div>
+
+<div id=upload-box1 class="box-blue angle">
+<div class=box-bg>
+<div class=box-body>
+<script type="text/javascript"><!--
+google_ad_client = "ca-pub-7963911354665843";
+/* CHf */
+google_ad_slot = "4696250819";
+google_ad_width = 300;
+google_ad_height = 250;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</div>
+</div>
+</div>
+
+<div id=view-topic class="box-blue angle">
+<div class=box-bg>
+<div class=box-title>同类热门经验</div>
+<div class=box-body>
+	<ul id=topic-list class=file-shortlist>
+		
+			<li>
+				<span class="samelist"></span><a title=Java使用memcached  href="/lib/view/open1357831114183.html"><span class=title>Java使用memcached </span></a>
+				<div class=attribute><span>11946次浏览</span></div>
+			</li>
+		
+			<li>
+				<span class="samelist"></span><a title=Memcached 集群架构方面的问题  href="/lib/view/open1328604498889.html"><span class=title>Memcached 集群架构方面的问题 </span></a>
+				<div class=attribute><span>9267次浏览</span></div>
+			</li>
+		
+			<li>
+				<span class="samelist"></span><a title=Memcached 深度分析 href="/lib/view/open1324367640843.html"><span class=title>Memcached 深度分析</span></a>
+				<div class=attribute><span>5118次浏览</span></div>
+			</li>
+		
+			<li>
+				<span class="samelist"></span><a title=simple-spring-memcached简介  href="/lib/view/open1340270181768.html"><span class=title>simple-spring-memcached简介 </span></a>
+				<div class=attribute><span>4988次浏览</span></div>
+			</li>
+		
+			<li>
+				<span class="samelist"></span><a title=Memcached的简单使用实例 href="/lib/view/open1338688577562.html"><span class=title>Memcached的简单使用实例</span></a>
+				<div class=attribute><span>4645次浏览</span></div>
+			</li>
+		
+			<li>
+				<span class="samelist"></span><a title=Memcached 内存分配机制介绍  href="/lib/view/open1331714490859.html"><span class=title>Memcached 内存分配机制介绍 </span></a>
+				<div class=attribute><span>3658次浏览</span></div>
+			</li>
+		
+</ul>
+</div>
+</div>
+</div>
+
+
+<div id=view-top-category class="box-blue angle-header">
+<div class=box-bg>
+<div class=box-title>相关经验</div>
+<div class=box-body>
+<ul id=top-list class=file-shortlist>
+		
+			<li><span class="samelist"></span><a title=高性能的分布式的内存对象缓存系统 Memcache 简介  href="/lib/view/open1328604242718.html" target=_blank><span
+				class=title>高性能的分布式的内存对象缓存系统 Memcache 简介 </span></a><br>
+			<div class=attribute><span class="score stars-small-10" title=经验评价得分：5.0分>&nbsp;</span> <span>1人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=memcache 集群  href="/lib/view/open1340337319596.html" target=_blank><span
+				class=title>memcache 集群 </span></a><br>
+			<div class=attribute><span class="score stars-small-8" title=经验评价得分：4.0分>&nbsp;</span> <span>1人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=memcache研究 href="/lib/view/open1373590351175.html" target=_blank><span
+				class=title>memcache研究</span></a><br>
+			<div class=attribute><span class="score stars-small-0" title=经验评价得分：0.0分>&nbsp;</span> <span>0人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=mybatis整合memcache href="/lib/view/open1408153587176.html" target=_blank><span
+				class=title>mybatis整合memcache</span></a><br>
+			<div class=attribute><span class="score stars-small-8" title=经验评价得分：4.0分>&nbsp;</span> <span>1人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=php使用memcache处理缓存数据 href="/lib/view/open1411201439375.html" target=_blank><span
+				class=title>php使用memcache处理缓存数据</span></a><br>
+			<div class=attribute><span class="score stars-small-0" title=经验评价得分：0.0分>&nbsp;</span> <span>0人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=CentOS下的Memcache安装 href="/lib/view/open1338511079354.html" target=_blank><span
+				class=title>CentOS下的Memcache安装</span></a><br>
+			<div class=attribute><span class="score stars-small-0" title=经验评价得分：0.0分>&nbsp;</span> <span>0人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=Memcache 操作PHP类  href="/lib/view/open1372842855097.html" target=_blank><span
+				class=title>Memcache 操作PHP类 </span></a><br>
+			<div class=attribute><span class="score stars-small-10" title=经验评价得分：5.0分>&nbsp;</span> <span>1人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=Linux下的Memcache安装 href="/lib/view/open1390648523882.html" target=_blank><span
+				class=title>Linux下的Memcache安装</span></a><br>
+			<div class=attribute><span class="score stars-small-0" title=经验评价得分：0.0分>&nbsp;</span> <span>0人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=Memcache的使用方法  href="/lib/view/open1328604463077.html" target=_blank><span
+				class=title>Memcache的使用方法 </span></a><br>
+			<div class=attribute><span class="score stars-small-0" title=经验评价得分：0.0分>&nbsp;</span> <span>0人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=Memcache工作原理 href="/lib/view/open1384089806086.html" target=_blank><span
+				class=title>Memcache工作原理</span></a><br>
+			<div class=attribute><span class="score stars-small-10" title=经验评价得分：5.0分>&nbsp;</span> <span>1人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=memcache 内存管理 机制 href="/lib/view/open1376034527667.html" target=_blank><span
+				class=title>memcache 内存管理 机制</span></a><br>
+			<div class=attribute><span class="score stars-small-0" title=经验评价得分：0.0分>&nbsp;</span> <span>0人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=PHP缓存之内存缓存（Memcache）  href="/lib/view/open1409629940744.html" target=_blank><span
+				class=title>PHP缓存之内存缓存（Memcache） </span></a><br>
+			<div class=attribute><span class="score stars-small-0" title=经验评价得分：0.0分>&nbsp;</span> <span>0人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=PHP memcache实现消息队列实例 href="/lib/view/open1394717067679.html" target=_blank><span
+				class=title>PHP memcache实现消息队列实例</span></a><br>
+			<div class=attribute><span class="score stars-small-0" title=经验评价得分：0.0分>&nbsp;</span> <span>0人评</span>
+			</div>
+		</li>
+		
+			<li><span class="samelist"></span><a title=memcache/memcached/memcachedb 配置、安装  href="/lib/view/open1328604428858.html" target=_blank><span
+				class=title>memcache/memcached/memcachedb 配置、安装 </span></a><br>
+			<div class=attribute><span class="score stars-small-0" title=经验评价得分：0.0分>&nbsp;</span> <span>0人评</span>
+			</div>
+		</li>
+		
+</ul>
+</div>
+</div>
+<div class=box_3></div>
+<div class=box_2></div>
+<div class=box_1></div>
+
+</div>
+
+<div id=upload-box1 class="box-blue angle">
+<div class=box-bg>
+<div class=box-body>
+<script type="text/javascript"><!--
+google_ad_client = "ca-pub-7963911354665843";
+/* CHf */
+google_ad_slot = "4696250819";
+google_ad_width = 300;
+google_ad_height = 250;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</div>
+</div>
+</div>
+
+<div id=view-top-category class="box-blue angle-header">
+<div class=box-bg>
+<div class=box-title>相关讨论 - <a href="http://www.open-open.com/bbs" target="_blank" rel="nofollow">更多</a></div>
+<div class=box-body>
+<ul id=top-list class=file-shortlist>
+		
+			<li >
+			<span class="samelist"></span><a title=Redis应用实践 href="http://www.open-open.com/bbs/view/1320542856780" rel="nofollow" target=_blank><span class=title>Redis应用实践</span></a>
+		</li>
+		
+			<li >
+			<span class="samelist"></span><a title=优秀PHP程序员应具备的5大能力  href="http://www.open-open.com/bbs/view/1420697081859" rel="nofollow" target=_blank><span class=title>优秀PHP程序员应具备的5大能力 </span></a>
+		</li>
+		
+			<li >
+			<span class="samelist"></span><a title=8种Nosql数据库系统对比 href="http://www.open-open.com/bbs/view/1323996064140" rel="nofollow" target=_blank><span class=title>8种Nosql数据库系统对比</span></a>
+		</li>
+		
+			<li >
+			<span class="samelist"></span><a title=工程师忽略的隐形成本 href="http://www.open-open.com/bbs/view/1421291393281" rel="nofollow" target=_blank><span class=title>工程师忽略的隐形成本</span></a>
+		</li>
+		
+			<li >
+			<span class="samelist"></span><a title=PHP程序员的技术成长规划 href="http://www.open-open.com/bbs/view/1414478644325" rel="nofollow" target=_blank><span class=title>PHP程序员的技术成长规划</span></a>
+		</li>
+		
+			<li >
+			<span class="samelist"></span><a title=开源协议 LGPL 详细介绍 href="http://www.open-open.com/bbs/view/1319814738108" rel="nofollow" target=_blank><span class=title>开源协议 LGPL 详细介绍</span></a>
+		</li>
+		
+			<li >
+			<span class="samelist"></span><a title=XPath详细介绍 href="http://www.open-open.com/bbs/view/1421509793578" rel="nofollow" target=_blank><span class=title>XPath详细介绍</span></a>
+		</li>
+		
+</ul>
+</div>
+</div>
+<div class=box_3></div>
+<div class=box_2></div>
+<div class=box_1></div>
+
+</div>
+
+<!-- end top list--></div>
+</div>
+
+
+
+
+<div id=footer>
+<div id=footer-menu><a href="http://www.open-open.com/home/1">联系我们</a> - <a href="http://www.open-open.com/home/1">问题反馈</a> </div>
+<p>2005-2015 OPEN-OPEN, all rights reserved.</p>
+</div>
+<script type="text/javascript" src="http://libs.baidu.com/jquery/1.3.2/jquery.min.js"></script>
+
+<script type="text/javascript" src="/lib/js/thickbox.patch.js"></script>
+
+<script type="text/javascript" src="/lib/js/app.js"></script>
+<script type="text/javascript" src="/lib/js/scrolltopcontrol.js"></script>
+<script type="text/javascript">
+	var rooturl="/lib";
+	var tb_pathToImage = "/lib/images/loadingAnimation.gif";
+	
+  	
+</script>
+<script type="text/javascript" src="http://libs.baidu.com/jqueryui/1.8.22/jquery-ui.min.js"></script>
+<script type="text/javascript" src="/lib/js/scrolltopcontrol.js"></script>
+<script type="text/javascript" src="/lib/js/view.js"></script>
+<script type="text/javascript" src="/lib/syntaxhighlighter_3.0.83/scripts/shCore.js"></script>
+<script type="text/javascript" src="/lib/syntaxhighlighter_3.0.83/scripts/shAutoloader.js"></script>
+
+<script type="text/javascript">
+  	scrolltotop.offset(95,165);
+	scrolltotop.init();
+  </script>
+<script type="text/javascript">
+SyntaxHighlighter.autoloader(
+	'applescript			/lib/syntaxhighlighter_3.0.83/scripts/shBrushAppleScript.js',
+	'actionscript3 as3		/lib/syntaxhighlighter_3.0.83/scripts/shBrushAS3.js',
+	'bash shell				/lib/syntaxhighlighter_3.0.83/scripts/shBrushBash.js',
+	'coldfusion cf			/lib/syntaxhighlighter_3.0.83/scripts/shBrushColdFusion.js',
+	'cpp c					/lib/syntaxhighlighter_3.0.83/scripts/shBrushCpp.js',
+	'obj-c objc				/lib/syntaxhighlighter_3.0.83/scripts/shBrushObjC.js',
+	'c# c-sharp csharp		/lib/syntaxhighlighter_3.0.83/scripts/shBrushCSharp.js',
+	'css					/lib/syntaxhighlighter_3.0.83/scripts/shBrushCss.js',
+	'delphi pascal			/lib/syntaxhighlighter_3.0.83/scripts/shBrushDelphi.js',
+	'diff patch pas			/lib/syntaxhighlighter_3.0.83/scripts/shBrushDiff.js',
+	'erl erlang				/lib/syntaxhighlighter_3.0.83/scripts/shBrushErlang.js',
+	'groovy					/lib/syntaxhighlighter_3.0.83/scripts/shBrushGroovy.js',
+	'haxe hx				/lib/syntaxhighlighter_3.0.83/scripts/shBrushHaxe.js',
+	'java					/lib/syntaxhighlighter_3.0.83/scripts/shBrushJava.js',
+	'jfx javafx				/lib/syntaxhighlighter_3.0.83/scripts/shBrushJavaFX.js',
+	'js jscript javascript	/lib/syntaxhighlighter_3.0.83/scripts/shBrushJScript.js',
+	'perl pl				/lib/syntaxhighlighter_3.0.83/scripts/shBrushPerl.js',
+	'php					/lib/syntaxhighlighter_3.0.83/scripts/shBrushPhp.js',
+	'text plain				/lib/syntaxhighlighter_3.0.83/scripts/shBrushPlain.js',
+	'py python				/lib/syntaxhighlighter_3.0.83/scripts/shBrushPython.js',
+	'ruby rails ror rb		/lib/syntaxhighlighter_3.0.83/scripts/shBrushRuby.js',
+	'scala					/lib/syntaxhighlighter_3.0.83/scripts/shBrushScala.js',
+	'sql					/lib/syntaxhighlighter_3.0.83/scripts/shBrushSql.js',
+	'vb vbnet				/lib/syntaxhighlighter_3.0.83/scripts/shBrushVb.js',
+	'xml xhtml xslt html	/lib/syntaxhighlighter_3.0.83/scripts/shBrushXml.js'
+);
+SyntaxHighlighter.all();
+</script>
+
+<!-- Baidu Button BEGIN -->
+<script type="text/javascript" id="bdshare_js" data="type=slide&amp;img=0&amp;pos=right&amp;uid=6734290" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+var bds_config={"bdTop":256};
+document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date()/3600000);
+</script>
+<!-- Baidu Button END --></body>
+</html>

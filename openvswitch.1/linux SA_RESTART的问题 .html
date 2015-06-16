@@ -1,0 +1,579 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>linux SA_RESTART的问题 - ccccdddxxx的专栏 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="信号是异步的，它会在程序的任何地方发生。由此程序正常的执行路径被打破，去执行信号处理函数。一般情况下，进程正在执行某个系统调用，那么在该系统调用返回前信号是不会被递送的。但慢速系统调用除外，如读写终端、网络、磁盘，以及wait和pause。这些系统调用都会返回-1，errno置为EINTR当系统调用被中断时，我们可以选择使用循环再次调用，或者设置重新启动该系统调用(SA_RESTART)。现在说说对上面话的理解：我认为函数或进程的运行最" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/dark1/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/ccccdddxxx/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/green_black.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="/ccccdddxxx">ccccdddxxx的专栏</a></h1>
+            <h2></h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="/ccccdddxxx?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="/ccccdddxxx?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="/ccccdddxxx/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "ccccdddxxx";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/ccccdddxxx";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://events.csdn.net/DR2013/roadshow/index.html" target="_blank">
+<font color=red>【免费有礼】欧美最新网络营销技巧分享 
+   </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/l09196891/article/details/8845828" target="_blank"><font color=blue>博客导入工具
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8863634" target="_blank"><font color=red>【限时优惠】第五届云计算大会社区门票抢购
+
+
+
+
+</font></a>
+
+<br />
+
+
+
+
+
+<a href="http://events.csdn.net/wy/APC/invite.html
+"target="_blank">
+<font color=red>探究云计算数据中心节能增效之道
+
+
+ </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8900468 "target="_blank">
+<font color=red>CSDN博客第一期云计算最佳博主评选
+ </font></a>
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8853291"target="_blank">
+<font color=blue>CSDN博客第二期最佳移动开发博主评选
+ </font></a>
+
+
+
+
+</div>
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Original"></span>
+    <h3>
+        <span class="link_title"><a href="/ccccdddxxx/article/details/6308381">
+        linux SA_RESTART的问题
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+    <span class="link_postdate">2011-04-08 01:40</span>
+    <span class="link_view" title="阅读次数">363人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('linux SA_RESTART的问题','6308381');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(6308381,2);return false;" title="举报">举报</a></span>
+    
+</div>
+<div class="tag2box"><a href='http://blog.csdn.net/tag/details.html?tag=linux' target=_blank>linux</a><a href='http://blog.csdn.net/tag/details.html?tag=system' target=_blank>system</a><a href='http://blog.csdn.net/tag/details.html?tag=signal' target=_blank>signal</a><a href='http://blog.csdn.net/tag/details.html?tag=struct' target=_blank>struct</a><a href='http://blog.csdn.net/tag/details.html?tag=terminal' target=_blank>terminal</a><a href='http://blog.csdn.net/tag/details.html?tag=library' target=_blank>library</a></div>
+
+
+    
+<div id="article_content" class="article_content">
+<p><span style="font-size: medium;">信号是异步的，它会在程序的任何地方发生。由此程序正常的执行路径被打破，去执行信号处理函数。<br />
+
+一般情况下</span>
+
+，<span style="font-size: medium;">进程正在执行某个系统调用，那么在该系统调用返回前信号是不会被递送的。但慢速系统调用除外，如读写终端、网络、磁盘，以及wait和pause。这些系
+统调用都会返回-1，errno置为EINTR当系统调用被中断时，我们可以选择使用循环再次调用，或者设置重新启动该系统调用
+(SA_RESTART)。</span>
+
+</p>
+<p><span style="font-size: medium;">现在说说对上面话的理解：</span>
+
+</p>
+<p><span style="font-size: medium;">我认为函数或进程的运行最终都回归结尾系统调用，（呵呵，非官方，自己理解）</span>
+
+</p>
+<p><span style="font-size: medium;">那么</span>
+
+<span style="font-size: medium;">&ldquo;进程正在执行某个系统调用，那么在该系统调用返回前信号是不会被递送的&rdquo;，就是说大多数进程在运行期间是阻塞信号的，系统调用完再处理，</span>
+
+</p>
+<p><span style="font-size: medium;">但是（以下引用APUE）：如果在进程执行一个低速系统而阻塞期间捕捉到一个信号，该系统调用被终端不再继续执行</span>
+
+</p>
+<p>When a system call is slow and a signal arrives while it was blocked,
+waiting for something, the call is aborted and returns <code>-EINTR</code>
+
+,
+so that the library function will return -1 and set <code>errno</code>
+
+to <code>EINTR</code>
+
+. Just before the system call returns, the user program's
+signal handler is called.</p>
+<p>(So, what is &quot;slow&quot;? Mostly those calls that can block forever waiting
+for external events; read and write to terminal devices, but not
+read and write to disk devices, <code>wait</code>
+
+, <code>pause</code>
+
+.)</p>
+<p>This means that a system call can return an error while nothing was
+wrong. Usually one will want to redo the system call. That can be
+automated by installing the signal handler using a call to
+<code>sigaction</code>
+
+ with the <code>SA_RESTART</code>
+
+ flag set.
+The effect is that upon an interrupt the system call is aborted,
+the user program's signal handler is called, and afterwards
+the system call is restarted from the beginning.</p>
+<p><span style="font-size: medium;">我们可以选择使用循环再次调用，或者设置重新启动该系统调用
+(SA_RESTART),</span>
+</p>
+<p><span style="font-size: medium;">这是是低速系统调用被信号中断的解决办法，1循环2SA&mdash;&mdash;RESTART</span>
+</p>
+<p><span style="font-size: medium;">好啦，实验代码：</span>
+</p>
+<p><span style="font-size: medium;">#include &lt;stdio.h&gt;<br />
+&nbsp; 2 #include &lt;stdlib.h&gt;<br />
+&nbsp; 3 #include &lt;unistd.h&gt;<br />
+&nbsp; 4 #include &lt;stdbool.h&gt;<br />
+&nbsp; 5 #include &lt;signal.h&gt;<br />
+&nbsp; 6 #include &lt;sys/types.h&gt;<br />
+&nbsp; 7 #include &lt;errno.h&gt;<br />
+&nbsp; 8 #include &lt;string.h&gt;<br />
+&nbsp; 9 <br />
+&nbsp;10 void int_handler (int signum)<br />
+&nbsp;11 {<br />
+&nbsp;12&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf (&quot;int handler %d/n&quot;,signum);<br />
+&nbsp;13 }<br />
+&nbsp;14 <br />
+&nbsp;15 int main(int argc, char **argv)<br />
+&nbsp;16 {<br />
+&nbsp;17&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; char buf[100];<br />
+&nbsp;18&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ssize_t ret;<br />
+&nbsp;19&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct sigaction oldact;<br />
+&nbsp;20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct sigaction act;<br />
+&nbsp;21 <br />
+&nbsp;22&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; act.sa_handler = int_handler;<br />
+&nbsp;23&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; act.sa_flags=0;<br />
+&nbsp;24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; act.sa_flags |= SA_RESTART;<br />
+&nbsp;25&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sigemptyset(&amp;act.sa_mask);<br />
+&nbsp;26&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (-1 == sigaction(SIGINT,&amp;act,&amp;oldact))<br />
+&nbsp;27&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {<br />
+&nbsp;28&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf(&quot;sigaction failed!/n&quot;);<br />
+&nbsp;29&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return -1;<br />
+&nbsp;30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+&nbsp;31 <br />
+&nbsp;32&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bzero(buf,100);<br />
+&nbsp;33 <br />
+&nbsp;34&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret = read(STDIN_FILENO,buf,10);<br />
+&nbsp;35&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (ret == -1)<br />
+&nbsp;36&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {<br />
+&nbsp;37&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf (&quot;read error %s/n&quot;, strerror(errn&nbsp;&nbsp;&nbsp; o));</span>
+</p>
+<p><span style="font-size: medium;">&nbsp;38&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+&nbsp;39&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf (&quot;read %d bytes, content is %s/n&quot;,ret,buf&nbsp;&nbsp;&nbsp; );<br />
+&nbsp;40&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sleep (10);<br />
+&nbsp;41&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 0;<br />
+&nbsp;42 }</span>
+</p>
+<p><span style="font-size: medium;">这里我们就看第二种解决办法SA&mdash;restart</span>
+</p>
+<p><span style="font-size: medium;">运行看结果：</span>
+</p>
+<p><span style="font-size: medium;">^Cint handler 2<br />
+^Cint handler 2<br />
+^Cint handler 2<br />
+^Cint handler 2<br />
+^Cint handler 2<br />
+^Cint handler 2<br />
+hgfd<br />
+read 5 bytes, content is hgfd<br />
+<br />
+^Cint handler 2<br />
+在程序read之前不要输入，ctrl+c这样不会中断read输入后主程序就向下运行啦，这样就不在低速的系统调用即read中啦，所以再次ctrl+c结束；</span>
+</p>
+<p><span style="font-size: medium;">下面改程序：把程序24行注释掉：结果</span>
+</p>
+<p><span style="font-size: medium;">^Cint handler 2<br />
+read error Interrupted system call<br />
+read -1 bytes, content is <br />
+程序立即结束啦，</span>
+</p>
+<p><span style="font-size: medium;">但我们和第一次相比也观察到很奇怪的结果<br />
+</span>
+</p>
+<p><span style="font-size: medium;">根据结果</span>
+比较，其实是第二次运行是把ctrl+c读入，而第一次就是运行啦信号处理函数，不把ctrl+c作为READ的读入，</p>
+</div>
+
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.1.236-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/ccccdddxxx/article/details/6302332">linux  sigaction函数 sa_flags的值</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/ccccdddxxx/article/details/6309860">揪出你找不到的系统头文件</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen">
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "117306";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<script type="text/javascript">
+    //new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '6308381';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/ccccdddxxx" target="_blank">
+    <img src="http://avatar.csdn.net/6/2/3/1_ccccdddxxx.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/ccccdddxxx" class="user_name" target="_blank">ccccdddxxx</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>83453次</span></li>
+    <li>积分：<span>1845分</span></li>
+    <li>排名：<span>第4337名</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>84篇</span></li>
+    <li>转载：<span>135篇</span></li>
+    <li>译文：<span>0篇</span></li>
+    <li>评论：<span>27条</span></li>
+</ul>
+</ul>
+</div>
+
+
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/804923">linux</a><span>(31)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/837413">神</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/838849">编译</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/838850">编译</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/817345">网络</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/886050">ARM</a><span>(12)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/897293">驱动</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/909205">android</a><span>(112)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/949909">C</a><span>(16)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/1110925">C#</a><span>(0)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/1118971">C++</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/1234446">android safe</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ccccdddxxx/article/category/1313763">Python</a><span>(1)</span>
+</li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2013/04">2013年04月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2013/03">2013年03月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2013/02">2013年02月</a><span>(15)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2013/01">2013年01月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2012/12">2012年12月</a><span>(9)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2012/11">2012年11月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2012/10">2012年10月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2012/09">2012年09月</a><span>(17)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2012/08">2012年08月</a><span>(21)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2012/07">2012年07月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2012/06">2012年06月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2012/04">2012年04月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2012/03">2012年03月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2012/02">2012年02月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2011/12">2011年12月</a><span>(9)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2011/11">2011年11月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2011/10">2011年10月</a><span>(15)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2011/09">2011年09月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2011/08">2011年08月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2011/07">2011年07月</a><span>(12)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2011/06">2011年06月</a><span>(11)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2011/05">2011年05月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/ccccdddxxx/article/month/2011/04">2011年04月</a><span>(29)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/ccccdddxxx/article/details/6314360" title="sigqueue函数   进程间通信    信号的发送携带数据">sigqueue函数   进程间通信    信号的发送携带数据</a><span>(2306)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/7850335" title="关于Activity的onSaveInstanceState调用时机的说明">关于Activity的onSaveInstanceState调用时机的说明</a><span>(2177)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/6921700" title="android activity">android activity</a><span>(1941)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/8051201" title="Illegal modifier for parameter *** , only final is permitted”">Illegal modifier for parameter *** , only final is permitted”</a><span>(1761)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/7038533" title="android中联系人  以及  ContactsContract类">android中联系人  以及  ContactsContract类</a><span>(1730)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/7370169" title="C语言snprintf函数">C语言snprintf函数</a><span>(1717)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/6923593" title="Android 错误 The method onClick(View) of type new View.OnClickListener(){} must override a superclass">Android 错误 The method onClick(View) of type new View.OnClickListener(){} must override a superclass</a><span>(1407)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/8081179" title="android程序出现了奇怪的错误  Field requires API level 5 (current min is 1): ......">android程序出现了奇怪的错误  Field requires API level 5 (current min is 1): ......</a><span>(1401)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/6844438" title="ARM中断">ARM中断</a><span>(1364)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/6368337" title="内核中用于数据接收的结构体struct msghdr">内核中用于数据接收的结构体struct msghdr</a><span>(1354)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/ccccdddxxx/article/details/6923593" title="Android 错误 The method onClick(View) of type new View.OnClickListener(){} must override a superclass">Android 错误 The method onClick(View) of type new View.OnClickListener(){} must override a superclass</a><span>(5)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/6844472" title="ARM  VIC控制器  --- 6410">ARM  VIC控制器  --- 6410</a><span>(3)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/7252891" title="Android导入一个工程时提示 Invalid project description">Android导入一个工程时提示 Invalid project description</a><span>(3)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/6622929" title="真正的BOOTSECT.S">真正的BOOTSECT.S</a><span>(2)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/6407907" title="dentry 与inode的概念">dentry 与inode的概念</a><span>(2)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/6368337" title="内核中用于数据接收的结构体struct msghdr">内核中用于数据接收的结构体struct msghdr</a><span>(2)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/7047509" title="android Cursor">android Cursor</a><span>(1)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/6946267" title="android Android Framework">android Android Framework</a><span>(1)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/7892072" title="Java克隆(Clone)的应用">Java克隆(Clone)的应用</a><span>(1)</span>
+</li>
+<li>
+<a href="/ccccdddxxx/article/details/6888394" title="ADB">ADB</a><span>(1)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/ccccdddxxx/article/details/7252891#comments">Android导入一个工程时提示 Invalid project description</a>
+    <p style="margin:0px;"><a href="/svrsimon" class="user_name">svrsimon</a>:
+多谢
+    </p>
+    </li>
+    <li>
+    <a href="/ccccdddxxx/article/details/7252891#comments">Android导入一个工程时提示 Invalid project description</a>
+    <p style="margin:0px;"><a href="/rongge616" class="user_name">rongge616</a>:
+谢谢！
+    </p>
+    </li>
+    <li>
+    <a href="/ccccdddxxx/article/details/7252891#comments">Android导入一个工程时提示 Invalid project description</a>
+    <p style="margin:0px;"><a href="/steamlzc" class="user_name">steamlzc</a>:
+thanks
+    </p>
+    </li>
+    <li>
+    <a href="/ccccdddxxx/article/details/8116965#comments">解决eclipse中overlaps the location of another project: &#39;xxxx&#39;</a>
+    <p style="margin:0px;"><a href="/nimeimeide_2013" class="user_name">nimeimeide_2013</a>:
+果然是的。。。谢谢了
+    </p>
+    </li>
+    <li>
+    <a href="/ccccdddxxx/article/details/6538885#comments">linux boot.s</a>
+    <p style="margin:0px;"><a href="/chenxiantao86874043" class="user_name">chenxiantao86874043</a>:
+请问一下，调试的时候代码段属性.word 0x9A00 ，怎么变成了0x9b00          ...
+    </p>
+    </li>
+    <li>
+    <a href="/ccccdddxxx/article/details/6368337#comments">内核中用于数据接收的结构体struct msghdr</a>
+    <p style="margin:0px;"><a href="/nic122333" class="user_name">nic122333</a>:
+赞。。学习学习
+    </p>
+    </li>
+    <li>
+    <a href="/ccccdddxxx/article/details/7892072#comments">Java克隆(Clone)的应用</a>
+    <p style="margin:0px;"><a href="/cbe" class="user_name">cbe</a>:
+很不错，学过C++的人对Java的了解一般是很透彻的。
+    </p>
+    </li>
+    <li>
+    <a href="/ccccdddxxx/article/details/6529721#comments">关于BIOS加载BOOT.S的经典解答</a>
+    <p style="margin:0px;"><a href="/gdyfj" class="user_name">gdyfj</a>:
+好东西，真心好
+    </p>
+    </li>
+    <li>
+    <a href="/ccccdddxxx/article/details/6887149#comments">android SDK 环境搭建  离线</a>
+    <p style="margin:0px;"><a href="/Mkite" class="user_name">Mkite</a>:
+虽然是笨办法，但也不失巧劲儿！
+    </p>
+    </li>
+    <li>
+    <a href="/ccccdddxxx/article/details/7047509#comments">android Cursor</a>
+    <p style="margin:0px;"><a href="/wuwo333" class="user_name">wuwo333</a>:
+好多文章都是一样的呀！但是　while(cur.moveToNext())　　{　　//光标移动成功...
+    </p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=1061738"></script>
+
+<script type="text/javascript">
+document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date()/120000).toString(36) + '="></'+'script>');
+</script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js?v=1"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+
+</div>
+</body>
+</html>

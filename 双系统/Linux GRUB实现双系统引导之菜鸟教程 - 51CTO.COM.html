@@ -1,0 +1,617 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<meta http-equiv="x-ua-compatible" content="ie=7" />
+
+<title>Linux GRUB实现双系统引导之菜鸟教程 - 51CTO.COM</title>
+<meta name="description" content="GRUB 是 Linux 中最主要的多系统引导程序，使用它可以为 Unix、Linux、Windows、OS/2 等操作系统制作多系统引导菜单，并对这些操作系统进行引导启动。本文简单介绍了什么是GRUB和如何编辑GRUB配置文件，从而解决Linux-Windows双系统引导的目的。"/>
+<meta name="keywords" content="Linux GRUB,双系统引导"/>
+<base target="_blank" />
+<link href="http://images.51cto.com/images/art1105/css/grid.css" rel="stylesheet" type="text/css" />
+<link type="text/css" rel="stylesheet" href="http://images.51cto.com/images/art/css/art_master_top.css" />
+<link href="http://book.51cto.com/images/bookspec/css/css3.css" rel="stylesheet" type="text/css" />
+<script language="javaScript" src="http://www.51cto.com/php/base_art.js"></SCRIPT>
+<script src="http://www.51cto.com/images/homepage/index_1_down.js"></script>
+<style type="text/css">
+.bds_tools a{ padding:0; margin:0;}
+</style>
+</head>
+<body >
+<!-- 导航 开始-->
+<div id="home_top">    <div class="top_nav">        <div class="left" style="width:400px"><div class="logo_51cto" title="51CTO.COM - 技术成就梦想 -  中国领先的IT技术网站"></div><a href="http://www.51cto.com/">首页</a><img width="16" height="25" align="absmiddle" src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif" style="padding-top: 2px;"><a onmouseover="show(1,this);" onmouseout="popupClose();" href="http://www.51cto.com/col/35/" target="_blank">技术频道<img align="absmiddle" src="http://images.51cto.com/images/art/top_images/nav_ico1.gif" style="padding-left: 4px;"></a><img width="16" height="25" align="absmiddle" src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif"><a onmouseover="show(2,this);" onmouseout="popupClose();" href="http://www.51cto.com" target="_blank">51CTO旗下网站<img align="absmiddle" src="http://images.51cto.com/images/art/top_images/nav_ico1.gif" style="padding-left: 4px;"></a><img width="16" height="25" align="absmiddle" src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif"><a href="http://www.51cto.com/about/map.htm" target="_blank">地图</a> <a href="http://www.51cto.com/about/rss.html" target="_blank"><img src="http://images.51cto.com/files/uploadimg/20110922/143749870.gif" style="vertical-align:middle; margin-bottom: 5px; margin-left:5px;"></a>       </div>        <div class="right">            <div class="more"><img width="27" height="16" align="absmiddle" src="http://home.51cto.com/public/themes/blue/images/top_shequ.gif">社区：<a href="http://edu.51cto.com/" target="_blank" style="color:#CC0000">学院</a><a href="http://down.51cto.com" target="_blank">下载</a><a href="http://bbs.51cto.com" target="_blank">论坛</a><a href="http://blog.51cto.com" target="_blank">博客</a><a onmouseover="show(3,this)" onmouseout="popupClose()" href="javascript:viod(0);">更多<img align="absmiddle" src="http://images.51cto.com/images/art/top_images/nav_ico1.gif" style="padding-left: 4px;"></a>            </div>            <span id="login_status"><div class="login" id="login_status"></div>    </span>                </div>    </div></div>
+<div class="subMenu1" id="s1" onmouseover="popupNoClose();" onmouseout="popupClose();">
+<ul>
+<li><a href="http://network.51cto.com" target="_blank">网络</a></li>
+<li><a href="http://netsecurity.51cto.com" target="_blank">安全</a></li>
+<li><a href="http://developer.51cto.com" target="_blank">开发</a></li>
+<li><a href="http://database.51cto.com" target="_blank">数据库</a></li>
+<li><a href="http://server.51cto.com" target="_blank">服务器</a></li>
+<li><a href="http://os.51cto.com" target="_blank">系统</a></li>
+<li><a href="http://virtual.51cto.com" target="_blank">虚拟化</a></li>
+<li><a href="http://cloud.51cto.com" target="_blank">云计算</a></li>
+<li><a href="http://developer.51cto.com/embed/" target="_blank">嵌入式</a></li>
+<li><a href="http://mobile.51cto.com/" target="_blank">移动开发</a></li>
+</ul>
+</div> 
+<div class="subMenu2" id="s2" onmouseover="popupNoClose()" onmouseout="popupClose()">
+<ul>
+<li><a href="http://www.51cto.com" target="_blank" title="中国领先的IT技术网站">51CTO.COM</a></li>
+<li><a href="http://www.cioage.com" target="_blank" title="中国首个专门服务于CIO的专业网站">CIOage.com</a></li>
+<li><a href="http://www.watchstor.com/" target="_blank"  title="领先的中文存储网络媒体">WatchStor.com</a></li>
+<li><a href="http://www.hc3i.cn/" target="_blank"  title="中国首家专注于数字医疗及医疗信息化的专业网站">HC3i.cn</a></li>
+</ul>
+</div>
+<script src="http://www.51cto.com/js/jquery-1.8.3.min.js"></script>
+<script>
+$(function(){
+	$(".bann").height(265);	 
+	$(".bann").css("background-color","white");
+});
+var edunum=2;
+$(function(){
+	$("#change").click(function(){
+		$("#edu > ul").css("display","none");
+		var eduid='edu'+edunum;
+		$("#" + eduid).css("display","block");	
+		if(edunum<4){
+			edunum++;	
+		}else{
+			edunum=1;	
+		}							
+	});  
+});
+</script>
+
+<script src="http://www.51cto.com/head_art_more1.js"></script>
+<!-- 登陆信息 -->
+<!-- 导航 结束--> 
+ <div class="g_39 mb10">
+	<div id="tonglanad" class="fl"></div>
+	<div id="list4" class="fr">
+		<ul>
+			<li id="wordlinkad1"></li>
+			<li id="wordlinkad2"></li>
+			<li id="wordlinkad3"></li>
+			<li id="wordlinkad4"></li>
+		</ul>
+	</div>
+<br class="dle"/>
+</div>
+
+<div class="g_39 menu">
+<DIV class=subNav_logo>
+<A href="http://os.51cto.com/" target=_blank><IMG src="http://www.51cto.com/images/sunbanner/caozuoxitong_logo.gif" border="0"></a></DIV>
+<DIV class=subNav_l>
+<A href="http://os.51cto.com/col/543/" target=_blank>新闻</A> | 
+<A href="http://os.51cto.com/linux/" target=_blank>Linux</A> | 
+<A href="http://os.51cto.com/windows/" target=_blank>Windows</A> | 
+<A href="http://os.51cto.com/col/975/" target=_blank>浏览器</A> | 
+<A href="http://os.51cto.com/col/610/" target=_blank>开源</A> | 
+<A href="http://os.51cto.com/col/545/" target=_blank>运维</A> | 
+<A href="http://publish.51cto.com/list/519/" target=_blank>全部</A> | 
+<A href="http://os.51cto.com/art/201106/266501.htm" target=_blank>投稿指南</A> | 
+<a href="http://os.51cto.com/art/201109/292676.htm"><img src="http://images.51cto.com/files/uploadimg/20110922/143749870.gif" width="15" height="16" alt="RSS" > RSS订阅</a>
+</DIV>
+  
+<div class="search fr">
+<dl>
+<form name=searchform action="http://www.51cto.com/php/search.php" target="_blank" method=post style="margin:0px; padding:0px;">
+<dt class="fl"><input name="keyword" type="text" class="searchInput f14 input" value="请输入关键字" onfocus="doempty(this, '请输入关键字');" onblur="doempty(this, '请输入关键字');" /></dt>
+<dd class="fl"><input type="image" src="http://images.51cto.com/images/art/newart1012/images/search.gif" /></dd></form>
+</dl>
+</div>
+<br class="dle"/>
+</div>
+<div class="g_39 b3-s-4273B3 rel">
+<!--width : 26*25 - 15 = 635px-->
+<div class="g_26 fl m_l">
+<div class="brief bgF8F8F8">
+<p class="crumb ">您所在的位置：<a href='http://os.51cto.com'>操作系统</a> &gt; <a href='http://os.51cto.com/col/868/'>管理与监控</a> &gt;  <b>Linux GRUB实现双系统引导之菜鸟教程</b> </p>
+<h1>Linux GRUB实现双系统引导之菜鸟教程</h1>
+<div class="msg">
+<div>2010-04-28 10:00  佚名  lugir.com <span class="f12-a"><a href="#commment" target="_self"></a></span> 字号：<span class="f14-b"><a href="javascript:setfont(12);" target="_self">T</a></span> | <span class="f16-b"><a href="javascript:setfont(16);" target="_self">T</a></span></div>
+<div class='artHd' id='books' style='padding:5px 25px;display:none;'></div>
+<div class="fav"><a href="javascript:favorBox('open');" title="一键收藏，随时查看，分享好友！" target="_self"><img src="http://images.51cto.com/images/art/newart1012/images/Fav.gif" alt="一键收藏，随时查看，分享好友！" border="0" /></a></div>
+</div>
+<div class="brieftext">
+<p class="f14 green">GRUB 是 Linux 中最主要的多系统引导程序，使用它可以为 Unix、Linux、Windows、OS/2 等操作系统制作多系统引导菜单，并对这些操作系统进行引导启动。本文简单介绍了什么是GRUB和如何编辑GRUB配置文件，从而解决Linux-Windows双系统引导的目的。</p>
+<p class="ad">AD：<script src="http://www.51cto.com/js/article/keywords_ad_new.js"></script>
+</p>
+</div>
+</div>
+<div class="tag bgF8F8F8" id="indexlist" style="display:none;">
+<ul id="indexliststr">
+</ul>
+<br class="dle"/>
+</div>
+<div class="content bgF8F8F8 f14">
+<div id="content">
+<p><p>根据网友 Seqic 反映，在安装了 Linux 和 Windows 双系统之后，不知如何再启动 Windows (因为系统使用 Linux 的引导程序了)。通常，这是因为安装 Linux 时没有为 GRUB 做好相应的配置。</p>
+<p>Seqic 使用的是 Fedora 12，不知是这个发行版默认不对 GRUB 进行配置，还是在单系统时不对 GRUB 进行配置，我在安装 Fedora 12 时也没有遇到 GRUB 配置界面。</p>
+<p><strong>什么是GRUB</strong></p>
+<p>在为系统配置 GRUB 之前，先了解一下 GRUB 比较好，以下是摘自&ldquo;维基百科&rdquo;的内容：</p>
+<p>&ldquo;GRUB 是 GNU GRUB 的简称，是来自 GNU 项目的一个多系统引导程序。它允许用户可以在计算机内同时拥有多个操作系统，并在计算机启动时选择希望运行的操作系统。</p>
+<p>GRUB 非常轻便。它支持多种可执行格式，除了可适用于支持多启动的操作系统外，还通过链式启动功能支持诸如 Windows 和 OS/2 之类的不支持多启动的操作系统。GRUB 支持所有的 Unix 文件系统，也支持 Windows 适用的 FAT 和 NTFS 文件系统，还支持 LBA 模式。GRUB允许用户查看它支持的文件系统里文件的内容。&rdquo;</p>
+<p>简单地讲，使用 GRUB 实现多系统引导，就是通过编辑 grub.conf 配置文件，使系统启动时会出现一个多操作系统选择菜单，选择 Linux 则启动 Linux，选择 Windows 就启动 Windows，其它系统也一样 :D</p>
+<p>&ldquo;grub.conf 配置文件的绝对路径是 /boot/grub/grub.conf，需要 root 权限才可以读取和编辑这个文件。&rdquo;</p>
+<p><strong>GRUB配置文件</strong></p>
+<p>GRUB 是 Linux 中最主要的多系统引导程序，使用它可以为 Unix、Linux、Windows、OS/2 等操作系统制作多系统引导菜单，并对这些操作系统进行引导启动。</p>
+<p>对于 GRUB 的表现和行为控制，主要通过编辑 grub.conf 配置文件得以实现，为了之后更好的自定义引导菜单，我们先通过以下简单的示例认识 grub.conf 配置文件中的各个选项，以及它们的作用。</p>
+<pre><ol class="dp-xml"><li class="alt"><span><span>#</span><span class="attribute">boot</span><span>=/dev/sda &nbsp;</span></span></li><li><span class="attribute">default</span><span>=</span><span class="attribute-value">0</span><span>&nbsp;</span></li><li class="alt"><span class="attribute">timeout</span><span>=</span><span class="attribute-value">0</span><span>&nbsp;</span></li><li><span class="attribute">splashimage</span><span>=(hd0,0)/grub/splash.xpm.gz &nbsp;</span></li><li class="alt"><span>hiddenmenu &nbsp;</span></li><li><span>&nbsp;</span></li><li class="alt"><span>title&nbsp;Fedora&nbsp;(2.6.32.9-67.fc12.i686.PAE) &nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root&nbsp;(hd0,0) &nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;kernel&nbsp;/vmlinuz-2.6.32.9-67.fc12.i686.PAE&nbsp;ro&nbsp;</span><span class="attribute">root</span><span>=/ &nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;initrd&nbsp;/initramfs-2.6.32.9-67.fc12.i686.PAE.img &nbsp;</span></li><li class="alt"><span>&nbsp;</span></li><li><span>title&nbsp;Windows&nbsp;7 &nbsp;</span></li><li class="alt"><span>... &nbsp;</span></li><li><span>&nbsp;</span></li></ol></pre>
+<p><strong>说明：</strong></p>
+<p>default - 默认引导的菜单条目。在本例中，默认引导第一个条目 Fedora (2.6.32.9-67.fc12.i686.PAE)。如果将 default 的值改成 1, 则会默认引导 Windows 7。</p>
+<p>timeout - 自动选择默认引导前菜单显示的时间。本例中，如果用户没有在 30 秒之内选择操作系统，则会默认引导第一个条目 (即default 0)</p>
+<p>splashimage - 指定 GRUB 引导菜单的界面风格。(hd0,0)/grub/splash.xpm.gz，是指在第一块硬盘的第一个分区(hd0,0) 中，使用 grub 目录下的 splash.xpm.gz 文件作为界面风格。一般来讲，无需更改这个配置 :D</p>
+<p>hiddenmenu - 隐藏 GRUB 引导菜单。如果不想在启动时显示 GRUB 引导菜单，则删除此条目。</p>
+<p><strong>系统引导条目</strong></p>
+<p>title - 引导条目的名称。通常使用操作系统的名称做为标识，你可以自行更改这个名称，例如使用 &quot;Fedora 12&quot;, &quot;Fedora&quot;, 或者是 &quot;MyLinux&quot; 都可以。这个标题将显示在 GRUB 引导菜单中。</p>
+<p>root - 操作系统内核和引导文件所在的磁盘分区。(hd0,0) 表示第一块硬盘的第一个分区，(hd0,2) 表示第一块硬盘的第3个分区，依次类推。</p>
+<p>kernel - 系统内核及 boot 命令用到的参数。</p>
+<p>initrd - 系统引导程序</p>
+<p>kernel 和 initrd 中指定的文件都是相对于 root 中所设置的硬盘分区，例如本例中的 (hd0,0) 是机器上的 /boot 分区，kernel 的位置实际上是 /boot/vmlinuz-2.6.32.9-67.fc12.i686.PAE</p>
+<p><strong>使用GRUB引导Windows</strong></p>
+<p>不像 Unix 和 Linux，Windows 属于不支持多启动的操作系统，简单的在 grub.conf 配置文件中使用 kernel 和 init 选项，无法实现对 Windows 的引导。要能够通过 GRUB 引导 Windows，需要使用 GRUB 的链式(chain-load)启动功能。</p>
+<p>提醒：查看和编辑 /boot/grub/grub.conf 都需要 root 权限，并且在编辑 grub.conf 之前，最好先为这个文件做一份备份。</p>
+<p>对于配置文件的备份，通过使用 cp 命令即可完成</p>
+<pre><ol class="dp-xml"><li class="alt"><span><span>~]#&nbsp;cp&nbsp;/boot/grub/grub.conf&nbsp;/boot/grub/grub.conf.bak &nbsp;</span></span></li><li><span>&nbsp;</span></li></ol></pre>
+<p><strong>一般情况</strong></p>
+<p>要使用 GRUB 的链式启动功能引导 Windows，一般情况下，只需要向 grub.conf 配置文件中添加以下内容即可。</p>
+<pre><ol class="dp-xml"><li class="alt"><span><span>title&nbsp;Windows&nbsp;7 &nbsp;</span></span></li><li><span>rootnoverify&nbsp;hd(0,0) &nbsp;</span></li><li class="alt"><span>makeactive &nbsp;</span></li><li><span>chainloader&nbsp;+1 &nbsp;</span></li></ol></pre>
+<p><strong>多硬盘的情况</strong></p>
+<p>如果你的机器上有两块以上的硬盘，并且 Windows 操作系统安装在第二块硬盘上，则还需要在配置中加入 map 命令，它们的作用是更改两块硬盘的映射关系</p>
+<pre><ol class="dp-xml"><li class="alt"><span><span>title&nbsp;Windows&nbsp;7 &nbsp;</span></span></li><li><span>map&nbsp;(hd0)&nbsp;(hd1) &nbsp;</span></li><li class="alt"><span>map&nbsp;(hd1)&nbsp;(hd0) &nbsp;</span></li><li><span>rootnoverify&nbsp;hd(0,0) &nbsp;</span></li><li class="alt"><span>makeactive &nbsp;</span></li><li><span>chainloader&nbsp;+1 &nbsp;</span></li><li class="alt"><span>&nbsp;</span></li></ol></pre>
+<p><strong>多主分区的情况</strong></p>
+<p>使用 GRUB 引导 Windows 可能出现的另一个问题，是同一块磁盘上安装了多个 Windows 操作系统，这样一来硬盘上就会有多个主分区。要让 GRUB 正确的引导某个 Windows 操作系统，你需要对 GRUB 隐藏不必要的主分区。假设在第一个分区 hd(0,0) 上安装了 Windows XP，在第二个分区 hd(0,1) 上安装了 Windows 7，而你希望引导 Windows 7，则应该使用以下配置</p>
+<pre><ol class="dp-xml"><li class="alt"><span><span>title&nbsp;Windows&nbsp;7 &nbsp;</span></span></li><li><span>unhide&nbsp;hd(0,1) &nbsp;</span></li><li class="alt"><span>hide&nbsp;hd(0,0) &nbsp;</span></li><li><span>rootnoverify&nbsp;hd(0,1) &nbsp;</span></li><li class="alt"><span>makeactive &nbsp;</span></li><li><span>chainloader&nbsp;+1 &nbsp;</span></li><li class="alt"><span>&nbsp;</span></li></ol></pre>
+<p>一般而言，大多数用户都属于第一种情况，只需要简单的几行配置就能够实现 Windows 的引导了。</p>
+<p>【编辑推荐】</p>
+<ol>
+    <li><a href="http://os.51cto.com/art/200709/55323.htm" target="_blank">重装windows修复Ubuntu Grub的技巧</a></li>
+    <li><a href="http://os.51cto.com/art/200512/14303.htm" target="_blank">Grub安装,配置及使用汇总</a></li>
+    <li><a href="http://os.51cto.com/art/200908/142557.htm" target="_blank">硬盘安装Linux和从Grub命令行启动Linux</a></li>
+</ol><DIV align=right>【责任编辑：<A class=ln href="mailto:yangsai@51cto.com">杨赛</A> TEL：（010）68476606】</DIV><br> 
+<p class="blank10"></p> 
+ 
+ 
+
+
+<div class="f12"> <span class="fl">原文：<a href="http://os.51cto.com/art/201004/196998.htm" class="blue"><b>Linux GRUB实现双系统引导之菜鸟教程</b></a></span> <span class="fr"><a href="http://os.51cto.com">返回操作系统首页</a></span> </div>
+<p class="blank1"></p>
+</div>
+<script type="text/javascript">
+/*主站文章页600*60，创建于2013-9-23*/
+var cpro_id = "u1372942";
+</script> <script src="http://cpro.baidustatic.com/cpro/ui/c.js" type="text/javascript"></script>
+<iframe width="600" scrolling="no" height="239" frameborder="0" src="http://widget.weibo.com/relationship/bulkfollow.php?language=zh_cn&amp;uids=1708729084,1706976420,1888399833,1422974343,1878468181,2024585553&amp;wide=0&amp;color=C2D9F2,FFFFFF,0082CB,666666&amp;showtitle=1&amp;showinfo=1&amp;sense=0&amp;verified=1&amp;count=6&amp;refer='+encodeURIComponent(location.href)+'&amp;dpc=1"></iframe>
+<div class="tips">
+<div style="float:left;">
+<span style="float:left; margin-top:4px;">分享到：</span>
+<!-- Baidu Button BEGIN -->
+    <div id="bdshare" class="bdshare_t bds_tools get-codes-bdshare" style="margin-right:5px; float:left;">
+        <a class="bds_qzone"></a>
+        <a class="bds_tsina"></a>
+        <a class="bds_tqq"></a>
+        <a class="bds_renren"></a>
+        <a class="bds_t163"></a>
+        <span class="bds_more"></span>
+		<a class="shareCount"></a>
+
+</div>
+<!--<div class="fl"> 
+    </div>
+--><script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=585532" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+	var bds_config = {'snsKey':{'tsina':'2378297317'}};
+	document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?t=" + new Date().getHours();
+</script>
+<!-- Baidu Button END -->
+
+
+
+</div><div class="fr blue"><a href="javascript:AddFavorite(document.location.href,document.title);" target="_self">收藏</a>|<a href="javascript:window.print();" target="_self">打印</a>|<a id="msnqqcopy" title="分享本资源给好友" target="_self">复制</a></div>
+</div>
+</div>
+<!--内容 end-->
+<div class="topbiaoqing">
+<div class="biaoqing fixfloat pad" >
+<ul>
+<li><a href='javascript:getcountscom(196998,1)' target="_self"><img src="http://images.51cto.com/images/art1105/images/bq1.jpg" /></a>
+<div><a href='javascript:getcountscom(196998,1)' target="_self">给力</a></div>
+<span id="196998_1">(0票)</span></li>
+<li><a href='javascript:getcountscom(196998,2)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq2.jpg" /></a>
+<div><a href='javascript:getcountscom(196998,2)'  target="_self">动心</a></div>
+<span id="196998_2">(0票)</span></li>
+<li><a href='javascript:getcountscom(196998,3)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq3.jpg" /></a>
+<div><a href='javascript:getcountscom(196998,3)'  target="_self">废话</a></div>
+<span id="196998_3">(0票)</span></li>
+<li><a href='javascript:getcountscom(196998,4)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq4.jpg" /></a>
+<div><a href='javascript:getcountscom(196998,4)'  target="_self">专业</a></div>
+<span id="196998_4">(0票)</span></li>
+<li><a href='javascript:getcountscom(196998,5)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq5.jpg" /></a>
+<div><a href='javascript:getcountscom(196998,5)'  target="_self">标题党</a></div>
+<span id="196998_5">(0票)</span></li>
+<li><a href='javascript:getcountscom(196998,6)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq6.jpg" /></a>
+<div><a href='javascript:getcountscom(196998,6)'  target="_self">路过</a></div>
+<span id="196998_6">(0票)</span></li>
+</ul>
+</div>
+<script language="javascript"> 
+getcountscom(196998,11);
+
+</script>
+</div>
+<p class="blank10"></p>
+<!--reltag end-->
+
+<p class="blank10"></p>
+<div class="uyan">
+<div id="uyan_frame"></div>
+<script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js?uid=1609262"></script>
+</div>
+<!--box end-->
+
+<div class="bor">
+<div class="titbg pl15">关于<a href='http://www.51cto.com/php/search.php?keyword=Linux%20GRUB' target='_blank' class='underline'>Linux GRUB</a>&nbsp;&nbsp;<a href='http://www.51cto.com/php/search.php?keyword=%CB%AB%CF%B5%CD%B3%D2%FD%B5%BC' target='_blank' class='underline'>双系统引导</a>的更多文章</div>
+<div class="reltag">
+<ul class="fl list02">
+  <li><a href="http://os.51cto.com/art/201308/408598.htm" title="如何在Linux桌面或Mac上运行Windows应用程序？">如何在Linux桌面或Mac上运行Windows应用程</a></li><li><a href="http://os.51cto.com/art/201307/404909.htm" title="Linux故障排除技术详解">Linux故障排除技术详解</a></li><li><a href="http://os.51cto.com/art/201304/388384.htm" title="Linux系统故障排查和修复技巧">Linux系统故障排查和修复技巧</a></li><li><a href="http://os.51cto.com/art/201211/364515.htm" title="Grub2 引导硬盘上的ISO文件">Grub2 引导硬盘上的ISO文件</a></li><li><a href="http://os.51cto.com/art/201209/357785.htm" title="突破Windows 8的Secure Boot Ubuntu使用GRUB 2引导">突破Windows 8的Secure Boot Ubuntu使用GRU</a></li>
+</ul>
+<div class="fr">
+<div class="h5 f12"><a href="http://os.51cto.com/art/201311/416437.htm" title="系统频道热点推荐：桌面系统之战，这个秋天有点“冷”"><b>系统频道热点推荐：桌面系统之战，这个秋天有点“冷”</b></a></div>
+<a href="http://os.51cto.com/art/201311/416437.htm" title="系统频道热点推荐：桌面系统之战，这个秋天有点“冷”"><img src="http://s4.51cto.com/wyfs01/M02/32/5F/wKioOVJ-V5vx33V0AAAJkW4eQyQ887.jpg" alt="系统频道热点推荐：桌面系统之战，这个秋天有点“冷”" width="100" height="80" border="0" /></a>
+<p class="c666">秋风呼呼的，一阵阵地吹着，树叶纷纷沉落，漫天飞舞着，连同飞扬<a class="blue"href="http://os.51cto.com/art/201311/416437.htm" title="系统频道热点推荐：桌面系统之战，这个秋天有点“冷”">[详细]</a></p>
+</div>
+</div></div>
+
+<p class="blank10"></p>
+
+
+
+<div class="relart fl bor">
+<div class="titbg">
+<h3 class="fl t1">栏目热门</h3>
+<a href="/click/868" class="tmore">更多&gt;&gt;</a></div>
+<ul>
+  
+	  <li><a href="http://os.51cto.com/art/201311/417025.htm" title="Linux系统管理：LDAP与NetApp存储安全集成方法">Linux系统管理：LDAP与NetApp存储安全集成</a></li>
+	  
+</ul>
+</div>
+<div class="cathot fr bor">
+<div class="titbg">
+<h3 class="fl t1">同期最新</h3>
+<a href="/col/868" class="tmore">更多&gt;&gt;</a></div>
+<ul>
+	
+	  <li><a href="http://os.51cto.com/art/201004/196757.htm" title="七大实用命令行工具 玩转Linux网络配置">七大实用命令行工具 玩转Linux网络配置</a></li>
+	  
+	  <li><a href="http://os.51cto.com/art/201004/196746.htm" title="Bond 模式下远程安装linux系统的理论和实践">Bond 模式下远程安装linux系统的理论和实践</a></li>
+	  
+	  <li><a href="http://os.51cto.com/art/201004/195085.htm" title="红旗Linux桌面 6.0 SP3问世 最新特性介绍">红旗Linux桌面 6.0 SP3问世 最新特性介绍</a></li>
+	  
+	  <li><a href="http://os.51cto.com/art/201004/194968.htm" title="Linux 文件系统挂装与高层体系结构">Linux 文件系统挂装与高层体系结构</a></li>
+	  
+	  <li><a href="http://os.51cto.com/art/201004/194830.htm" title="系统崩溃 十款Linux救援工具任你挑">系统崩溃 十款Linux救援工具任你挑</a></li>
+	  
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="bor">
+<div class="titbg">
+<h3 class="fl t1"><a href="http://os.51cto.com">操作系统</a></h3>
+<span class="pl10">频道导航</span></div>
+ <ul class="xtlist">
+<li><span class="tit">生产环境</span>
+<div><a href="http://os.51cto.com/linux/">Linux</a>
+|<a href="http://os.51cto.com/windows/">Windows</a>
+|<a href="http://os.51cto.com/col/522/">Unix</a>
+|<a href="http://os.51cto.com/col/545/">运维教程</a>
+|<a href="http://os.51cto.com/art/201011/233915.htm">Linux运维趋势</a>
+</div>
+</li>
+<li class="last"><span class="tit">OS前沿</span>
+<div><a href="http://os.51cto.com/col/975/">浏览器</a>
+|<a href="http://os.51cto.com/col/610/">开源技术</a>
+|<a href="http://os.51cto.com/windows7/">Windows 7</a>
+|<a href="http://os.51cto.com/windows2008/">Server 08</a>
+|<a href="http://os.51cto.com/col/1417/">移动OS</a>
+</div>
+</li>
+</ul> 
+</div> 
+<p class="blank10"></p>
+<DIV class=leftbotcon>
+<DIV class="bor jdlist">
+<DIV class=titbg>
+<H3 class=t2>热点推荐</H3></DIV>
+<UL>
+<LI><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-t-4']);" href="http://mobile.51cto.com/mobile-182392.htm"><IMG src="http://images.51cto.com/files/uploadimg/20100202/153546162.jpg"></A> 
+<DIV class=name><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-t-4']);" href="http://mobile.51cto.com/mobile-182392.htm">Android开发应用详解</A></DIV></LI>
+<LI><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-t-4']);" href="http://developer.51cto.com/art/201106/266369.htm"><IMG src="http://images.51cto.com/files/uploadimg/20110608/133620622.jpg"></A> 
+<DIV class=name><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-t-4']);" href="http://developer.51cto.com/art/201106/266369.htm">那些性感的让人尖叫的程序员</A></DIV></LI>
+<LI><A href="http://developer.51cto.com/art/200907/133407.htm"><IMG src="http://images.51cto.com/files/uploadimg/20090702/134217922.jpg"></A> 
+<DIV class=name><A href="http://developer.51cto.com/art/200907/133407.htm">HTML5 下一代Web开发标准详解</A></DIV></LI>
+<LI><A href="http://developer.51cto.com/art/201104/257581.htm"><IMG src="http://images.51cto.com/files/uploadimg/20110426/123123954.jpg"></A> 
+<DIV class=name><A href="http://developer.51cto.com/art/201104/257581.htm">高性能WEB开发应用指南</A></DIV></LI>
+<LI><A href="http://os.51cto.com/art/200706/49181.htm"><IMG src="http://images.51cto.com/files/uploadimg/20070613/195816929.jpg"></A> 
+<DIV class=name><A href="http://os.51cto.com/art/200706/49181.htm">Ubuntu开源技术交流频道</A></DIV></LI></UL></DIV>
+<P class=blank10></P>
+<DIV class="bor hotTag"><STRONG>热门标签：</STRONG> <A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-2]);" href="http://os.51cto.com/windows/">windows频道</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://mobile.51cto.com/">移动开发</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://cloud.51cto.com/">云计算</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://mobile.51cto.com/mobile/objc/">objective-c</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://network.51cto.com/art/200909/151122.htm">tp-link路由器设置图解</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://developer.51cto.com/art/200907/133407.htm">html5</A> </DIV></DIV>
+<div class="leftbotbox"> </div>
+</div>
+<!--left end-->
+<div class="g_13 fr">
+<div class="focus fixfloat"> 
+ <a href="http://wot.51cto.com/2014/schedule.html" target="_blank"><img width="298" style="border: 1px solid #CCCCCC; margin:5px 0px 5px;" src="http://www.51cto.com/images/2014wot.jpg"></a><div class="hot">
+<ul>
+<li class="tit"><em>头条</em> <a href="http://os.51cto.com/art/201404/436123.htm">《Linux运维趋势》2014年3月号</a> </li>
+<li class="con"><dl><dt><a href="http://os.51cto.com/art/201404/436123.htm"><img border="0" src="http://s4.51cto.com/wyfs02/M02/24/86/wKiom1NQ9GeQrr8PAAA25JsoaFM408.jpg"/></a></dt>
+<dd>本期重点推荐：转角遇到Zabbix：企业级分布式系统监控部署 </dd>
+</dl></li></ul><ol class="hotlist"><li><a href="http://os.51cto.com/art/201402/430615.htm">《Linux运维趋势》2014年2月号</a></li><li><a href="http://os.51cto.com/art/201312/426165.htm">《Linux运维趋势》2013年12月号</a></li></ol></div>
+<p id="hzh_one">
+<script language="JavaScript" src="http://www.51cto.com/ad/art/hzh/ad.js" type="text/javascript"></script>
+</p>
+</div>
+<div class="rank">
+<div class="tlt">
+      <h3>文章排行</h3>
+      <a onmouseover="change_top10(3);" id="top_3">本月</a><a onmouseover="change_top10(2);" id="top_2">本周</a><a onmouseover="change_top10(1);" class="myon" id="top_1">24小时</a> </div>
+ <div id="top10_1" style="display: block;" class="list"><ul>
+<li><a href="http://os.51cto.com/art/201205/336386.htm" target="_blank" title="OpenStack的架构详解">OpenStack的架构详解</a>
+<li><a href="http://os.51cto.com/art/201405/439158.htm" target="_blank" title="教程：Ubuntu 14.04 和 Windows 8.1 双">教程：Ubuntu 14.04 和 Windows 8.1 双</a>
+<li><a href="http://os.51cto.com/art/201312/426047.htm" target="_blank" title="Fedora 20 安装试用体验">Fedora 20 安装试用体验</a>
+<li><a href="http://os.51cto.com/art/201405/439019.htm" target="_blank" title="Linux 桌面的发展之路">Linux 桌面的发展之路</a>
+<li><a href="http://os.51cto.com/art/201405/439125.htm" target="_blank" title="Linux内核修正5年历史的严重bug">Linux内核修正5年历史的严重bug</a>
+<li><a href="http://os.51cto.com/art/201205/335402.htm" target="_blank" title="Linux下SSH命令使用方法详解">Linux下SSH命令使用方法详解</a>
+<li><a href="http://os.51cto.com/art/201003/186325.htm" target="_blank" title="详述Linux ftp命令的使用方法">详述Linux ftp命令的使用方法</a>
+<li><a href="http://os.51cto.com/art/201405/439138.htm" target="_blank" title="网络监控平台 Shinken 安装示范">网络监控平台 Shinken 安装示范</a>
+<li><a href="http://os.51cto.com/art/201001/177866.htm" target="_blank" title="Linux下RPM软件包的安装及卸载">Linux下RPM软件包的安装及卸载</a>
+<li><a href="http://os.51cto.com/art/201405/439048.htm" target="_blank" title="微软将Windows 8.1系统升级最后期限后">微软将Windows 8.1系统升级最后期限后</a>
+</ul></div>
+<div id="top10_2" style="display: none;" class="list"><ul>
+<li><a href="http://os.51cto.com/art/201405/438373.htm" target="_blank" title="十个步骤：将你的封闭软件转化为开源">十个步骤：将你的封闭软件转化为开源</a>
+<li><a href="http://os.51cto.com/art/201405/438510.htm" target="_blank" title="Linux系统故障分析与排查">Linux系统故障分析与排查</a>
+<li><a href="http://os.51cto.com/art/201405/438206.htm" target="_blank" title="为Linux应用程序排查故障的另类方法">为Linux应用程序排查故障的另类方法</a>
+<li><a href="http://os.51cto.com/art/201405/438851.htm" target="_blank" title="高手必备：Ubuntu 12.04 常用快捷键">高手必备：Ubuntu 12.04 常用快捷键</a>
+<li><a href="http://os.51cto.com/art/201405/438144.htm" target="_blank" title="微软高管透露Windows 9新变化">微软高管透露Windows 9新变化</a>
+<li><a href="http://os.51cto.com/art/201405/438535.htm" target="_blank" title="Linux/Raspberry Pi：把命令行当Web浏">Linux/Raspberry Pi：把命令行当Web浏</a>
+<li><a href="http://os.51cto.com/art/201405/438325.htm" target="_blank" title="高可用集群HA及负载均衡集群LB的实现方">高可用集群HA及负载均衡集群LB的实现方</a>
+<li><a href="http://os.51cto.com/art/201405/439019.htm" target="_blank" title="Linux 桌面的发展之路">Linux 桌面的发展之路</a>
+<li><a href="http://os.51cto.com/art/201405/438145.htm" target="_blank" title="Windows Server 2012 R2 中 WSUS 新特">Windows Server 2012 R2 中 WSUS 新特</a>
+<li><a href="http://os.51cto.com/art/201405/438394.htm" target="_blank" title="Ubuntu 因系统安全为所有版本提供内核">Ubuntu 因系统安全为所有版本提供内核</a>
+</ul></div>
+<div id="top10_3" style="display: none;" class="list"><ul>
+<li><a href="http://os.51cto.com/art/201404/436123.htm" target="_blank" title="《Linux运维趋势》2014年3月号 总第36">《Linux运维趋势》2014年3月号 总第36</a>
+<li><a href="http://os.51cto.com/art/201404/435445.htm" target="_blank" title="Ubuntu 14.04 LTS 惊艳：窗口没有边框">Ubuntu 14.04 LTS 惊艳：窗口没有边框</a>
+<li><a href="http://os.51cto.com/art/201404/435979.htm" target="_blank" title="Ubuntu 14.04 LTS发布下载">Ubuntu 14.04 LTS发布下载</a>
+<li><a href="http://os.51cto.com/art/201404/437102.htm" target="_blank" title="系统管理员需知：10个 SSH 简单命令选">系统管理员需知：10个 SSH 简单命令选</a>
+<li><a href="http://os.51cto.com/art/201404/435980.htm" target="_blank" title="中国麒麟版 Ubuntu 14.04 正式发布">中国麒麟版 Ubuntu 14.04 正式发布</a>
+<li><a href="http://os.51cto.com/art/201404/436526.htm" target="_blank" title="Windows 10：完全基于云端的操作系统">Windows 10：完全基于云端的操作系统</a>
+<li><a href="http://os.51cto.com/art/201404/435985.htm" target="_blank" title="走Mac风，Ubuntu 14.04软件升级界面蜕">走Mac风，Ubuntu 14.04软件升级界面蜕</a>
+<li><a href="http://os.51cto.com/art/201404/435696.htm" target="_blank" title="PC将死？绝对不会！">PC将死？绝对不会！</a>
+<li><a href="http://os.51cto.com/art/201404/436318.htm" target="_blank" title="Linux学习分享：20篇Linux入门教程">Linux学习分享：20篇Linux入门教程</a>
+<li><a href="http://os.51cto.com/art/201404/436329.htm" target="_blank" title="从 Windows XP 迁移到 Linux 的入门指">从 Windows XP 迁移到 Linux 的入门指</a>
+</ul></div>
+ 
+ </div>
+<p class="blank1"></p>
+
+<div class="bor">
+<div class="titbg">
+<h3 class="fl t1">热点专题</h3>
+<a href="http://os.51cto.com/speclist/868" class="tmore">更多&gt;&gt;</a></div>
+<ul class="plist01">
+<li><a href="http://os.51cto.com/art/201307/405268.htm" title="系统频道7月第4周热点推荐：你应该了解的Linux发行版"><img src="http://s1.51cto.com/wyfs01/M00/11/60/wKioOVH11bTyNY2JAAAT03PiKyE418.jpg" alt="系统频道7月第4周热点推荐：你应该了解的Linux发行版" width="100" height="80" /></a>
+<h5><a href="http://os.51cto.com/art/201307/405268.htm" title="系统频道7月第4周热点推荐：你应该了解的Linux发行版">系统频道7月第4周热点</a></h5>
+<div class="c666">Linux是功能强大的常用操作系统之一，目前它在计算机</div>
+</li><li><a href="http://os.51cto.com/art/201307/403733.htm" title="关于灾难恢复，实用性建议汇总"><img src="http://s1.51cto.com/wyfs01/M00/10/6B/wKioOVHnkyrAwxvuAAA1C_JKdkM306.jpg" alt="关于灾难恢复，实用性建议汇总" width="100" height="80" /></a>
+<h5><a href="http://os.51cto.com/art/201307/403733.htm" title="关于灾难恢复，实用性建议汇总">关于灾难恢复，实用性</a></h5>
+<div class="c666">任何一位已经实施了灾难恢复解决方案的数据中心管理者</div>
+</li><li><a href="http://os.51cto.com/art/201307/402750.htm" title="Fedora 19 正式版安装体验那些事儿"><img src="http://s8.51cto.com/wyfs01/M00/10/32/wKioOVHeZJ7zcfBPAAAZJJD3UKA949.jpg" alt="Fedora 19 正式版安装体验那些事儿" width="100" height="80" /></a>
+<h5><a href="http://os.51cto.com/art/201307/402750.htm" title="Fedora 19 正式版安装体验那些事儿">Fedora 19 正式版安装</a></h5>
+<div class="c666">Fedora 19（代号“薛定谔的猫”）最终正式版已经出炉</div>
+</li> 
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="tagCloud">
+<div class="tlt">
+<h3>热点标签</h3>
+</div>
+<div class="taglist"><A title="IIS服务" href="http://os.51cto.com/art/201104/256478.htm">IIS服务</A>
+<A title="Windows 8" href="http://os.51cto.com/art/201104/256380.htm">Windows 8</A>
+<A title="浏览器战报" href="http://os.51cto.com/art/201103/250662.htm">浏览器战报</A>
+
+<A title="Ubuntu 11.04" href="http://os.51cto.com/art/201101/244030.htm">Ubuntu 11.04</A>
+<A title="运维秘诀" href="http://os.51cto.com/art/201101/244021.htm">运维秘诀</A>
+<A title="活动目录" href="http://os.51cto.com/art/201012/236185.htm">活动目录</A>
+<A title="Linux管理员" href="http://os.51cto.com/art/201104/253193.htm">Linux管理员</A>
+<A title="Fedora 15" href="http://os.51cto.com/art/201103/246763.htm">Fedora 15</A>
+<A title="Linux运维趋势" href="http://os.51cto.com/art/201011/233915.htm">Linux运维趋势</A>
+<A title="开源社区" href="http://os.51cto.com/art/201010/230570.htm">开源社区</A></div>
+</div>
+<div class="rss">
+<ul>
+<li class="lin f12-c"><a href="http://news.51cto.com/col/1323/"><strong>点击这里查看样刊</strong></a></li>
+<li>
+<dl>
+<dt> </dt>
+<dd><a href="http://home.51cto.com/index.php?s=/Subscribe"><img src="http://images.51cto.com/images/art0910/images/dingy.gif" /></a></dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="bor">
+<div class="titbg">
+<h3 class="t1">全站热点</h3>
+</div>
+<div class="webhot fixfloat">
+<ul>
+
+<li>
+  <a href="http://netsecurity.51cto.com/secu/Fortinet/wlan_2013/"  title="无线畅游 无限安全"><img src="http://s8.51cto.com/wyfs01/M01/10/5B/wKioJlHmBOeC_FiEAAATlmOKLvc912.jpg" /></a>
+  <div><a href="http://netsecurity.51cto.com/secu/Fortinet/wlan_2013/"  title="无线畅游 无限安全">无线畅游 无限安全</a></div>
+</li>
+
+<li>
+  <a href="http://mobile.51cto.com/exp/conf2013a/index.html"  title="2013上半年移动互联网大会回顾"><img src="http://s5.51cto.com/wyfs01/M01/10/3A/wKioJlHfyODB4YOOAAAxXqMo_tM809.jpg" /></a>
+  <div><a href="http://mobile.51cto.com/exp/conf2013a/index.html"  title="2013上半年移动互联网大会回顾">2013上半年移动互联网大会回顾</a></div>
+</li>
+
+</ul>
+</div>
+<p class="blank1"></p>
+<ul class="list03">
+
+<li><a href="http://server.51cto.com/News-405802.htm"  title="应用太阳能技术的7种运输工具">应用太阳能技术的7种运输工具</a></li>
+
+<li><a href="http://book.51cto.com/art/201308/405779.htm"  title="3D打印：从想象到现实">3D打印：从想象到现实</a></li>
+
+<li><a href="http://book.51cto.com/art/201308/405778.htm"  title="打造Facebook：亲历Facebook爆发的5年">打造Facebook：亲历Facebook爆发的5</a></li>
+
+<li><a href="http://book.51cto.com/art/201308/405777.htm"  title="硅谷之光">硅谷之光</a></li>
+
+<li><a href="http://book.51cto.com/art/201308/405776.htm"  title="超越极限">超越极限</a></li>
+
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="bor">
+<div class="titbg">
+<h3 class="t1">读书</h3>
+</div>
+  
+<div class="catbook"><a href="http://book.51cto.com/art/200712/62343.htm" title="Cisco CCNA 640-801"><img src="http://images.51cto.com/files/uploadimg/20071214/114633763.gif" width="66" height="98" border="0" /></a>
+<h5><a href="http://book.51cto.com/art/200712/62343.htm">Cisco CCNA 640-801</a></h5>
+<div class="c666 text">Cisco 640-801
+Cisco&reg; Certified Network Associate (CCNA&reg;)
+Q&A with explanations
+Version 93.0</div>
+</div>
+
+
+<ul class="list03">
+
+<li><a href="http://book.51cto.com/art/200708/53899.htm" title="SQL Server 2005奥秘">SQL Server 2005奥秘</a></li>
+
+<li><a href="http://book.51cto.com/art/200708/53960.htm" title="Struts 2权威指南：基于WebWork核心的MVC开发">Struts 2权威指南：基于WebWork核心的MVC开发</a></li>
+
+<li><a href="http://book.51cto.com/art/200708/54275.htm" title="Visual C++编程从基础到实践">Visual C++编程从基础到实践</a></li>
+
+<li><a href="http://book.51cto.com/art/200708/54421.htm" title="Visual Studio 2005+SQL Server 2005数据库应用系统开发">Visual Studio 2005+SQL Server 2005数据库应用系</a></li>
+
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="bor">
+<div class="titbg">
+<h3 class="t1 fl">博文推荐</h3>
+<a class="tmore" href="http://blog.51cto.com/">更多&gt;&gt;</a></div>
+
+<ul class="list03">
+ <li><a href="http://bannerpei.blog.51cto.com/66697/282265/" target="_blank" title="大话西游之Office应用实例系列! &lt;20&gt;">大话西游之Office应用实例系列! &lt;</a></li><li><a href="http://thomas7733.blog.51cto.com/1287977/282226/" target="_blank" title="企业执行力">企业执行力</a></li><li><a href="http://sunting.blog.51cto.com/1244382/282223/" target="_blank" title="MTA邮件传送代理--sendmail完全配置">MTA邮件传送代理--sendmail完全配置</a></li><li><a href="http://yunfeng.blog.51cto.com/202525/282217/" target="_blank" title="AD和Exchange灾难恢复四：恢复存储组">AD和Exchange灾难恢复四：恢复存储组</a></li>
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="tj">
+<div class="tlt">
+<h3>最新热帖</h3>
+<a class="more" href="http://bbs.51cto.com/hotthreads.php">更多&gt;&gt;</a></div>
+<ul>
+<li><a href="http://bbs.51cto.com/thread-838479-1.html" target="_blank" title="面试之自我救赎">面试之自我救赎</a></li><li><a href="http://bbs.51cto.com/thread-831268-1.html" target="_blank" title="30岁之前的目标，51CTO的Fans，共勉！">30岁之前的目标，51CTO的Fans，共勉</a></li><li><a href="http://bbs.51cto.com/thread-818279-1.html" target="_blank" title="CCNA重点知识点">CCNA重点知识点</a></li><li><a href="http://bbs.51cto.com/thread-814108-1.html" target="_blank" title="大公司里的草还是小公司里的宝？">大公司里的草还是小公司里的宝？</a></li><li><a href="http://bbs.51cto.com/thread-682482-1.html" target="_blank" title="一道局域网布线的基础题目">一道局域网布线的基础题目</a></li>
+</ul>
+</div>
+<div class="picAD">
+<script language="JavaScript" src="http://www.51cto.com/ad/art/baidugoogle/ad.js" type="text/javascript"></script>
+</div>
+</div>
+<p class="blank1"></p> 
+<!--leftbotcon end-->
+</div> 
+<div class="subweb">
+<h4>51CTO旗下网站</h4>
+<div>
+<a target="_blank" href="http://www.51cto.com/">领先的IT技术网站 51CTO</a>
+<a target="_blank" href="http://www.watchstor.com/">领先的中文存储媒体 WatchStor</a>
+<a target="_blank" href="http://www.cioage.com/">中国首个CIO网站 CIOage</a>
+<a target="_blank" href="http://www.hc3i.cn/">中国首家数字医疗网站 HC3i</a>
+</div>
+</div>
+<div id="ft"><div id="foot" align="center"><script src="http://images.51cto.com/images/copy_right/copy_right.js"></script></div></div>
+<script src="http://logs.51cto.com/rizhi/count/count.js"></script>
+<!-- START GA.js -->
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-20883758-1']);
+  _gaq.push(['_setDomainName', 'none']);
+  _gaq.push(['_setAllowLinker', true]);
+  _gaq.push(['_addOrganic', 'baidu', 'word']);
+  _gaq.push(['_addOrganic', 'google', 'q']);
+  _gaq.push(['_addOrganic', 'soso', 'w']);
+  _gaq.push(['_addOrganic', '3721', 'name']);
+  _gaq.push(['_addOrganic', 'yodao', 'q']);
+  _gaq.push(['_addOrganic', 'vnet', 'kw']);
+  _gaq.push(['_addOrganic', 'sogou', 'query']);
+  _gaq.push(['_trackPageview']);
+  _gaq.push(['_trackPageLoadTime']);
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+<!-- END GA.js -->
+
+<!-- baidu.js -->
+<script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3Ff77ea1ecd95cb2a1bc65cbcb3aaba7d4' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<!--end baidu.js -->
+<script type="text/javascript">
+
+	$("#uyan_cmt_list").next().remove();	
+	$("#uyan_cmt_list").next().css("display","none");	
+</script>
+
+<!-- 新监测代码 -->
+<!-- 新监测代码 -->
+<div id="MyMoveAd" style="display:none">
+<span id="wordlink_1"><script src="http://www.51cto.com/ad/art/wordlink/wordlink1.js"></script></span>
+<span id="wordlink_2"><script src="http://www.51cto.com/ad/art/wordlink/wordlink2.js"></script></span>
+<span id="wordlink_3"><script src="http://www.51cto.com/ad/art/wordlink/wordlink3.js"></script></span>
+<span id="wordlink_4"><script src="http://www.51cto.com/ad/art/wordlink/wordlink4.js"></script></span>
+<span id="pinglun"><script language="JavaScript" src="http://www.51cto.com/php/getArtCount.php?artid=196998&type=all"></script></span>
+<span id="tonglan"><script language="JavaScript" src="http://www.51cto.com/ad/art/tonglan/ad.js"></script></span>
+<span id="wordlink"><script language="JavaScript" src="http://www.51cto.com/ad/art/wordlink/ad.js"></script></span>
+<script src="http://www.51cto.com/ad/art/wordlink/ad.js"></script>
+<span id="bookss"><script language="JavaScript" src="http://www.51cto.com/php/getBookData.php?artid="></script></span>
+</div>   
+<script language="javascript" src="http://www.51cto.com/js/article/favorite.js"></script>
+
+<script language="javaScript" src="http://www.51cto.com/php/dialog_utf8.js"></SCRIPT>
+<script language="javaScript" src="http://www.51cto.com/mail.js"></script>  
+<script type="text/javascript" src="http://home.51cto.com/apps/favorite/Tpl/default/Public/js/favorbox.js"></script>
+<script language="javascript" src="http://images.51cto.com/images/art/newart1012/clipboard.js"></script>
+<script language="javaScript"> 
+	var thistid=196998; 
+	
+	//收藏按钮
+	var favor_url = 'http://os.51cto.com/art/201004/196998.htm';  // 如：http://bbs.51cto.com/thread-789649-1.html
+	var favor_title = 'Linux GRUB实现双系统引导之菜鸟教程';       //  
+	
+	//绑定复制按钮
+	copy('msnqqcopy', 'http://os.51cto.com/art/201004/196998.htm', '分享到MSN/QQ的链接复制成功!');
+//	copy('bbscopy', '[url=http://os.51cto.com/art/201004/196998.htm][u]Linux GRUB实现双系统引导之菜鸟教程[/u][/url]', '分享到论坛的UBB代码复制成功!');
+
+</script> 
+<script src=" http://home.51cto.com/index.php?s=/Index/getLoginStatus/reback/http%253A%252F%252Fos.51cto.com%252Fart%252F201004%252F196998.htm" charset='utf-8'></script>
+<script src="http://www.51cto.com/php/count.php?view=yes&artID=196998" language="javascript"></script>
+<script language="javascript">
+document.getElementById('books').innerHTML = document.getElementById("bookss").innerHTML; 
+</script>
+
+</body>
+</html>

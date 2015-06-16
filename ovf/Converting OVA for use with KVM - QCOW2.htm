@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en-us">
+<head>
+<title>Converting OVA for use with KVM / QCOW2</title>
+<!-- <link href="//fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet" type="text/css"> -->
+<!-- <link rel="openid.server" href="https://edoceo.com/MyID.config.php"> -->
+<!-- <link rel="openid.delegate" href="https://edoceo.com/MyID.config.php"> -->
+<link href="https://plus.google.com/111117882396330565615" rel="publisher" />
+<link href="//gcdn.org/radix/radix.css" rel="stylesheet" type="text/css"><link href="//edoceo.com/css/2014.css" rel="stylesheet" type="text/css"><meta charset="utf-8"><meta http-equiv="content-type" content="text/html;charset=utf-8"><meta name=viewport content="width=device-width, initial-scale=1"><script src="//gcdn.org/jquery/1.10.2/jquery.js" type="text/javascript"></script></head>
+<body>
+<header>
+<a href="/" title="Edoceo Home Page"><img alt="edoceo" src="//edoceo.com/img/logo-w-on-x.png" title="Edoceo Logo" /></a>
+<h1>Converting OVA for use with KVM / QCOW2</h1>
+</header>
+<nav id="main-menu"><ul class="h"><li><a href="/services" title="Edoceo&#39;s Services">Services</a></li><li><a href="/creo" title="Give away Scripts, Tools, Utilities">Creations</a></li><li><a href="/howto" title="Linux How Tos, Install and Configuration Guides">How Tos</a></li><li><a href="/exemplar" title="Examples and tidbits of commands, code snips and other such">Examples</a></li><li><a href="/notabene" title="Note and Helpful Hints">Notes</a></li><li><a href="/utilitas" title="Internet Utilities and other useful tools">Utilities</a></li><li><a href="/blog" title="Edoceo&#39;s Blog">Blog</a></li></ul></nav><div id="social-link" class="fglpt"><div class="b"><a href="https://twitter.com/intent/tweet" class="twitter-share-button" data-via="edoceo" data-size="medium">Tweet</a></div><div class="b"><div class="g-plusone" data-size="medium"></div></div><div class="b"><div class="fb-like" data-send="false" data-layout="button_count" data-width="112" data-show-faces="true" data-font="verdana"></div></div><div class="b"><script src="//platform.linkedin.com/in.js" type="text/javascript"></script><script type="IN/Share" data-counter="right"></script></div><div class="b"><a href="http://pinterest.com/pin/create/button/?url=http%3A%2F%2Fedoceo.com&amp;media=http%3A%2F%2Fedoceo.com%2Fimg%2Flogo-w-on-x.png" class="pin-it-button" count-layout="horizontal"><img alt="Pinterest" src="//assets.pinterest.com/images/PinExt.png" title="Pin It" /></a></div><div class="b"><script type="text/javascript" src="http://www.reddit.com/static/button/button1.js"></script></div></div><div class="g160"><script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle"
+     style="display:inline-block;width:160px;height:600px"
+     data-ad-client="ca-pub-9218681548001774"
+     data-ad-slot="8529625259"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script></div><div role="main" id="main"><div id="core">
+<p>
+The OVA file is nothing more than a TAR archive, containing the .OVF and .VMDK files. Easy!
+</p>
+<p>Using Evergreen ILS for example:</p>
+
+<pre>
+~ $ file Evergreen_trunk_Squeeze.ova
+Evergreen_trunk_Squeeze.ova:                POSIX tar archive (GNU)
+</pre>
+
+<p>I'ts possible to use the tar command to list the contents</p>
+
+<pre>
+~ $ tar -tf Evergreen_trunk_Squeeze.ova 
+Evergreen_trunk_Squeeze.ovf
+Evergreen_trunk_Squeeze-disk1.vmdk
+</pre>
+
+<p>Simply extract those things...</p>
+
+<pre>
+~ $ tar -xvf Evergreen_trunk_Squeeze.ova
+Evergreen_trunk_Squeeze.ovf
+Evergreen_trunk_Squeeze-disk1.vmdk
+</pre>
+<p>
+Now take a look at the created files
+The OVF XML file describes the image, it makes for some interesting reading about the expectations of the running environment.
+</p>
+<pre>
+~ $ file Evergreen_trunk_Squeeze*
+Evergreen_trunk_Squeeze-disk1.vmdk: VMware4 disk image
+Evergreen_trunk_Squeeze.ova:        POSIX tar archive (GNU)
+Evergreen_trunk_Squeeze.ovf:        XML document text
+</pre>
+
+<p>
+Recent versions of <code>qemu</code> are able to run directly from the VMDK file, buy why do that?
+Use QCOW2, it's better.
+Execute: <code>qemu-img -h</code> and the last line of output shows the supported formats.
+</p>
+
+<pre>
+~ $ qemu-img -h |tail -n1
+Supported formats: raw cow qcow vdi vmdk cloop dmg bochs vpc vvfat qcow2 parallels nbd blkdebug sheepdog host_cdrom host_floppy host_device file
+</pre>
+
+<p>
+Now actually convert it, this may take some time.
+</p>
+
+<pre>
+~ $ qemu-img convert -O qcow2 Evergreen_trunk_Squeeze-disk1.vmdk Evergreen_trunk_Squeeze.qcow2
+</pre>
+
+<h2>Contents of OVF Files</h2>
+<p>
+The OVA is intended to run an <em>Appliance</em> and this OVF file describes the appliance.
+Examine the contents of this file to determine information about the expected CPU, Memory and other appliance details.
+These will be important to getting the image to run under KVM.
+Noteably, Windows has a terrible time moving, ensure you have the MergeIDE fix in place.
+</p>
+
+<h3>See Also</h3>
+<ul>
+<li><a href="http://www.boche.net/blog/index.php/2010/07/02/ovf-ova-wtf/">OVF, OVA, WTF!?</a></li>
+</ul>
+
+<p>Last Modified: 2012-06-04</p><h3>Add Comment or Note</h3><div id="note-edit"><input onclick="$('#note-edit').load('/note/edit');" type="button" value="Add Comment" /></div><script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle"
+     style="display:inline-block;width:728px;height:90px"
+     data-ad-client="ca-pub-9218681548001774"
+     data-ad-slot="4171854730"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script></div></div><footer><div style="padding:8px;float:right;"><div style="background:#00aced; float:left; margin:4px; height:48px; width:48px;"><a href="https://twitter.com/edoceo"><img src="//gcdn.org/simpleicons/twitter/48b.png"></a></div> <div style="background:#3b5998; float:left; margin:4px; height:48px; width:48px;"><a href="https://www.facebook.com/edoceo" rel="publisher"><img src="//gcdn.org/simpleicons/facebook/48b.png"></a></div> <div style="background:#d14836; float:left; margin:4px; height:48px; width:48px;"><a href="https://plus.google.com/111117882396330565615" rel="publisher"><img src="//gcdn.org/simpleicons/googleplus/48b.png"></a></div></div><div style="clear:left;padding:8px;"><a href="http://edoceo.io" title="Web APIs">APIs</a> | <a href="http://custos.edoceo.com" title="Custos Application/Service/Network Monitoring">Custos</a> | <a href="http://imperium.edoceo.com" title="Imperium Business Management / Accounting">Imperium</a> | <a href="http://praxis.edoceo.com" title="Praxis Linux">Praxis</a> | <a href="http://radix.edoceo.com" title="Radix PHP Framework">Radix</a></div><div style="padding:8px;text-align:left;">&copy; 1999-2014 <a href="http://edoceo.com/">Edoceo, Inc</a> | &quot;edoceo&quot;&reg; is a registered trademark of Edoceo, Inc.</div></footer><script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script><script type="text/javascript">
+  (function() {
+    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+    po.src = 'https://apis.google.com/js/plusone.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+  })();
+</script><div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));
+</script><script type="text/javascript" src="//assets.pinterest.com/js/pinit.js"></script></body></html>

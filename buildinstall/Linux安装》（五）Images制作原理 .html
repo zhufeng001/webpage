@@ -1,0 +1,436 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>《Linux安装》（五）Images制作原理 - 我有我的滋味 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="重写buildinstall脚本后我们知道生成images主要就靠mk-images脚本，它的输入来自upd-instroot——安装一些包到一个根目录（instroot），这些包都是安装过程必须要用到的，至于是哪些包，可以通过调试upd-instroot脚本打印出来。至于为什么是这些包？现阶段这个不重要，以后有空再说；但是instroot目录太大（&gt;400M），启动时如果将其载入ramfs会" />
+<script src="http://static.blog.csdn.net/Scripts/jquery.js" type="text/javascript"></script>
+<script src="http://static.blog.csdn.net/scripts/plugins.js" type="text/javascript"></script>
+<script src="http://static.blog.csdn.net/scripts/common.js" type="text/javascript"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/ericzhong83/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="/ericzhong83">我有我的滋味</a></h1>
+            <h2></h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="/ericzhong83?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="/ericzhong83?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="/ericzhong83/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "ericzhong83";
+    var blog_address = "http://blog.csdn.net/ericzhong83";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+        
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+
+<a href="http://cloud.csdn.net/a/20120620/2806805.html" target="_blank"><font color=red>用开源IaaS构建自己的云——OpenStack征稿启事
+</font></a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://topic.csdn.net/u/20120709/15/2e6511e3-e34f-41d7-9f71-a47bb4f8c9fa.html" target="_blank"><font color=red>CSDN社区7月"畅谈加班 赢程序员杂志"活动火爆上线！！</font></a>
+<br>
+<a href="http://blog.csdn.net/blogdevteam/article/details/7712568" target="_blank"><font color=blue>
+2012年7月当选微软MVP的CSDN会员名单揭晓！ </font></a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://topic.csdn.net/u/20120704/14/c98b3641-359f-4bea-b111-21c409db8819.html" target="_blank"><font color=red>CSDN账号全站整合公告
+</font></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://adclk.thinkmedia.cn/clk/pid=2000/media=CSDN.CN/place=1Clt1/size=760x90" target="_blank"><font color=blue>不用买彩票，就有408万！</font></a>
+
+
+</div><script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js"></script>
+
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Original"></span>
+    <h3>
+        <span class="link_title"><a href="/ericzhong83/article/details/7429192">
+        《Linux安装》（五）Images制作原理
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/ericzhong83/article/category/925154">庖丁解牛</a> 
+        </span>
+    <span class="link_postdate">2012-04-06 17:30</span>
+    <span class="link_view" title="阅读次数">258人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('《Linux安装》（五）Images制作原理','7429192');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(7429192,2);return false;" title="举报">举报</a></span>
+    
+</div>
+
+    
+<div id="article_content" class="article_content">
+    
+<p>重写buildinstall脚本后我们知道生成images主要就靠mk-images脚本，它的输入来自upd-instroot——安装一些包到一个根目录（instroot），这些包都是安装过程必须要用到的，至于是哪些包，可以通过调试upd-instroot脚本打印出来。至于为什么是这些包？现阶段这个不重要，以后有空再说；</p>
+<p>但是instroot目录太大（&gt;400M），启动时如果将其载入ramfs会很久，因此就从instroot中copy一些关键文件出来到另一个临时建立的根目录（initrdroot），再将其压缩成initrd.img（&lt;30M）；而instroot会再被复制一个更大的子集压缩成install.img（&lt;150M）在第二阶段载入，代码中有对应的文件清单；</p>
+<p>因此一句话总结就是：<span style="color:#3333FF">install.img是instroot的一个子集压缩而成；initrd.img是从instroot复制的子集，再加入kernel、firmware、login文件等然后压缩而成；</span></p>
+<p><br>
+</p>
+<p>mk-images脚本调用关系如下：<br>
+</p>
+<pre name="code" class="python">mk-images
+        makeBootImages() (mk-images.x86)
+                makeinitrd() # make initrd.img
+                        makemoduletree()        #copy modules &amp; firmware
+                                modlist         #make module-info
+                        makeproductfile()       #make .buildstamp
+                        setupSshd()             #sshd login相关的passwd,shadow,pam.d/*等
+                prepareBootTree() (mk-images.x86) #initrd.img,vmlinuz,splash.jpg,vesamenu.c32,syslinux.cfg等
+        makeEfiImages() (mk-images.efi)
+        makeSecondStage() # make install.img
+                makeproductfile()
+        doPostImages() # make boot.iso</pre><br>
+<p>先来看看<strong>initrd.img</strong>的制作过程，除了大多数文件从instroot中复制过来外，还有如下工作：<br>
+<span style="color:#3333FF">1. cp */usr/lib/anaconda-runtime/loader/{loader,init} $initrdroot/sbin/<span style="color:#000000"><br>
+kernel启动后会运行/sbin/init，但是我们并不需要进入系统，而是要启动安装程序，因此原Init Daemon（F13是upstart）的init不能用，而是用anaconda自带的init替换；这个init又调用/sbin/loader，然后由它启动anaconda；</span></span></p>
+<p><span style="color:#3333FF">2. 获取指定的内核modules（*.ko）和需要的所有firmware文件<br>
+<span style="color:#000000">安装内核和所有*firmware*的包到$kernelroot；<br>
+获取指定内核模块（一部分直接指定名称，一部分指定分组则从/lib/modules/XXX/modules.*中获取清单）并解决依赖，然后将它们复制到$initrdroot/lib/modules/对应目录下；<br>
+将所有需要的模块中的&quot;firmware“域&#20540;打印出来(modinfo -F firmware *.ko)，将对应文件从$kernelroot/lib/firmware复制到$initrdroot/lib/firmware对应目录下；</span><br>
+</span></p>
+<p><span style="color:#3333FF">3. 生成module-info文件<br>
+<span style="color:#000000">module-info文件记录了模块的描述（modinfo -F description）信息，这些模块是前面提到的需要用到的，且属于<span style="color:#3333FF"><span style="color:#000000">block、networking、eth，scsi</span></span>的；<br>
+先用anaconda的genmodinfo脚本从/lib/module/xxx/module.*文件中获取block、networking、eth，scsi对应的所有模块，然后获取描述信息<span style="color:#3333FF"><span style="color:#000000"></span></span>生成modinfo文件；然后，再用anaconda的modlist程序过滤出需要的模块对应的信息；内容大致如下：<br>
+</span></span></p>
+<pre name="code" class="plain">Version 0
+3c509
+        eth
+        &quot;3Com Etherlink III (3c509, 3c509B, 3c529, 3c579) ethernet driver&quot;
+3c574_cs
+        eth
+        &quot;3Com 3c574 series PCMCIA ethernet driver&quot;
+......
+3w-9xxx
+        scsi
+        &quot;3ware 9000 Storage Controller Linux Driver&quot;
+3w-sas
+        scsi
+        &quot;LSI 3ware SAS/SATA-RAID Linux Driver&quot;
+......
+</pre>
+<p><span style="color:#3333FF">4. 生成.buildstamp文件</span><br>
+</p>
+<pre name="code" class="plain">201203201054.i386
+Fedora
+20120319
+your distribution provided bug reporting tool.</pre>
+<p></p>
+<p><span style="color:#3333FF">5. 创建或修改sshd login需要的passwd,shadow,pam.d/*等文件<br>
+</span></p>
+<p><span style="color:#3333FF">6. 创建ISO目录树并将initrd.img,vmlinuz,splash.jpg,vesamenu.c32,syslinux.cfg等文件准备好</span><strong><br>
+</strong></p>
+<p><br>
+</p>
+<p><br>
+</p>
+<p></p>
+
+</div>
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.1.237 2012-7-13 11:16:45-->
+<div class="article_next_prev">
+        <li class="prev_article">
+            <span>上一篇：</span><a href="/ericzhong83/article/details/7415609">Linux常用命令</a></li>
+        <li class="next_article">
+            <span>下一篇：</span><a href="/ericzhong83/article/details/7445075">Apache</a></li>
+</div>
+
+
+        <div id="digg" ArticleId="7429192">
+            <dl id="btnDigg" class="digg digg_disable">
+                <dt>顶</dt>
+                <dd>0</dd>
+            </dl>
+            <dl id="btnBury" class="digg digg_disable">
+                <dt>踩</dt>
+                <dd>0</dd>
+            </dl>
+        </div>
+</div>
+<div id="ad_cen"></div>
+<script type="text/javascript">
+    new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '7429192';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+    <div class="side">
+<div id="panel_Profile" class="panel">
+    <ul class="panel_head"><span>个人资料</span></ul>
+    <ul class="panel_body profile">
+        <div id="blog_userface">
+            <a href="http://my.csdn.net/ericzhong83" target="_blank">
+            <img src="http://avatar.csdn.net/B/4/8/1_ericzhong83.jpg" title="访问我的空间" style="max-width:90%"/>
+            </a>
+            <br />
+            <span><a href="http://my.csdn.net/ericzhong83" target="_blank">ericzhong83</a></span>
+        </div>
+<div class="interact">
+<!--<a href="#" class="attented" title="已关注"></a>-->
+<a href="#" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="http://my.csdn.net/my/letter/send/ericzhong83" class="letter" title="[发私信]"></a>
+</div>
+        <div id="blog_medal">
+        </div>
+        <ul id="blog_rank">
+            <li>访问：<span>8208次</span></li>
+            <li>积分：<span>414分</span></li>
+            <li>排名：<span>千里之外</span></li>
+        </ul>
+        <ul id="blog_statistics">
+            <li>原创：<span>33篇</span></li>
+            <li>转载：<span>0篇</span></li>
+            <li>译文：<span>0篇</span></li>
+            <li>评论：<span>8条</span></li>
+        </ul>
+    </ul>
+</div>
+<script type="text/javascript">
+    var _blogger = 'ericzhong83';
+</script>
+<script type='text/javascript'>
+    $(document).ready(function () {
+        var un = getUN().toLowerCase();
+        if (un == _blogger.toLowerCase()) {
+            $('.interact').hide();
+        } else if(un) {
+            var url = "http://my.csdn.net/index.php/follow/check_is_followed/" + encodeURIComponent(un) + "/" + encodeURIComponent(_blogger) + "?jsonpcallback=?";
+            $.getJSON(url, {}, function (data) {
+                if (data.succ == 1 && data.info == 1) {
+                    $('#span_add_follow').attr('class', 'attented');
+                } else {
+                    $('#span_add_follow').click(guanzhu);
+                }
+            }, 'json');
+        }
+    });
+function guanzhu() {
+    var url = "http://my.csdn.net/index.php/follow/do_follow?jsonpcallback=?";
+    $.getJSON(url, { "username": _blogger }, function (data) {
+        if (data.succ == 1) {
+            alert('关注成功！');
+            $('#span_add_follow').attr('class', 'attented').click(function () { return false; });
+        } else {
+            alert(data.msg);
+        }
+    });
+    return false;
+}
+function getUN() {
+    var m = document.cookie.match(new RegExp("(^| )UserName=([^;]*)(;|$)"));
+    if (m) return m[2];
+    else return '';
+}
+</script>
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+    <ul class="panel_head"><span>文章分类</span></ul>
+    <ul class="panel_body">
+        <li>
+        <a href="http://blog.csdn.net/ericzhong83/article/category/925154">庖丁解牛</a><span>(5)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/ericzhong83/article/category/1100222">日积月累</a><span>(5)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/ericzhong83/article/category/591847">数据库</a><span>(2)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/ericzhong83/article/category/588214">Linux</a><span>(7)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/ericzhong83/article/category/610300">python</a><span>(5)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/ericzhong83/article/category/588216">Windows</a><span>(1)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/ericzhong83/article/category/1095129">读书</a><span>(4)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/ericzhong83/article/category/1120738">Web开发</a><span>(1)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/ericzhong83/article/category/1149362">设计模式</a><span>(5)</span>
+        </li>
+    </ul>
+</div><div id="panel_Archive" class="panel">
+    <ul class="panel_head"><span>文章存档</span></ul>
+    <ul class="panel_body">
+        <div id="archive_list">
+        <!--归档统计-->
+        <li><a href="http://blog.csdn.net/ericzhong83/article/month/2012/05">2012年05月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/ericzhong83/article/month/2012/04">2012年04月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/ericzhong83/article/month/2012/03">2012年03月</a><span>(10)</span></li><li><a href="http://blog.csdn.net/ericzhong83/article/month/2011/11">2011年11月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/ericzhong83/article/month/2011/10">2011年10月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/ericzhong83/article/month/2009/10">2009年10月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/ericzhong83/article/month/2009/09">2009年09月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/ericzhong83/article/month/2007/06">2007年06月</a><span>(1)</span></li>
+        </div>
+    </ul>
+</div>
+<div id="hotarticls" class="panel">
+    <ul class="panel_head"><span>阅读排行</span></ul>
+    <ul class="panel_body itemlist">
+        <li>
+            <a href="/ericzhong83/article/details/4509887" title="我的emacs配置文件">我的emacs配置文件</a><span>(1811)</span>
+        </li>
+        <li>
+            <a href="/ericzhong83/article/details/4732369" title="pygtk技术汇总">pygtk技术汇总</a><span>(675)</span>
+        </li>
+        <li>
+            <a href="/ericzhong83/article/details/4739987" title="udev规则">udev规则</a><span>(380)</span>
+        </li>
+        <li>
+            <a href="/ericzhong83/article/details/4510168" title="获取用户输入的问题（清除stdin）">获取用户输入的问题（清除stdin）</a><span>(337)</span>
+        </li>
+        <li>
+            <a href="/ericzhong83/article/details/1639456" title="利用多线程让没有窗口的程序显示进度条">利用多线程让没有窗口的程序显示进度条</a><span>(287)</span>
+        </li>
+        <li>
+            <a href="/ericzhong83/article/details/7429192" title="《Linux安装》（五）Images制作原理">《Linux安装》（五）Images制作原理</a><span>(258)</span>
+        </li>
+        <li>
+            <a href="/ericzhong83/article/details/7357536" title="《Linux安装》（二）启动过程">《Linux安装》（二）启动过程</a><span>(227)</span>
+        </li>
+        <li>
+            <a href="/ericzhong83/article/details/6921105" title="《Linux安装》（一）ISO结构">《Linux安装》（一）ISO结构</a><span>(226)</span>
+        </li>
+        <li>
+            <a href="/ericzhong83/article/details/7564207" title="Python调用MySQLdb插入中文乱码的问题">Python调用MySQLdb插入中文乱码的问题</a><span>(198)</span>
+        </li>
+        <li>
+            <a href="/ericzhong83/article/details/7335590" title="《人月神话》">《人月神话》</a><span>(190)</span>
+        </li>
+    </ul>
+</div>
+<div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/ericzhong83/article/details/7596420#comments">设计模式：装饰者模式（Python）</a>
+    <p style="margin:0px;">mazhaojuan:
+不错
+    </p>
+    </li>
+    <li>
+    <a href="/ericzhong83/article/details/7607138#comments">设计模式：抽象工厂模式（Python）</a>
+    <p style="margin:0px;">lidaasky:
+
+    </p>
+    </li>
+    <li>
+    <a href="/ericzhong83/article/details/7604728#comments">设计模式：工厂方法模式（Python）</a>
+    <p style="margin:0px;">beijiguangyong:
+工厂方法~
+    </p>
+    </li>
+    <li>
+    <a href="/ericzhong83/article/details/7604728#comments">设计模式：工厂方法模式（Python）</a>
+    <p style="margin:0px;">lidaasky:
+
+    </p>
+    </li>
+    <li>
+    <a href="/ericzhong83/article/details/7589374#comments">设计模式：观察者模式（Python）</a>
+    <p style="margin:0px;">lidaasky:
+
+    </p>
+    </li>
+    <li>
+    <a href="/ericzhong83/article/details/7578058#comments">设计模式：策略模式（Python）</a>
+    <p style="margin:0px;">lidaasky:
+正在学习设计模式
+    </p>
+    </li>
+    <li>
+    <a href="/ericzhong83/article/details/4732369#comments">pygtk技术汇总</a>
+    <p style="margin:0px;">zj63260082:
+楼主你好。。网上找了很多有关pygtk进度条的相关处理方法，请问楼主有没有具体点的进度条图形界面的案...
+    </p>
+    </li>
+    <li>
+    <a href="/ericzhong83/article/details/4739987#comments">udev规则</a>
+    <p style="margin:0px;">wzyzb:
+且脚本以shebang开头 是啥意思？
+    </p>
+    </li>
+</ul>
+</div>
+    </div>
+    <div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/SyntaxHighlighter/shCore-src.js"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ZeroClipboard/ZeroClipboard.js"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/article_code.js"></script>
+
+<script type="text/javascript" src="http://medal.blog.csdn.net/scripts/show.js"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=216735"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+
+<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js"></script>
+
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js"></script>
+
+
+
+</div>
+</body>
+</html>

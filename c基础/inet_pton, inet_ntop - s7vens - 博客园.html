@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-cn">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>inet_pton, inet_ntop - s7vens - 博客园</title>
+<link type="text/css" rel="stylesheet" href="/bundles/blog-common.css?v=iQQnf2q8V83bi9LbN6IvkHJyxj8GLI9A8HLPvxO-IBQ1"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="http://common.cnblogs.com/Skins/SimpleClear/style.css?id=20140415"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/s7vens/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/s7vens/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/s7vens/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">var currentBlogApp = 's7vens', cb_enable_mathjax=false;</script>
+<script src="/bundles/blog-common.js?v=15gzXd7pJ_PNpSlGpVykf0EBaNg79HWL7oD5vVw0NGA1" type="text/javascript"></script>
+</head>
+<body>
+<a name="top"></a>
+
+<div id="main">
+<div id="header">
+<h1><a id="Header1_HeaderTitle" href="http://www.cnblogs.com/s7vens/">s7vens</a></h1>
+<p id="tagline"></p></div>
+
+
+<div class="post">
+    <h2 class="postTitle"><a id="cb_post_title_url" href="http://www.cnblogs.com/s7vens/archive/2011/12/12/2284964.html">inet_pton, inet_ntop</a></h2>
+    <div class="postText"><div id="cnblogs_post_body"><p>Linux下这2个IP地址转换函数，可以在将IP地址在&ldquo;点分十进制&rdquo;和&ldquo;整数&rdquo;之间转换<br />而且，inet_pton和inet_ntop这2个函数能够处理ipv4和ipv6。算是比较新的函数了。<br /><br />inet_pton函数原型如下[将"点分十进制" -&gt; "整数"]</p>
+<div class="cnblogs_code">
+<pre>#include &lt;sys/types.h&gt;<br />#include &lt;sys/socket.h&gt;<br />#include &lt;arpa/inet.h&gt;<br /><span style="color: #0000ff;">int</span> inet_pton(<span style="color: #0000ff;">int</span> af, <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span> *src, <span style="color: #0000ff;">void</span> *dst);<br /><span style="color: #008000;">//</span><span style="color: #008000;">这个函数转换字符串到网络地址，第一个参数af是地址族，转换后存在dst中</span></pre>
+</div>
+<p>inet_pton是inet_addr的扩展，支持的多地址族有下列：<br />af = AF_INET<br />src为指向字符型的地址，即ASCII的地址的首地址（ddd.ddd.ddd.ddd格式的），函数将该地址转换为in_addr的结构体，并复制在*dst中<br />af = AF_INET6<br />src为指向IPV6的地址，函数将该地址转换为in6_addr的结构体，并复制在*dst中<br />如果函数出错将返回一个负值，并将errno设置为EAFNOSUPPORT，如果参数af指定的地址族和src格式不对，函数将返回0。<br /><br />inet_ntop函数原型如下[将"点分十进制" -&gt; "整数"]</p>
+<div class="cnblogs_code">
+<pre>#include &lt;sys/types.h&gt;<br />#include &lt;sys/socket.h&gt;<br />#include &lt;arpa/inet.h&gt;<br /><span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span> *inet_ntop(<span style="color: #0000ff;">int</span> af, <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">void</span> *src, <span style="color: #0000ff;">char</span> *dst, socklen_t cnt);<br /><span style="color: #008000;">//</span><span style="color: #008000;">这个函数转换网络二进制结构到ASCII类型的地址，参数的作用和上面相同，只是多了一个参数socklen_t cnt,<br /></span><span style="color: #008000;">//</span><span style="color: #008000;">他是所指向缓存区dst的大小，避免溢出，如果缓存区太小无法存储地址的值，则返回一个空指针，并将errno置为ENOSPC</span></pre>
+</div>
+<p>下面是例程：</p>
+<div class="cnblogs_code">
+<pre>#include &lt;stdio.h&gt;<br />#include &lt;stdlib.h&gt;<br />#include &lt;<span style="color: #0000ff;">string</span>.h&gt;<br />#include &lt;unistd.h&gt;<br />#include &lt;sys/socket.h&gt;<br />#include &lt;netinet/<span style="color: #0000ff;">in</span>.h&gt;<br /><span style="color: #0000ff;">int</span> main (<span style="color: #0000ff;">void</span>)<br />{<br />  <span style="color: #0000ff;">char</span> IPdotdec[<span style="color: #800080;">20</span>]; <span style="color: #008000;">//</span><span style="color: #008000;"> 存放点分十进制IP地址</span><span style="color: #008000;"><br /></span>  <span style="color: #0000ff;">struct</span> in_addr s;  <span style="color: #008000;">//</span><span style="color: #008000;"> IPv4地址结构体<br />  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 输入IP地址</span><span style="color: #008000;"><br /></span>  printf(<span style="color: #800000;">"</span><span style="color: #800000;">Please input IP address: </span><span style="color: #800000;">"</span>);<br />  scanf(<span style="color: #800000;">"</span><span style="color: #800000;">%s</span><span style="color: #800000;">"</span>, &amp;IPdotdec);<br />  <span style="color: #008000;">//</span><span style="color: #008000;"> 转换</span><span style="color: #008000;"><br /></span>  inet_pton(AF_INET, IPdotdec, (<span style="color: #0000ff;">void</span> *)&amp;s);<br />  printf(<span style="color: #800000;">"</span><span style="color: #800000;">inet_pton: 0x%x\n</span><span style="color: #800000;">"</span>, s.s_addr); <span style="color: #008000;">//</span><span style="color: #008000;"> 注意得到的字节序<br />  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 反转换</span><span style="color: #008000;"><br /></span>  inet_ntop(AF_INET, (<span style="color: #0000ff;">void</span> *)&amp;s, IPdotdec, <span style="color: #800080;">16</span>);<br />  printf(<span style="color: #800000;">"</span><span style="color: #800000;">inet_ntop: %s\n</span><span style="color: #800000;">"</span>, IPdotdec);<br />}</pre>
+</div></div><div id="MySignature"></div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="blog_post_info">
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"></div>
+</div>
+
+</div>
+    <p class="postfoot">posted on <span id="post-date">2011-12-12 16:09</span> <a href='http://www.cnblogs.com/s7vens/'>s7vens</a> 阅读(<span id="post_view_count">...</span>) 评论(<span id="post_comment_count">...</span>)  <a href ="http://i.cnblogs.com/EditPosts.aspx?postid=2284964" rel="nofollow">编辑</a> <a href="#" onclick="AddToWz(2284964);return false;">收藏</a></p>
+</div>
+<script type="text/javascript">var allowComments=true,isLogined=false,cb_blogId=103087,cb_entryId=2284964,cb_blogApp=currentBlogApp,cb_blogUserGuid='683685b0-a819-e111-b422-842b2b196315',cb_entryCreatedDate='2011/12/12 16:09:00';loadViewCount(cb_entryId);</script>
+
+<a name="!comments"></a><div id="blog-comments-placeholder"></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="程序员的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="ad_under_post_holder"></div>
+<script type="text/javascript">
+var enableGoogleAd = true;
+var googletag = googletag || {};
+googletag.cmd = googletag.cmd || [];
+fixPostBodyFormat();
+loadAdUnderPost();
+</script>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+loadBlogSignature();
+LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);
+GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+</script>
+<script type="text/javascript">
+    $.ajax({ url: 'http://counter.cnblogs.com/blog/post/' + cb_entryId, type: 'get', dataType: 'script', cache: true });
+</script>
+</div>
+
+</div>
+<div id="rightmenu">
+	
+		
+<div id="my_links">
+<h3>导航</h3>
+<ul>
+<li><a id="MyLinks1_HomeLink" href="http://www.cnblogs.com/">博客园</a></li>
+<li><a id="MyLinks1_MyHomeLink" href="http://www.cnblogs.com/s7vens/">首页</a></li>
+<!--<li><a id="MyLinks1_NewPostLink" rel="nofollow" href="http://i.cnblogs.com/EditPosts.aspx?opt=1">新随笔</a></li>-->
+<li><a id="MyLinks1_ContactLink" rel="nofollow" href="http://space.cnblogs.com/msg/send/s7vens">联系</a></li>
+<li><a id="MyLinks1_Syndication" href="http://www.cnblogs.com/s7vens/rss">订阅</a></li><!--<a id="MyLinks1_XMLLink" href="http://www.cnblogs.com/s7vens/rss"><img src="http://www.cnblogs.com/images/xml.gif" alt="订阅" /></a>-->
+<li><a id="MyLinks1_Admin" rel="nofollow" href="http://i.cnblogs.com/">管理</a></li>
+</ul>
+</div>
+		<div id="blog-calendar" style="display:none"></div><script type="text/javascript">loadBlogDefaultCalendar();</script>
+		
+<h3>公告</h3>
+<div class="newsItem">
+	<div id="blog-news"></div><script type="text/javascript">loadBlogNews();</script>
+</div>		
+		
+<div id="blog_stats">
+<h3>统计</h3>
+<ul>
+<li>随笔 - 82
+<li>文章 - 0
+<li>评论 - 3
+<!--<li>引用 - 0-->
+</li>
+</ul>
+</div>
+		<div id="blog-sidecolumn"></div><script type="text/javascript">loadBlogSideColumn();</script>
+        
+		
+<div id="footer">
+	Powered by: 
+	<br />
+	
+	<a id="Footer1_Hyperlink3" NAME="Hyperlink1" href="http://www.cnblogs.com/" style="font-family:Verdana;font-size:12px;">博客园</a>
+	<br />
+	Copyright &copy; s7vens
+</div>
+	
+</div>			
+			
+	
+
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html PUBLIC "-//IETF//DTD HTML i18n//EN">
+<HTML>
+<HEAD>
+<TITLE>Re-creating your own CentOS 5.x media with custom (i586) kernel</TITLE>
+<META http-equiv="Content-Type" content="text/html" />
+</HEAD>
+<BODY lang="en">
+
+<H1>Re-creating CentOS 5.x media with a custom kernel</H1>
+
+<P>This page explains how to recreate your i386 CentOS 5.x media,
+which uses a custom kernel on installation.
+</P>
+
+<P>Installer of the official CentOS 5.x media uses i686 kernel, so it
+<UL>
+<LI>won't boot on i586 CPUs, such as AMD K6-2
+<LI>cannot use ISA network card for network install
+<LI>cannot use PCMCIA card for network and/or media reading
+</UL>
+In these cases, you would like to spin your own install media 
+with kernel replaced.
+</P>
+
+<P><I>Keywords:</I> CentOS 5.x, Red Hat 5.x, Linux kernel, i586, installation media, install CD, install DVD, anaconda, AMD K6-2</P>
+<P><I>$Id: dvd.html,v 1.10 2011-08-10 19:08:12+09 kabe Exp $</I></P>
+
+<HR><!--=======================================-->
+<H2><A name="prep">Things you need</A></H2>
+<UL>
+<LI>Original CentOS 5.x media or *.iso (DVD preferred)
+<LI>The new kernel, such as <A href="../kernel.isa/el5.html">ISA enabled i586 kernel</A>
+<LI>An CentOS 5.x (Red Hat 5.x) machine to work on, 
+    <br />(doesn't have to be i386, pick the fast machine in reach)
+<LI>with several gigabytes of free disk space
+<LI>and more than 300MB of memory
+    <br />(expect thrashing if less)
+</UL>
+
+<HR><!--=======================================-->
+<H2><A name="step-anaconda">Step 1. Install <CODE>anaconda-runtime</CODE></A></H2>
+<P>Install <CODE>anaconda-runtime</CODE> RPM package included in the
+official repository or media
+with your favorite installation method.
+</P>
+<PRE class="xmp">
+	% sudo yum --disablerepo='*' --enablerepo=c5-media install anaconda-runtime
+</PRE>
+<P>Don't skip the dependent packages; you need them all.
+</P>
+<P><CODE>/usr/lib/anaconda-runtime/</CODE> will be populated.
+</P>
+
+<HR><!--=======================================-->
+<H2><A name="step-cpmedia">Step 2. Copy over the original media</H2>
+
+<P>Mount the original CentOS 5.x media. 
+Copy over, or make a symlink farm, as <CODE>./mymedia</CODE> .
+Clean up the <CODE>TRANS.TBL</CODE> files as necessary.
+If the disk free space is short, a symlink farm is sufficient as below.
+</P>
+<P><PRE class="xmp">
+	% rm -fr ./mymedia
+	% cp -r --symbolik-link /media/dvd ./mymedia
+	% find ./mymedia -name TRANS.TBL -exec rm {} ';'
+</PRE>
+</P>
+
+<P>Then, copy your custom kernel into <CODE>./mymedia/CentOS/</CODE>
+directory which holds other *.rpm .
+<PRE class-"xmp">
+	% ln -s `pwd`/kernel-2.6.18-238.12.1.el5.v8.i586.rpm ./mymedia/CentOS
+	% ln -s `pwd`/kernel-devel-2.6.18-238.12.1.el5.v8.i586.rpm ./mymedia/CentOS
+</PRE>
+</P>
+
+<HR><!--=======================================-->
+<H2><A name="step-buildinstall">Step 3. <CODE>buildinstall</CODE></H2>
+
+<P><CODE>/usr/lib/anaconda-runtime/buildinstall</CODE> is a program
+to prepare the installer (anaconda) things you see in the media.
+</P>
+
+<P>First, check out the <CODE>.treeinfo</CODE> at the root of the media.
+It will be something like<PRE class="xmp">
+	[general]
+	family = CentOS
+	timestamp = 1301440499.8
+	totaldiscs = 1
+	version = 5.6
+	discnum = 1
+	packagedir = CentOS
+	arch = i386
+</PRE>
+Take note of <CODE>family</CODE>, <CODE>version</CODE> and <CODE>packagedir</CODE> .
+</P>
+
+<P>Delete things recreated by <CODE>buildinstall</CODE> beforehand.
+<PRE class="xmp">
+	% rm -f ./mymedia/.discinfo
+	% rm -f ./mymedia/.treeinfo
+	% rm -fr ./mymedia/images
+	% rm -fr ./mymedia/isolinux
+	% rm -f ./mymedia/repodata/*
+</PRE>
+You would need content of <CODE>repodata/comps.xml</CODE>, so
+re-copy or move it out on other place before deleting.
+I will assume <CODE>/media/dvd/repodata/comps.xml</CODE> is still intact.
+</P>
+
+<P>Then, invoke the <CODE>buildinstall</CODE> with some options.
+<PRE class="xmp">
+	% sudo /usr/lib/anaconda-runtime/buildinstall --debug \
+	   --product CentOS --version 5.6 --prodpath CentOS \
+	   --release Final-i586 \
+	   --pkgorder ./mymedia/repodata/pkgorder --comps /media/dvd/repodata/comps.xml \
+	   ./mymedia
+</PRE>
+<em>This takes a long time!</em> About 9 hours on 300MHz machine.
+You would like to redirect the output to a logfile.
+</P>
+<P>Unexpected <KBD>sudo</KBD> is needed to let <CODE>buildinstall</CODE>
+use a loopback filesystem.
+</P>
+<P>Internally called <CODE>createrepo</CODE> will consume ~300MB of memory.
+Expect heavy thrashing if the work machine has less. 
+</P>
+<P>As a result, the files you deleted above will be recreated.
+Scratch directories may be lying around in
+<CODE>/tmp/</CODE>, so check out and delete them afterwards.
+</P>
+<P>The recreated files are likely owned by root, so you would
+like to <PRE class="xmp">
+	% sudo chown -R $LOGNAME ./mymedia</PRE>
+</P>
+<P>The generated 
+<CODE>./mymedia/images/<A href="./boot-i586.iso">boot.iso</A></CODE> 
+of about 8MB should boot as a network installer. 
+Try if you're impatient, or want to be sure you didn't goof.
+</P>
+
+<H3>Discussion</H3>
+
+<P><CODE>buildinstall</CODE> does not use the native files 
+of the host machine to build the installer; 
+it unpacks files from the *.rpm in the directory.
+Thus the host doesn't have to be i386; working on x86_64 should be okay.
+</P>
+<P>Fortunately, <CODE>buildinstall</CODE> will pick up the
+i586 kernel and use it to build the installer if the kernel.i586.rpm
+file is in the package directory (--prodpath).
+So the above trick of dropping in the i586 kernel works
+(at least for CentOS 5 anaconda-runtime).
+</P>
+<P>The generated <CODE>images/boot.iso</CODE> should now boot,
+but it won't recognize the official CentOS media as installation source.
+Selecting "Local CDROM" will emit following error:
+
+<CENTER><TABLE border=1 width="60%" >
+<TR><TD><CODE>No CentOS CD was found which matches your boot media.  Please insert the CentOS CD and press OK to retry. </CODE>
+</TABLE></CENTER>
+
+Reason:
+the embedded "/.buildstamp" in the generated boot.iso
+does not match with media's .buildstamp in ${MEDIA}/images/stage2.img .
+<!-- error from anaconda loader2/cdinstall.c -->
+</P>
+
+<P>So you need to re-spin the whole install media as following.
+</P>
+
+<HR><!--=======================================-->
+<H2><A name="step-mkisofs">Step 4. <CODE>mkisofs</CODE></H2>
+
+<P>Respin the media image by <CODE>mkisofs</CODE>.
+</P>
+<P>First,
+<CODE>isolinux.bin</CODE> should be writeable to make it bootable, so
+<PRE class="xmp">
+	% chmod -R +w ./mymedia/isolinux
+</PRE>
+</P>
+<P>Then, build the *.iso image:
+<PRE class="xmp">
+	% mkisofs -v -o ./CentOS-5.6-i586-binDVD.iso \
+	  -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table \
+	  -r -J -V CENTOS_56_I586 -T -f ./mymedia
+</PRE>
+</P>
+<P>Then, embed the MD5 sum of the media you will use for mediacheck:
+<PRE class="xmp">
+	% /usr/lib/anaconda-runtime/implantisomd5 --force ./CentOS-5.6-i586-binDVD.iso
+</PRE>
+</P>
+<P>A <A href="implantisomd5.8.html">simple manpage of <CODE>implantisomd5</CODE></A>
+</P>
+
+<P>Burn the *.iso and try it out on your favorite i586 machine.
+The resulting ISO image uses kernel.i586 and glibc.i386, 
+so the installation should run on K6-2.
+</P>
+
+<HR --=======================================-- />
+<H2><A name="apdx">Appendix</A></H2>
+
+<H3><A name="apdx_nogpg">kernel.i586 on the media won't appear on "yum list"</A></H3>
+
+<P>The added kernel is not signed by the CentOS GPG key.
+So, taking the respun media and getting the media repository contents
+<PRE class="xmp">
+	# yum list --enablerepo='c5-media'
+</PRE> would not list the added kernel.
+</P>
+<P>You must "gpgcheck=0" for the repository.
+For instance, copy the <A href="./media-nogpg.repo">media-nogpg.repo</A> to 
+<CODE>/etc/yum.repos.d/</CODE>, and use 
+<PRE class="xmp">
+	# yum list --enablerepo='media-nogpg'
+</PRE>
+</P>
+
+<HR><!--=======================================-->
+<H2><A name="alts">Alternatives:</A></H2>
+<UL>
+<LI>Replace the CPU with Cyrix MII. 
+    MII will run on i686 kernel, so official media will be installable.
+    (it will even run Ubuntu 11)
+<LI>CentOS 4.x comes with alternative i586 kernel. Boot by<PRE class="xmp">
+    boot&gt; <KBD>i586</KBD>
+</PRE>
+   (although CentOS 4.8 media didn't boot properly on K6-2; CentOS 4.4 did)
+</UL>
+
+<HR --=======================================-- />
+<H3><A name="refs">References</A></H3>
+<UL>
+<LI>CentOS wiki: <A href="http://wiki.centos.org/Projects/CentOS5PentiumSupport" altref="./CentOS5PentiumSupport.html" >CentOS 5 i586 support</A>
+<LI>CentOS wiki: <A href="http://wiki.centos.org/TimothyLee/centos5_i586_patch" altref="./centos5_i586_patch.html" >Building CentOS-5 i586 Kernel</A>
+<LI>Fedora: <A href="https://fedorahosted.org/pungi/">pungi</A> <A href="https://fedorahosted.org/pungi/wiki/PungiDocs">Documentation</A>
+<LI><A href="http://ameblo.jp/iroirosuru/entry-10415311239.html" localref="entry-10415311239.html">CentOS 5.4 for VIA C3</A>
+</UL>
+
+<HR --=======================================-- />
+<ADDRESS>kabe.sra-tohoku.co.jp</ADDRESS>
+</BODY>
+</HTML>

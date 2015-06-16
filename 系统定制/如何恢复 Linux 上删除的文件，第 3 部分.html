@@ -1,0 +1,1421 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+
+  <html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<title>如何恢复 Linux 上删除的文件，第 3 部分</title>
+<meta http-equiv="PICS-Label" content='(PICS-1.1 "http://www.icra.org/ratingsv02.html" l gen true r (cz 1 lz 1 nz 1 oz 1 vz 1) "http://www.rsac.org/ratingsv01.html" l gen true r (n 0 s 0 v 0 l 0) "http://www.classify.org/safesurf/" l gen true r (SS~~000 1))'/>
+<link rel="schema.DC" href="http://purl.org/DC/elements/1.0/"/>
+<link rel="SHORTCUT ICON" href="http://www.ibm.com/favicon.ico"/>
+  <meta name="Owner" content="dw@cn.ibm.com"/>
+  <meta name="DC.Language" scheme="rfc1766" content="zh-CN"/>
+  <meta name="IBM.Country" content="CN"/>
+<meta name="Security" content="Public"/>
+<meta name="IBM.SpecialPurpose" content="SP001"/>
+<meta name="IBM.PageAttributes" content="sid=1003,1004"/>
+<meta name="Source" content="v16 Template Generator"/>
+<meta name="Robots" content="index,follow"/>
+<meta name="Abstract" content="恢复系统中删除的文件是一个非常繁琐的过程，而 e2undel 这个工具可以用来方便地恢复文件系统中已删除的文件。本文将首先讨论 e2undel 的工作原理和用法，并对之进行一些改进。然后讨论了文件系统故障、文件系统重建、磁盘物理损坏等情况下应该如何恢复数据。"/>
+<meta name="Description" content="恢复系统中删除的文件是一个非常繁琐的过程，而 e2undel 这个工具可以用来方便地恢复文件系统中已删除的文件。本文将首先讨论 e2undel 的工作原理和用法，并对之进行一些改进。然后讨论了文件系统故障、文件系统重建、磁盘物理损坏等情况下应该如何恢复数据。"/>
+<meta name="Keywords" content="文件系统，数据恢复，文件洞，目录，链接，inode，ext2, tttlca"/>
+<meta name="DC.Date" scheme="iso8601" content="2008-01-10"/>
+<meta name="DC.Type" scheme="IBM_ContentClassTaxonomy" content="CT316"/>
+<meta name="DC.Subject" scheme="IBM_SubjectTaxonomy" content="SWGC0"/>
+<meta scheme="IBM_WTMCategory" name="IBM.WTMCategory" content="SOFDCLNXCN" />
+<meta name="DC.Rights" content="© Copyright IBM Corporation 2008"/>
+<meta name="IBM.Effective" scheme="W3CDTF" content="2008-01-10"/>
+<meta name="title" content="如何恢复 Linux 上删除的文件，第 3 部分"/>
+
+<!-- HEADER_SCRIPTS_AND_CSS_INCLUDE -->
+<link href="//dw1.s81c.com/common/v16/css/all.css" media="all" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/screen.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/screen-uas.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/cn/zh/screen-fonts.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/handheld.css" media="handheld" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/print.css" media="print" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/overlay.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+
+<!-- dW-specific CSS -->
+<link href="//dw1.s81c.com/developerworks/css/dw-screen.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/dw-local-site.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/dw-screen-comments-ratings-signin.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/js/jquery/cluetip98/jquery.cluetip.css" media="screen,projection" rel="stylesheet"  title="www" type="text/css" />
+
+<!-- JPP: LOCAL URL FOR TESTING V16 DEFIANT MASTHEAD/FOOTER -->
+<link href="//dw1.s81c.com/developerworks/css/dw-mf/dw-mf2012-01.css" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/dw-mf/dw-mf-cn.css" rel="stylesheet" title="www" type="text/css"/>
+<script src="//dw1.s81c.com/common/js/ibmcommon.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/common/js/dynamicnav.js" type="text/javascript">//</script>
+<script language="JavaScript" src="//dw1.s81c.com/developerworks/js/urltactic.js" type="text/javascript"></script>
+<!-- Rating_START -->
+<script language="JavaScript" type="text/javascript">
+  // <![CDATA[
+
+ dwr = {};
+  dwr.clickhere = '点击评分';
+  dwr.starIntro = ''; 
+  dwr.stars = '星';
+  dwr.star = '星'; 
+  dwr.avgRatingOf = '平均分';
+  dwr.youRated = '您的评分是';
+  dwr.avgRating = '平均分';
+  dwr.basedOnVote = '共 {1} 个评分'; // {1} to be substitue by code
+  dwr.basedOnVotes = '共 {1} 个评分';
+  dwr.leftParen = '（'; 
+  dwr.rightParen = ' ）'; 
+  dwr.space = ' '; 
+  dwr.yourRating = '您的评分';
+dwr.avgRating2 = '总共 {1} 评分的平均分';
+dwr.avgRating3 = '平均分{1} 星';
+dwr.rateThisArticle = '为本文评分';
+dwr.votes = '{1}个评分';
+dwr.vote = '{1}个评分';
+dwr.submitErr = '错误：提交失败，请重试。';
+dwr.noRatingErr = '错误：请选择一个评分并重新提交。';
+dwr.submit = '提交';
+// ]]>
+</script>
+
+<!-- Rating_START -->
+<script language="JavaScript" src="//dw1.s81c.com/developerworks/js/artrating/showrating.js" type="text/javascript"></script>
+<style type="text/css">
+  .metavalue {
+  display: none;
+  }
+</style>
+<!-- Rating_END --><!-- RESERVED_HEADER_INCLUDE -->
+<script language="javascript" src="//dw1.s81c.com/developerworks/js/ajax1.js" type="text/javascript"></script>
+<script language="javascript" src="//dw1.s81c.com/developerworks/js/search_counter-maverick.js" type="text/javascript"></script>
+<script language="javascript" src="//dw1.s81c.com/developerworks/js/request_referer_capture-maverick.js" type="text/javascript"></script>
+<script language="JavaScript" type="text/javascript">
+ <!--
+ setDefaultQuery('defaultHere');
+ //-->
+</script>
+<script language="JavaScript" type="text/javascript">
+ <!--
+ function openNewWindow(url,tar,arg){window.open(url,tar,arg);}
+ //-->
+</script>
+  <!-- Include file support -->
+  <script language="JavaScript" type="text/javascript">
+    (function($) {
+    jQuery.extend({
+    getInc: function(u,d){
+    if(u==null)return;
+    jQuery.ajax({
+    type: "GET",
+    url: u,
+    dataType: "text",
+    success: function(t) {
+    jQuery(d).html(t);
+    ibmCommon.initShowHide(jQuery(d).children()[0]);	
+    },
+    async: true
+    });
+    }
+    });
+    })(jQuery);
+  </script>
+</head>
+
+<body id="ibm-com">
+<div id="ibm-top" class="ibm-landing-page">
+
+<!-- MASTHEAD_BEGIN -->
+<!-- MASTHEAD_BEGIN -->
+<div class="ibm-access"><a href="#ibm-content">跳转到主要内容</a></div>
+<div id="ibm-masthead-dw">
+  
+    <!-- TOP ROW -->    
+    <div id="dw-masthead-top-row">
+    	<ul id="ibm-mast-options-dw" class="cn">
+    		<li id="dw-mast-top-0"> 	
+    			<a class="dw-mf-noscript" href="#" title="登录（或注册）需启用 JavaScript">登录 (或注册)</a>
+    		</li>
+    		<li id="dw-mast-top-1" class="dw-mast-top-1-cn">
+    			<a href="#SELECTLANG">中文</a><img class="dw-preload" src="//dw1.s81c.com/developerworks/i/mf/arrow-down-active.gif" width="8" height="7" alt="" />
+    		</li>
+    		<li id="dw-mast-top-2" class="dw-mf-hide">
+    			<a href="#"><img src="/developerworks/mydeveloperworks/profiles/photo.do?userid=[uid]" alt="PHOTO" class="dw-mast-profimg" width="20" height="20"/> [userid]</a>
+    		</li>
+    		<li id="dw-mast-top-3">
+    			<a href="#"><img src="//dw1.s81c.com/developerworks/i/mf/ibm-smlogo.gif" width="44" height="16" alt="IBM®" /></a>
+    		</li>
+    	</ul>
+	</div>
+    
+    <!-- TOP ROW SLIDER -->
+    <div id="ibm-my-menu-dw">    
+        <div class="ibm-ribbon-pane-dw">
+            <div class="ibm-ribbon-section-dw">
+                <!-- Sign-in -->
+                <div class="dw-mast-columns">                
+					<div class="dw-mast-col-1-1">
+						<div id="dw-mast-sso">
+							<!--<div id="dw-mast-sso-reg">
+								<p class="dw-mast-sso-reg-cn">如果您还没有注册到 IBM 注册系统，我们为给您带来的不便表示道歉，并请您马上注册。 							
+									<a href="#" onclick="(function () {window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh&amp;d='+encodeURIComponent(location.href);})();">现在注册</a>。</p>
+							</div>-->
+							<div id="signin_error_mf" class="dw-mf-hide"></div>
+							<div id="dw-mast-sso-form">
+								<form id="sForm_mf" action="" method="post" name="sForm_name_mf" onsubmit="return false;">
+									<div id="dw-mast-sso-id" class="dw-mast-sso-id-cn">
+										<label for="ibmid_mf">IBM ID：</label>
+										<input id="ibmid_mf" type="text" value="" name="ibmid_name_mf" maxlength="100" onkeypress="handleEP(event,this.form,'mf');"/>
+									</div>
+									<div id="dw-mast-sso-pw" class="dw-mast-sso-pw-cn">
+										<label for="pw_mf">密码：</label>
+										<input id="pw_mf" type="password" value="" name="pw_name_mf" maxlength="100" onkeypress="handleEP(event,this.form,'mf');"/>
+									</div>
+									<div id="dw-mast-sso-target" class="dw-mast-sso-target-cn">
+										<p class="dw-mf-perm-box">
+											<input id="perm_mf" type="checkbox" name="perm_name_mf"/><label for="perm_mf"> 保持登录。</label>
+										</p>
+									</div>
+									<div id="dw-mast-sso-terms">
+										<p class="dw-mast-sso-terms-cn">单击提交则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+									<div>
+										<input class="dw-mf-submit-btn-cn" name="ibm_submit_name_mf" value="提交" onclick="signin('mf');return false;" type="submit" />
+									</div>
+								</form>
+							</div>
+							<div id="dw-mast-sso-update">
+								<div id="dw-mast-sso-update-id">
+									<ul>
+										<li><a class="ibm-forward-link" href="#" onclick="(function () {window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.href);})();">需要一个 IBM ID？</a></li>
+										
+									<li><a class="ibm-forward-link" href="/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a></li>
+									</ul>
+								</div>
+								<div id="dw-mast-sso-update-pw">
+								<ul class="dw-mf-pwupdate">
+									<li><a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Dzh_CN%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a></li>
+									<li><a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></li>
+								</ul>
+									</div>
+							</div>
+							<div id="dw-mast-sso-text">
+								<p>当您初次登录到 developerWorks 时，将会为您创建一份概要信息。<strong>您在 developerWorks 概要信息中选择公开的信息将公开显示给其他人，但您可以随时修改这些信息的显示状态。</strong>您的姓名（除非选择隐藏）和昵称将和您在 developerWorks 发布的内容一同显示。</p>
+								<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+							</div>
+							<div class="dw-mast-close">
+								<ul>
+									<li><div class="dw-mast-close-sign-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+								</ul>
+							</div>	
+						</div>
+						
+						<div id="dw-mast-dname" class="dw-mf-hide">
+							<p>当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+							<div id="signin_dname_error_mf" class="dw-mf-hide"></div>
+							<div id="dw-mast-dname-form">
+								<form id="dForm_mf" action="" method="post" name="dForm_name_mf" onsubmit="return false;">
+									<div id="dw-mast-dname-mf">
+										<label for="dname_mf">昵称：</label>
+										<input id="dname_mf" name="dname_name_mf" maxlength="31" size="25" value="" type="text" onkeypress="handleEP(event,this.form,'mf');" />
+									</div>
+									<div id="dw-mast-dname-terms">
+										<p class="dw-mast-dname-terms-cn">单击<strong>提交</strong>则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+									<div>
+										<input class="dw-mf-submit-btn-cn" name="dname_submit_name_mf" value="提交" onclick="signin('mf');return false;" type="submit" />
+									</div>
+								</form>								
+							</div>
+							<div id="dw-mast-dname-secure">
+								<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+							</div>
+							<div class="dw-mast-close">
+								<ul>
+									<li><div class="dw-mast-close-sign-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+								</ul>
+							</div>	
+						</div>
+	
+						<div id="dw-mast-auth" class="dw-mf-hide">
+							<div>
+
+								<h2>My developerWorks:</h2>
+								<ul>
+									<li><a id="dw-mast-top-0-0" href="/developerworks/mydeveloperworks/profiles/html/myProfileView.do?lang=zh">我的概要信息</a></li>
+									<li><a href="/developerworks/mydeveloperworks/homepage?lang=zh">我的首页</a></li>
+									<li><a href="/developerworks/mydeveloperworks/groups/service/html/mycommunities?lang=zh">我的群组</a></li>
+								</ul>     
+							</div>
+							<div id="dw-mast-notify" class="dw-mf-hide">
+								<h2>我的通知：</h2>
+								<ul>
+									<li><a id="new_notify" href="/developerworks/mydeveloperworks/homepage?lang=zh">{[num_notify] 个新通知}([num_notify] 个新通知)</a></li>
+									<li><a id="new_invite" href="/developerworks/mydeveloperworks/profiles/html/wc.do?action=in&requireAuth=true&widgetId=friends&lang=[lang]">{[num_invite] 个网络请求}([num_invite] 个网络请求)</a></li>  
+								</ul>
+							</div>
+							<div class="dw-mast-more">
+								<ul class="ibm-link-list">
+									<li><a class="dw-more-link" href="#" onclick="signOut(); return false;"><strong>退出</strong></a></li>
+								</ul>
+							</div>
+							<div class="dw-mast-close">
+								<ul>
+									<li><div class="dw-mast-close-sign"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+								</ul>
+							</div>		
+						</div>
+						
+					</div>
+                	
+                </div>
+                <!-- Site selector --> 
+				<div class="dw-mast-columns">
+					<div class="dw-mast-col-2-1">
+						<h2>选择语言：</h2>
+						<ul>
+							<li><a id="dw-mast-top-1-0" href="http://www.ibm.com/developerworks/">English</a></li>
+							<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+							<li><a href="http://www.ibm.com/developerworks/jp/">日本語</a></li>
+							<li><a href="http://www.ibm.com/developerworks/kr/">한국어</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-col-2-2">
+						<ul>
+							<li><a href="http://www.ibm.com/developerworks/ru/">Русский</a></li>
+							<li><a href="http://www.ibm.com/developerworks/br/">Português (Brasil)</a></li>
+							<li><a href="http://www.ibm.com/developerworks/ssa/">Español</a></li>
+							<li><a href="http://www.ibm.com/developerworks/vn/">Việt</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-close">
+						<ul>
+							<li><div class="dw-mast-close-lang"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+						</ul>
+                    </div>
+                </div>
+                <div class="dw-mast-columns"><!-- Authenticated --></div>
+                <!-- IBM -->
+				<div class="dw-mast-columns">
+					<div class="dw-mast-col-2-1">
+						<ul>
+							<li><a id="dw-mast-top-3-0" href="http://www.ibm.com/cn/zh/">IBM 主页</a></li>
+							<li><a href="http://www.ibm.com/solutions/cn/zh/">解决方案</a></li>
+							<li><a href="http://www.ibm.com/software/cn/">软件</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-col-2-2 dw-mast-ibm">
+						<ul>
+							<li><a href="http://www.ibm.com/support/cn/zh/">支持门户</a></li>
+							<li><a href="http://www.ibm.com/support/documentation/cn/zh/">产品文档</a></li>
+							<li><a href="http://www.ibm.com/redbooks/">Redbooks（英文）</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-close">
+						<ul>
+							<li><div class="dw-mast-close-ibm-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+						</ul>
+                    </div> 
+				</div>
+			</div>
+        </div>
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div id="ibm-universal-nav-dw">
+        <ul id="ibm-unav-links-dw">
+        	<li id="ibm-unav-home-dwlogo">
+        		<a href="http://www.ibm.com/developerworks/cn/"><img src="//dw1.s81c.com/developerworks/i/mf/dw-wordmark.gif" width="218" height="32" alt="developerWorks®" /></a>
+        	</li>
+        </ul>
+    	<ul id="ibm-menu-links-dw" class="ibm-menu-links-dw-cn">
+    		
+    		<li id="dw-mast-nav-0"><a href="http://www.ibm.com/developerworks/cn/topics">技术主题</a></li>
+    		<li id="dw-mast-nav-1"><a
+    			href="http://www.ibm.com/developerworks/cn/downloads/">软件下载</a></li>
+    		<li id="dw-mast-nav-2"><a
+    			href="https://www.ibm.com/developerworks/community/?lang=zh">社区</a></li>
+    		<li id="dw-mast-nav-3"><a href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></li>
+    	</ul>   
+    	<form id="ibm-search-form" action="//www.ibm.com/search/csass/search/" method="get" name="form1">
+    		<input type="hidden" name="sn" value="dw" />
+    		<input type="hidden" name="lang" value="zh" />
+    		<input type="hidden" name="cc" value="CN" />
+    		<input type="hidden" name="en" value="utf" />
+    		<input type="hidden" name="hpp" value="20" />
+    		<input type="hidden" name="dws" value="cndw" />
+    		<input type="hidden" name="lo" value="zh" />
+    		<p>
+    			<label for="q"><img alt="查询:" height="1" width="1" src="//dw1.s81c.com/i/c.gif" /></label>
+    			<input type="text" value="搜索 developerWorks" name="q" maxlength="100" id="q"/>
+    			<input type="submit" id="ibm-search" class="ibm-btn-search ibm-btn-search-cn" name="Search" value="搜索" />
+    		</p>
+    	</form>
+    </div>
+    
+    <!-- BOTTOM ROW SLIDER -->
+    <div id="ibm-common-menu-dw">
+        <div class="ibm-ribbon-pane-dw">
+            <div class="ibm-ribbon-section-dw">
+				<!-- Technical topics category -->
+  
+            	<div class="dw-mast-columns">
+            	<div class="dw-mast-col-4-1">
+            		<h2><a id="dw-mast-nav-0-0" href="http://www.ibm.com/developerworks/cn/topics/">技术主题</a></h2>
+            		
+            		<ul>
+            			<li><a href="http://www.ibm.com/developerworks/cn/aix/">AIX and UNIX</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/cloud/">Cloud computing</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/ibmi/">IBM i</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/data/">Information management</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/java/">Java technology</a></li>
+            			
+            		</ul>     
+            	</div>
+            	<div class="dw-mast-col-4-2">
+            		
+            		<ul>
+            			<li><a href="http://www.ibm.com/developerworks/cn/linux/">Linux</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/lotus/">Lotus</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/opensource/">Open source</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/rational/">Rational</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/webservices/">SOA and web services</a></li>
+            			
+            		</ul>
+            	</div>
+            	<div class="dw-mast-col-4-3">
+            		
+            		<ul>
+            			<li><a href="http://www.ibm.com/developerworks/cn/web/">Web development</a></li>  
+            			<li><a href="http://www.ibm.com/developerworks/cn/websphere/">WebSphere</a></li>     
+            			<li><a href="http://www.ibm.com/developerworks/cn/xml/">XML</a></li> 
+            		</ul>
+            		
+            	</div>
+            	<div class="dw-mast-col-4-4">
+            		<ul>
+            			<li><a href="http://www.ibm.com/developerworks/cn/library/"><strong>文档库</strong></a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/products/"><strong>产品 A - Z</strong></a></li>				    
+            		</ul>        
+            	</div>
+            	<div class="dw-mast-close">
+            		<ul>
+            			<li><div class="dw-mast-close-tech-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            		</ul>
+            	</div>
+            </div>
+            	<!-- Evaluation software category -->
+            	<div class="dw-mast-columns">
+            		<div class="dw-mast-col-2-1">
+            			<h2><a id="dw-mast-nav-1-0" href="http://www.ibm.com/developerworks/cn/downloads">软件下载</a></h2>
+            			<ul>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#data">Information management</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#lotus">Lotus</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#rational">Rational</a></li>
+            			</ul>            
+            		</div>
+            		<div class="dw-mast-col-2-2">
+            			<ul>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#tivoli">Tivoli</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#websphere">WebSphere</a></li>
+            				
+            			</ul>            
+            		</div>
+            		<div class="dw-mast-close">
+            			<ul>
+            				<li><div class="dw-mast-close-eval-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            			</ul>
+            		</div>
+            	</div>
+            	<!-- Community category -->
+            	<div class="dw-mast-columns">
+            		<div class="dw-mast-col-2-1">
+            			<h2><a id="dw-mast-nav-2-0" href="https://www.ibm.com/developerworks/community/?lang=zh">社区</a></h2>
+            			<ul>
+            				<li><a href="https://www.ibm.com/developerworks/community/homepage/?lang=zh">我的首页</a></li>
+            				<li><a href="https://www.ibm.com/developerworks/community/profiles/home.do?lang=zh">概要信息</a></li>
+            				<li><a href="https://www.ibm.com/developerworks/community/groups/service/html/allcommunities?lang=zh">群组</a></li>
+            				<li><a href="https://www.ibm.com/developerworks/mydeveloperworks/blogs/?lang=zh">博客</a></li>
+            				<li><a href="https://www.ibm.com/developerworks/community/bookmarks/html?lang=zh">书签</a></li>  
+            			</ul>     
+            		</div>
+            		<div class="dw-mast-col-2-2">
+            			<ul>
+            				<!--	<li><a href="">Forums</a></li> -->
+            				<li><a href="https://www.ibm.com/developerworks/mydeveloperworks/wikis/home?lang=zh">Wiki</a></li>
+            				<li><a href="https://www.ibm.com/developerworks/community/files/app?lang=zh">文件</a></li>
+            				<li><a href="https://www.ibm.com/developerworks/community/activities/service/html/mainpage?lang=zh#dashboard,myactivities">活动</a></li>
+            				<!--	<li><a href="">Podcasts</a></li> -->    
+            			</ul>
+            		</div>
+            		<div class="dw-mast-close">
+            			<ul>
+            				<li><div class="dw-mast-close-comm-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            			</ul>
+            		</div>
+            	</div>
+            	<!-- Events category -->
+            	<div class="dw-mast-columns">
+            		<div class="dw-mast-col-1-1">
+            			<h2><a id="dw-mast-nav-3-0" href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></h2>
+            			<ul>
+            				<li><a href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/swi/">多媒体课堂</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/find/webcasts/">网络广播（英文）</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/find/events/">查找活动（技术讲座，网络广播，会议等）（英文）</a></li> 
+            			</ul>            
+            		</div>
+            		<div class="dw-mast-close">
+            			<ul>
+            				<li><div class="dw-mast-close-event-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            			</ul>
+            		</div>
+            	</div>
+            </div>
+        </div>
+    </div>
+	
+</div>
+<div id="fdiv" class="ibm-access"></div>
+<!-- MASTHEAD_END --><!-- MASTHEAD_END -->
+
+<div id="ibm-pcon">
+
+<!-- CONTENT_BEGIN -->
+<div id="ibm-content">
+
+<!-- Navigation_Trail_BEGIN -->
+<!-- &nbsp; -->
+      <div id="ibm-content-head"><ul id="ibm-navigation-trail"><li class="ibm-first"><a href="http://www.ibm.com/developerworks/cn/">developerWorks 中国</a></li><li><a href="http://www.ibm.com/developerworks/cn/linux/">Linux</a></li><li><a href="http://www.ibm.com/developerworks/cn/views/linux/libraryview.jsp">文档库</a></li></ul></div>
+<!-- Navigation_Trail_END -->
+
+<!-- dW_Summary Area_START -->
+<div id="dw-summary-article">
+
+<div class="dw-content-head">
+<h1>如何恢复 Linux 上删除的文件，第 3 部分</h1><p><em>自动恢复工具 e2undel 和特殊情况的恢复</em></p>
+</div>
+
+<div class="ibm-container-body ibm-two-column">
+
+<div class="ibm-column ibm-first">
+<div class="author"><a class="dwauthor" rel="#authortip1" href="#author1">冯 锐</a> (<a href="mailto:fengrui@cn.ibm.com?subject=如何恢复 Linux 上删除的文件，第 3 部分">fengrui@cn.ibm.com</a>), 软件工程师, 
+				IBM
+			</div><div id="authortip1" class="dwauthor-onload-state ibm-no-print">冯锐，软件工程师，目前在 IBM 开发中心从事 AIX 性能测试方面的工作。您可以通过 fengrui@cn.ibm.com 与他联系。</div><div class="author"><a class="dwauthor" rel="#authortip2" href="#author2">王 磊</a> (<a href="mailto:cdlwangl@cn.ibm.com?subject=如何恢复 Linux 上删除的文件，第 3 部分">cdlwangl@cn.ibm.com</a>), 软件工程师, IBM</div><div id="authortip2" class="dwauthor-onload-state ibm-no-print">王磊，软件工程师，目前在 IBM 开发中心从事 AIX 性能测试方面的工作，您可以通过 cdlwangl@cn.ibm.com 与他联系。</div>
+<p></p>
+  <p><strong>简介：</strong>&nbsp;恢复系统中删除的文件是一个非常繁琐的过程，而 e2undel 这个工具可以用来方便地恢复文件系统中已删除的文件。本文将首先讨论 e2undel 的工作原理和用法，并对之进行一些改进。然后讨论了文件系统故障、文件系统重建、磁盘物理损坏等情况下应该如何恢复数据。</p>
+
+  <!-- <p class="ibm-no-print"><div id="dw-tag-this" class="ibm-no-print"></div><div id="interestShow" class="ibm-no-print"></div></p> -->
+<div id="dw-tag-content" class="ibm-no-print"></div><div id="dw-moretags-access" class="ibm-access"></div>
+<p class="ibm-no-print"><div id="dw-tag-this" class="ibm-no-print"><a class="ibm-external-link" onclick="jQuery.launchTagThisWindow(); return false;" href="#">标记本文！</a></div><div id="interestShow" class="ibm-no-print"></div></p>
+</div>
+
+<div class="ibm-column ibm-second">
+
+<p class="leading"><b>发布日期：</b>&nbsp;2008 年 1 月 10 日
+  
+
+    
+
+<br /><strong>访问情况 ：</strong>&nbsp;5937 次浏览
+  <br /><strong>评论：</strong>&nbsp;<span id="nCmts"><img alt="" src="//dw1.s81c.com/developerworks/i/circle-preloader.gif" height="12" width="50" /><img alt="" src="//dw1.s81c.com/i/c.gif" height="14" width="1" /></span>
+  <!-- Rating_Area_Begin -->
+  <div id="art-rating-summary"></div>
+  <!-- Rating_Area_End -->
+  <br />
+</p>
+</div>
+
+</div>
+</div>
+<!-- dW_Summary_Area_END -->
+
+<!-- CONTENT_BODY -->
+<div id="ibm-content-body">
+
+<!-- MAIN_COLUMN_BEGIN -->
+<div id="ibm-content-main">
+
+<!-- Related_Searches_Area_And_Overlays_Begin -->
+
+<!-- MAIN_COLUMN_CONTAINER_BEGIN -->
+<div class="ibm-container">
+
+<!-- MAIN_COLUMN_CONTENT_BEGIN -->
+<p>在本系列文章的前两部分中，我们介绍了 ext2 文件系统中各种文件在磁盘上的存储结构，以及如何利用 debugfs 工具的辅助，手工恢复这些文件的详细过程。</p>
+            <p>通过这两部分的学习，我们可以看出恢复系统中删除的文件是一个非常繁琐的过程，需要非常仔细地考虑各种情况，并且要保持足够的细心，才可能把数据准确无误地恢复出来。稍有差错，就会造成数据丢失的情况。聪明的读者肯定会想，如果有一些好工具来自动或辅助完成数据的恢复过程，那简直就太好了。</p>
+            <p>幸运的是，已经有人开发了这样一些工具，来简化用户的数据恢复工作，e2undel 就是其中功能最为强大的一个。</p>
+            <p><a name="1.自动恢复工具 e2undel"><span class="atitle">自动恢复工具 e2undel</span></a></p>
+            <p>回想一下，在 ext2 文件系统中删除一个文件时，该文件本身的数据并没有被真正删除，实际执行的操作如下：</p>
+            <ol type="1">
+                <li>
+在块位图中将该文件所占用的数据块标识为可用状态。</li>
+                <li>
+在索引节点位图中将该文件所占用的索引节点标识为可用状态。</li>
+                <li>
+将该文件索引节点中的硬链接数目设置为 0。</li>
+                <li>
+将该文件索引节点中的删除时间设置为当前时间。</li>
+                <li>
+将父目录项中该文件对应项中的索引节点号设置为 0，并扩展前一项，使其包含该项所占用的空间。</li>
+            </ol>
+            <p>而索引节点中的一些关键信息（或称为元数据，包括文件属主、访问权限、文件大小、该文件所占用的数据块等）都并没有发生任何变化。因此只要知道了索引节点号，就完全可以用本系列文章介绍的技术将文件完整地从磁盘上恢复出来了，这正是 e2undel 之类的工具赖以生存的基础。</p>
+            <p>然而，由于所删除的文件在目录项中对应的项中的索引节点号被清空了，因此我们就无法从索引节点中获得文件名的信息了。不过，由于文件大小、属主和删除时间信息依然能反映文件的原始信息，因此我们可以通过这些信息来帮助判断所删除的文件是哪个。</p>
+            <p>e2undel 是由Oliver Diedrich 开发的一个用来恢复 ext2 文件系统中已删除文件的工具，它会遍历所检测的文件系统的索引节点表，从中找出所有被标记为删除的索引节点，并按照属主和删除时间列出这些文件。另外，e2undel 还提供了文件大小信息，并试图按照 file 命令的方式来确定文件类型。如果您使用 rm –rf * 之类的命令一次删除了很多文件，这种信息就可以用来非常方便地帮助确定希望恢复的是哪些文件。在选择要恢复的文件之后，e2undel 会从磁盘上读取该文件占用的数据块（这些数据块的信息全部保存在索引节点中），并将其写入到一个新文件中。下面我们来看一下 e2undel 这个工具的详细用法。</p>
+            <p>首先请从 e2undel 的主页（http://e2undel.sourceforge.net/）上下载最新的源码包（截止到撰写本文为止，最新的版本是 0.82），并将其保存到本地文件系统中。不过这个源码包在最新的 Fedora Core 8 上编译时可能会有些问题，这是由于 ext2 文件系统内部实现中一些数据结构的变化引起来的，读者可以下载本文“下载”部分给出的补丁来修正这个问题（请下载这个补丁文件 e2undel-0.82.patch，并将其保存到与源码包相同的目录中）。要想编译 e2undel，系统中还必须安装 e2fsprogs 和 e2fsprogs-devel 这两个包，其中有编译 e2undel 所需要的一些头文件。Fedora Core 8 中自带的这两个包的版本号是 1.39-7：</p>
+            <br /><a name="N10095"><b>清单1. 确认系统中已经安装了 e2fsprogs 和 e2fsprogs-devel</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# rpm -qa | grep e2fsprogs
+e2fsprogs-libs-1.39-7
+e2fsprogs-1.39-7
+e2fsprogs-devel-1.39-7
+</pre></td></tr></table><br />
+            <p>现在就可以开始编译 e2undel 了：</p>
+            <br /><a name="N100A2"><b>清单2. 编译 e2undel</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# tar -zxf e2undel-0.82.tgz      
+
+# patch -p0 &lt; e2undel-0.82.patch 
+patching file e2undel-0.82/Makefile
+patching file e2undel-0.82/e2undel.h
+patching file e2undel-0.82.orig/libundel.c
+
+# cd e2undel-0.82
+# make all
+</pre></td></tr></table><br />
+            <p>编译之后会生成一个名为 e2undel 的可执行文件，其用法如下：</p>
+            <br /><a name="N100AF"><b>清单3. e2undel 的用法</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# ./e2undel 
+./e2undel 0.82
+usage: ./e2undel -d device -s path [-a] [-t]
+usage: ./e2undel -l
+'-d': file system where to look for deleted files
+'-s': directory where to save undeleted files
+'-a': work on all files, not only on those listed in undel log file
+'-t': try to determine type of deleted files w/o names, works only with '-a'
+'-l': just give a list of valid files in undel log file
+</pre></td></tr></table><br />
+            <p>e2undel 实际上并没有像前面介绍的使用 e2fsck 那样的方法一样真正将已经删除的文件恢复到原来的文件系统中，因为它并不会修改磁盘上 ext2 使用的内部数据结构（例如索引节点、块位图和索引节点位图）。相反，它仅仅是将所删除文件的数据恢复出来并将这些数据保存到一个新文件中。因此，-s 参数指定是保存恢复出来的文件的目录，最好是在另外一个文件系统上，否则可能会覆盖磁盘上的原有数据。如果指定了 -t 参数，e2undel 会试图读取文件的前 1KB 数据，并试图从中确定该文件的类型，其原理与系统中的 file 命令非常类似，这些信息可以帮助判断正在恢复的是什么文件。</p>
+            <p>下面让我们来看一个使用 e2undel 恢复文件系统的实例。</p>
+            <br /><a name="N100BF"><b>清单4. 使用 e2undel 恢复文件的实例</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# ./e2undel -a -t -d /dev/sda2 -s /tmp/recover/
+./e2undel 0.82
+Trying to recover files on /dev/sda2, saving them on /tmp/recover/
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+/dev/sda2 opened for read-only access
+/dev/sda2 was not cleanly unmounted.
+Do you want wo continue (y/n)? <strong>y</strong>
+489600 inodes (489583 free)
+977956 blocks of 4096 bytes (941677 free)
+last mounted on Fri Dec 28 16:21:50 2007
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+reading log file: opening log file: No such file or directory
+no entries for /dev/sda2 in log file
+searching for deleted inodes on /dev/sda2:
+|==================================================|
+489600 inodes scanned, 26 deleted files found
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+   user name | 1 &lt;12 h | 2 &lt;48 h | 3  &lt;7 d | 4 &lt;30 d | 5  &lt;1 y | 6 older
+-------------+---------+---------+---------+---------+---------+--------
+        root |       0 |       0 |       0 |       2 |       0 |       0
+       phost |      24 |       0 |       0 |       0 |       0 |       0
+Select user name from table or press enter to exit: <strong>root</strong>
+Select time interval (1 to 6) or press enter to exit: <strong>4</strong>
+            </pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+  inode     size  deleted at        name
+-----------------------------------------------------------
+     13    35840  Dec 19 17:43 2007 * ASCII text
+     14 10485760  Dec 19 17:43 2007 * ASCII text
+Select an inode listed above or press enter to go back: <strong>13</strong>  
+35840 bytes written to /tmp/recover//inode-13-ASCII_text
+Select an inode listed above or press enter to go back: 
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+   user name | 1 &lt;12 h | 2 &lt;48 h | 3  &lt;7 d | 4 &lt;30 d | 5  &lt;1 y | 6 older
+-------------+---------+---------+---------+---------+---------+--------
+        root |       0 |       0 |       0 |       2 |       0 |       0
+       phost |      24 |       0 |       0 |       0 |       0 |       0
+Select user name from table or press enter to exit: 
+#
+</pre></td></tr></table><br />
+            <p>e2undel 是一个交互式的命令，命令执行过程中需要输入的内容已经使用黑体表示出来了。从输出结果中可以看出，e2undel 一共在这个文件系统中找到了 26 个文件，其中 root 用户删除的有两个。这些文件按照删除时间的先后顺序被划分到几类中。索引节点号 13 对应的是一个  ASCII 正文的文本文件，最终被恢复到 /tmp/recover//inode-13-ASCII_text 文件中。查看一下这个文件就会发现，正是我们在本系列前两部分中删除的那个 35KB 的测试文件。</p>
+            <p><a name="N100E9"><span class="smalltitle">利用 libundel 库完美恢复文件</span></a></p>
+            <p>尽管 e2undel 可以非常方便地简化恢复文件的过程，但是美中不足的是，其恢复出来的文件的文件名却丢失了，其原因是文件名是保存在父目录的目录项中的，而不是保存在索引节点中的。本系列文章第 2 部分中给出了一种通过遍历父目录的目录项来查找已删除文件的文件名的方法，但是由于索引节点会被重用，因此通过这种方式恢复出来的文件名也许并不总是正确的。另外，如果目录结构的非常复杂，就很难确定某个文件的父目录究竟是哪个，因此查找正确文件名的难度就会变得很大。如果能在删除文件时记录下索引节点号和文件名之间的对应关系，这个问题就能完美地解决了。</p>
+            <p>这个问题在 e2undel 中得到了完美的解决。实际上，所有删除命令，例如 rm、unlink 都是通过一些底层的系统调用（例如 unlink(2)、rmdir(2)）来实现的。基于这一点，e2undel 又利用了Linux 系统中动态链接库加载时提供的一种便利：如果设置了环境变量 LD_PRELOAD，那么在加载动态链接库时，会优先从 $LD_PRELOAD 指向的动态链接库中查找符号表，然后才会在系统使用 ldconfig 配置的动态链接库中继续查找符号表。因此，我们可以在自己编写的库函数中实现一部分系统调用，并将这个库优先于系统库加载，这样就能欺骗系统使用我们自己定义的系统调用来执行原有的操作。具体到 e2undel 上来说，就是要在调用这些系统调用删除文件时，记录下文件名和索引节点号之间的对应关系。</p>
+            <p>在编译 e2undel 源代码之后，还会生成一个库文件 libundel.so.1.0，其中包含了删除文件时所使用的一些系统调用的钩子函数。e2undel官方主页上下载的源码包中仅仅包括了对 unlink(2) 和 remove(3) 这两个系统调用的钩子函数，但是从 2.6.16 版本的内核开始，引入了一系列新的系统调用，包括 faccessat(2), fchmodat(2), fchownat(2), fstatat(2), futimesat(2), linkat(2), mkdirat(2),  mknodat(2),  openat(2), readlinkat(2), renameat(2), symlinkat(2), unlinkat(2), mkfifoat(3) 等，尽管这些系统调用目前还没有成为POSIX标准的一部分，但是相信这个过程不会很久了。目前诸如 Fecora Core 8 之类的系统中自带的 rm 命令（属于 coreutils）包已经使用这些新的系统调用进行了改写，另外本文下载部分中的补丁文件中已经提供了对 rmdir 和 unlinkat 的钩子函数。部分源代码如下所示：</p>
+            <br /><a name="N100FB"><b>清单5. libundel.c 代码片断</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+void _init()
+{
+  f = fopen("/var/e2undel/e2undel", "a");
+  if (!f)
+    fprintf(stderr, "libundel: can't open log file, undeletion disabled\n");
+}
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+......
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+int rmdir(const char *pathname)
+{
+  int err;
+  struct stat buf;
+  char pwd[PATH_MAX];
+  int (*rmdirp)(char *) = dlsym(RTLD_NEXT, "rmdir");
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+  if (NULL != pathname)
+  {
+    if (__lxstat(3, pathname, &amp;buf)) buf.st_ino = 0;
+    if (!realpath(pathname, pwd)) pwd[0] = '\0';
+  }
+  err = (*rmdirp)((char *) pathname);
+  if (err) return err;      /* remove() did not succeed */
+  if (f)
+  {
+    if (!S_ISLNK(buf.st_mode))  /* !!! should we check for other file types? */
+    {                         /* don't log deleted symlinks */
+      fprintf(f, "%ld,%ld::%ld::%s\n",
+              (long) (buf.st_dev &amp; 0xff00) / 256,
+              (long) buf.st_dev &amp; 0xff,
+              (long) buf.st_ino, pwd[0] ? pwd : pathname);
+      fflush(f);
+    }
+  }   /* if (f) */
+    return err;
+}   /* rmdir() */
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+......
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+void _fini()
+{
+  if (f) fclose(f);
+}
+</pre></td></tr></table><br />
+            <p>_init 和 _fini 这两个函数分别在打开和关闭动态链接库时执行，分别用来打开和关闭日志文件。如果某个命令（例如 rm）执行了 rmdir 系统调用，就会被这个库接管。rmdir 的处理比较简单，它先搜索到真正的 rmdir 系统调用的符号表，然后使用同样的参数来执行这个系统调用，如果成功，就将有关索引节点和文件名之类的信息记录到日志中（默认是 /var/e2undel/ e2undel）。</p>
+            <p>这个库的使用非常简单，请执行下面的命令：</p>
+            <br /><a name="N1011F"><b>清单6. libundel 的设置</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# cp libundel.so.1.0 /usr/local/lib
+# cd /usr/local/lib
+# ln -s libundel.so.1.0 libundel.so.1
+# ln –s libundel.so.1.0 libundel.so
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+# ldconfig
+# mkdir /var/e2undel
+# chmod 711 /var/e2undel
+# touch /var/e2undel/e2undel
+# chmod 622 /var/e2undel/e2undel
+</pre></td></tr></table><br />
+            <p>上面的设置仅仅允许 root 用户可以恢复文件，如果希望让普通用户也能恢复文件，就需要修改对应文件的权限设置。</p>
+            <p>现在尝试以另外一个用户的身份来删除些文件：</p>
+            <br /><a name="N10133"><b>清单7. 设置libundel之后删除文件</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+$ export LD_PRELOAD=/usr/local/lib/libundel.so
+$ rm -rf e2undel-0.82
+</pre></td></tr></table><br />
+            <p>要想记录所有用户的删除文件的操作，可以将 export LD_PRELOAD=/usr/local/lib/libundel.so 这行内容加入到 /etc/profile 文件中。</p>
+            <p>现在使用 e2undel 来恢复已删除的文件就变得简单多了，因为已经可以通过文件名来恢复文件了：</p>
+            <br /><a name="N10143"><b>清单8. e2undel 利用 libundel 日志恢复删除文件</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# ./e2undel -a -t -d /dev/sda2 -s /tmp/recover/ 
+./e2undel 0.82
+Trying to recover files on /dev/sda2, saving them on /tmp/recover/
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+/dev/sda2 opened for read-only access
+/dev/sda2 was not cleanly unmounted.
+Do you want wo continue (y/n)? <strong>y</strong>
+489600 inodes (489531 free)
+977956 blocks of 4096 bytes (941559 free)
+last mounted on Fri Dec 28 20:45:05 2007
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+reading log file: 
+found 24 entries for /dev/sda2 in log file
+searching for deleted inodes on /dev/sda2:
+|==================================================|
+489600 inodes scanned, 26 deleted files found
+checking names from log file for deleted files: 24 deleted files with names
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+   user name | 1 &lt;12 h | 2 &lt;48 h | 3  &lt;7 d | 4 &lt;30 d | 5  &lt;1 y | 6 older
+-------------+---------+---------+---------+---------+---------+--------
+        root |       0 |       0 |       0 |       2 |       0 |       0
+       phost |      24 |       0 |       0 |       0 |       0 |       0
+Select user name from table or press enter to exit: <strong>phost</strong>
+Select time interval (1 to 6) or press enter to exit: <strong>1</strong>
+            </pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+  inode     size  deleted at        name
+-----------------------------------------------------------
+ 310083        0  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82
+ 310113     2792  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/BUGS
+ 310115     3268  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/HISTORY
+ 310116     1349  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/INSTALL
+ 310117     1841  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/INSTALL.de
+ 310118     2175  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/Makefile
+ 310119    12247  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/README
+ 310120     9545  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/README.de
+ 310121    13690  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/apprentice.c
+ 310122    19665  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/ascmagic.c
+ 310123      221  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/common.h
+ 310124     1036  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/compactlog.c
+ 310125    30109  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/e2undel.c
+ 310127     2447  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/e2undel.h
+ 310128     1077  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/file.c
+ 310129     2080  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/file.h
+ 310130     4484  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/find_del.c
+ 310131     2141  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/is_tar.c
+ 310132     2373  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/libundel.c
+ 310133     7655  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/log.c
+ 310134    39600  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/magic.h
+ 310135     4591  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/names.h
+ 310136    13117  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/softmagic.c
+ 310137     5183  Dec 29 17:23 2007 /tmp/test/undel/e2undel-0.82/tar.h
+</pre></td></tr></table><br />
+            <p>如果对所有用户都打开这个功能，由于日志文件是单向增长的，随着时间的推移，可能会变得很大，不过 e2undel 中还提供了一个 compactlog 工具来删除日志文件中的重复项。</p>
+            <p>在学习本系列文章介绍的技术之后，利用 e2undel 之类的工具，并使用本系列文章第一部分中提供的补丁，恢复删除文件就变得非常简单了。但是在日常使用过程中，大家可能还会碰到一些意外的情况，比如文件系统发生问题，从而无法正常挂载；使用 mke2fs 之类的工具重做了文件系统；甚至磁盘上出现坏道。此时应该如何恢复系统中的文件呢，下面让我们来逐一看一下如何解决这些问题。</p>
+            <div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="2.文件系统故障的恢复"><span class="atitle">文件系统故障的恢复</span></a></p>
+            <p>回想一下，在超级块中保存了有关文件系统本身的一些数据，在 ext2 文件系统中，还使用块组描述符保存了有关块组的信息；另外，索引节点位图、块位图中分别保存了索引节点和磁盘上数据块的使用情况，而文件本身的索引节点信息（即文件的元数据）则保存在索引节点表中。这些数据对于文件系统来说都是至关重要的，它们是存取文件的基础。如果超级块和块组描述符的信息一旦出错，则会造成文件系统无法正常挂载的情况出现。造成这些信息出错的原因有：</p>
+            <ul>
+                <li>
+系统管理员操作失误。</li>
+                <li>
+设备驱动程序或第三方软件（例如mke2fs之类的）有 bug。</li>
+                <li>
+电源意外断电。</li>
+                <li>
+内核有 bug。</li>
+            </ul>
+            <p>如果出现这种问题，可能造成的后果有：</p>
+            <ol type="1">
+                <li>
+文件系统无法挂载。</li>
+                <li>
+操作系统挂起。</li>
+                <li>
+即使文件系统能够成功挂载，在系统重启时也可能会看到一些错误，或者目录列表中出现乱字符的情况等。</li>
+            </ol>
+            <p>下面让我们来模拟一个出现这种错误的情况。我们知道，超级块信息就保存在分区中的第一个块中，现在我们来试验一下清空这个块中数据的后果：</p>
+            <br /><a name="N10197"><b>清单9. 清空超级块信息的后果</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# dd if=/dev/zero of=/dev/sda2 bs=4096 count=1
+</pre></td></tr></table><br />
+            <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+# mount /dev/sda2 /tmp/test -t ext2
+mount: wrong fs type, bad option, bad superblock on /dev/sda2,
+       missing codepage or helper program, or other error
+       In some cases useful info is found in syslog - try
+       dmesg | tail  or so
+</pre></td></tr></table><br />
+            <p>由于无法从磁盘上读取到有效的超级块信息，mount 命令已经无法挂载 /dev/sda2 设备上的文件系统了。</p>
+            <p>为了防止这个问题会造成严重的后果，ext2 文件系统会在每个块组中保存一份超级块的拷贝。当然，这会造成一定的空间浪费，因此在最新的 ext2 文件系统中，只是在特定的块组中保存一份超级块的拷贝。具体来说，是在第 0、1 个块组和第 3、5、7 的整数次幂个块组中保存一份超级块的拷贝，而其他块组中的空间都可以节省出来了。下面来看一个 20GB 大小的文件系统的实际例子：</p>
+            <br /><a name="N101AB"><b>清单10. ext2 文件系统中超级块拷贝的位置</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# dumpe2fs /dev/sdb6 | grep -i superblock
+dumpe2fs 1.39 (29-May-2006)
+  Primary superblock at 0, Group descriptors at 1-2
+  Backup superblock at 32768, Group descriptors at 32769-32770
+  Backup superblock at 98304, Group descriptors at 98305-98306
+  Backup superblock at 163840, Group descriptors at 163841-163842
+  Backup superblock at 229376, Group descriptors at 229377-229378
+  Backup superblock at 294912, Group descriptors at 294913-294914
+  Backup superblock at 819200, Group descriptors at 819201-819202
+  Backup superblock at 884736, Group descriptors at 884737-884738
+  Backup superblock at 1605632, Group descriptors at 1605633-1605634
+  Backup superblock at 2654208, Group descriptors at 2654209-2654210
+  Backup superblock at 4096000, Group descriptors at 4096001-4096002
+</pre></td></tr></table><br />
+            <p>这是一个 20GB 大的 ext2 文件系统，每个块组的大小是 32768 个块，超级块一共有 11 个拷贝，分别存储在第 0、1、3、5、7、9、25、27、49、81 和 125 个块组中。默认情况下，内核只会使用第一个超级块中的信息来对磁盘进行操作。在出现故障的情况下，就可以使用这些超级块的备份来恢复数据了。具体说来，有两种方法：首先 mount 命令可以使用 sb 选项指定备用超级块信息来挂载文件系统：</p>
+            <br /><a name="N101B8"><b>清单11. 使用超级块拷贝挂载文件系统</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# mount -o sb=131072 /dev/sda2 /tmp/test -t ext2
+</pre></td></tr></table><br />
+            <p>需要注意的是，mount 命令中块大小是以 1024 字节为单位计算的，而这个文件系统则采用的是 4096 字节为单位的块，因此 sb 的值应该是 32768*4=131072。</p>
+            <p>尽管 mount 命令可以使用备用超级块来挂载文件系统，但却无法修复主超级块的问题，这需要使用 e2fsck 这个工具来完成：</p>
+            <br /><a name="N101C8"><b>清单12. 利用 e2fsck 工具修复 ext2 文件系统中主超级块的问题</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# e2fsck /dev/sda2
+e2fsck 1.40.2 (12-Jul-2007)
+Couldn't find ext2 superblock, trying backup blocks...
+/dev/sda2 was not cleanly unmounted, check forced.
+Pass 1: Checking inodes, blocks, and sizes
+Pass 2: Checking directory structure
+Pass 3: Checking directory connectivity
+Pass 4: Checking reference counts
+Pass 5: Checking group summary information
+
+/dev/sda2: ***** FILE SYSTEM WAS MODIFIED *****
+/dev/sda2: 11/489600 files (9.1% non-contiguous), 17286/977956 blocks
+
+# mount /dev/sda2 /tmp/test -t ext2
+</pre></td></tr></table><br />
+            <p>e2fsck 工具可以检查出主超级块的问题，然后从其他超级块拷贝中读取数据，并使用它来恢复主超级块中的数据（在 ext2 文件系统中，超级块信息保存在一个 ext2_super_block 的数据结构中，详细信息请参考内核源代码）。修复主超级块的问题之后，mount 命令就可以成功挂载原来的文件系统了。</p>
+            <div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="3.重建文件系统的解决办法"><span class="atitle">重建文件系统的解决办法</span></a></p>
+            <p>在日常使用过程中，可能碰到的另外一个问题是管理员可能错误地执行了某些命令，例如使用mke2fs 重建了文件系统，从而造成数据的丢失。实际上，在 mke2fs 创建文件系统的过程中，并不会真正去清空原有文件系统中存储的文件的数据，但却会重新生成超级块、块组描述符之类的信息，并清空索引节点位图和块位图中的数据，最为关键的是，它还会清空索引节点表中的数据。因此尽管文件数据依然存储在磁盘上，但是由于索引节点中存储的文件元数据已经丢失了，要想完整地恢复原有文件，已经变得非常困难了。</p>
+            <p>然而，这个问题也并非完全无法解决。在 e2fsprogs 包中还提供了一个名为 e2image 的工具，可以用来将 ext2 文件系统中的元数据保存到一个文件中，下面是一个例子：</p>
+            <br /><a name="N101E1"><b>清单13. 使用超级块拷贝挂载文件系统</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# e2image -r /dev/sda2 sda2.e2image
+</pre></td></tr></table><br />
+            <p>这会生成一个与文件系统大小相同的文件，其中包含了文件系统的元数据，包括索引节点中的间接块数据以及目录数据。另外，其中所有数据的位置均与磁盘上存储的位置完全相同，因此可以使用 debugfs、dumpe2fs 之类的工具直接查看：</p>
+            <br /><a name="N101EE"><b>清单14. 使用 debugfs 查看 e2image 映像文件的信息</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# debugfs sda2.e2image.raw 
+debugfs 1.40.2 (12-Jul-2007)
+debugfs:  ls -l
+      2   40755 (2)      0      0    4096 31-Dec-2007 15:56 .
+      2   40755 (2)      0      0    4096 31-Dec-2007 15:56 ..
+     11   40700 (2)      0      0   16384 31-Dec-2007 15:54 lost+found
+     12  100644 (1)      0      0   10485760 31-Dec-2007 15:56 testfile.10M
+     13  100644 (1)      0      0   35840 31-Dec-2007 15:56 testfile.35K
+</pre></td></tr></table><br />
+            <p>为了节省空间，这些映像文件以稀疏文件的形式保存在磁盘上，在一个 4GB 的文件系统中，如果 55 万个索引节点中已经使用了 1 万 5 千个，使用 bizp2 压缩后的文件大概只有 3MB左右。</p>
+            <p>当然，这些映像文件中并没有包含实际文件的数据，不过文件数据依然保存在磁盘上，因此只要及时备份相关信息，在发生意外的情况下是有可能恢复大部分数据的。</p>
+            <div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="4.磁盘坏道情况的处理"><span class="atitle">磁盘坏道情况的处理</span></a></p>
+            <p>随着磁盘使用的时间越来越长，难免会出现磁盘上出现一些物理故障，比如产生物理坏道。根据物理损坏的严重程度，可能会造成文件丢失、文件系统无法加载甚至整个磁盘都无法识别的情况出现。因此要想将损失控制在最小范围内，除了经常备份数据，在发现问题的第一时间采取及时地应对措施也非常重要。</p>
+            <p>物理故障一旦出现，极有可能会有加剧趋势，因此应该在恢复数据的同时，尽量减少对磁盘的使用，dd 命令可以用来创建磁盘的完美映像。应该使用的命令如下：</p>
+            <br /><a name="N1020A"><b>清单15. 使用 dd 命令创建磁盘映像</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# dd if=/dev/sdb of=/images/sdb.image bs=4096 conv=noerror,sync
+</pre></td></tr></table><br />
+
+            <p>noerror 参数告诉 dd 在碰到读写错（可能是由于坏道引起的）时继续向下操作，而不是停止退出。sync 参数说明对于从源设备无法正常读取的块，就使用NULL填充。默认情况下，dd 使用 512 字节作为一个块的单位来读写 I/O 设备，指定 bs 为 4096 字节可以在一定程度上加速 I/O 操作，但同时也会造成一个问题：如果所读取的这个 4096 字节为单位的数据块中某一部分出现问题，则整个 4096 字节的就全部被清空了，这样会造成数据的丢失。为了解决这种问题，我们可以使用 dd_rescue 这个工具（可以从 <a href="http://www.garloff.de/kurt/linux/ddrescue/">http://www.garloff.de/kurt/linux/ddrescue/</a> 上下载），其用法如下：</p>
+            <br /><a name="N1021B"><b>清单16. 使用 dd_rescue 命令创建磁盘映像</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+                
+# dd_rescue /dev/sdb /images/sdb.image –b 65536 –B 512
+</pre></td></tr></table><br />
+            <p>与 dd 相比，dd_rescue 强大之处在于在碰到错误时，可以以更小的数据块为单位重新读取这段数据，从而确保能够读出尽量多的数据。上面命令中的参数指明正常操作时以 64KB 为单位读取磁盘数据，一旦出错，则以 512 字节为单位重新读取这段数据，直至整个硬盘被完整读出为止。</p>
+            <p>获得磁盘映像之后，就可以将其当作普通磁盘一样进行操作了。应用本系列文章中介绍的技术，应该能从中恢复出尽可能多的数据。当然，对于那些刚好处于坏道位置的数据，那就实在回天乏力了。</p>
+            <div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="5.恢复文件策略"><span class="atitle">恢复文件策略</span></a></p>
+            <p>截至到现在，本系列文章中介绍的都是在删除文件或出现意外情况之后如何恢复文件，实际上，对于保证数据可用性的目的来讲，这些方法都无非是亡羊补牢而已。制定恰当地数据备份策略，并及时备份重要数据才是真正的解决之道。</p>
+            <p>不过即使有良好的数据备份策略，也难免会出现有部分数据没有备份的情况。因此，一旦出现误删文件的情况，应该立即执行相应的对策，防止文件数据被覆盖：</p>
+            <ul>
+                <li>
+断开所有对文件系统的访问。fuser 命令可以用来帮助查看和杀死相关进程，详细用法请参看 fuser 的手册。</li>
+                <li>
+如果业务无法停顿，就将文件系统以只读方式重新加载，命令格式为：mount -r -n -o remount mountpoint</li>
+                <li>
+应用本系列文章介绍的技术恢复文件。</li>
+            </ul>
+            <p>当然，在进行数据备份的同时，也需要考虑本文中介绍的一些技术本身的要求，例如 e2image映像文件、e2undel 的日志文件等，都非常重要，值得及时备份。</p>
+            <div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="6.小结"><span class="atitle">小结</span></a></p>
+            <p>本文介绍了一个功能非常强大的工具 e2undel，可以用来方便地恢复已删除的文件。然后讨论了文件系统故障、文件系统重建、磁盘物理损坏等情况下应该如何恢复数据。随着文件系统的不断发展，Linux 上常用的文件系统也越来越多，例如 ext3/ext4/reiserfs/jfs 等，这些文件系统上删除的文件能否成功恢复呢？有哪些工具可以用来辅助恢复文件呢？本系列后续文章将继续探讨这个问题。</p>
+            <div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="9.作者简介"><span class="atitle">作者简介</span></a></p>
+            <p>冯锐，软件工程师，目前在 IBM 开发中心从事 AIX 性能测试方面的工作，您可以通过 fengrui@cn.ibm.com 与他联系。</p>
+            <p>王磊，软件工程师，目前在 IBM 开发中心从事 AIX 性能测试方面的工作，您可以通过 cdlwangl@cn.ibm.com 与他联系。</p>
+        <!-- CMA ID: 281244 --> <!-- Site ID: 10 --> <!-- XSLT stylesheet used to transform this file:  dw-article-6.0-beta.xsl -->
+<br /><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><span class="atitle"><a name="download">下载</a></span></p><table width="100%" class="ibm-data-table" cellspacing="0" cellpadding="0" border="0"><tr><th scope="col">描述</th><th scope="col">名字</th><th scope="col">大小</th><th scope="col">下载方法</th></tr><tr><td class="tb-row" scope="row">修正 e2undel 源码问题的补丁</td><td nowrap="nowrap">e2undel-0.82.patch</td><td nowrap="nowrap">5KB</td><td nowrap="nowrap"><a class="fbox" href="http://www.ibm.com/developerworks/apps/download/index.jsp?contentid=281244&amp;filename=e2undel-0.82.patch&amp;method=http&amp;locale=zh_CN">HTTP</a></td></tr></table><p><a href="/developerworks/cn/whichmethod.html" class="ibm-forward-link">关于下载方法的信息</a></p><br />
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p><ul><li>
+		Linux Ext2fs Undeletion mini-HOWTO: <a href="http://tldp.org/HOWTO/Ext2fs-Undeletion.html">http://tldp.org/HOWTO/Ext2fs-Undeletion.html</a>
+            <br /><br /></li><li>
+                <em>Understanding the Linux Kernel</em>: <a href="http://www.oreilly.com/catalog/understandlk/">http://www.oreilly.com/catalog/understandlk/</a>
+            <br /><br /></li><li>
+		Linux kernel source code.: <a href="http://www.kernel.org/pub/">http://www.kernel.org/pub/</a>
+            <br /><br /></li><li>
+		Ext2fs Undeletion of Directory Structures mini-HOWTO: <a href="http://www.faqs.org/docs/Linux-mini/Ext2fs-Undeletion-Dir-Struct.html">http://www.faqs.org/docs/Linux-mini/Ext2fs-Undeletion-Dir-Struct.html</a>
+            <br /><br /></li><li>
+		e2undel 的最新版本，可以从其主页上下载：<a href="http://e2undel.sourceforge.net/">http://e2undel.sourceforge.net/</a>。
+	<br /><br /></li><li>
+		*at syscalls: Intro 一文中介绍了从 2.6.16 版本开始引入的一系列名为 *at 的系统调用，使用这些新的系统调用，删除目录的效率可以提高30%以上。详情请参看 <a href="http://lwn.net/Articles/164584/">http://lwn.net/Articles/164584/</a>。
+	<br /><br /></li><li>
+		rm 等删除文件的命令都属于coreutils 包，可以在<a href="http://www.gnu.org/software/coreutils/">http://www.gnu.org/software/coreutils/</a> 上下载到源码。
+	<br /><br /></li><li>
+		有关 dd_rescue 的更多信息，请访问其主页<a href="http://www.garloff.de/kurt/linux/ddrescue/">http://www.garloff.de/kurt/linux/ddrescue/</a>。
+	<br /><br /></li></ul>
+<p><a name="author"><span class="atitle">作者简介</span></a></p><div class="ibm-container ibm-portrait-module ibm-alternate-two"><div class="ibm-container-body"><p><a name="author1"> </a>冯锐，软件工程师，目前在 IBM 开发中心从事 AIX 性能测试方面的工作。您可以通过 fengrui@cn.ibm.com 与他联系。</p></div><div class="ibm-container-body"><p><a name="author2"> </a>王磊，软件工程师，目前在 IBM 开发中心从事 AIX 性能测试方面的工作，您可以通过 cdlwangl@cn.ibm.com 与他联系。</p></div></div>
+<!-- MAIN_COLUMN_CONTENT_END -->
+  <!-- OVERLAYS_START -->
+  <!-- Report_Abuse_Start -->
+  <div class="ibm-common-overlay ibm-no-print" id="reportabuseoverlay">
+    <div class="ibm-head"><p><a class="ibm-common-overlay-close" href="#">关闭 [x]</a></p></div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <a class="ibm-access" name="reportabuseoverlay">关于报告滥用的帮助</a>   
+        <div class="ibm-title"><h1>报告滥用</h1></div>
+        <div class="ibm-container ibm-alternate">
+          <p><strong>谢谢!</strong>  此内容已经标识给管理员注意。</p>
+          <div class="ibm-overlay-rule"><hr /></div>
+          <div class="ibm-buttons-row">
+            <input type="button" onclick="ibmCommon.Overlays.hide('reportabuseoverlay');return false;" class="ibm-btn-cancel-sec dw-btn-cancel-sec" name="ibm-cancel" value="关闭" />
+          </div>
+        </div>
+      </div> 
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Report_Abuse_Error_Start -->
+  <div class="ibm-common-overlay ibm-no-print" id="reportabuseoverlayerror">
+    <div class="ibm-head"><p><a class="ibm-common-overlay-close" href="#">关闭 [x]</a></p></div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <a class="ibm-access" name="reportabuseoverlayerror">关于报告滥用的帮助</a>   
+        <div class="ibm-title"><h1>报告滥用</h1></div>
+        <div class="ibm-container ibm-alternate">
+          <p class="ibm-ind-error"><strong>报告滥用提交失败。  请稍后重试。</strong></p>
+          <div class="ibm-overlay-rule"><hr /></div>
+          <div class="ibm-buttons-row">
+            <input type="button" onclick="ibmCommon.Overlays.hide('reportabuseoverlayerror');return false;" class="ibm-btn-cancel-sec dw-btn-cancel-sec" name="ibm-cancel" value="关闭" />
+          </div>
+        </div>
+      </div> 
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Sign in OVERLAY STARTS HERE --> 
+  <div class="ibm-common-overlay" id="signin_overlay">
+    <div class="ibm-head">
+      <p><a class="ibm-common-overlay-close" href="#" onclick="clearForm();">关闭 [x]</a></p>
+    </div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <div class="ibm-title ibm-subtitle">
+          <h1>developerWorks：登录</h1>
+          <div id="ibm-overlay-error-signin" class="no-display"></div>
+        </div>
+        
+        <div class="ibm-container ibm-alternate ibm-buttons-last">
+          <div class="ibm-container-body">
+
+            <form class="ibm-column-form" id="sFormId" action="" method="post" name="sForm" onsubmit="return false;">
+              <p><label for="ibmid">IBM ID：</label><span><input name="ibm-id" id="ibmid" size="25" value="" class="required" type="text" onkeypress="handleEP(event,this.form);" />
+                <br /><a class="ibm-forward-link" href="#" onclick="(function () {window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.href);})();">需要一个 IBM ID？</a>
+                <br /><a class="ibm-forward-link" href="/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a></span>   
+              </p> 
+              <p><label for="password">密码：</label><span><input name="password" id="password" size="25" value="" class="required" type="password" onkeypress="handleEP(event,this.form);" /><br />
+                <a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Dzh_CN%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a><br />
+                <a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></span></p> 
+
+              <p class="dw-perm-box">
+                <span><input id="perm" type="checkbox" name="perm_name"/><label for="perm"> 保持登录。</label></span>
+              </p>
+
+              <p>单击提交则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">使用条款</a></p>
+              <div class="ibm-buttons-row">
+                <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+                  <input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="clearForm();ibmCommon.Overlays.hide('signin_overlay');return false;"/></p>
+              </div>
+            </form>
+            <div class="ibm-overlay-rule"><hr /></div>
+            <p>当您初次登录到 developerWorks 时，将会为您创建一份概要信息。<strong>您在 developerWorks 概要信息中选择公开的信息将公开显示给其他人，但您可以随时修改这些信息的显示状态。</strong>您的姓名（除非选择隐藏）和昵称将和您在 developerWorks 发布的内容一同显示。</p>
+            <div class="dw-overlay-legal"><p>所有提交的信息确保安全。</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Sign in OVERLAY ENDS HERE --> 
+  
+  
+  <!-- Display name OVERLAY STARTS HERE --> 
+  <div class="ibm-common-overlay" id="displayname_overlay">
+    <div class="ibm-head">
+      <p><a class="ibm-common-overlay-close" href="#" onclick="clearForm();">关闭 [x]</a></p>
+    </div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <div class="ibm-title ibm-subtitle">
+          <h1>请选择您的昵称：</h1>
+          <div id="ibm-overlay-error-dname" class="no-display"></div>
+        </div>
+        <div class="ibm-container ibm-alternate ibm-buttons-last">
+          <div class="ibm-container-body">
+            <p class="ibm-overlay-intro">当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+            <form id="dFormId" method="post" action="" name="dForm" onsubmit="return false;" class="ibm-column-form">
+              <p><label for="displayname">昵称：</label><span><input name="displayname" id="displayname" size="25" value="" type="text" onkeypress="handleEP(event,this.form);" /></span><span class="ibm-form-note">（长度在 3 至 31 个字符之间）</span>
+              </p>
+              
+              <div class="ibm-overlay-rule"><hr />
+              </div>
+              <p>单击<strong>提交</strong>则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">使用条款</a>.</p>
+              <div class="ibm-buttons-row">
+                <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+                  <input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="clearForm();ibmCommon.Overlays.hide('displayname_overlay');return false;" /></p>
+              </div>
+            </form>
+            <div class="ibm-overlay-rule"><hr /></div>
+            <div class="dw-overlay-legal"><p>所有提交的信息确保安全。</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Display name OVERLAY ENDS HERE -->
+  <!-- OVERLAYS_END -->
+  <!-- RATINGS START -->
+  <p class="ibm-no-print"><span class="atitle"><a name="iratings">为本文评分</a></span></p>
+  <input id="art-rating" name="ratinga" type="hidden" value="0"/><div id="art-rating-module"></div>
+  <script language="JavaScript" type="text/javascript">
+    // <![CDATA[
+   // widget div id and article id as args
+   window.artRating.init('art-rating-module','art-rating-summary');
+// ]]>
+  </script>
+  <!-- RATINGS END --> 
+  
+  <!-- INLINE_COMMENTS_START -->
+  <p class="ibm-no-print"><span class="atitle"><a name="icomments">评论</a></span></p>
+    <script language="JavaScript" type="text/javascript">
+      // <![CDATA[
+dwc = {};
+dwc.cmts = '条评论';
+dwc.signInPreText = '请';
+dwc.signIn = '登录';
+dwc.or = '或';
+dwc.register = '注册';
+dwc.signInPostText = '';
+dwc.leaveCmt = '后发表评论。';
+dwc.view = '查看';
+dwc.totalCmts = '共有评论';
+dwc.postYourCmt = '添加您的评论';
+dwc.show = '显示：';
+dwc.recentCmts = '最新评论';
+dwc.allCmts = '所有评论';
+dwc.tooLongCmt = '您的评论超过了 1000 字符限制';
+dwc.numCharsLeft = '剩余 <span id="charCount">{1}</span> 字符';
+dwc.reportAbuse = '报告滥用';
+dwc.notifyMsg = '有新评论时提醒我';
+dwc.htmlWarning = '注意：评论中不支持 HTML 语法'; 
+dwc.cmt = '评论：';
+dwc.addCmts = '添加评论';
+dwc.addCmt = '添加评论';
+dwc.doNotErase = '--在下方添加评论--'; 
+dwc.viewOrAddCmts = '查看或添加评论';
+dwc.reportInapprCont = '举报不良信息';
+dwc.reportInapprContLink = 'http://www.ibm.com/developerworks/forums/forum.jspa?forumID=1834';
+dwc.postingCmt = '正在发布评论……';
+dwc.noCmt = '快来添加第一条评论';
+dwc.netwkErr = '在检索评论时出错，请稍后刷新。';
+dwc.addACmt = '添加评论';
+dwc.instructCmt = '标有星号（<span class="ibm-required">*</span>）的是必填项目。';
+dwc.btnPost = '发布';
+dwc.btnPostAnon = '匿名发布';
+dwc.btnClrCmt = '清除评论';
+dwc.btnCancel = '取消';
+dwc.showRecent = '显示最新的 {1} 条评论'; // {1} is the count to be substituted
+dwc.showNext = '显示后 {1} 条评论'; // {1} is the count to be substituted
+dwc.showAllCmts = '显示所有评论';
+dwc.enterCmt = '请输入评论内容。';
+dwc.loginErr = '暂时无法验证您的登录状态，请稍后再试。';
+dwc.postErr = '暂时无法发布您的评论，请稍后再试。';
+dwc.postBy = '由 <strong>{1}</strong>  于 {2} '; // {1} is the author to be substituted; {2} is the date
+dwc.siteId = 10;
+dwc.lang = 'zh_CN';
+dwc.viperLang = 'zh';
+// ]]>
+    </script>
+    <div id="threadShow"></div>
+  <!-- INLINE_COMMENTS_END -->
+  
+
+  <p class="ibm-ind-link ibm-back-to-top"><a class="ibm-anchor-up-link" href="#ibm-pcon">回页首</a></p>
+
+<!-- Overlays -->
+<!-- lk - pull in overlays from ww when required on cn -->
+  </div>
+<!-- MAIN_COLUMN_CONTAINER_END -->
+
+<!-- Rating_Meta_BEGIN -->
+<!--Rating_Meta_BEGIN--><div class="metavalue">static.content.url=http://www.ibm.com/developerworks/js/artrating/</div><div class="metavalue">SITE_ID=10</div><div class="metavalue">Zone=Linux</div><div class="metavalue">ArticleID=281244</div><div class="metavalue">ArticleTitle=如何恢复 Linux 上删除的文件，第 3 部分</div><div class="metavalue">publish-date=01102008</div><div class="metavalue">author1-email=fengrui@cn.ibm.com</div><div class="metavalue">author1-email-cc=</div><div class="metavalue">author2-email=cdlwangl@cn.ibm.com</div><div class="metavalue">author2-email-cc=</div><script language="javascript" type="text/javascript">document.write('<div class="metavalue">url='+location.href.replace(/</g, '%3C')+'</div>');</script><!--Rating_Meta_END-->
+<!-- Rating_Meta_END -->
+
+</div>
+<!-- MAIN_COLUMN_END-->
+
+<!-- RIGHT_COLUMN_BEGIN -->
+<div id="ibm-content-sidebar">
+
+<!-- RIGHT_COLUMN_CONTENT_BEGIN --> 
+<div class="ibm-container"><h2>内容</h2><div class="ibm-container-body"><img alt="" height="1" width="1" src="//www.ibm.com/i/c.gif"/><ul class="ibm-bullet-list"><li><a class="ibm-feature-link" href="#1.自动恢复工具 e2undel">自动恢复工具 e2undel</a></li><li><a class="ibm-feature-link" href="#2.文件系统故障的恢复">文件系统故障的恢复</a></li><li><a class="ibm-feature-link" href="#3.重建文件系统的解决办法">重建文件系统的解决办法</a></li><li><a class="ibm-feature-link" href="#4.磁盘坏道情况的处理">磁盘坏道情况的处理</a></li><li><a class="ibm-feature-link" href="#5.恢复文件策略">恢复文件策略</a></li><li><a class="ibm-feature-link" href="#6.小结">小结</a></li><li><a class="ibm-feature-link" href="#9.作者简介">作者简介</a></li><li><a class="ibm-feature-link" href="#download">下载</a></li><li><a class="ibm-feature-link" href="#resources">参考资料 </a></li><li><a class="ibm-feature-link" href="#author">作者简介</a></li><li><a class="ibm-feature-link" href="#icomments">建议</a></li></ul></div></div>
+
+ 
+
+<!-- Tagging_Start -->
+<div id="dw-tag-cloud-container" class="ibm-container dw-hidetag"><h2>标签</h2>
+<div id="dw-tag-help"><a class="dwauthor" rel="#tagtip" id="dwtagtip"><img alt="Help" height="16" width="16" align="top" src="//dw1.s81c.com/developerworks/i/help_icon.gif"/></a></div>
+<div id="tagtip" class="dwauthor-onload-state ibm-no-print">使用 <strong>搜索</strong> 文本框在 My developerWorks 中查找包含该标签的所有内容。<p>使用 <strong>滑动条</strong> 调节标签的数量。</p><p><strong>热门标签</strong> 显示了特定专区最受欢迎的标签（例如 Java technology，Linux，WebSphere）。</p><p><strong>我的标签</strong> 显示了特定专区您标记的标签（例如 Java technology，Linux，WebSphere）。</p></div>
+<div class="ibm-access">使用搜索文本框在 My developerWorks 中查找包含该标签的所有内容。<em>热门标签</em> 显示了特定专区最受欢迎的标签（例如 Java technology，Linux，WebSphere）。<em>我的标签</em> 显示了特定专区您标记的标签（例如 Java technology，Linux，WebSphere）。</div>
+<div class="ibm-container-body">
+<div class="dw-tag-search"><form action="//www.ibm.com/developerworks/mydeveloperworks/bookmarks/html" method="get" id="actualtagform" onsubmit="popupform(this, 'join')">
+<p><label for="tagfield"><strong>搜索所有标签</strong></label>
+<input type="hidden" name="lang" value="zh"/>
+<input id="tagfield" name="tag" type="text" maxlength="20" size="17" />&nbsp;<input src="//dw1.s81c.com/i/v16/buttons/short-btn.gif" type="image" class="ibm-btn-view" alt="submit search" title="提交搜索" value="Search" /></p></form></div>
+<div class="ibm-rule"><hr/></div>
+<div id="dw-tag-select">
+<div id="dw-tag-select-popular"><p><strong>热门文章标签</strong>&nbsp;|&nbsp;<br /><a id="a-my" href="javascript:;">我的文章标签</a><a href="#dw-tag-access" class="ibm-access">跳转到标签列表</a></p></div>
+<div id="dw-tag-select-my" class="dw-hidetag"><p><a id="a-popular" href="javascript:;">热门文章标签</a>&nbsp;|&nbsp;<br /><strong>我的文章标签</strong></p><a href="#dw-tag-access" class="ibm-access">跳转到标签列表</a></div>
+<div id="dw-tag-cloud"></div>  
+</div>   
+</div>
+</div>
+<!-- Tagging_End -->
+
+<!-- Dig_Deeper -->
+
+<!-- High_Visibility_Offer -->
+
+<!-- Special_Offers -->
+
+<!-- RIGHT_COLUMN_CONTENT_END -->
+
+</div>
+<!-- RIGHT_COLUMN_END -->
+
+<!-- CONTENT_BODY_END -->
+</div>
+
+</div>
+<!-- CONTENT_END -->
+
+ <!-- END_IBM-PCON -->
+</div>
+
+<!-- FOOTER_BEGIN -->
+<div id="ibm-footer">
+<!-- IBM footer container; disabled -->
+</div>
+
+<div id="ibm-page-tools-dw">
+	<div id="dw-footer-top-row">
+		<ul id="dw-foot-options">
+			<li id="dw-print"><a class="ibm-print-link" href="#">打印此页面</a></li>
+		</ul>
+		<ul id="ibm-foot-options-dw">
+			<li id="dw-foot-0" class="dw-foot-0-cn"><a href="#">分享此页面</a></li>
+			<li id="dw-foot-1" class="dw-foot-1-cn"><a href="#">关注 developerWorks</a></li>
+		</ul>
+	</div>       
+	
+	
+	<!-- TOP ROW SLIDER -->
+    <div id="dw-page-tools-menu">    
+        <div class="ibm-ribbon-pane-dw">
+            <div class="ibm-ribbon-section-dw">
+				<!-- Share this page -->			
+                <div class="dw-footer-columns">
+                    <div class="dw-footer-col-3-1">
+                    	<h2>分享此页面：</h2>                            
+						<ul class="ibm-link-list">
+							<li><a id="dw-foot-0-0" class="ibm-facebook-link" href="#">Facebook</a></li>
+							<li><a class="ibm-linkedin-link" href="#">LinkedIn</a></li>
+							<li><a class="ibm-twitter-link" href="#">Twitter</a></li>
+						</ul>
+                    </div>
+                    <div class="dw-footer-col-3-2">
+						<ul class="ibm-link-list">
+							<li><a class="ibm-delicious-link" href="#">Delicious</a></li>
+							<li><a class="ibm-digg-link" href="#">Digg</a></li>
+							<!--<li><a class="ibm-stumbleupon" href="#">StumbleUpon</a></li>-->
+						</ul>
+                    </div>
+                    <div class="dw-footer-col-3-3">
+						<ul class="ibm-link-list">
+							<li><a class="ibm-email-link" href="#">发送此页面</a></li>
+						</ul>
+                    </div>
+                    <div class="dw-footer-close">
+						<ul>
+							<li><div class="dw-footer-close-share"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10"/></a></div></li>
+						</ul>
+                    </div>
+                </div>
+                <!-- Follow developerWorks -->
+                <div class="dw-footer-columns">
+                    <div class="dw-footer-col-1-1">
+                    	<h2>分享此页面：</h2>
+						<ul class="ibm-link-list">
+							<li><a id="dw-foot-1-0" class="ibm-twitter-link" href="http://www.twitter.com/dwchina">Twitter</a></li>
+						</ul>
+                    </div>
+                    <div class="dw-footer-close">
+						<ul>
+							<li><div class="dw-footer-close-follow-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10"/></a></div></li>
+						</ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="ibm-footer-module-dw">
+	<div class="dw-footer-columns">
+		<div class="dw-footer-col-6-1">
+			<ul>
+				<!--<li><a href="http://www.ibm.com/developerworks/aboutdw/">About</a></li>-->
+				<li><a href="https://www.ibm.com/developerworks/secure/feedback.jsp?domain=dwchina">帮助</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/author/">联系编辑</a></li>
+				<li><a href="https://www.ibm.com/developerworks/secure/myideas2.jsp?domain=dwchina&start=true">提交内容</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/sitemap/">网站导航</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-2">
+			<ul>
+				<li><a href="http://www.ibm.com/developerworks/cn/rss/">订阅源</a></li>
+				<li><a href="http://www.ibm.com/vrm/newsletter/10104?S_TACT=105AGX52&S_CMP=dwcntop">在线浏览每周时事通讯</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-3">
+			<ul>
+				<li><a href="https://www.ibm.com/developerworks/community/report?lang=zh">报告滥用</a></li>
+				<li><a href="https://www.ibm.com/developerworks/community/terms?lang=zh">使用条款</a></li>
+				<li><a href="http://www.ibm.com/privacy/cn/zh/">隐私条约</a></li>
+				<li><a href="http://www.ibm.com/ibm/accessibility/cn/">浏览辅助</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-4-cn">
+			<ul>
+				<li><a href="http://www-900.ibm.com/cn/ai/">IBM 教育学院教育培养计划</a></li>
+				<li><a href="http://www.ibm.com/partnerworld/isv/">ISV 资源 (英语)</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-5">
+		</div>
+		<div class="dw-footer-col-6-6">
+		</div>
+	</div>
+	<!-- Language selector no-script -->
+	<noscript>
+	<div id="dw-footer-selectlang">
+		<h2><a name="SELECTLANG">选择语言：</a></h2>
+		<ul>
+			<li><a href="http://www.ibm.com/developerworks/">English</a></li>
+			<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+			<li><a href="http://www.ibm.com/developerworks/jp/">日本語</a></li>
+			<li><a href="http://www.ibm.com/developerworks/kr/">한국어</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ru/">Русский</a></li>
+			<li><a href="http://www.ibm.com/developerworks/br/">Português (Brasil)</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ssa/">Español</a></li>
+			<li><a href="http://www.ibm.com/developerworks/vn/">Việt</a></li>
+		</ul>
+	</div>
+	</noscript>
+</div><!-- FOOTER_END -->
+
+ <!-- END_IBM-TOP -->
+</div>
+ 
+ <!-- SCRIPTS_INCLUDE_BEGIN -->
+<!-- JQuery start -->
+<script type="text/javascript" language="JavaScript" src="//dw1.s81c.com/developerworks/js/jquery/cluetip98/jquery.hoverIntent.minified.js"></script>
+<script type="text/javascript" language="JavaScript" src="//dw1.s81c.com/developerworks/js/jquery/cluetip98/jquery.cluetip.js"></script>
+<script type="text/javascript" language="JavaScript" src="//dw1.s81c.com/developerworks/js/jquery/tagging/ui.core-1.7.1.js"></script>
+<script type="text/javascript" language="JavaScript" src="//dw1.s81c.com/developerworks/js/jquery/tagging/ui.slider-1.7.1.js"></script>
+
+<!-- xM Masthead/Footer -->
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/jquery.tools.min.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/jquery.jscroll.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/dw_v16.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/flash-detect.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/dwsi.js" type="text/javascript">//</script>
+<script type="text/javascript" language="JavaScript" src="//dw1.s81c.com/developerworks/js/dw-mf/dwjquerytags.js"></script>
+<script type="text/javascript" language="JavaScript" src="//dw1.s81c.com/developerworks/js/dw-mf/showcomments.js">//</script>
+<script language="JavaScript" type="text/javascript">
+	// <![CDATA[
+ jQuery('threadShow').showComments('95%',5,'nCmts','icomments');
+// ]]>
+</script>
+<script type="text/javascript" language="JavaScript">
+	jQuery.noConflict();     
+	// Put all your code in your document ready area
+	jQuery(document).ready(function(jQuery) {
+	// Do jQuery stuff using jQuery 
+	jQuery('a.dwauthor').cluetip({
+	local: true,
+	showTitle: false,
+	positionBy: 'bottomTop',
+	sticky: true,	
+	mouseOutClose: true,
+	closeText: '<img src="//dw1.s81c.com/developerworks/js/jquery/cluetip98/i/x.gif" alt="Close" />',
+	arrows: false,
+	dropShadow: true,
+	cluetipClass: 'dwbasic'
+	});   	
+	//tagging
+	login="false";
+	userid="";
+	whichTags = "init";
+	pCont = "";
+	mCont = "";
+	signInMCont = "";
+	accessCont = "";
+	pValue = 0;
+	mValue = 0;
+	
+	rBHash = null;
+	rBHash = new Object();
+	rBHash['viperLang'] = 'zh';
+	rBHash['urlLang'] = 'cn';
+	rBHash['tagThisWinTitle'] = '添加标签';
+	rBHash['pTags1'] = '热门标签';		
+	rBHash['pTags2'] = '热门标签结束';
+	rBHash['mTags1'] = '我的标签';
+	rBHash['mTags2'] = '我的标签结束';
+	rBHash['alt1'] = '正在加载内容';
+	rBHash['noATags'] = '没有可用的标签';
+	rBHash['signIn1'] = '请';
+	rBHash['signIn2'] = '登录';
+	rBHash['signIn3'] = '以访问';
+	rBHash['signIn4'] = '我的标签';
+	rBHash['signIn5'] = '要访问我的标签，请';
+	rBHash['signIn6'] = '登录';
+	rBHash['signIn7'] = '查看热门标签';
+	rBHash['dnameSuffix'] = '';
+
+	zoneHash = new Object();
+	zoneHash['aix'] = 'AIX and UNIX';
+	zoneHash['ibmi'] = 'IBM i zone';
+	zoneHash['data'] = 'Information Management';
+	zoneHash['lotus'] = 'Lotus';
+	zoneHash['rational'] = 'Rational';
+	//zoneHash['tivoli'] = 'Tivoli zone';
+	zoneHash['websphere'] = 'WebSphere';
+	zoneHash['architecture'] = 'Technical library';
+	//zoneHash['autonomic'] = 'Technical library';
+	zoneHash['java'] = 'Java technology';
+	zoneHash['cloud'] = 'Cloud computing';
+	//zoneHash['industry'] = 'Technical library';
+	zoneHash['library'] = '文档库';
+	zoneHash['linux'] = 'Linux';
+	zoneHash['opensource'] = 'Open source';
+	//zoneHash['power'] = 'Technical library';
+	zoneHash['webservices'] = 'SOA and web services';
+	zoneHash['web'] = 'Web development';
+	zoneHash['xml'] = 'XML';
+	//zoneHash['wireless'] = 'Technical library';
+	jQuery.checkRB();
+	jQuery.getPopularTags("/developerworks/dwtags/dwjquerytabtags?lang=" + rBHash['viperLang'] + "&base=" + jQuery.getNormalizedZoneUrl(location.href));
+	jQuery.getUserTags();
+	if(jQuery.isTutorial(location.href) == "true") {
+	jQuery.getTagsForContent("/developerworks/tagging/UseCaseServlet?lang=" + rBHash['viperLang'] + "&format=maverick&cType=tutorials&use_case=geturltags&action=gettags&url=" + jQuery.normalizeUrl(location.href));
+	}
+	else {
+	jQuery.getTagsForContent("/developerworks/tagging/UseCaseServlet?lang=" + rBHash['viperLang'] + "&format=maverick&cType=articles&use_case=geturltags&action=gettags&url=" + jQuery.normalizeUrl(location.href));
+	
+	}
+	// si
+	initSI();
+	});
+</script>
+<!-- JQuery end -->
+<!-- Overlay js -->
+<script language="JavaScript" src="//dw1.s81c.com/common/js/overlay.js" type="text/javascript"></script><!-- BEGIN: Use this section to set page specific variables for the Unica Page Tag -->
+<script language="JavaScript">var NTPT_PGEXTRA="ibmSkillLevel=-&ibmAdoptPhase=667&ibmRole=710";</script>
+<!--END --><!-- SCRIPTS_INCLUDE_END -->
+
+<div id="ibm-metrics">
+<script src="//dw1.s81c.com/common/stats/stats.js" type="text/javascript">//</script>
+</div>
+
+</body>
+</html>

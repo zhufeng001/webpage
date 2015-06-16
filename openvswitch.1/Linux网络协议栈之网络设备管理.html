@@ -1,0 +1,744 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Linux网络协议栈之网络设备管理 - 技术分享 - 豆豆技术网</title>
+<link href="/2013/css/header.css" type="text/css" rel="stylesheet" />
+<link href="/2013/css/content.css" type="text/css" rel="stylesheet" />
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js" type="text/javascript"></script>
+<script src="/2013/js/common.js" type="text/javascript" charset="UTF-8"></script>
+<!-- 语法高亮模块 -->
+<link href="/2011/06/js/syntaxhighlighter_3.0.83/styles/shCoreDefault.css" rel="stylesheet" type="text/css" />
+<link href="/2011/06/js/syntaxhighlighter_3.0.83/styles/shThemeDefault.css" rel="stylesheet" type="text/css" />
+<script src="/2011/06/js/syntaxhighlighter_3.0.83/scripts/shCore.js" type="text/javascript"></script> 
+<script src="/2011/06/js/syntaxhighlighter_3.0.83/scripts/shAutoloader.js" type="text/javascript"></script> 
+
+<script type="text/javascript">
+$(function(){
+	function path() {
+		var args = arguments,
+		result = [];
+	  for(var i = 0; i < args.length; i++)
+			result.push(args[i].replace('@', '/2011/06/js/syntaxhighlighter_3.0.83/scripts/'));
+	  return result
+	};
+
+
+	SyntaxHighlighter.defaults.toolbar = false;
+	SyntaxHighlighter.config.stripBrs = false;
+	SyntaxHighlighter.defaults['title'] = '双击代码全选';
+
+	SyntaxHighlighter.config.strings = {
+			help : '双击全选',
+			// this is populated by the build script
+			aboutDialog : '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>About SyntaxHighlighter</title></head><body style="font-family:Geneva,Arial,Helvetica,sans-serif;background-color:#fff;color:#000;font-size:1em;text-align:center;"><div style="text-align:center;margin-top:3em;"><div style="font-size:xx-large;">SyntaxHighlighter</div><div style="font-size:.75em;margin-bottom:4em;"><div>version 2.0.320 (May 03 2009)</div><div><a href="http://alexgorbatchev.com" target="_blank" style="color:#0099FF;text-decoration:none;">http://alexgorbatchev.com</a></div></div><div>JavaScript code syntax highlighter.</div><div>Copyright 2004-2009 Alex Gorbatchev.</div></div></body></html>'
+		};
+
+
+
+	SyntaxHighlighter.autoloader.apply(null, path(
+	  'applescript            @shBrushAppleScript.js',
+	  'actionscript3 as3      @shBrushAS3.js',
+	  'bash shell             @shBrushBash.js',
+	  'coldfusion cf          @shBrushColdFusion.js',
+	  'cpp c                  @shBrushCpp.js',
+	  'c# c-sharp csharp      @shBrushCSharp.js',
+	  'css                    @shBrushCss.js',
+	  'delphi pascal          @shBrushDelphi.js',
+	  'diff patch pas         @shBrushDiff.js',
+	  'erl erlang             @shBrushErlang.js',
+	  'groovy                 @shBrushGroovy.js',
+	  'java                   @shBrushJava.js',
+	  'jfx javafx             @shBrushJavaFX.js',
+	  'js jscript javascript  @shBrushJScript.js',
+	  'perl pl                @shBrushPerl.js',
+	  'php                    @shBrushPhp.js',
+	  'text plain             @shBrushPlain.js',
+	  'py python              @shBrushPython.js',
+	  'ruby rails ror rb      @shBrushRuby.js',
+	  'sass scss              @shBrushSass.js',
+	  'scala                  @shBrushScala.js',
+	  'sql                    @shBrushSql.js',
+	  'vb vbnet               @shBrushVb.js',
+	  'xml xhtml xslt html    @shBrushXml.js'
+	));
+	SyntaxHighlighter.all();
+});
+</script>
+<script type="text/javascript">
+var cid = 162183;
+var type = 1;
+var member_url = 'http://my.ddvip.com';
+var digg_url = 'http://digg.ddvip.com';
+var comment_url = 'http://comment.ddvip.com';
+var session_id = 'ojg7nh095ms90bg418hunrps42';
+</script>
+<script src="/2013/js/content.js" type="text/javascript"></script>
+</head>
+<body>
+<!--通用头部-->
+<!--顶部条状-->
+<div class="ddvip_nav">
+      <div class="ddvipnavbox">
+            <span class="ddvipnav_l f_left">
+                   <ul class="menu_info">
+                              <li class="indexpage"><a href="http://www.ddvip.com/" target="_blank">首页</a>  |</li>
+                              <li><a href="http://news.ddvip.com/" target="_blank">资讯</a>  |</li>
+                              <li> <a href="http://tech.ddvip.com/" target="_blank">技术</a>  |</li>
+							  <li> <a href="http://www.ddxia.com/" target="_blank">下载</a>  |</li>
+                              <li> <a href="http://man.ddvip.com/" target="_blank">手册</a></li>
+                   </ul>
+                   <p class="clearer"></p>
+            </span>
+            <span class="ddvipnav_r f_right set_clorf00">
+            		<span id="header_logined_panel" style="display:none">
+                    <font color="#3D3D3D"><span>欢迎你：<span id="header_logined_username" style="color:red"></span></span></font>
+                     <a href="http://my.ddvip.com/" target="_blank" class="user_center">进入用户中心</a>
+                     </span>
+                     <span id="header_login_panel">
+                     <a href="http://my.ddvip.com/entry/login" target="_blank">登录</a> | <a href="http://my.ddvip.com/entry/register" target="_blank">注册</a>             
+           			 </span>
+            </span>
+            <p class="clearer"></p>
+      </div>
+</div>
+<!---->
+<script type="text/javascript">
+$(function(){
+	
+	$.dajax({
+			'success': function(data, textStatus){
+					if (data.status == 'login') {
+						$('#header_login_panel').hide();
+						$('#header_logined_username').text(data.member.username);
+						$('#header_logined_panel').show();
+					} else {
+	
+					}
+//					alert(data);
+			},
+			args: {
+				'ddvip_url_request': 'http://my.ddvip.com/entry/checkajax/'
+			},
+			'dataType': 'json',
+			'type': 'post'			
+		}
+	);
+});
+</script>
+<div class="header">
+       <div class="header_top">
+             <div class="logo"><h2><a href="http://tech.ddvip.com/" target="_blank"><img src="/2011/06/images/tc_logo.jpg" alt="豆豆技术网" height="51" width="258"/></a>豆豆技术网</h2></div>
+         <div class="search">
+		  <form action="http://tech.ddvip.com/search.php" method="get" name="form1" target="_self" id="form1"> 
+                  <dl>
+                      <dt><input type="text" name="key" value="请输入关键词" onfocus="javascript:if(this.value=='请输入关键词'){this.value='';this.style.color='#000'}" onblur="javascript:if(this.value==''){this.value='请输入关键词';this.style.color='#7B7C7D'}"  /></dt>
+                      <dd><input type="submit" value="" /></dd>
+                  </dl>
+		</form>
+                  <p class="clearer"></p>
+         </div>
+             <p class="clearer"></p>
+       </div>
+       <div class="nav set_c_fff">
+             <div class="nav_l"></div>
+             <div class="nav_r"></div>
+             <ul>
+                     <li class="this"><span><a href="http://tech.ddvip.com/" target="_blank">首页</a></span></li>
+                     <li ><a href="http://tech.ddvip.com/os/"> 系统 </a></li>
+                     <li ><a href="http://tech.ddvip.com/program/"> 编程 </a></li>
+                     <li ><a href="http://tech.ddvip.com/design/"> 设计 </a></li>
+                     <li ><a href="http://tech.ddvip.com/machine/"> 电子 </a></li>
+                     <li ><a href="http://tech.ddvip.com/soft/"> 软件 </a></li>
+                     <li ><a href="http://tech.ddvip.com/network/"> 网络 </a></li>
+                     <li ><a href="http://tech.ddvip.com/cert/"> 认证 </a></li>
+                     <li ><a href="http://tech.ddvip.com/safe/"> 安全 </a></li>
+                     <li ><a href="http://tech.ddvip.com/office/"> 办公 </a></li>
+                     <li ><a href="http://tech.ddvip.com/server/"> 服务器 </a></li>
+                     <li ><a href="http://tech.ddvip.com/ent/"> 企业 </a></li>
+                     <li ><a href="http://tech.ddvip.com/comm/"> 通信 </a></li>
+                     <li ><a href="http://tech.ddvip.com/db/"> 数据库 </a></li>
+             </ul>
+             <p class="clearer"></p>
+       </div>
+	   <script src="/2011/ads/tech_index_banner_01.js"></script>
+</div>
+<!--通用头部-->
+<p class="clearer"></p>
+
+<!--面包屑导航-->
+<div class="position">
+<span class="pl">你的位置：<a href="http://tech.ddvip.com/" target="_blank">首页</a> &gt;&nbsp; <a href="http://tech.ddvip.com/os/" target="_blank">系统</a> &gt;&nbsp;   </span><span class="pr">Linux网络协议栈之网络设备管理</span>
+</div>
+<p class="clearer"></p>
+<!---->
+
+<!--主体-->
+<div class="wrapper">
+    <div class="techcontent_l01">
+    <div class="techcontent_l">
+          <h1>Linux网络协议栈之网络设备管理</h1>
+          <div style=" display:inline-block; margin:0px auto; height:90px; overflow:hidden;"><script src="/2011/ads/tech_content_title_bottom_468x60.js"></script></div>          <p class="content_py">2012-11-05 00:46:48   &nbsp;&nbsp;&nbsp;&nbsp;<a href="#comment_content">发表评论</a></p>
+          <div class="techcontent">
+                <p> <span class="ad362x279"><div style="float:left; padding-right:15px;"><script src="/2011/ads/tech_content_300x250.js"></script></div></span>
+   <p>　　注意到这么庞大的结构中，有个成员叫： struct net_device　*next,呵呵，很熟悉吧，就是用它来建立网络设备的链表。每一个网络设备启动的时候，都会调用register_netdev() (drivers/net/net_init.c)跟踪这个函数：<pre class="brush:html;">int register_netdev(struct net_device *dev)
+{
+　　 int err;
+　　 rtnl_lock();
+　　 /*
+　　 *　 If the name is a format string the caller wants us to
+　　 *　 do a name allocation
+　　 */
+　　 if (strchr(dev-&gt;name, &#39;%&#39;))
+　　 {
+　　　　 err = dev_alloc_name(dev, dev-&gt;name);
+　　　　 if (err &lt; 0)
+　　　　　　　goto out;
+　　 }
+　　 /*
+　　 *　 Back compatibility hook. Kill this one in 2.5
+　　 */
+　　 if (dev-&gt;name[0]==0 || dev-&gt;name[0]==&#39; &#39;)
+　　 {
+　　　　 err = dev_alloc_name(dev, &quot;eth%d&quot;);
+　　　　 if (err &lt; 0)
+　　　　　　　goto out;
+　　 }
+　　 err = register_netdevice(dev);
+out:
+　　 rtnl_unlock();
+　　 return err;
+}</pre>跟踪至: register_netdevice(struct net_device *dev)　(net/core/dev.c)<pre class="brush:html;">int register_netdevice(struct net_device *dev)
+{
+　　 struct hlist_head *head;
+　　 struct hlist_node *p;
+　　 int ret;
+　　 BUG_ON(dev_boot_phase);
+　　 ASSERT_RTNL();
+　　 /* When net_device&#39;s are persistent, this will be fatal. */
+　　 BUG_ON(dev-&gt;reg_state != NETREG_UNINITIALIZED);
+　　 spin_lock_init(&amp;dev-&gt;queue_lock);
+　　 spin_lock_init(&amp;dev-&gt;xmit_lock);
+　　 dev-&gt;xmit_lock_owner = -1;
+#ifdef CONFIG_NET_CLS_ACT
+　　 spin_lock_init(&amp;dev-&gt;ingress_lock);
+#endif
+　　 ret = alloc_divert_blk(dev);
+　　 if (ret)
+　　　　 goto out;
+　　 dev-&gt;iflink = -1;
+　　 /* Init, if this function is available */
+　　 //如果dev -&gt; init 被赋值，那么调用此函数
+　　 if (dev-&gt;init) {
+　　　　 ret = dev-&gt;init(dev);
+　　　　 if (ret) {
+　　　　　　　if (ret &gt; 0)
+　　　　　　　　　 ret = -EIO;
+　　　　　　　goto out_err;
+　　　　 }
+　　 }
+　　 //判断name 是否合法
+　　 if (!dev_valid_name(dev-&gt;name)) {
+　　　　 ret = -EINVAL;
+　　　　 goto out_err;
+　　 }
+　　 //为此设备分配一个index
+　　 dev-&gt;ifindex = dev_new_index();
+　　 if (dev-&gt;iflink == -1)
+　　　　 dev-&gt;iflink = dev-&gt;ifindex;
+　　 /* Check for existence of name */
+　　 //所有网络设备，以名字作为哈希主键存在dev_name_head中，该变量是一个哈希数组
+　　 //找到该名字对应的链表
+　　 //如果内核中已经含有此名字的网络设备，出错退出
+　　 head = dev_name_hash(dev-&gt;name);
+　　 hlist_for_each(p, head) {
+　　　　 struct net_device *d
+　　　　　　　= hlist_entry(p, struct net_device, name_hlist);
+　　　　 if (!strncmp(d-&gt;name, dev-&gt;name, IFNAMSIZ)) {
+　　　　　　　ret = -EEXIST;
+　　　　　　　goto out_err;
+　　　　 }
+　　 }
+　　 /* Fix illegal SG+CSUM combinations. */
+　　 if ((dev-&gt;features &amp; NETIF_F_SG) &amp;&amp;
+　　 　　!(dev-&gt;features &amp; (NETIF_F_IP_CSUM |
+　　　　　　　　　　 NETIF_F_NO_CSUM |
+　　　　　　　　　　 NETIF_F_HW_CSUM))) {
+　　　　 printk(&quot;%s: Dropping NETIF_F_SG since no checksum feature.n&quot;,
+　　　　 　　　 dev-&gt;name);
+　　　　 dev-&gt;features &amp;= ~NETIF_F_SG;
+　　 }
+　　 /*
+　　 *　 nil rebuild_header routine,
+　　 *　 that should be never called and used as just bug trap.
+　　 */
+　　 //为rebuild_header赋默认值
+　　 if (!dev-&gt;rebuild_header)
+　　　　 dev-&gt;rebuild_header = default_rebuild_header;
+　　 /*
+　　 *　 Default initial state at registry is that the
+　　 *　 device is present.
+　　 */
+　　 set_bit(__LINK_STATE_PRESENT, &amp;dev-&gt;state);
+　　 dev-&gt;next = NULL;
+　　 dev_init_scheduler(dev);
+　　 write_lock_bh(&amp;dev_base_lock);
+　　 //初始化的时候，有struct net_device **dev_tail = &amp;dev_base;
+　　 //这段代码的意思实际就是：把dev加入dev_base为首结点队链表的尾部
+　　 *dev_tail = dev;
+　　 dev_tail = &amp;dev-&gt;next;
+　　 //把此结点加入到以名字为哈希主键的链表数组dev_name_head中
+　　 hlist_add_head(&amp;dev-&gt;name_hlist, head);
+　　 //把此结点加到以序号为主键的链表数组dev_index_head中
+　　 hlist_add_head(&amp;dev-&gt;index_hlist, dev_index_hash(dev-&gt;ifindex));
+　　 dev_hold(dev);
+　　 dev-&gt;reg_state = NETREG_REGISTERING;
+　　 write_unlock_bh(&amp;dev_base_lock);
+　　 /* Notify protocols, that a new device appeared. */
+　　 //在通知链表上发送事件
+　　 notifier_call_chain(&amp;netdev_chain, NETDEV_REGISTER, dev);
+　　 /* Finish registration after unlock */
+　　 net_set_todo(dev);
+　　 ret = 0;
+out:
+　　 return ret;
+out_err:
+　　 free_divert_blk(dev);
+　　 goto out;
+}</pre>从此可以看出。新加入一个设备时，会插入三个位置：以名字为哈希值组织的dev_name_head ,以序号为主链的哈希数组dev_index_head.还有dev_base.它为快速查找网络设备提供了基础。事实上。在内核中，经常要根据index找到dev. 或者根据name找到dev.我们遇到的时候再分析到现在，我们可以在内核中顺藤摸瓜的找到每一个网络设备了。还有很重要的。设备更改了配置，要怎么通知跟他相关的子系统呢？例如，网卡更新了IP，如何使路由得到更新？接着往下看：注意到上面注册代码中所调用的一个函数notifier_call_chain(&amp;netdev_chain, NETDEV_REGISTER, dev).该函数的作用是，在通知链表上netdev_chain上发送NETDEV_REGISTER消息，所有在与该通知链表关联的子系统都可以收到此消息。以此，可以快速的更新整个系统的配置消息。以路由子系统为例，来讲述该过程：在IPV4子系统加载的时候，加调用ip_init(),接着调用fib_init()，然后再调用ip_fib_init()跟踪一下此函数：<pre class="brush:html;">void __init ip_fib_init(void)
+{
+#ifndef CONFIG_IP_MULTIPLE_TABLES
+　　 ip_fib_local_table = fib_hash_init(RT_TABLE_LOCAL);
+　　 ip_fib_main_table　= fib_hash_init(RT_TABLE_MAIN);
+#else
+　　 fib_rules_init();
+#endif
+　　 register_netdevice_notifier(&amp;fib_netdev_notifier);
+　　 register_inetaddr_notifier(&amp;fib_inetaddr_notifier);
+}</pre>register_netdevice_notifier是做什么的呢？往下跟踪：<pre class="brush:html;">int register_netdevice_notifier(struct notifier_block *nb)
+{
+　　 struct net_device *dev;
+　　 int err;
+　　 rtnl_lock();
+　　 //注册通知链
+　　 err = notifier_chain_register(&amp;netdev_chain, nb);
+　　 if (!err) {
+　　　　 for (dev = dev_base; dev; dev = dev-&gt;next) {
+　　　　　　　nb-&gt;notifier_call(nb, NETDEV_REGISTER, dev);
+　　　　　　　if (dev-&gt;flags &amp; IFF_UP)
+　　　　　　　　　 nb-&gt;notifier_call(nb, NETDEV_UP, dev);
+　　　　 }
+　　 }
+　　 rtnl_unlock();
+　　 return err;
+}</pre>呵呵，它在netdev_chain上注册了通知链，当此链上有事件发生时，会调用fib_netdev_notifiers中的相关信息处理，看一下fib_netdev_notifier的信息：<pre class="brush:html;">struct notifier_block fib_netdev_notifier = {
+　　 .notifier_call =fib_netdev_event,
+};</pre>OK，现在越来越具体了，如果netdev_chain有事件，会调用fib_netdev_event处理。继续跟踪：<pre class="brush:html;">static int fib_netdev_event(struct notifier_block *this, unsigned long event, void *ptr)
+{
+　　 struct net_device *dev = ptr;
+　　 struct in_device *in_dev = __in_dev_get(dev);
+　　 //设备注销
+　　 if (event == NETDEV_UNREGISTER) {
+　　　　 fib_disable_ip(dev, 2);
+　　　　 return NOTIFY_DONE;
+　　 }
+　　 if (!in_dev)
+　　　　 return NOTIFY_DONE;
+　　 switch (event) {
+　　 //设备UP
+　　 case NETDEV_UP:
+　　　　 for_ifa(in_dev) {
+　　　　　　　fib_add_ifaddr(ifa);
+　　　　 } endfor_ifa(in_dev);
+#ifdef CONFIG_IP_ROUTE_MULTIPATH
+　　　　 fib_sync_up(dev);
+#endif
+　　　　 rt_cache_flush(-1);
+　　　　 break;
+　　 //设备DOWN
+　　 case NETDEV_DOWN:
+　　　　 fib_disable_ip(dev, 0);
+　　　　 break;
+　　 //设备参数改变
+　　 case NETDEV_CHANGEMTU:
+　　 case NETDEV_CHANGE:
+　　　　 rt_cache_flush(0);
+　　　　 break;
+　　 }
+　　 return NOTIFY_DONE;
+}</pre><p>　　路由部份的代码将在后续的笔记中给出。至此，整个网络设备的架构非常的清晰了！</p>		
+   
+  <div style=" display:block; width:100%; padding-top:15px; margin:0px auto; height:90px; overflow:hidden; text-align:center;"><script src="/2011/ads/tech_content_end_468x60.js"></script></div>				</p>
+
+<div class="ly">
+				
+                				        </div>
+
+        <div class="pages">
+		        <div class="quotes"><span class="disabled">第一页</span> <a href="http://tech.ddvip.com/2008-11/122725865294235.html">上一页</a> <a href="http://tech.ddvip.com/2008-11/122725865294235.html">1</a> <span class="currentpage">2</span>  <span class="disabled">最后一页</span> </div>		        </div>
+        <!--翻页end-->
+
+                <p class="clearer"></p>
+          </div>
+         <!--分享-->
+<p style="float:left;height:41px;line-height:41px;font-size:16px;font-weight:bold">分享到</p>  
+         <div class="shareddvip">
+              <!-- Baidu Button BEGIN -->
+<div id="bdshare" class="bdshare_t bds_tools_32 get-codes-bdshare">
+<a class="bds_qzone"></a>
+<a class="bds_tsina"></a>
+<a class="bds_tqq"></a>
+<a class="bds_renren"></a>
+<span class="bds_more"></span>
+<a class="shareCount"></a>
+</div>
+
+<script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=0" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date()/3600000)
+</script>
+<!-- Baidu Button END -->
+         </div>
+         <p class="clearer"></p>
+         <!---->
+         <!--工具按钮-->
+         <div class="toolbar">
+                 <ul>
+                        <li style="padding-left:23px;"><a href="javascript:;" onclick="window.print()">打印</a></li>
+                        <li  style="padding-left:45px;"><a href="http://my.ddvip.com/" target="_blank">投稿</a></li>
+                        <li  style="padding-left:47px;"><a href="http://tech.ddvip.com/feed.php" target="_blank">RSS订阅</a></li>
+                        <li  style="padding-left:47px;">下载：
+						<a href="/pdf.php?id=162183" target="_blank"><img src="/2013/images/s01_icon.png" width="17" height="7"/></a> 
+						<a href="/word.php?id=162183" target="_blank"><img src="/2013/images/s02_icon.png" width="17" height="7"/></a> 
+						<a href="/text.php?id=162183" target="_blank"><img src="/2013/images/s03_icon.png" width="17" height="7"/></a></li>
+                 </ul>
+                 <p class="clearer"></p>
+         </div>
+         <!---->
+        <!--顶踩-->
+        <div class="dingcai fix">
+		
+           <div class="left fix" >
+             <dl class="dc fix" onclick="digg_support()" style="cursor:pointer; margin-left:0px;">
+              <dd >(<span id="digg_snum" style="color:green">0</span>)<span id="digg_sbar_percent">50%</span></dd>
+              <dt>顶一下</dt>
+             </dl>
+             <dl class="dc fix" onclick="digg_against()" style="cursor:pointer; margin-left:45px;">
+              <dd>(<span id="digg_anum" style="color:red">0</span>)<span id="digg_abar_percent">50%</span></dd>
+              <dt>踩一下</dt>
+             </dl>
+           </div>
+       
+           <div class="left fix" style="float:left; padding-left:40px;">
+             <dl>
+               <dd ><a href="javascript:void(0)" onclick="window.location.href='http://comment.ddvip.com/?id=162183&amp;type=1'" id="ckplbtn"></a><a href="#comment_content" id="fbplbtn"></a></dd>
+             </dl>
+           </div>
+              <p class="clearer"></p>
+        </div>			
+        <!--顶踩end-->
+        <p class="clearer"></p>
+        <!--tag-->
+        <div class="contenttag" >
+              <ul>
+			
+                    				               <li><a href="/tag-2/linux.html" target="_blank">linux</a></li>
+		  		                </ul>
+              <p class="clearer"></p>
+        </div>
+        <!---->
+        <!--关键字-->
+        <div class="contentkey" >
+              <ul>
+		                </ul>
+              <p class="clearer"></p>
+        </div>
+        <!---->
+								
+		    </div>
+         <!--评论-->
+         <div class="cjrj_box margintop_10 content_cmt" style="_height:420px;">
+           <h3 class="titgrey"><p class="yuanbg">评论</p><p class="clearer"></p></h3>
+           <div class="xgrj_box news_list" style="padding:10px">
+<div id="comment-panel">
+  <div id="comment-read" class="fix"> <span><b style="font-size:14px;">最新评论</b>(共<span style="color:red">0</span>条评论)</span> <span class="comment-all-link"><a href="http://comment.ddvip.com/?id=162183&amp;type=1">查看全部评论</a></span> </div>
+  <div id="comments">
+    <div class="comment-item" id="comment_list">
+    </div>
+  </div>
+  <h3 id="comment-pub-title">发表评论</h3>
+  <div id="comment-form-panel" class="comment-form-panel">
+    <form>
+      <p>
+        <label for="comment_type_1"><img src="/images/LedIcon_194.png" width="16" height="16">&nbsp;好评</label>
+        <input type="radio" name="comment_type" id="comment_type_1" checked="checked" value="1">
+        <label for="comment_type_2"><img src="/images/LedIcon_283.png" width="16" height="16">&nbsp;中评</label>
+        <input type="radio" name="comment_type" id="comment_type_2" value="2">
+        <label for="comment_type_3"><img src="/images/LedIcon_197.png" width="16" height="16">&nbsp;差评</label>
+        <input type="radio" name="comment_type" id="comment_type_3" value="3">
+      </p>
+      <p style="padding-bottom:10px">
+        <label for="comment_nickname">用户名：</label>
+        <input type="text" value="" class="name" id="comment_nickname" name="comment_nickname" onfocus="if(value=='豆豆网友'){value=''}" onblur="if (value ==''){value='豆豆网友'}" disabled="disabled"/>
+        <span id="comment_login" style="display:inline">
+        <label class="padding_left_15px" for="comment_password">密  码：</label>
+        <input type="password" value="" class="password" id="comment_password" name="comment_password" disabled="disabled"/>
+        <input type="button"  class="login_btn" value="登陆" onclick="loginajax()"/>
+        </span>
+        <input type="checkbox" class="check_box" id="anonymity" checked="checked"/>
+        <label class="padding_left_5px">匿名</label>
+        <a href="javascript:void(0)" onclick="comment_reply_logoutajax()" id="comment_reply_logout" style="display:none">登出</a>
+        <label><a href="http://my.ddvip.com/entry/register" target="_blank">新用户注册</a></label>
+      </p>
+      <p style="border-top:1px solid #eee;padding-top:10px">
+        <textarea class="textarea" onfocus="if(value=='说点什么吧..'){value=''}" onblur="if (value ==''){value='说点什么吧..'}"  value="说点什么吧.." id="comment_content"  rows="8" style="width:99%" placeholder="说点什么吧..">说点什么吧..</textarea>
+      </p>
+      <p style="padding-top:10px;" id="comment_verification">
+
+      </p>
+      <p style="text-align:right">
+      	<input type="button" class="comment-submit" value="发表评论" id="comment_publish_btn"/>
+      </p>
+    </form>
+  </div>
+</div>
+
+
+
+  <div  id="comment_reply_panel" style="display:none" class="comment-form-panel">
+    <form>
+      <p style="padding-bottom:10px">
+        <label for="comment_nickname">用户名：</label>
+        <input type="text" value="" class="name" id="comment_reply_username" name="comment_reply_username" onfocus="if(value=='豆豆网友'){value=''}" onblur="if (value ==''){value='豆豆网友'}" disabled="disabled"/>
+        <span id="comment_login" style="display:inline">
+        <label class="padding_left_15px" for="comment_reply_password">密  码：</label>
+        <input type="password" value="" class="password" id="comment_reply_password" name="comment_reply_password" disabled="disabled"/>
+        <input type="button"  class="login_btn" value="" onclick="comment_reply_loginajax()"/>
+        </span>
+        <input type="checkbox" class="check_box" id="comment_reply_anonymity" checked="checked" onchange="comment_reply_anonymity_checkbox()"/>
+        <label class="padding_left_5px">匿名</label>
+        <a href="javascript:void(0)" onclick="comment_reply_logoutajax()" id="comment_reply_logout" style="display:none">登出</a>
+        <label><a href="http://my.ddvip.com/entry/register" target="_blank">新用户注册</a></label>
+      </p>
+      <p style="border-top:1px solid #eee;padding-top:10px">
+        <textarea class="textarea" onfocus="if(value=='说点什么吧..'){value=''}" onblur="if (value ==''){value='说点什么吧..'}"  value="说点什么吧.." id="comment_reply_content" rows="8" style="width:99%" placeholder="说点什么吧..">说点什么吧..</textarea>
+      </p>
+      <p style="padding-top:10px;" id="comment_reply_verification">
+      
+      	<div id="verification_panel">
+	        <label>验证码：</label>
+	        <input type="text" value="" size="5" class="yzm" id="verification">
+	        <img src="http://comment.ddvip.com/universal/verification/sid/ojg7nh095ms90bg418hunrps42" width="60" height="23" id="verify_img" onclick="verify_img_rand()" id="imgcode" style=""/> <a href="javascript:void(0)" onclick="verify_img_rand();">看不清楚？换一张</a>
+	       
+        </div>
+      </p>
+      <p style="text-align:right">
+       <input type="button" class="comment-submit" value="发表回复"  id="comment_reply_btn" onclick="return comment_reply()"/>
+       <input type="hidden" id="comment_reply_cid"/>
+       <a href="javascript:void(0)" style="color:blue" onclick="comment_reply_close()">关闭窗口</a>
+      </p>
+    </form>
+  </div>
+
+<!-- 加载评论 -->
+
+
+
+
+        
+                 <p class="clearer"></p>
+           </div>
+         </div>
+         <!---->   
+    </div>
+    <div class="tech_r ">
+           <!--ad广告-->
+           <div>
+          <script src="/2011/ads/tech_content_right_300x250.js"></script>           </div>
+           <!---->
+           <!--排行-->
+           <div class="paihang">
+                <div class="phul">
+<script type="text/javascript">
+function nTabs01(thisObj,Num){
+if(thisObj.className == "this")return;
+var tabObj = thisObj.parentNode.id;
+var tabList = document.getElementById(tabObj).getElementsByTagName("li");
+for(i=0; i <tabList.length; i++)
+{
+  if (i == Num)
+  {
+   thisObj.className = "this"; 
+      document.getElementById(tabObj+"_Content"+i).style.display = "block";
+  }else{
+   tabList[i].className = "normal"; 
+   document.getElementById(tabObj+"_Content"+i).style.display = "none";
+  }
+} 
+}
+</script>
+                      <ul id="myTab1">
+                           <li class="this" onmouseover="nTabs01(this,0);">今日排行</li>
+                           <li onmouseover="nTabs01(this,1);">一周排行</li>
+                           <li onmouseover="nTabs01(this,2);">总排行</li>
+                      </ul>
+                      <p class="clearer"></p>
+                </div>
+                <div class="ph_bang set_c_blue">
+                    <!---->
+                    <ul id="myTab1_Content0">
+ 										    <li><a href="http://tech.ddvip.com/2012-09/1348544270182496.html">TDK NTC温度传感器NTC-GP系列附接线端子型</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-12/122869947198207.html">SOA与云计算结合 推动企业发展</a></li>
+							    <li><a href="http://tech.ddvip.com/2012-10/1350401664183639.html">Windows 7用户将能继续使用Zune Music服务</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-06/121419069845979.html">SOA和BPM组合 业务更灵活</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-08/121789990651182.html">具有宽占空因子范围的隔离式 MOSFET 驱动器</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-10/122516311385380.html">Win32.Vking.cd.291840</a></li>
+							    <li><a href="http://tech.ddvip.com/2012-10/1349796674183117.html">Windows Server 2012上的Windows Azure云计</a></li>
+							    <li><a href="http://tech.ddvip.com/2008/08/121878165954710.html">后CIO人如何规划职业生涯</a></li>
+							    <li><a href="http://tech.ddvip.com/2012/06/1339473010176918.html">关注移动应用开发成就高瞻远瞩的CIO</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-10/122484012582783.html">Win32.Hack.PCShare.c 透视眼</a></li>
+			  
+                       
+                    </ul>
+                    <!---->
+                    <!---->
+                    <ul id="myTab1_Content1" style="display:none;">
+ 										    <li><a href="http://tech.ddvip.com/2012-09/1348544270182496.html">TDK NTC温度传感器NTC-GP系列附接线端子型</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-12/122869947198207.html">SOA与云计算结合 推动企业发展</a></li>
+							    <li><a href="http://tech.ddvip.com/2012-10/1350401664183639.html">Windows 7用户将能继续使用Zune Music服务</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-06/121419069845979.html">SOA和BPM组合 业务更灵活</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-08/121789990651182.html">具有宽占空因子范围的隔离式 MOSFET 驱动器</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-10/122516311385380.html">Win32.Vking.cd.291840</a></li>
+							    <li><a href="http://tech.ddvip.com/2012-10/1349796674183117.html">Windows Server 2012上的Windows Azure云计</a></li>
+							    <li><a href="http://tech.ddvip.com/2008/08/121878165954710.html">后CIO人如何规划职业生涯</a></li>
+							    <li><a href="http://tech.ddvip.com/2012/06/1339473010176918.html">关注移动应用开发成就高瞻远瞩的CIO</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-10/122484012582783.html">Win32.Hack.PCShare.c 透视眼</a></li>
+			                           
+                    </ul>
+                    <!---->
+                     <!---->
+                    <ul id="myTab1_Content2" style="display:none;">
+ 										    <li><a href="http://tech.ddvip.com/2007-11/119500723337403.html">TP-LINK 无线路由器设置详细图解</a></li>
+							    <li><a href="http://tech.ddvip.com/2007-02/117064140519281.html">使用 Excel 数据透视表查看数据</a></li>
+							    <li><a href="http://tech.ddvip.com/2006-10/11616280969846.html">Flash AS 入门到精通教程</a></li>
+							    <li><a href="http://tech.ddvip.com/2007-11/119502103737420.html">如何设置路由器自动拨号</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-02/120341279541925.html">Excel函数 Lookup与Vlookup函数的区别及应</a></li>
+							    <li><a href="http://tech.ddvip.com/2012-03/1330929039172983.html">免费qsv转rmvb、MP4软件推荐</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-09/122259278572594.html">安装Office2007出错:windows installer 服</a></li>
+							    <li><a href="http://tech.ddvip.com/2011-12/1323841592170197.html">免费rmvb转MP4视频转换工具推荐</a></li>
+							    <li><a href="http://tech.ddvip.com/2006-11/116248912610168.html">AutoCAD 2007 入门教程</a></li>
+							    <li><a href="http://tech.ddvip.com/2008-08/121795652251524.html">Photoshop婚纱照片处理：爱情天长地久</a></li>
+			                         
+                    </ul>
+                    <!---->
+                    <p class="clearer"></p>
+            </div>
+           </div>
+           <!---->
+           <!--最新热门tagg-->
+           <div class="paihang">
+                <span class="tit"><p>最新热门tag</p></span>
+                <div class="ph_bang">
+                    <ul class="list5">
+ 			    <li><a href="/tag-2/html.html" target="_blank">html</a>(5482)</li>
+	    	    <li><a href="/tag-2/asp.html" target="_blank">asp</a>(4013)</li>
+	    	    <li><a href="/tag-2/windows xp.html" target="_blank">windows xp</a>(3525)</li>
+	    	    <li><a href="/tag-2/php.html" target="_blank">php</a>(2977)</li>
+	    	    <li><a href="/tag-2/vb.html" target="_blank">vb</a>(2974)</li>
+	    	    <li><a href="/tag-2/综合布线.html" target="_blank">综合布线</a>(2882)</li>
+	    	    <li><a href="/tag-2/c语言.html" target="_blank">c语言</a>(2844)</li>
+	    	    <li><a href="/tag-2/python.html" target="_blank">python</a>(2833)</li>
+	    	    <li><a href="/tag-2/photoshop.html" target="_blank">photoshop</a>(2680)</li>
+	    	    <li><a href="/tag-2/无线网络.html" target="_blank">无线网络</a>(2523)</li>
+	    	    <li><a href="/tag-2/java.html" target="_blank">java</a>(2001)</li>
+	    	    <li><a href="/tag-2/cam.html" target="_blank">cam</a>(1908)</li>
+	    	    <li><a href="/tag-2/windows 7.html" target="_blank">windows 7</a>(1618)</li>
+	    	    <li><a href="/tag-2/电路图.html" target="_blank">电路图</a>(1391)</li>
+	    	    <li><a href="/tag-2/flash.html" target="_blank">flash</a>(1338)</li>
+	    	    <li><a href="/tag-2/javascript.html" target="_blank">javascript</a>(1331)</li>
+	    	    <li><a href="/tag-2/路由器.html" target="_blank">路由器</a>(1308)</li>
+	    	    <li><a href="/tag-2/linux.html" target="_blank">linux</a>(1261)</li>
+	                        </ul>
+                    <!---->
+                    <p class="clearer"></p>
+            </div>
+           </div>
+           <!---->
+           <!--评论排行榜-->
+           <div class="paihang">
+                <span class="tit"><p>digg排榜</p></span>
+                <div class="ph_bang">
+                    <!---->
+                    <ul id="myTab1_Content0">
+		        <li><a href="http://tech.ddvip.com/2010-11/1289356966162426.html" title="美图秀秀打造温暖美妙的海底美女照片">美图秀秀打造温暖美妙的海底美女照片</a></li>
+		        <li><a href="http://tech.ddvip.com/2008-05/121215188844900.html" title="中国象棋初学者理论培训之开局篇">中国象棋初学者理论培训之开局篇</a></li>
+		        <li><a href="http://tech.ddvip.com/2007-11/119639009538184.html" title="Photoshop 去掉图片上的文字的几个方法">Photoshop 去掉图片上的文字的几个方法</a></li>
+		        <li><a href="http://tech.ddvip.com/2006-10/11616280969846.html" title="Flash AS 入门到精通教程">Flash AS 入门到精通教程</a></li>
+		        <li><a href="http://tech.ddvip.com/2007-09/119071800435495.html" title="Photoshop抠图详细教程：明天你就是抠图高手">Photoshop抠图详细教程：明天你就是抠图高</a></li>
+		        <li><a href="http://tech.ddvip.com/2009-10/1255429773135448.html" title="extjs学习笔记（二） Ext.Element类">extjs学习笔记（二） Ext.Element类</a></li>
+		        <li><a href="http://tech.ddvip.com/2008-01/120084382340780.html" title="轻松把土豆网的视频下载保存到手机上">轻松把土豆网的视频下载保存到手机上</a></li>
+		        <li><a href="http://tech.ddvip.com/2008-08/121795652251524.html" title="Photoshop婚纱照片处理：爱情天长地久">Photoshop婚纱照片处理：爱情天长地久</a></li>
+		        <li><a href="http://tech.ddvip.com/2006-09/11578213129342.html" title="Photoshop通道抠图技巧">Photoshop通道抠图技巧</a></li>
+		        <li><a href="http://tech.ddvip.com/2007-07/118402150229049.html" title="解决Windows与Internet时间同步">解决Windows与Internet时间同步</a></li>
+		                       
+                    </ul>
+                    <!---->
+                    <p class="clearer"></p>
+            </div>
+           </div>
+           <!---->
+    </div>
+<p class="clearer"></p>
+
+</div>
+<!---->
+<script src="/2011/js/count.js" type="text/javascript"></script>
+<!--通用尾部--> 
+<div class="footer"> 
+      <div class="Copyright"> 
+          <ul> 
+              <li><a href="http://www.ddvip.com/about.html" target="_blank" rel="nofollow">关于我们</a> | <a href="http://www.ddvip.com/contactus.html" target="_blank" rel="nofollow">联系我们</a> | <a href="http://www.ddvip.com/corp.html" target="_blank" rel="nofollow">版权申明</a> | <a href="http://www.ddvip.com/ad.html" target="_blank" rel="nofollow">广告服务</a> | <a href="#" target="_blank" rel="nofollow">网站律师</a> | <a href="http://corp.ddvip.com/" target="_blank" rel="nofollow">提交软件</a> | <a href="http://www.ddvip.com/bug/" target="_blank" rel="nofollow">报告错误</a>  </li> 
+              <li>Copyright 2002-2012 ddvip All Rights Reserved</li> 
+              <li><a href="http://www.ddvip.com/" target="_blank" style="color:#0E7597;">豆豆网</a>版权所有</li> 
+          </ul>
+      </div> 
+</div> 
+<!----> 
+<script type="text/javascript">
+$(function(){
+	$.dajax({
+			'success': function(data, textStatus){
+				if (data.length > 5)
+				{
+					if ($('h1'))
+					{
+						data = data.replace($('h1').text(), '');
+					}
+					
+					$('#spider_relation_content').html(data);
+					$('#spider_relation').show();
+				}
+
+			},
+			args: {
+				'url': document.referrer,
+				'ddvip_url_request': 'http://my.ddvip.com/universal/spiderrelation2/'
+			},
+			'dataType': 'html',
+			'type': 'post'			
+		}
+	);
+});
+</script>
+<div id="spider_relation" style="display:none">
+<div class="rdtj_tit"><em>猜你需要</em><span title="点击关闭" onclick="$('#spider_relation').hide()"></span></div>
+<div class="alert_cnt news_list02">
+<ul class="news_list" id="spider_relation_content">
+
+</ul>
+</div>
+</div>
+</body>
+</html>

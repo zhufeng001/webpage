@@ -1,0 +1,1006 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>open vswitch研究：utility - majieyue的专栏 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="streamstruct pstream {&#160; &#160; const struct pstream_class *class;&#160; &#160; char *name;};pstream_class是一个类似的接口类，其实现根据底层socket的不同（unix domain socket, tcp socket, ssl socket）而不同，p表示passive，其接口定义如下，" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/majieyue/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="/majieyue">majieyue的专栏</a></h1>
+            <h2></h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="/majieyue?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="/majieyue?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="/majieyue/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "majieyue";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/majieyue";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://events.csdn.net/DR2013/roadshow/index.html" target="_blank">
+<font color=red>【免费有礼】欧美最新网络营销技巧分享 
+   </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/l09196891/article/details/8845828" target="_blank"><font color=blue>博客导入工具
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8863634" target="_blank"><font color=red>【限时优惠】第五届云计算大会社区门票抢购
+
+
+
+
+</font></a>
+
+<br />
+
+
+
+
+
+<a href="http://events.csdn.net/wy/APC/invite.html
+"target="_blank">
+<font color=red>探究云计算数据中心节能增效之道
+
+
+ </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2013-05-02/2815118 "target="_blank">
+<font color=red>专访邓凡平：Android开发路上的快速学习之道
+ </font></a>
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8853291"target="_blank">
+<font color=blue>CSDN博客第二期最佳移动开发博主评选
+ </font></a>
+
+
+
+
+</div>
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Original"></span>
+    <h3>
+        <span class="link_title"><a href="/majieyue/article/details/8105007">
+        open vswitch研究：utility
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/majieyue/article/category/1222126">OpenvSwitch</a> 
+        </span>
+    <span class="link_postdate">2012-11-25 21:53</span>
+    <span class="link_view" title="阅读次数">395人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('open vswitch研究：utility','8105007');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(8105007,2);return false;" title="举报">举报</a></span>
+    
+</div>
+
+
+    
+<div id="article_content" class="article_content">
+
+<p><strong>stream</strong></p>
+<p><br>
+</p>
+<p>struct pstream {<br>
+&nbsp; &nbsp; const struct pstream_class *class;<br>
+&nbsp; &nbsp; char *name;<br>
+};<br>
+</p>
+<p>pstream_class是一个类&#20284;的接口类，其实现根据底层socket的不同（unix domain socket, tcp socket, ssl socket）而不同，p表示passive，其接口定义如下，</p>
+<p>struct pstream_class {<br>
+&nbsp; &nbsp; /* Prefix for connection names, e.g. &quot;ptcp&quot;, &quot;pssl&quot;, &quot;punix&quot;. */<br>
+&nbsp; &nbsp; const char *name;<br>
+<br>
+&nbsp; &nbsp; /* True if this pstream needs periodic probes to verify connectivty. &nbsp;For<br>
+&nbsp; &nbsp; &nbsp;* pstreams which need probes, it can take a long time to notice the<br>
+&nbsp; &nbsp; &nbsp;* connection was dropped. */<br>
+&nbsp; &nbsp; bool needs_probes;<br>
+<br>
+&nbsp; &nbsp; /* Attempts to start listening for stream connections. &nbsp;'name' is the full<br>
+&nbsp; &nbsp; &nbsp;* connection name provided by the user, e.g. &quot;ptcp:1234&quot;. &nbsp;This name is<br>
+&nbsp; &nbsp; &nbsp;* useful for error messages but must not be modified.<br>
+&nbsp; &nbsp; &nbsp;*<br>
+&nbsp; &nbsp; &nbsp;* 'suffix' is a copy of 'name' following the colon and may be modified.<br>
+&nbsp; &nbsp; &nbsp;* 'dscp' is the DSCP value that the new connection should use in the IP<br>
+&nbsp; &nbsp; &nbsp;* packets it sends.<br>
+&nbsp; &nbsp; &nbsp;*<br>
+&nbsp; &nbsp; &nbsp;* Returns 0 if successful, otherwise a positive errno value. &nbsp;If<br>
+&nbsp; &nbsp; &nbsp;* successful, stores a pointer to the new connection in '*pstreamp'.<br>
+&nbsp; &nbsp; &nbsp;*<br>
+&nbsp; &nbsp; &nbsp;* The listen function must not block. &nbsp;If the connection cannot be<br>
+&nbsp; &nbsp; &nbsp;* completed immediately, it should return EAGAIN (not EINPROGRESS, as<br>
+&nbsp; &nbsp; &nbsp;* returned by the connect system call) and continue the connection in the<br>
+&nbsp; &nbsp; &nbsp;* background. */<br>
+&nbsp; &nbsp; int (*listen)(const char *name, char *suffix, struct pstream **pstreamp,<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; uint8_t dscp);<br>
+<br>
+&nbsp; &nbsp; /* Closes 'pstream' and frees associated memory. */<br>
+&nbsp; &nbsp; void (*close)(struct pstream *pstream);<br>
+</p>
+<p>&nbsp; &nbsp;/* Tries to accept a new connection on 'pstream'. &nbsp;If successful, stores<br>
+&nbsp; &nbsp; &nbsp;* the new connection in '*new_streamp' and returns 0. &nbsp;Otherwise, returns<br>
+&nbsp; &nbsp; &nbsp;* a positive errno value.<br>
+&nbsp; &nbsp; &nbsp;*<br>
+&nbsp; &nbsp; &nbsp;* The accept function must not block waiting for a connection. &nbsp;If no<br>
+&nbsp; &nbsp; &nbsp;* connection is ready to be accepted, it should return EAGAIN. */<br>
+&nbsp; &nbsp; int (*accept)(struct pstream *pstream, struct stream **new_streamp);<br>
+<br>
+&nbsp; &nbsp; /* Arranges for the poll loop to wake up when a connection is ready to be<br>
+&nbsp; &nbsp; &nbsp;* accepted on 'pstream'. */<br>
+&nbsp; &nbsp; void (*wait)(struct pstream *pstream);<br>
+};<br>
+</p>
+<p>可以看出pstream_class作为server端的stream socket封装，其接口包括了listen, accept, wait, close</p>
+<p><br>
+</p>
+<p>struct stream {<br>
+&nbsp; &nbsp; const struct stream_class *class;<br>
+&nbsp; &nbsp; int state;<br>
+&nbsp; &nbsp; int error;<br>
+&nbsp; &nbsp; ovs_be32 remote_ip;<br>
+&nbsp; &nbsp; ovs_be16 remote_port;<br>
+&nbsp; &nbsp; ovs_be32 local_ip;<br>
+&nbsp; &nbsp; ovs_be16 local_port;<br>
+&nbsp; &nbsp; char *name;<br>
+};<br>
+</p>
+<p>类&#20284;的stream_class作为active stream socket的接口类，接口包括了open, close, recv, send, wait等，请参考lib/stream-provider.h</p>
+<p><br>
+</p>
+<p>总结下来，就是pstream是被动的流，只用来listen, accept新的连接，stream是用来读写交换数据的主动流，无论是pstream, stream，都用到了bridge模式，通过pstream_class, stream_class来做接口定义的操作。我们来看几个典型的操作。</p>
+<p><br>
+</p>
+<p>stream_connect，判断当前流的状态，如果还是CONNECTING，那么调用stream_class-&gt;connect判断连接结束没有，如果是CONNECTED，那么返回0</p>
+<p>int&nbsp;stream_connect(struct stream *stream)<br>
+{<br>
+&nbsp; &nbsp; enum stream_state last_state;<br>
+<br>
+&nbsp; &nbsp; do {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; last_state = stream-&gt;state;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; switch (stream-&gt;state) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; case SCS_CONNECTING:<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; scs_connecting(stream);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; break;<br>
+<br>
+&nbsp; &nbsp; &nbsp; &nbsp; case SCS_CONNECTED:<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return 0;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; case SCS_DISCONNECTED:<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return stream-&gt;error;<br>
+<br>
+&nbsp; &nbsp; &nbsp; &nbsp; default:<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; NOT_REACHED();<br>
+&nbsp; &nbsp; &nbsp; &nbsp; }<br>
+&nbsp; &nbsp; } while (stream-&gt;state != last_state);<br>
+<br>
+&nbsp; &nbsp; return EAGAIN;<br>
+}<br>
+</p>
+<p><br>
+</p>
+<p>stream_wait，用来等待stream socket available，从而开始wait指定的操作，对于STREAM_SEND/STREAM_RECV而言，如果此时stream还是CONNECTING，会等到变为CONNECTED</p>
+<p>void<br>
+stream_wait(struct stream *stream, enum stream_wait_type wait)<br>
+{<br>
+&nbsp; &nbsp; assert(wait == STREAM_CONNECT || wait == STREAM_RECV<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|| wait == STREAM_SEND);<br>
+<br>
+&nbsp; &nbsp; switch (stream-&gt;state) {<br>
+&nbsp; &nbsp; case SCS_CONNECTING:<br>
+&nbsp; &nbsp; &nbsp; &nbsp; wait = STREAM_CONNECT;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; break;<br>
+<br>
+&nbsp; &nbsp; case SCS_DISCONNECTED:<br>
+&nbsp; &nbsp; &nbsp; &nbsp; poll_immediate_wake();&nbsp;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; return;<br>
+&nbsp; &nbsp; } &nbsp;&nbsp;<br>
+&nbsp; &nbsp; (stream-&gt;class-&gt;wait)(stream, wait);<br>
+} &nbsp;&nbsp;<br>
+</p>
+<p>stream_wait用到了poll函数来做event demultiplex，包括相应的struct pollfd，由于没有大量的并发连接，所以性能还不是问题</p>
+<p><br>
+</p>
+<p>进程的poll机制如下，会有一个全局的poll_waiters list，每次有fd需要wait某些events时，会构造一个poll_waiter并挂到全局poll_waiters list中。同样可以通过poll_cancel来把一个poll_waiter从全局list里面去掉</p>
+<p>void&nbsp;poll_block(void)<br>
+{ &nbsp;&nbsp;<br>
+&nbsp; &nbsp; static struct pollfd *pollfds;<br>
+&nbsp; &nbsp; static size_t max_pollfds;<br>
+<br>
+&nbsp; &nbsp; struct poll_waiter *pw, *next;<br>
+&nbsp; &nbsp; int n_waiters, n_pollfds;<br>
+&nbsp; &nbsp; int elapsed;<br>
+&nbsp; &nbsp; int retval;<br>
+<br>
+&nbsp; &nbsp; /* Register fatal signal events before actually doing any real work for<br>
+&nbsp; &nbsp; &nbsp;* poll_block. */<br>
+&nbsp; &nbsp; fatal_signal_wait();<br>
+<br>
+&nbsp; &nbsp; n_waiters = list_size(&amp;waiters);<br>
+&nbsp; &nbsp; if (max_pollfds &lt; n_waiters) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; max_pollfds = n_waiters;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; pollfds = xrealloc(pollfds, max_pollfds * sizeof *pollfds);<br>
+&nbsp; &nbsp; }<br>
+<br>
+&nbsp; &nbsp; n_pollfds = 0;<br>
+&nbsp; &nbsp; LIST_FOR_EACH (pw, node, &amp;waiters) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; pw-&gt;pollfd = &amp;pollfds[n_pollfds];<br>
+&nbsp; &nbsp; &nbsp; &nbsp; pollfds[n_pollfds].fd = pw-&gt;fd;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; pollfds[n_pollfds].events = pw-&gt;events;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; pollfds[n_pollfds].revents = 0;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; n_pollfds&#43;&#43;;<br>
+&nbsp; &nbsp; } &nbsp;&nbsp;<br>
+</p>
+<p>&nbsp; &nbsp; if (timeout_when == LLONG_MIN) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; COVERAGE_INC(poll_zero_timeout);<br>
+&nbsp; &nbsp; }</p>
+<p>到此，把全局poll_waiter的所有poll_waiter，填到一个struct pollfd的数组pollfds中，</p>
+<p>&nbsp; &nbsp; retval = time_poll(pollfds, n_pollfds, timeout_when, &amp;elapsed);<br>
+&nbsp; &nbsp; if (retval &lt; 0) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(1, 5);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; VLOG_ERR_RL(&amp;rl, &quot;poll: %s&quot;, strerror(-retval));<br>
+&nbsp; &nbsp; } else if (!retval) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; log_wakeup(timeout_where, NULL, elapsed);<br>
+&nbsp; &nbsp; }<br>
+time_poll是一个event demultiplexer，我们后面会分析<br>
+<br>
+&nbsp; &nbsp; LIST_FOR_EACH_SAFE (pw, next, node, &amp;waiters) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; if (pw-&gt;pollfd-&gt;revents) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; log_wakeup(pw-&gt;where, pw-&gt;pollfd, 0);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; }<br>
+&nbsp; &nbsp; &nbsp; &nbsp; poll_cancel(pw);<br>
+&nbsp; &nbsp; }<br>
+<br>
+&nbsp; &nbsp; timeout_when = LLONG_MAX;<br>
+&nbsp; &nbsp; timeout_where = NULL;<br>
+</p>
+<p>&nbsp; &nbsp; /* Handle any pending signals before doing anything else. */<br>
+&nbsp; &nbsp; fatal_signal_run();<br>
+}</p>
+<p>time_poll实际上在一个循环里反复调用poll，直到给的时间片用完为止</p>
+<p><br>
+</p>
+<p>下面我们拿unix domain socket, tcp socket为例来stream这块代码的分析</p>
+<p>对TCP而言，ptcp_open是pstream_class的listen函数，</p>
+<p>static int&nbsp;ptcp_open(const char *name OVS_UNUSED, char *suffix, struct pstream **pstreamp,&nbsp;uint8_t dscp)&nbsp;{<br>
+&nbsp; &nbsp; struct sockaddr_in sin;<br>
+&nbsp; &nbsp; char bound_name[128];<br>
+&nbsp; &nbsp; int fd;<br>
+&nbsp; &nbsp;&nbsp;<br>
+&nbsp; &nbsp; fd = inet_open_passive(SOCK_STREAM, suffix, -1, &amp;sin, dscp);<br>
+&nbsp; &nbsp; if (fd &lt; 0) {&nbsp;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; return -fd;&nbsp;<br>
+&nbsp; &nbsp; }<br>
+<br>
+&nbsp; &nbsp; sprintf(bound_name, &quot;ptcp:%&quot;PRIu16&quot;:&quot;IP_FMT,<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ntohs(sin.sin_port), IP_ARGS(&amp;sin.sin_addr.s_addr));<br>
+&nbsp; &nbsp; return new_fd_pstream(bound_name, fd, ptcp_accept, NULL, pstreamp);<br>
+} &nbsp;&nbsp;<br>
+</p>
+<p>inet_open_passive主要调用socket, setsockopt, bind等创建并配置好socket，new_fd_pstream创建并配置一个fd_pstream结构，这个结构包括了之前提到的struct pstream结构：</p>
+<p>struct fd_pstream&nbsp;{ &nbsp;&nbsp;<br>
+&nbsp; &nbsp; struct pstream pstream;<br>
+&nbsp; &nbsp; int fd;<br>
+&nbsp; &nbsp; int (*accept_cb)(int fd, const struct sockaddr *, size_t sa_len,<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;struct stream **);<br>
+&nbsp; &nbsp; char *unlink_path;<br>
+};<br>
+</p>
+<p><br>
+</p>
+<p>new_fd_pstream里，原来pstream里的pstream_class被换成了fd_pstream_class，这样原来三个为NULL的函数指针变成了pfd_close, pfd_accept, pfd_wait</p>
+<p>pfd_accept会调用accept接收connect过来的fd，然后调用accept_cb这个callback函数，对于TCP而言，这是ptcp_accept</p>
+<p>ptcp_accept会基于这个accept的fd，通过new_tcp_stream把connection封装成一个stream，里面调用setsockopt设置了TCP_NODELAY，之后调用new_fd_stream，同样的原来stream里的stream_class换成了stream_fd_class，原来为NULL的函数指针变成了fd_close, fd_connect, fd_recv, fd_send, fd_wait</p>
+<p>fd_send, fd_recv都是调用read, write来读写缓冲区，我们来看fd_wait，</p>
+<p>static void&nbsp;fd_wait(struct stream *stream, enum stream_wait_type wait)<br>
+{<br>
+&nbsp; &nbsp; struct stream_fd *s = stream_fd_cast(stream);<br>
+&nbsp; &nbsp; switch (wait) {<br>
+&nbsp; &nbsp; case STREAM_CONNECT:<br>
+&nbsp; &nbsp; case STREAM_SEND:<br>
+&nbsp; &nbsp; &nbsp; &nbsp; poll_fd_wait(s-&gt;fd, POLLOUT);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; break;<br>
+<br>
+&nbsp; &nbsp; case STREAM_RECV:<br>
+&nbsp; &nbsp; &nbsp; &nbsp; poll_fd_wait(s-&gt;fd, POLLIN);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; break;<br>
+<br>
+&nbsp; &nbsp; default:<br>
+&nbsp; &nbsp; &nbsp; &nbsp; NOT_REACHED();<br>
+&nbsp; &nbsp; }<br>
+}<br>
+</p>
+<p>可以看出fd_wait只是把fd挂到了poll_waiter全局list里，之后的事情都交给poll_block去做</p>
+<p><br>
+</p>
+<p>对于unix domain socket而言，pstream_class为punix_pstream_class，其listen函数为punix_open。</p>
+<p>punix_open首先调用make_unix_socket，传入bind的path，该函数会创建unix domain socket，调用make_sockaddr_un配置好struct sockaddr_un，调用bind_unix_socket把unix domain socket绑定到bind path上的socket文件上；punix_open之后调用listen准备接受connection请求；最后调用new_fd_pstream；和TCP一样，此时已经不区分pstream_class属于TCP还是unix
+ domain socket了，而是统一用fd_pstream_class来表示，相关的函数指针为pfd_close, pfd_accept, pfd_wait</p>
+<p><br>
+</p>
+<p><strong>unixctl</strong></p>
+<p><br>
+</p>
+<p>对于vswitchd, ovsdb这类的daemon而言，会包含一个unixctl_server，用来接收控制流</p>
+<p>struct unixctl_server {<br>
+&nbsp; &nbsp; struct pstream *listener;<br>
+&nbsp; &nbsp; struct list conns;<br>
+};<br>
+</p>
+<p>unixctl_server_create：传入的path是server的unix domain socket所在的socket文件路径，之后调用pstream_open，执行了punix_open，并把punix_pstream_class的指针通过listener传出来，此时daemon已经调用完了listen，可以接收client的连接请求了。</p>
+<p>struct unixctl_conn {<br>
+&nbsp; &nbsp; struct list node;<br>
+&nbsp; &nbsp; struct jsonrpc *rpc;<br>
+&nbsp;<br>
+&nbsp; &nbsp; /* Only one request can be in progress at a time. &nbsp;While the request is<br>
+&nbsp; &nbsp; &nbsp;* being processed, 'request_id' is populated, otherwise it is null. */<br>
+&nbsp; &nbsp; struct json *request_id; &nbsp; /* ID of the currently active request. */<br>
+}; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<br>
+</p>
+<p>unixclt_server_run：调用pstream_accept接收connection请求，实际上调用pfd_accept，如果有新的connection，加入unixctl_server的conns连接list中，并初始化好connection对应的jsonrpc。之后对conns的每个请求调用run_connection</p>
+<p>unixctl_server_wait：先把listen放入poll_waiter list，之后是有数据要发送的connection，最后是接收数据的connection</p>
+<p>run_connection：先调用jsonrpc_run把缓冲区要发送的数据发送完毕，之后调用jsonrpc_recv接收一个jsonrpc_msg，unixctl_server只处理JSON REQUEST，对请求调用process_command。对于每个command而言，其必须先调用unixctl_command_register注册之后才可以被执行，process_command基于command method在hash表里查找到这个command的配置，最后调用command注册的callback函数执行</p>
+<p><br>
+</p>
+<p><strong>process</strong></p>
+<p>process.c是进程对象的utility实现，</p>
+<p>struct process {<br>
+&nbsp; &nbsp; struct list node;<br>
+&nbsp; &nbsp; char *name;<br>
+&nbsp; &nbsp; pid_t pid;<br>
+<br>
+&nbsp; &nbsp; /* Modified by signal handler. */<br>
+&nbsp; &nbsp; volatile bool exited;<br>
+&nbsp; &nbsp; volatile int status;<br>
+};<br>
+</p>
+<p>process_init：设置非阻塞管道xpipe_nonblocking(fds)，设置SIGCHLD的信号处理函数sigchld_handler。struct list all_processes是该进程所有子进程的list，sigchld_handler对每个子进程调用waitpid，得到子进程退出返回的返回码和状态，并存到struct process的exited, status成员变量中</p>
+<p>process_start：先调用process_prestart，该函数又会调用process_init，除此之外，还会验证进程的binary是否存在。 之后fork子进程，对于父进程，fork成功之后，把自己注册到all_processes的list上，回复之前被block的SIGCHLD信号就退出了；对于子进程，主要调用execvp切换成真正的binary进程</p>
+<p>process_destroy：把struct process* p从all_processes的list中移除</p>
+<p>process_wait：如果进程要退出(p-&gt;exited)，调用poll_immediate_wake，唤醒waiters上的所有fd；否则阻塞在poll_block上</p>
+<p>process_run：可以看作process_start &gt;&gt; process-&gt;wait &gt;&gt; poll-&gt;block &gt;&gt; process-&gt;wait &gt;&gt; poll-&gt;block的循环&nbsp;</p>
+<p><br>
+</p>
+<p><strong>daemon</strong></p>
+<p>daemon的启动参数包括了是否detach, 是否chdir，是否set_pidfile，是否忽略之前的pidfile，是否启动monitor进程监控该daemon</p>
+<p>/* If configured with set_pidfile() or set_detach(), creates the pid file and<br>
+&nbsp;* detaches from the foreground session. &nbsp;*/<br>
+void&nbsp;<br>
+daemonize(void)<br>
+{<br>
+&nbsp; &nbsp; daemonize_start();<br>
+&nbsp; &nbsp; daemonize_complete();<br>
+}<br>
+</p>
+<p>先来看daemonize_start</p>
+<p>/* If daemonization is configured, then starts daemonization, by forking and<br>
+&nbsp;* returning in the child process. &nbsp;The parent process hangs around until the<br>
+&nbsp;* child lets it know either that it completed startup successfully (by calling<br>
+&nbsp;* daemon_complete()) or that it failed to start up (by exiting with a nonzero<br>
+&nbsp;* exit code). */<br>
+void<br>
+daemonize_start(void)<br>
+{<br>
+&nbsp; &nbsp; daemonize_fd = -1;<br>
+<br>
+&nbsp; &nbsp; if (detach) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; if (fork_and_wait_for_startup(&amp;daemonize_fd) &gt; 0) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; /* Running in parent process. */<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; exit(0);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; }<br>
+&nbsp; &nbsp; &nbsp; &nbsp; /* Running in daemon or monitor process. */<br>
+&nbsp; &nbsp; }<br>
+</p>
+<p>fork_and_wait_for_startup，调用fork_and_clean_up，该函数是fork的一个封装，父进程在fork之后取消之前的fatal_signal注册的callback函数（主要是进程退出时删除pid文件用的），子进程则在fork之后取消之前父进程的lockfile, timer等。OVS的父子进程之前有个管道机制，子进程启动成功之后向管道写一个字符，父进程收到之后认为子进程启动成功从而进入waitpid等待其退出</p>
+<p>如果是detach模式，fork_and_wait_for_startup返回之后父进程就退出</p>
+<p>&nbsp; &nbsp; if (monitor) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; int saved_daemonize_fd = daemonize_fd;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; pid_t daemon_pid;<br>
+<br>
+&nbsp; &nbsp; &nbsp; &nbsp; daemon_pid = fork_and_wait_for_startup(&amp;daemonize_fd);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; if (daemon_pid &gt; 0) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; /* Running in monitor process. */<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; fork_notify_startup(saved_daemonize_fd);&nbsp;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; close_standard_fds();<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; monitor_daemon(daemon_pid);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; }&nbsp;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; /* Running in daemon process. */<br>
+&nbsp; &nbsp; } &nbsp;&nbsp;<br>
+</p>
+<p>如果是monitor模式，意味有一个monitor进程来监控daemon，此时monitor进程成为daemon的父进程，monitor调用fork_notify_startup通过管道向子进程写一个字符，通知子进程开始run，之后调用monitor_daemon开始监控</p>
+<p>monitor_daemon在一个死循环里调用waitpid daemon_pid，一旦发现daemon进程异常退出，会尝试重启daemon：如果退出状态是WCOREDUMP(status)，调用setrlimit(RLIMIT_CORE)关闭coredump，以节省硬盘空间; 如果重启频率超出了throttle，sleep一小段时间；最后调用fork_and_wait_for_startup才启动daemon进程</p>
+<p>判断异常退出的方法是通过waitpid返回的status，如果WIFSIGNALED(status)为true，说明是信号导致的进程退出，这时通过WTERMSIG(status)得到退出前收到的信号，如果属于{SIGABRT, SIGALRM, SIGBUS, SIGFPE, SIGILL, SIGPIPE, SIGSEGV等信号，则需要重新启动daemon</p>
+<p>&nbsp; &nbsp;&nbsp;<br>
+&nbsp; &nbsp; if (pidfile) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; make_pidfile(); &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<br>
+&nbsp; &nbsp; } &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<br>
+<br>
+&nbsp; &nbsp; /* Make sure that the unixctl commands for vlog get registered in a<br>
+&nbsp; &nbsp; &nbsp;* daemon, even before the first log message. */<br>
+&nbsp; &nbsp; vlog_init(); &nbsp; &nbsp;<br>
+} &nbsp;&nbsp;<br>
+</p>
+<p>最后子进程生成pidfile，初始化vlog</p>
+<p><br>
+</p>
+<p>/* If daemonization is configured, then this function notifies the parent<br>
+&nbsp;* process that the child process has completed startup successfully. &nbsp;It also<br>
+&nbsp;* call daemonize_post_detach().<br>
+&nbsp;*<br>
+&nbsp;* Calling this function more than once has no additional effect. */<br>
+void<br>
+daemonize_complete(void)<br>
+{<br>
+&nbsp; &nbsp; if (!detached) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; detached = true;<br>
+<br>
+&nbsp; &nbsp; &nbsp; &nbsp; fork_notify_startup(daemonize_fd);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; daemonize_fd = -1;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; daemonize_post_detach();<br>
+&nbsp; &nbsp; }<br>
+}<br>
+</p>
+<p>fork_notify_startup通知父进程启动成功，此时父进程进入waitpid。daemonize_post_detach则做unix daemon创建例行的事情</p>
+<p>void<br>
+daemonize_post_detach(void)<br>
+{<br>
+&nbsp; &nbsp; if (detach) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; setsid();<br>
+&nbsp; &nbsp; &nbsp; &nbsp; if (chdir_) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ignore(chdir(&quot;/&quot;));<br>
+&nbsp; &nbsp; &nbsp; &nbsp; }<br>
+&nbsp; &nbsp; &nbsp; &nbsp; close_standard_fds();<br>
+&nbsp; &nbsp; }<br>
+}<br>
+</p>
+<p><br>
+</p>
+<p><strong>jsonrpc</strong></p>
+<p>/* Messages. */<br>
+enum jsonrpc_msg_type {<br>
+&nbsp; &nbsp; JSONRPC_REQUEST, &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; /* Request. */<br>
+&nbsp; &nbsp; JSONRPC_NOTIFY, &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;/* Notification. */<br>
+&nbsp; &nbsp; JSONRPC_REPLY, &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; /* Successful reply. */<br>
+&nbsp; &nbsp; JSONRPC_ERROR &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;/* Error reply. */<br>
+};<br>
+struct jsonrpc_msg {<br>
+&nbsp; &nbsp; enum jsonrpc_msg_type type;<br>
+&nbsp; &nbsp; char *method; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; /* Request or notification only. */<br>
+&nbsp; &nbsp; struct json *params; &nbsp; &nbsp; &nbsp; &nbsp;/* Request or notification only. */<br>
+&nbsp; &nbsp; struct json *result; &nbsp; &nbsp; &nbsp; &nbsp;/* Successful reply only. */<br>
+&nbsp; &nbsp; struct json *error; &nbsp; &nbsp; &nbsp; &nbsp; /* Error reply only. */<br>
+&nbsp; &nbsp; struct json *id; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;/* Request or reply only. */<br>
+};<br>
+</p>
+<p>struct jsonrpc {<br>
+&nbsp; &nbsp; struct stream *stream;<br>
+&nbsp; &nbsp; char *name;<br>
+&nbsp; &nbsp; int status;<br>
+<br>
+&nbsp; &nbsp; /* Input. */<br>
+&nbsp; &nbsp; struct byteq input;<br>
+&nbsp; &nbsp; struct json_parser *parser;<br>
+&nbsp; &nbsp; struct jsonrpc_msg *received;<br>
+<br>
+&nbsp; &nbsp; /* Output. */<br>
+&nbsp; &nbsp; struct list output; &nbsp; &nbsp; &nbsp; &nbsp; /* Contains &quot;struct ofpbuf&quot;s. */<br>
+&nbsp; &nbsp; size_t backlog;<br>
+};<br>
+</p>
+<p>jsonrpc的行为基于stream, pstream，再加上json parsing，如果你对前面的stream, json都比较了解，这部分内容还是很简单的</p>
+<p>stream_open_with_default_ports, pstream_open_with_default_ports都通过stream_open, pstream_open来实现</p>
+<p>jsonrpc_run，查看jsonrpc-&gt;output，把output队列的消息通过stream_send发送出去</p>
+<p>jsonrpc_wait，等待可以发送</p>
+<p>jsonrpc_send，调用jsonrpc_msg_to_json把jsonrpc_msg转化成json，调用json_to_string把json转成string，创建一个基于该string的ofpbuf，并挂到rpc-&gt;output的链表上，最后调用jsonrpc_run发送</p>
+<p>jsonrpc_recv，jsonrpc用一个环形的buffer来收数据，每次recv首先计算环形buffer还有多少空间，然后尽最大可能收数据；如果此时buffer还有数据，那么调用json_parser_feed解析数据，如果parse完成(parser-&gt;done)，调用jsonrpc_received把json转成jsonrpc_msg</p>
+<p>jsonrpc_transact_block，首先调用jsonrpc_send_block把一个jsonrpc_msg request发送出去，在调用jsonrpc_recv_block等待一个reply</p>
+<p><br>
+</p>
+<p>jsonrpc_create，创建不同类型的jsonrpc_msg</p>
+<p>jsonrpc_msg_from_json, jsonrpc_msg_to_json，json和jsonrpc_msg之间互相转换</p>
+<p><br>
+</p>
+<p>jsonrpc_session代表一个RPC connection</p>
+<p>struct jsonrpc_session {<br>
+&nbsp; &nbsp; struct reconnect *reconnect;<br>
+&nbsp; &nbsp; struct jsonrpc *rpc;<br>
+&nbsp; &nbsp; struct stream *stream;<br>
+&nbsp; &nbsp; struct pstream *pstream;<br>
+&nbsp; &nbsp; unsigned int seqno;<br>
+&nbsp; &nbsp; uint8_t dscp;<br>
+};<br>
+</p>
+<p><br>
+</p>
+<p>这里出现了一个struct reconnect结构，就是一些配置，状态，统计信息的集合</p>
+<p>struct reconnect {<br>
+&nbsp; &nbsp; /* Configuration. */<br>
+&nbsp; &nbsp; char *name;<br>
+&nbsp; &nbsp; int min_backoff;<br>
+&nbsp; &nbsp; int max_backoff;<br>
+&nbsp; &nbsp; int probe_interval;<br>
+&nbsp; &nbsp; bool passive;<br>
+&nbsp; &nbsp; enum vlog_level info; &nbsp; &nbsp; &nbsp; /* Used for informational messages. */<br>
+<br>
+&nbsp; &nbsp; /* State. */<br>
+&nbsp; &nbsp; enum state state;<br>
+&nbsp; &nbsp; long long int state_entered;<br>
+&nbsp; &nbsp; int backoff;<br>
+&nbsp; &nbsp; long long int last_activity;<br>
+&nbsp; &nbsp; long long int last_connected;<br>
+&nbsp; &nbsp; long long int last_disconnected;<br>
+&nbsp; &nbsp; unsigned int max_tries;<br>
+<br>
+&nbsp; &nbsp; /* These values are simply for statistics reporting, not otherwise used<br>
+&nbsp; &nbsp; &nbsp;* directly by anything internal. */<br>
+&nbsp; &nbsp; long long int creation_time;<br>
+&nbsp; &nbsp; unsigned int n_attempted_connections, n_successful_connections;<br>
+&nbsp; &nbsp; unsigned int total_connected_duration;<br>
+&nbsp; &nbsp; unsigned int seqno;<br>
+};</p>
+<p>connection的状态有 S_VOID, S_BACKOFF, S_CONNECTING, S_ACTIVE, S_IDLE, S_RECONNECT, S_LISTENING，其中S_ACTIVE, S_IDLE表示已经连接的状态。</p>
+<p>back_off表示在尝试重新连接时，连续两次尝试之间间隔的时间</p>
+<p>reconnect_transition__，是一个状态转换的自动机，代码如下</p>
+<p>static void&nbsp;reconnect_transition__(struct reconnect *fsm, long long int now,<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;enum state state)<br>
+{<br>
+&nbsp; &nbsp; if (fsm-&gt;state == S_CONNECTING) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; fsm-&gt;n_attempted_connections&#43;&#43;;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; if (state == S_ACTIVE) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; fsm-&gt;n_successful_connections&#43;&#43;;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; }<br>
+&nbsp; &nbsp; }</p>
+<p><br>
+&nbsp; &nbsp; if (is_connected_state(fsm-&gt;state) != is_connected_state(state)) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; if (is_connected_state(fsm-&gt;state)) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; fsm-&gt;total_connected_duration &#43;= now - fsm-&gt;last_connected;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; }<br>
+&nbsp; &nbsp; &nbsp; &nbsp; fsm-&gt;seqno&#43;&#43;;<br>
+&nbsp; &nbsp; }<br>
+<br>
+&nbsp; &nbsp; VLOG_DBG(&quot;%s: entering %s&quot;, fsm-&gt;name, reconnect_state_name__(state));<br>
+&nbsp; &nbsp; fsm-&gt;state = state;<br>
+&nbsp; &nbsp; fsm-&gt;state_entered = now;<br>
+}</p>
+<p><br>
+</p>
+<p>jsonrpc_session_open，初始化jsonrpc_session结构，解析name，如果是类&#20284;tcp:127.1.2.3，表示是一个active connection，如果是ptcp:127.1.2.3，表示是一个passive connection，用来listen新的connection。如果是passive connection，会调用reconnect_set_passive。最后调用reconnect_set_probe_interval，设置keepalive</p>
+<p>jsonrpc_session_close，依次调用jsonrpc_close, reconnect_destroy, stream_close, pstream_close</p>
+<p>jsonrpc_session_connect，如果s-&gt;reconnect是主动连接，那么调用jsonrpc_stream_open连接connection，并把状态变为S_CONNECTING；否则如果s-&gt;pstream为空，那么调用jsonrpc_pstream_open开启listen，同时把状态变为S_LISTENING</p>
+<p>static void&nbsp;jsonrpc_session_connect(struct jsonrpc_session *s)<br>
+{ &nbsp;&nbsp;<br>
+&nbsp; &nbsp; const char *name = reconnect_get_name(s-&gt;reconnect);<br>
+&nbsp; &nbsp; int error;<br>
+<br>
+&nbsp; &nbsp; jsonrpc_session_disconnect(s);<br>
+&nbsp; &nbsp; if (!reconnect_is_passive(s-&gt;reconnect)) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; error = jsonrpc_stream_open(name, &amp;s-&gt;stream, s-&gt;dscp);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; if (!error) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; reconnect_connecting(s-&gt;reconnect, time_msec());<br>
+&nbsp; &nbsp; &nbsp; &nbsp; } &nbsp;<br>
+&nbsp; &nbsp; } else {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; error = s-&gt;pstream ? 0 : jsonrpc_pstream_open(name, &amp;s-&gt;pstream,<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; s-&gt;dscp);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; if (!error) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; reconnect_listening(s-&gt;reconnect, time_msec());<br>
+&nbsp; &nbsp; &nbsp; &nbsp; }<br>
+&nbsp; &nbsp; } &nbsp;&nbsp;<br>
+<br>
+&nbsp; &nbsp; if (error) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; reconnect_connect_failed(s-&gt;reconnect, time_msec(), error);<br>
+&nbsp; &nbsp; }<br>
+&nbsp; &nbsp; s-&gt;seqno&#43;&#43;;<br>
+}<br>
+</p>
+<p><br>
+</p>
+<p>jsonrpc_session_disconnect，close已有s-&gt;stream, s-&gt;rpc结构</p>
+<p>jsonrpc_session_run，首先，如果s-&gt;pstream不为空，调用pstream_accept接收新的connection，如果此时jsonrpc_session已经有了connection，那么用新的替换老的</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; error = pstream_accept(s-&gt;pstream, &amp;stream);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; if (!error) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; if (s-&gt;rpc || s-&gt;stream) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; VLOG_INFO_RL(&amp;rl,<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&quot;%s: new connection replacing active connection&quot;,<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;reconnect_get_name(s-&gt;reconnect));<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; jsonrpc_session_disconnect(s);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; reconnect_connected(s-&gt;reconnect, time_msec());<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; s-&gt;rpc = jsonrpc_open(stream);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+<p>如果s-&gt;rpc不为空，会把数据发送出去，否则重新尝试连接s-&gt;stream。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; stream_run(s-&gt;stream);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; error = stream_connect(s-&gt;stream);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; if (!error) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; reconnect_connected(s-&gt;reconnect, time_msec());<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; s-&gt;rpc = jsonrpc_open(s-&gt;stream);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; s-&gt;stream = NULL;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; } else if (error != EAGAIN) {<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; reconnect_connect_failed(s-&gt;reconnect, time_msec(), error);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; stream_close(s-&gt;stream);<br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; s-&gt;stream = NULL;<br>
+&nbsp; &nbsp; &nbsp; &nbsp; }<br>
+</p>
+<p><br>
+</p>
+<p>jsonrpc_session_send，调用jsonrpc_send发送数据</p>
+<p>jsonrpc_session_recv，调用jsonrpc_recv接收一个jsonrpc_msg，如果不是echo之类的测试报文，返回这个jsonrpc_msg</p>
+<p><br>
+</p>
+<p><br>
+</p>
+
+</div>
+
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.1.237-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/majieyue/article/details/8112659">open vswitch研究：基本数据结构</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/majieyue/article/details/8188563">open vswitch研究: ovsdb</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen">
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "117306";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<script type="text/javascript">
+    //new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '8105007';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/majieyue" target="_blank">
+    <img src="http://avatar.csdn.net/1/C/A/1_majieyue.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/majieyue" class="user_name" target="_blank">majieyue</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>40783次</span></li>
+    <li>积分：<span>972分</span></li>
+    <li>排名：<span>第10602名</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>58篇</span></li>
+    <li>转载：<span>7篇</span></li>
+    <li>译文：<span>0篇</span></li>
+    <li>评论：<span>14条</span></li>
+</ul>
+</ul>
+</div>
+
+
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/709302">C++</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/679515">Linux</a><span>(10)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/797426">Python</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/641312">服务器开发</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/846491">Xen</a><span>(15)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/855428">服务器系统</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/862606">存储技术</a><span>(4)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/928585">Linux内核</a><span>(20)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/1133624">Java</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/1163509">工具</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/1203645">erlang</a><span>(0)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/1222126">OpenvSwitch</a><span>(10)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/1225206">KVM</a><span>(0)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/majieyue/article/category/1326440">SDN</a><span>(0)</span>
+</li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/majieyue/article/month/2013/02">2013年02月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2013/01">2013年01月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/12">2012年12月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/11">2012年11月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/10">2012年10月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/09">2012年09月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/08">2012年08月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/07">2012年07月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/06">2012年06月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/04">2012年04月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/03">2012年03月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2012/02">2012年02月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/12">2011年12月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/11">2011年11月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/10">2011年10月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/09">2011年09月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/08">2011年08月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/07">2011年07月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/04">2011年04月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2011/03">2011年03月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2010/07">2010年07月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2010/06">2010年06月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2010/04">2010年04月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/majieyue/article/month/2010/01">2010年01月</a><span>(1)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/majieyue/article/details/7888400" title="open vswitch研究：ovs的安装和使用">open vswitch研究：ovs的安装和使用</a><span>(2267)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/7402184" title="linux的CFQ调度器解析(1)">linux的CFQ调度器解析(1)</a><span>(2179)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/7929398" title="linux内核网络协议栈学习笔记：关于GRO/GSO/LRO/TSO等patch的分析和测试">linux内核网络协议栈学习笔记：关于GRO/GSO/LRO/TSO等patch的分析和测试</a><span>(1636)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/6255970" title="Python服务器开发(1)">Python服务器开发(1)</a><span>(1608)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/6671075" title="xen块设备体系结构(1)">xen块设备体系结构(1)</a><span>(1568)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/7412481" title="linux的CFQ调度器解析(2)">linux的CFQ调度器解析(2)</a><span>(1507)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/8103367" title="open vswitch研究：vswitchd">open vswitch研究：vswitchd</a><span>(1246)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/7262323" title="linux的qos机制 - cgroup篇 (1)">linux的qos机制 - cgroup篇 (1)</a><span>(1225)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/6686729" title="xen块设备体系结构(2)">xen块设备体系结构(2)</a><span>(1082)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/6698032" title="xen块设备体系结构(4)">xen块设备体系结构(4)</a><span>(978)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/majieyue/article/details/7888400" title="open vswitch研究：ovs的安装和使用">open vswitch研究：ovs的安装和使用</a><span>(3)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/8112659" title="open vswitch研究：基本数据结构">open vswitch研究：基本数据结构</a><span>(3)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/6255970" title="Python服务器开发(1)">Python服务器开发(1)</a><span>(2)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/6605218" title="xen toolstack - xen api">xen toolstack - xen api</a><span>(1)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/8103367" title="open vswitch研究：vswitchd">open vswitch研究：vswitchd</a><span>(1)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/7395251" title="关于xen的杂七杂八 (DomU安装)">关于xen的杂七杂八 (DomU安装)</a><span>(1)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/6698032" title="xen块设备体系结构(4)">xen块设备体系结构(4)</a><span>(1)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/8061569" title="open vswitch研究：flow">open vswitch研究：flow</a><span>(1)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/5527464" title="Linux下利用条件变量实现读写锁">Linux下利用条件变量实现读写锁</a><span>(1)</span>
+</li>
+<li>
+<a href="/majieyue/article/details/8133575" title="open vswitch研究：openflow I">open vswitch研究：openflow I</a><span>(0)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/majieyue/article/details/5527464#comments">Linux下利用条件变量实现读写锁</a>
+    <p style="margin:0px;"><a href="/riaqn" class="user_name">riaqn</a>:
+1.因为mutex，任何操作都不能并发进行，即使是两个rdlock。2.内核实现中，当一个wrloc...
+    </p>
+    </li>
+    <li>
+    <a href="/majieyue/article/details/8112659#comments">open vswitch研究：基本数据结构</a>
+    <p style="margin:0px;"><a href="/carl_hw1" class="user_name">carl_hw1</a>:
+mine  is   1304881604@qq.com
+    </p>
+    </li>
+    <li>
+    <a href="/majieyue/article/details/8112659#comments">open vswitch研究：基本数据结构</a>
+    <p style="margin:0px;"><a href="/carl_hw1" class="user_name">carl_hw1</a>:
+你好能给我您的email box 不    交流下 谢谢
+    </p>
+    </li>
+    <li>
+    <a href="/majieyue/article/details/8112659#comments">open vswitch研究：基本数据结构</a>
+    <p style="margin:0px;"><a href="/xiaocai1988" class="user_name">xiaocai1988</a>:
+楼主现在对openvswitch还有印象吗，我有几个问题请教一下，一个是facet，注释里说face...
+    </p>
+    </li>
+    <li>
+    <a href="/majieyue/article/details/8103367#comments">open vswitch研究：vswitchd</a>
+    <p style="margin:0px;"><a href="/piaochenping" class="user_name">piaochenping</a>:
+很好，不过这只是vswitchd的一部分，期待vswitchd更加详细的分析
+    </p>
+    </li>
+    <li>
+    <a href="/majieyue/article/details/6255970#comments">Python服务器开发(1)</a>
+    <p style="margin:0px;"><a href="/eva_xiao" class="user_name">eva_xiao</a>:
+s
+    </p>
+    </li>
+    <li>
+    <a href="/majieyue/article/details/7888400#comments">open vswitch研究：ovs的安装和使用</a>
+    <p style="margin:0px;"><a href="/ackmond" class="user_name">ackmond</a>:
+你好，我想问一下，我的虚拟机是vitualbox中装的，它怎么接到ovs上呢？
+    </p>
+    </li>
+    <li>
+    <a href="/majieyue/article/details/7888400#comments">open vswitch研究：ovs的安装和使用</a>
+    <p style="margin:0px;"><a href="/sogerno1" class="user_name">sogerno1</a>:
+int main
+    </p>
+    </li>
+    <li>
+    <a href="/majieyue/article/details/7888400#comments">open vswitch研究：ovs的安装和使用</a>
+    <p style="margin:0px;"><a href="/bonnieisme" class="user_name">bonnieisme</a>:
+你好，需要指定和ovsdb-server通信的机制，默认是unix:/usr/local/var/r...
+    </p>
+    </li>
+    <li>
+    <a href="/majieyue/article/details/8061569#comments">open vswitch研究：flow</a>
+    <p style="margin:0px;"><a href="/liguohui" class="user_name">liguohui</a>:
+这几天刚好要研究OVS的代码，看到你的文章真是受益匪浅，学习了，希望多交流
+    </p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=765919"></script>
+
+<script type="text/javascript">
+document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date()/120000).toString(36) + '="></'+'script>');
+</script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js?v=1"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+
+</div>
+</body>
+</html>

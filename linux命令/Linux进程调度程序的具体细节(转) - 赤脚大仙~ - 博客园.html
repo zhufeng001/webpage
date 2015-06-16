@@ -1,0 +1,278 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-cn">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Linux进程调度程序的具体细节(转) - 赤脚大仙~ - 博客园</title>
+<link type="text/css" rel="stylesheet" href="/bundles/blog-common.css?v=3Mjfsaoy1pQNyDpjy8B5IkGl_PViJYWRpNjFNodNbqs1"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="http://common.cnblogs.com/Skins/AnotherEon001/style.css?id=20140415"/>
+<link type="text/css" rel="stylesheet" href="/blog/customcss/120541.css?v=gPeA0VAagz6kij1y5SFPbialjMY%3d"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/daxian2012/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/daxian2012/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/daxian2012/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">var currentBlogApp = 'daxian2012', cb_enable_mathjax=false;</script>
+<script src="/bundles/blog-common.js?v=pzxx7x3sqR30lEc0nG4ZhKzBV18f_F73MpkndVccXuk1" type="text/javascript"></script>
+</head>
+<body>
+<a name="top"></a>
+<!--PageBeginHtml Block Begin-->
+<!-- Baidu Button BEGIN -->
+<script type="text/javascript" id="bdshare_js" data="type=slide&amp;img=0&amp;pos=right&amp;uid=6507240" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date()/3600000);
+</script>
+<!-- Baidu Button END -->
+<!--PageBeginHtml Block End-->
+
+<div id="wrapper">
+<div id="header">
+
+<div id="top">
+<h1><a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/daxian2012/"><h1 style="color:white">赤脚大仙~</h1></a></h1>
+<div id="subtitle"></div>
+</div>
+<div id="sub">
+<div class="BlogStats">随笔 - 60, 文章 - 19, 评论 - 12, 引用 - 0</div>
+</div>
+
+
+
+</div>
+<div id="main_container">
+<div id="main_content">
+<div id="content">
+	
+
+	<div class="post">
+		<h2>
+			<a id="cb_post_title_url" href="http://www.cnblogs.com/daxian2012/archive/2012/07/17/2595722.html">Linux进程调度程序的具体细节(转)</a>
+		</h2>
+		<div class="postbody">
+		<div id="cnblogs_post_body"><p><a title="linux 论坛" href="http://bbs.linuxsky.org/index.php">去论坛讨论</a>&nbsp;来源：译言 作者：David M Williams 发布时间：2008-03-03</p>
+<div class="word">
+<div align="right"><ins><ins><iframe frameborder="0" marginwidth="0" marginheight="0" scrolling="no" width="undefined" height="undefined"></iframe></ins></ins></div>
+<p><em>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 性别之间的一个差别，据说，是处理多任务的能力。现在，就看你说话的人是持有这种看法的女人还是男人，但是，我还没有那么大胆参加这种争论。然而，我能够告诉你的是，Linux</em><em>明确无疑地这么做。而且，事实上，许多系统也许没有充分利用多任务。理由在这里。</em></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 追溯从前，桌面计算机没有多任务。这些计算机每次运行一个专门的任务。这些日子过去了；现在，甚至连最小型的嵌入式操作系统一般也有某些方面的<em>多任务处理</em>能力。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 对于操作系统开发者来说，实现多任务并不简单。但解释起来却足够简单&mdash;&mdash;必须在所有不同任务之间分配CPU时间。然而，不仅如此，还有一大堆问题。一些进程比另一些进程更重要并且必须有定期运行。其他不太重要的可以闲着无事坐在背后。而且为了其他人，应该让程序决定何时放弃控制，返回操作系统，抑或应由OS决定给各任务在挂起前一个指定的运行时间？</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Linux监督所有这一切的部分就是调度程序，事实上，调度程序提供若干处理多任务的不同算法。没有一个算法单独对于每一个场合都是完美的；例如，一个用于负荷交互式用户的通用Linux服务器可能需要与专用网络服务器不同的分时处理方法。Linux内核实际上允许用户在启动时选择将要使用的是哪一种调度方法。这得不到广泛的赏识，因此，许多Linux系统事实上可能按对它来说也许是次优的方式进行调度。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 事实上，调度程序自身不是真正分离的程序，而是每一个进程执行的进程。无论何时，任何正在运行的进程入睡或者因等待输入输出不得不阻塞，就调用调度例行程序，弄清楚是否需要将控制切换到另一个任务，而且，如果是这样的话，还要确定是哪一个任务。这不会因应用程序开发者的吩咐而发生，因为这些对调度程序的调用都嵌入Linux内核之中的系统调用。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 任何定期与设备&mdash;&mdash;象磁盘和键盘&mdash;&mdash;通信的进程，要花大量等待时间，因为CPU比任何I/O设备要快得多。这个空闲时间让给其他进程运行更好。相反，复杂数学计算的程序可能把大量时间花在捣弄数字而没有任何I/O活动。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 操作系统有两条路可以走下去：操作系统可能让进程放弃控制（CPU），只要它们因等待某事某物而阻塞，这称为协同<em>多任务处理</em>。或者，OS可能获得控制并强制进程暂时放弃（CPU），因而另一个进程可以运行。后一种情形更适合强计算的实例并通称为抢先式<em>多任务处理</em>。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; Linux使用协同和抢先<em>多任务处理</em>两者。如果一个进程没有自动定期地把控制退还，它就是抢先的。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 每一个Linux进程分配一定数量的时间&mdash;&mdash;即时间片&mdash;&mdash;执行任务，在内核停下它让另一个进程运行之前。如果进程自愿放弃，则是冷静的；只要进程要求读或写I/O设备，这件事一般就自动发生。在这种情况下，我们说，这个进程让出CPU。如果时间片期满，那么，内核停止这个进程。我们说，这些进程被抢占。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 不只这两种情形。一个进程可能等待某事发生&mdash;&mdash;例如，象Web服务器或者SMTP一样的网络服务&mdash;&mdash;在它们有任何工作要做之前，无所事事等待客户的连接。这不仅仅是从慢速磁盘或者打字缓慢的用户读数据的问题，而且实际上在事件发生之前没有什么活动。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 在这种情况下，我们说，进程被阻塞。直到事件发生，它才再次运行。一个阻塞进程根本就不能使用CPU，而且在唤醒它的事件发生之前，完全不必调度它再次运行。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 调度程序还有更多的事情。无论何时，给予进程运行机会的时机一到，调度程序就要计算出应该选择哪一个进程。为了帮助做出选择，Linux给每个进程一个优先权。较高优先权者可能在较低优先权者之前运行。虽然优先权受用户影响，但最终由内核控制，而且随着时间的推移，优先权可能增加或者降低。特别地，奖励运行得好的进程&mdash;&mdash;即那些因频繁让出而罕有被抢占者。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 恰好地，这种奖励方案趋向照顾与用户交互的进程。一个定期从键盘获取输入的应用程序将定期让出，只要它等待输入。另一方面，执行大量计算因而不得不被抢占的程序实际上根本不涉及用户。这类进程将收到一个负的奖励。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 你可参见下列两个脚本图示。一个将做得非常多，另一个做得不多。</p>
+<p>#!/bin/bash</p>
+<p>while [ true ]</p>
+<p>do</p>
+<p>sleep 0.1</p>
+<p>done</p>
+<p>and</p>
+<p>#!/bin/bash</p>
+<p>x = 0</p>
+<p>while [ true ]</p>
+<p>do</p>
+<p>x = $(($x + 1))</p>
+<p>done</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 第一个脚本花全部时间睡觉。另一个坚持不懈地给一个数增值。这毫无意义，但目的是没完没了地消耗CPU。让我们分别把它们称为yielder.sh和preempter.sh。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 设置这样运行：</p>
+<p>./yielder.sh &amp;</p>
+<p>./preempter.sh &amp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 接下来，重复运行这个命令检查它们的优先级：</p>
+<p>ps &ndash;C yielder &ndash;C preempter &ndash;o etime,pri,cmd</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 你看到什么？</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 使用向上箭头键并回车，每隔几秒重复调用ps。很快就会看到这两个脚本优先数的变化&mdash;&mdash;PRI栏。yielder.sh的优先权增加，而preempter.sh的优先权减少。这是因为调度程序分别给一个正的和负的奖励。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 如果没有运行别的程序，那么，这两个进程将稳定在给它们的奖励不再改变的一点。在一个忙碌的服务器上，奖励可能连续上下浮动，因为其他进程也在启动和终止。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 如果你真诚希望系统尽其最大努力运行你的复杂计算，你马上就会明白，这恐怕是不可能的。一方面，Linux有这样一个动机：想要确保对于任何交互式使用系统的用户性能不会下降。另一方面，这是你的系统，它应当做你要做的。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 而要达到预定目标，做你希望你可以做的，可通过另一个称为&ldquo;nice&rdquo;的值直接改变调度程序的决定。这样说是因为nice值让你细致入微地对待系统中的其他任务。给进程一个正的nice值，进程将有一个较低的总优先权。相反，给它一个负的nice值，调度程序将提升其优先权。只有超级用户可以分配一个负的nice值；非特权用户可做的唯一事情是降低自己进程的优先权，在优先队列颠簸而行。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 用负的nice值再运行preempter.sh进程如下：</p>
+<p>sudo nice &ndash;n -5 ./preempter.sh &amp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 通过如上所述的ps命令检验有影响的优先权并与前面的结果相比。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; nice值一经设置，它在进程生命期就是固定的，除非使用称为renice的命令改变它。除此之外，没有别的可以影响它。使用renice更改现有进程的nice值的命令是这样的：</p>
+<p>sudo renice -10 &ndash;p 50432</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; （其中，50432是进程ID即想要renice的进程的pid。）此命令将告诉你，前一个优先权和新的优先权。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 再一次，非特权用户也许只能增加nice值；即使已经是正的值，这些用户也不能降低它。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 现在有些不同：一切都适用于&ldquo;正常&rdquo;进程。有一些事情尚未讨论，就是紧要的实时应用，它必须绝对保证，软件在事件发生后的某一时间间隔内作出反应。与生命监测硬件相互作用的医学上的应用程序不过是一个例子；如果这种应用程序在应该运行的时候不能运行，那么，生命可能会失去。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; Linux专门给实时应用程序提供平常得不到的优先级范围。命令chrt启动这样的应用软件。当它们的优先权超出正常应用的范围时，保证它们经常地运行。值得注意还有，实时进程没有nice值或奖励；这些进程永远固定在某个值。</p>
+<p>&nbsp;&nbsp;&nbsp; 下次回来，关于Linux进程，我会告诉你更多，包括如何把内核拧成适合你特殊的多任务需要。</p>
+</div></div><div id="MySignature"></div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="BlogPostCategory"></div>
+<div id="EntryTag"></div>
+<div id="blog_post_info">
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"></div>
+</div>
+
+
+		</div>
+		<p class="postfoot">
+			posted on <span id="post-date">2012-07-17 19:11</span> <a href='http://www.cnblogs.com/daxian2012/'>赤脚大仙~</a> 阅读(<span id="post_view_count">...</span>) 评论(<span id="post_comment_count">...</span>)  <a href ="http://i.cnblogs.com/EditPosts.aspx?postid=2595722" rel="nofollow">编辑</a> <a href="#" onclick="AddToWz(2595722);return false;">收藏</a>
+		</p>
+	</div>
+	<script type="text/javascript">var allowComments=true,isLogined=false,cb_blogId=120541,cb_entryId=2595722,cb_blogApp=currentBlogApp,cb_blogUserGuid='e782ab51-00f6-df11-ac81-842b2b196315',cb_entryCreatedDate='2012/7/17 19:11:00';loadViewCount(cb_entryId);</script>
+	
+	<a name="!comments"></a><div id="blog-comments-placeholder"></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="开发者的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="opt_under_post"></div>
+<script type="text/javascript">
+    var enableGoogleAd = true;var googletag = googletag || {};googletag.cmd = googletag.cmd || [];
+    fixPostBodyFormat();
+</script>
+<div id="ad_under_post_holder">
+<script type='text/javascript'>
+    var googletag = googletag || {};
+    googletag.cmd = googletag.cmd || [];
+    (function () {
+        var gads = document.createElement('script');
+        gads.async = true;
+        gads.type = 'text/javascript';
+        var useSSL = 'https:' == document.location.protocol;
+        gads.src = (useSSL ? 'https:' : 'http:') +'//www.googletagservices.com/tag/js/gpt.js';
+        var node = document.getElementsByTagName('script')[0];
+        node.parentNode.insertBefore(gads, node);
+    })();
+</script>
+<script type='text/javascript'>
+    try {
+        googletag.cmd.push(function () {
+            googletag.defineSlot('/1090369/cnblogs_blogpost_C1_sitehome', [300, 250], 'div-gpt-ad-1346480159711-0').addService(googletag.pubads());
+            googletag.pubads().enableSingleRequest();
+            googletag.enableServices();
+        });
+    } catch (e) { }
+</script>
+<div id="google_ad_c1" class="c_ad_block">
+    <div id='div-gpt-ad-1346480159711-0' style='width:300px; height:250px;'>
+    <script type='text/javascript'>
+    try{
+        googletag.cmd.push(function () { googletag.display('div-gpt-ad-1346480159711-0'); });
+    } catch (e) { }
+    </script>
+    </div>
+</div>
+</div>
+<div id="blog_news_kb"></div>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+$(function () {
+    loadNewsAndKb();
+    loadBlogSignature();
+    LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+    GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);
+    loadOptUnderPost();
+    GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+    $.ajax({ url: 'http://counter.cnblogs.com/blog/post/' + cb_entryId, type: 'get', dataType: 'script', cache: true });
+});
+</script>
+</div>
+
+</div>
+</div>
+<div id="leftmenu">
+
+
+<h3>导航</h3>
+<ul>
+<li>
+<a id="MyLinks1_HomeLink" href="http://www.cnblogs.com/">博客园</a></li>
+<li>
+<a id="MyLinks1_MyHomeLink" class="two_words" href="http://www.cnblogs.com/daxian2012/">首页</a></li>
+<li>
+<a id="MyLinks1_NewPostLink" rel="nofollow" href="http://i.cnblogs.com/EditPosts.aspx?opt=1">新随笔</a></li>
+<li>
+<a id="MyLinks1_ContactLink" accesskey="9" class="two_words" rel="nofollow" href="http://space.cnblogs.com/msg/send/%e8%b5%a4%e8%84%9a%e5%a4%a7%e4%bb%99%7e">联系</a></li>
+<li>
+<a id="MyLinks1_Syndication" class="two_words" href="http://www.cnblogs.com/daxian2012/rss">订阅</a>
+<a id="MyLinks1_XMLLink" href="http://www.cnblogs.com/daxian2012/rss"><img src="http://www.cnblogs.com/images/xml.gif" alt="订阅" /></a>
+</li>
+<li>
+<a id="MyLinks1_Admin" class="two_words" rel="nofollow" href="http://i.cnblogs.com/">管理</a></li>
+</ul>
+
+<div id="blog-calendar" style="display:none"></div><script type="text/javascript">loadBlogDefaultCalendar();</script>
+<meta name="vs_showGrid" content="False">
+
+<h3>公告</h3>
+<div id="blog-news"></div><script type="text/javascript">loadBlogNews();</script>
+
+<div id="blog-sidecolumn"></div><script type="text/javascript">loadBlogSideColumn();</script>
+
+</div>
+</div>
+<div class="clear"></div>
+<div id="footer">
+
+<p id="footer">
+	Powered by: 
+	<br />
+	
+	<a id="Footer1_Hyperlink3" NAME="Hyperlink1" href="http://www.cnblogs.com/" style="font-family:Verdana;font-size:12px;">博客园</a>
+	<br />
+	Copyright &copy; 赤脚大仙~
+</p>
+</div>
+</div>
+
+<!--PageEndHtml Block Begin-->
+<div id="footer">
+  <h1>极度冰寒 尾</h1>
+<script type="text/javascript" src="http://gostats.cn/js/counter.js"></script>
+<script type="text/javascript">_gos='c2.gostats.cn';_goa=651141;
+_got=2;_goi=80;_gol='php计数器';_GoStatsRun();</script>
+<noscript><a target="_blank" title="php计数器" 
+href="http://gostats.cn"><img alt="php计数器" 
+src="http://c2.gostats.cn/bin/count/a_651141/t_2/i_80/counter.png" 
+style="border-width:0" /></a></noscript>
+<!-- End GoStats JavaScript Based Code -->
+</div>
+View Code 
+ <!--评论，生成气泡效果标签代码-->
+ <script type="text/javascript" language="javascript"> 
+     $(document).ready(function() {
+         var commentTime = setInterval(function(){if($("#comments_pager_bottom").length>0){CommentBubble();clearTimeout(commentTime);}},50);
+     }); 
+     function CommentBubble()
+     {
+ var w1 = '<div class="list">' +
+         '<table class="out" border="0" cellspacing="0" cellpadding="0"> ' +
+             '<tr>' +
+                 '<td class="icontd" align="right" valign="bottom">' +
+                     '<img src="http://images.cnblogs.com/cnblogs_com/heyuquan/406488/t_op.png" width="70px" height="57px"/>' +
+                 '</td>' +
+                 '<td align="left" valign="bottom" class="q">' +
+                     '<table border="0" cellpadding="0" cellspacing="0" style=""> ' +
+                         '<tr><td class="topleft"></td><td class="top"></td><td class="topright"></td></tr> ' +
+                         '<tr><td class="left"></td> <td align="left" class="conmts"><p>';
+  
+  
+         var w2 = '</p> </td> <td class="right"></td></tr> ' +
+                         '<tr><td class="bottomleft"></td><td class="bottom"></td><td class="bottomright"></td></tr> ' +
+                     '</table>' +
+                 '</td> ' +
+             '</tr> ' +
+         '</table> ' +
+     '</div>';
+  
+         $.each($(".blog_comment_body"), function(i, t) {
+             $(t).html(w1 + $(t).html() + w2);
+         });
+ $(".louzhu").closest(".feedbackItem").find(".out").removeClass("out").addClass("inc");
+         /*.find(".q").attr("align","right");*/
+         }
+ </script>
+<!--PageEndHtml Block End-->
+</body>
+</html>

@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+	
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US" prefix="og: http://ogp.me/ns#">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<title>Configuring PostgreSQL Multimaster Using SymmetricDS | Manta Engineering</title>
+
+	<link rel="stylesheet" type="text/css" media="screen" href="http://engineering.manta.com/wp-content/themes/pitch/style.css" />
+	<link rel="profile" href="http://gmpg.org/xfn/11" />
+	<link rel="pingback" href="http://engineering.manta.com/xmlrpc.php" />
+
+	
+<!-- This site is optimized with the Yoast WordPress SEO plugin v1.3.3 - http://yoast.com/wordpress/seo/ -->
+<link rel="canonical" href="http://engineering.manta.com/2013/02/13/configuring-postgresql-multimaster-using-symmetricds/" />
+<meta property='og:locale' content='en_US'/>
+<meta property='og:title' content='Configuring PostgreSQL Multimaster Using SymmetricDS - Manta Engineering'/>
+<meta property='og:url' content='http://engineering.manta.com/2013/02/13/configuring-postgresql-multimaster-using-symmetricds/'/>
+<meta property='og:site_name' content='Manta Engineering'/>
+<meta property='og:type' content='article'/>
+<meta property='og:image' content='http://engineering.manta.com/wp-content/uploads/2012/10/rotten-two-elephants-sketch-3.png'/>
+<!-- / Yoast WordPress SEO plugin. -->
+
+<link rel="alternate" type="application/rss+xml" title="Manta Engineering &raquo; Feed" href="http://engineering.manta.com/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Manta Engineering &raquo; Comments Feed" href="http://engineering.manta.com/comments/feed/" />
+
+			<script type="text/javascript">//<![CDATA[
+			// Google Analytics for WordPress by Yoast v4.2.8 | http://yoast.com/wordpress/google-analytics/
+			var _gaq = _gaq || [];
+			_gaq.push(['_setAccount', 'UA-10299948-5']);
+							_gaq.push(['_setCustomVar',1,'post_type','post',3],['_setCustomVar',2,'author','rick-otten',3],['_setCustomVar',3,'tags','data jumpmind multimaster-replication postgresql symmetricds',3],['_setCustomVar',4,'category','databases',3],['_trackPageview']);
+			(function () {
+				var ga = document.createElement('script');
+				ga.type = 'text/javascript';
+				ga.async = true;
+				ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+				var s = document.getElementsByTagName('script')[0];
+				s.parentNode.insertBefore(ga, s);
+			})();
+			//]]></script>
+			<link rel="alternate" type="application/rss+xml" title="Manta Engineering &raquo; Configuring PostgreSQL Multimaster Using SymmetricDS Comments Feed" href="http://engineering.manta.com/2013/02/13/configuring-postgresql-multimaster-using-symmetricds/feed/" />
+<link rel='stylesheet' id='jobman-display-css'  href='http://engineering.manta.com/wp-content/plugins/job-manager/css/display.css?ver=0.7.20' type='text/css' media='all' />
+<link rel='stylesheet' id='nivo-css'  href='http://engineering.manta.com/wp-content/themes/pitch/js/nivo/nivo-slider.css?ver=2.7.1' type='text/css' media='all' />
+<link rel='stylesheet' id='flexslider-css'  href='http://engineering.manta.com/wp-content/themes/pitch/js/flexslider/flexslider.css?ver=1.8' type='text/css' media='all' />
+<link rel='stylesheet' id='google-webfonts-css'  href='http://fonts.googleapis.com/css?family=Maven+Pro%7CDroid+Serif%3A400italic%7CDroid+Sans%3A400%2C700&#038;ver=3.4.2' type='text/css' media='all' />
+<link rel='stylesheet' id='easy_table_style-css'  href='http://engineering.manta.com/wp-content/plugins/easy-table/themes/default/style.css?ver=0.9' type='text/css' media='all' />
+<link rel='stylesheet' id='socialize-css'  href='http://engineering.manta.com/wp-content/plugins/socialize/frontend/css/socialize.css?ver=3.4.2' type='text/css' media='all' />
+<script type='text/javascript' src='http://engineering.manta.com/wp-includes/js/jquery/jquery.js?ver=1.7.2'></script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-content/plugins/job-manager/js/display.js?ver=0.7.20'></script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-content/themes/pitch/js/nivo/jquery.nivo.slider.pack.min.js?ver=2.7.1'></script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-content/themes/pitch/js/flexslider/jquery.flexslider.min.js?ver=1.8'></script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-content/themes/pitch/js/jquery.preload.min.js?ver=1.0.8'></script>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var pitch = {"sliderSpeed":"4000","sliderAnimationSpeed":"500","sliderEffect":"random"};
+/* ]]> */
+</script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-content/themes/pitch/js/pitch.min.js?ver=1.2.3'></script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-includes/js/comment-reply.js?ver=3.4.2'></script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-content/plugins/socialize/frontend/js/floating.js?ver=3.4.2'></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://engineering.manta.com/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://engineering.manta.com/wp-includes/wlwmanifest.xml" /> 
+<meta name="generator" content="WordPress 3.4.2" />
+<link rel='shortlink' href='http://engineering.manta.com/?p=426' />
+<meta property="og:title" content="Configuring PostgreSQL Multimaster Using SymmetricDS"/>
+<meta property="og:type" content="article"/>
+<meta property="og:url" content="http://engineering.manta.com/2013/02/13/configuring-postgresql-multimaster-using-symmetricds/"/>
+<meta property="og:image" content="http://engineering.manta.com/wp-content/uploads/2012/10/rotten-two-elephants-sketch-3.png"/>
+<meta property="og:site_name" content="Manta Engineering"/>
+<meta property="fb:page_id" content="on"/>
+<style type="text/css" media="screen">.socialize-floating { margin-left: -105px; }</style>	<!--[if lt IE 9]>
+	<script src="http://engineering.manta.com/wp-content/themes/pitch/js/html5shiv.js" type="text/javascript"></script>
+	<![endif]-->
+	<!--[if (gte IE 6)&(lte IE 8)]>
+	  <script type="text/javascript" src="http://engineering.manta.com/wp-content/themes/pitch/js/selectivizr.js"></script>
+	<![endif]-->
+	<meta id="syntaxhighlighteranchor" name="syntaxhighlighter-version" content="3.1.3" />
+</head>
+
+<body class="single single-post postid-426 single-format-standard">
+
+	<div id="topbar">
+		<div class="container">
+			<div class="menu-top-container"><ul id="topbar-menu" class="menu"><li id="menu-item-246" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-246"><a href="http://engineering.manta.com/blog/" >Blog</a></li>
+<li id="menu-item-88" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-88"><a href="https://twitter.com/MantaEngineers" onclick="javascript:_gaq.push(['_trackEvent','outbound-menu','http://twitter.com']);">@MantaEngineers</a></li>
+<li id="menu-item-765" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-765"><a href="http://www.manta.com/manta-careers/" >Careers</a></li>
+<li id="menu-item-92" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-92"><a href="http://www.manta.com/" >Manta</a></li>
+</ul></div>			<div class="clear"></div>
+		</div>
+	</div>
+	
+<div id="logo">
+	<div class="container">
+		<a href="http://engineering.manta.com" title="Manta Engineering - Engineering Where Small Business Grows" id="logo-link">
+							<h1>Manta Engineering</h1>
+					</a>
+		
+			</div>
+</div>
+
+<div id="mainmenu" class="">
+	<div class="container">
+		<div class="menu-main-container"><ul id="mainmenu-menu" class="menu"><div class="clear"></div></ul></div>	</div>
+</div>
+<div id="post-single" class="post-426 post type-post status-publish format-standard hentry category-databases category-high-availability tag-data tag-jumpmind tag-multimaster-replication tag-postgresql tag-symmetricds">
+	<div class="container">
+		<div class="post-container">
+			<h1 class="post-title">Configuring PostgreSQL Multimaster Using SymmetricDS</h1>
+			<div class="post-info">
+				Post on 2013/02/13 by <a href="http://www.manta.com/m/rotten" title="Visit Rick Otten&#8217;s website" rel="author external">Rick Otten</a> tagged: <a href="http://engineering.manta.com/tag/data/" rel="tag">data</a>, <a href="http://engineering.manta.com/tag/jumpmind/" rel="tag">jumpmind</a>, <a href="http://engineering.manta.com/tag/multimaster-replication/" rel="tag">multimaster replication</a>, <a href="http://engineering.manta.com/tag/postgresql/" rel="tag">postgresql</a>, <a href="http://engineering.manta.com/tag/symmetricds/" rel="tag">symmetricds</a>			</div>
+			<div class="content entry-content">
+				<div class="socialize-floating socialize-floating-bg"><div class="socialize-in-button socialize-in-button-left"><a href="http://twitter.com/share" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://twitter.com']);" class="twitter-share-button" data-url="http://engineering.manta.com/2013/02/13/configuring-postgresql-multimaster-using-symmetricds/" data-text="Configuring PostgreSQL Multimaster Using SymmetricDS" data-count="vertical" data-via="MantaEngineers" data-related="MantaEngineers"><!--Tweetter--></a></div><div class="socialize-in-button socialize-in-button-left"><g:plusone size="tall" href="http://engineering.manta.com/2013/02/13/configuring-postgresql-multimaster-using-symmetricds/"></g:plusone></div><div class="socialize-in-button socialize-in-button-left"><script type="in/share" data-url="http://engineering.manta.com/2013/02/13/configuring-postgresql-multimaster-using-symmetricds/" data-counter="top"></script></div><div class="socialize-in-button socialize-in-button-left"><iframe src="//www.facebook.com/plugins/like.php?href=http%3A%2F%2Fengineering.manta.com%2F2013%2F02%2F13%2Fconfiguring-postgresql-multimaster-using-symmetricds%2F&amp;send=false&amp;layout=box_count&amp;width=45&amp;show_faces=false&amp;action=like&amp;colorscheme=light&amp;font=arial&amp;height=65" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:45px; height:65px;" allowTransparency="true"></iframe></div><div class="socialize-in-button socialize-in-button-vertical"><a href="mailto:?subject=Configuring+PostgreSQL+Multimaster+Using+SymmetricDS&body=http%3A%2F%2Fengineering.manta.com%2F2013%2F02%2F13%2Fconfiguring-postgresql-multimaster-using-symmetricds%2F" class="socialize-email-button">Email</a></div><div class="socialize-in-button socialize-in-button-vertical"><a href="javascript:window.print()" class="socialize-print-button">Print</a></div></div><p>This blog post looks at configuring a PostgreSQL multimaster cluster using SymmetricDS as the replication technology.</p>
+<h3></h3>
+<h3>Introduction</h3>
+<p><ins><a href="http://wiki.postgresql.org/wiki/Replication,_Clustering,_and_Connection_Pooling" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://wiki.postgresql.org']);">As of PostgreSQL 9.0, streaming data replication capabilities are now built-in</a></ins>.  The feature is fast, efficient, and well documented. However the built-in replication has some practical limitations which you may want to overcome. Most notably for our use case:</p>
+<ul>
+<li>You can only have a <strong>single master</strong>, which means you have to bottleneck all your writes through a potential single point of failure.</li>
+<li>All members of the cluster must be the <strong>same version of PostgreSQL</strong>, which means you have to take the entire cluster down for a while to upgrade.</li>
+<li>All members of the cluster must run on <strong>comparable file systems</strong>, which means you may have issues if you want to have cluster members in different cloud providers or on very different hardware or even different OS versions.</li>
+</ul>
+<p>There are several third party PostgreSQL data replication tools out there which have various features and capabilities.   What is particularly cool about <a href="http://www.jumpmind.com/" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.jumpmind.com']);"><ins>JumpMind</ins></a>'s opensource solution, <a href="http://www.symmetricds.org/" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>SymmetricDS</ins></a>, is that it can do multimaster replication between <a href="http://www.symmetricds.org/doc/3.1/html/databases.html" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>most JDBC capable relational data stores</ins></a>, not just PostgreSQL.  You can, if you wanted to, keep a table in sync between applications all writing to Oracle, PostgreSQL, MySQL, and Sybase - at the same time!  Not only that, with SymmetricDS you can do <a href="http://www.symmetricds.org/doc/3.1/html/configuration.html#transform-data" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>in-flight data transformations</ins></a>, <a href="http://www.symmetricds.org/doc/3.1/html/planning.html#organizing-nodes" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>hierarchical, circular, and asymmetrical replication structures</ins></a>, and <a href="http://www.symmetricds.org/about/features" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>more</ins></a>.  It is a really nifty, extensible, and robust industry seasoned data engineering tool for moving data between relational databases.</p>
+<p>There are some limitations with SymmetricDS replication:</p>
+<ul>
+<li><strong>Latency.</strong>  SymmetricDS replication is asynchronous.  There is some time delay (typically sub-second) to capture and move data changes around.  Depending on your data use cases, this can be ok, or it can cause problems:  How soon after you commit a write on one master do you need to be able to read it on another master?</li>
+<li><strong>Trigger performance impacts</strong>.  Data changes are captured with triggers.  This is a pretty common approach for asynchronous multimaster architectures.  What this means is that for each write to a replicated table, there is an additional write to a change log.  We have observed that on some databases and for some write-intensive applications, the additional overhead of the trigger and its subsequent writes can adversely impact performance.  We have not found this impact to be of consequence with our use case on our modern PostgreSQL servers.</li>
+<li><strong>Data Collisions.  </strong>When you are writing data to the same table on separate databases at the same time you may sometimes end up with conflicts.  Care can be taken in the application design to minimize this risk.  You can use <a href="http://en.wikipedia.org/wiki/Uuid" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://en.wikipedia.org']);"><ins>UUID</ins></a>'s instead of sequences for primary keys.  (Or you can stagger sequence values with some sort of modular arithmetic, but that is a lot harder.)  SymmetricDS 3.0 introduced advanced <a href="http://www.symmetricds.org/doc/3.1/html/configuration.html#conflicts" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>conflict resolution capabilities</ins></a> which can help further.   To avoid future heartache, you must remain cognizant, throughout the development cycle, of this architecture limitation.</li>
+</ul>
+<p>This is the approach we are going to take to set up a PostgreSQL multimaster configuration:</p>
+<ol>
+<li>First configure a new PostgreSQL master-slave replica pair using native streaming replication.
+<ul>
+<li>This is because it is faster to initialize the new database using native PostgreSQL replication technology than it is to use the built-in SymmetricDS initial load and/or dbexport/dbimport processes.   The SymmetricDS approaches work fine for smaller data sets, when you want to move the tablespaces into a new file system structure, or when you need to set up multimaster replication between entirely different relational database technologies.  However, when we have the capability of going native and saving significant timefor the initial data load (in our case, literally several days for some of the bigger tables) , during our setup, so why not go for it?</li>
+</ul>
+</li>
+<li>Then install SymmetricDS on the master.</li>
+<li>Start collecting change data for a new node.</li>
+<li>Then break native replication and convert the former slave into a new master.</li>
+<li>Wipe out the SymmetricDS configuration on the new master, and set it up as a new node.  It will absorb all of the changes that happened since (3), and continue from there.</li>
+</ol>
+<p><em>We do all of our work on Ubuntu Linux, and PostgreSQL 9.1 or 9.2, your mileage may vary by following our example literally if you prefer to work with a different OS or version of PostgreSQL.</em></p>
+<h3></h3>
+<h3>Setting up native PostgreSQL streaming replication</h3>
+<p>Setting up a PostgreSQL master-slave replica pair is fairly straight forward.  Here is one approach:</p>
+<ol>
+<li>You need to create a base backup of the master database.
+<ul>
+<li>First, issue the command to put the master into base backup mode:</li>
+<li><tt>psql -U postgres -c "select pg_start_backup('To create a replica on my new slave - XX')")))</tt></li>
+<li><em>A backing naming convention is that the text should be meaningful, like the location the backup is going to.</em></li>
+</ul>
+</li>
+<li>Copy the entire database to wherever you want it to go with rsync, scp, tar, rcp, ftp, 8 track tape, punch cards, or your favorite method.
+<ul>
+<li><tt>BASE=~postgres/mydatabasehome</tt></li>
+<li><tt>rsync -azvPH --delete --exclude postmaster.pid --exclude pg_xlog/ --exclude pg_log/ --exclude postmaster.opts $BASE/ remote:$BASE/</tt></li>
+<li><em>Be sure to copy over all of your tablespaces, where ever they may be also.</em></li>
+</ul>
+</li>
+<li>When the copy is done bring the master out of base backup mode. Copy all of the conf files from a slave server, or get them from your source code repository.  Be sure to have a recovery.conf file.  You <strong>DO NOT </strong>want to start the database without the recovery.conf file, or you may have to start this whole process over again.
+<ul>
+<li><tt>psql -U postgres -c "select pg_stop_backup()"</tt></li>
+</ul>
+</li>
+<li>Edit <tt>pg_hba.conf</tt> on the new slave as needed</li>
+<li>Edit <tt>postgresql.conf</tt> and edit the interfaces to match the new machine.</li>
+<li>Edit <tt>recovery.con</tt>f to tell it the correct IP address of the master to connect to.</li>
+<li>Start the database on the slave server
+<ul>
+<li><tt>pg_ctl -D ~postgres/mydatabasehome start</tt></li>
+</ul>
+</li>
+<li>Look at the log files in <tt><em>pg_log</em></tt> to make sure it worked.</li>
+<li>Write some data to the master and verify that it appears on the hot standby.</li>
+</ol>
+<p>You can find other descriptions of the process <a href="http://blog.railsupgrade.com/2011/02/streaming-replication-in-postgresql-91.html" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://blog.railsupgrade.com']);"><ins>here</ins></a> and <a href="http://bradmontgomery.net/blog/streaming-replication-in-postgresql-91/" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://bradmontgomery.net']);"><ins>here</ins></a>.</p>
+<h3>Initial Setup Of SymmetricDS</h3>
+<p>It is reasonable, although not required, to create a dedicated user and schema for SymmetricDS inside your database.</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+create user my_symmetricds;
+alter user my_symmetricds password 'The Secret SymmetricDS Password.';
+create schema authorization my_symmetricds;
+</pre>
+<p>The new user will need some permissions in each of the schemas you are going to be replicating:You can leave it in a default tablespace or assign it one of its own.</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+grant usage on schema my_schema to my_symmetricds;
+grant all on all tables in schema my_schema to my_symmetricds;
+grant create on schema my_schema to my_symmetricds;
+grant trigger on all tables in schema my_schema to my_symmetricds;
+grant execute on all functions in schema my_schema to my_symmetricds;
+</pre>
+<ul>
+<li>Note that the 'grant trigger' command in PostgreSQL, counter-intuitively,  is not sufficient for the my_symmetricds user to be able to drop the triggers it creates.  [<a title="PostgreSQL drop trigger issue" href="http://www.symmetricds.org/issues/view.php?id=948" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);">SymmetricDS issue #948</a>]  [<a title="PostgreSQL issue 7716" href="http://postgresql.1045698.n5.nabble.com/BUG-7716-Only-owner-can-drop-trigger-td5734442.html" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://postgresql.1045698.n5.nabble.com']);" target="_blank">PostgreSQL issue #7716</a>]  You may need to grant the table's owner role to my_symmetricds if you expect to pull specific tables in and out of replication.  The my_symmetricds user can run 'drop function cascade' and remove the trigger if necessary.  In this scenario, we are replicating all tables, so we aren't worried about having the my_symmetricds user automatically clean up some of its triggers when the configuration changes.</li>
+</ul>
+<p>The next installation step is to find a home for our SymmetricDS files and extract the zip file, configure a properties file, and start the SymmetricDS JVM daemon.  (Note that it is reasonable, although not required, to run this under a dedicated unix account.)</p>
+<p>Initially we don't need a lot of configuration to get going (you can do a lot of advanced tuning in the properties file).  Lets create a property file like this:</p>
+<pre class="brush: perl; light: true; title: ; notranslate" title="">
+# The class name for the JDBC Driver
+# It should find this in the SymmetricDS Home &amp;amp;quot;lib&amp;amp;quot; directory.
+# SymmetricDS comes with the PostgreSQL 9.1 JDBC driver so you don't have
+# to put it in there.
+db.driver=org.postgresql.Driver
+
+# The JDBC URL used to connect to the database
+db.url=jdbc:postgresql://my_postgres_master_server_1/my_database
+
+# The database user to login as who can create and update tables
+db.user=my_symmetricds# The database user password for the user to login as
+db.password=The Secret SymmetricDS Password.
+
+# The HTTP URL of the root node to contact for registration.
+# To keep things simple in this example we'll stick with plain HTTP for
+# inter-SymmetricDS communications rather than HTTPS.
+# ie, this is the SymmetricDS instance that will control the SymmetricDS
+# cluster configuration
+# We are using the arbitrary high port number &amp;amp;quot;32123&amp;amp;quot; in this example.
+# You could assign whatever works for you.
+registration.url=http://my_symmetricds_server:32123/sync
+
+# This is the URL this SymmetricDS instance is listening on - where the other
+# nodes will connect.
+# Since we are setting up the registration server first, it has the same value
+# as the registration_url.
+sync.url=http://my_symmetricds_server:32123/sync
+
+# This is the node group this instance will be a member of.
+# You'll see it in the code example below when we set up the node groups and routers.
+group.id=pgmastergroup1
+
+# This is the name of our SymmetricDS instance.
+# Giving it the same name as the database it connects to can help you keep track
+# of which one you are working with.
+external.id=my_postgres_master_server_1
+
+# These determine how often the SymmetricDS instances communicate with each
+# other over HTTP.
+# For our initial tests, 1 second is probably fast enough.
+job.push.period.time.ms=1000
+job.pull.period.time.ms=1000
+</pre>
+<p>You can use symadmin to create the tables like this:</p>
+<pre class="brush: plain; light: true; title: ; notranslate" title="">
+${SYMMETRICDS_INSTALLATION_HOME}/bin/symadmin create-sym-tables -p ${PROPS_FILE} -v
+</pre>
+<p>It will exit when it is done setting up the tables, sequences, and triggers it needs to get started.</p>
+<p>Alternately, you could start up SymmetricDS like this:</p>
+<pre class="brush: plain; light: true; title: ; notranslate" title="">
+${SYMMETRICDS_INSTALLATION_HOME}/bin/sym -p ${PROPS_FILE}  -v --port 32123 --server
+</pre>
+<p>When the daemon starts up, it will automatically create all of the empty tables it needs in its schema.  We'll need to shut the daemon back down to install the first set of configuration data in those tables.</p>
+<p><em>Simply kill the java process to shut it back down.</em></p>
+<p>In the PostgreSQL master database we'll add configuration data to some of the new SymmetricDS tables.</p>
+<p>First we'll create a new <a href="http://www.symmetricds.org/doc/3.1/html/data-model.html#table_channel" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>channel</ins></a>, which is a logical grouping of related data.  For this example, we'll lump everything into one</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+insert into my_symmetricds.sym_channel
+(channel_id, processing_order, max_batch_size, max_batch_to_send,
+max_data_to_route, extract_period_millis, batch_algorithm, enabled,
+description, contains_big_lob)
+values
+('pgmultimaster', 2, 50000, 100,
+ 500000, 0, 'default', 1,
+ 'All tables for multi-master replication', 1);
+</pre>
+<p>Next we'll set up the <a href="http://www.symmetricds.org/doc/3.1/html/data-model.html#table_node_group" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>node groups</ins></a> and details about our registration server node.  Each SymmetricDS node is a potential source or destination for data.  A 'node group' is a set of nodes who all receive or send the same set of data.  For this example we'll create a node group for each PostgreSQL master.</p>
+<p>set up the node groups</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+insert into my_symmetricds.sym_node_group
+(node_group_id, description)
+values
+('pgmastergroup1', 'PostgreSQL Master #1');
+
+insert into my_symmetricds.sym_node_group
+(node_group_id, description)
+values
+('pgmastergroup2', 'PostgreSQL Master #2');
+</pre>
+<p>set up the <a href="http://www.symmetricds.org/doc/3.1/html/data-model.html#table_node_group_link" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>links</ins></a>.</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+insert into my_symmetricds.sym_node_group_link
+(source_node_group_id, target_node_group_id, data_event_action)
+values
+('pgmastergroup1', 'pgmastergroup2', 'W');
+
+insert into my_symmetricds.sym_node_group_link
+(source_node_group_id, target_node_group_id, data_event_action)
+values
+('pgmastergroup2', 'pgmastergroup1', 'P');
+</pre>
+<p>Set up the registration server identity. This is the "external.id" we configured in the property file above.</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+insert into my_symmetricds.sym_node_identity
+values ('my_postgres_master_server_1');
+</pre>
+<p>Lastly add our registration server to the node table:</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+insert into my_symmetricds.sym_node
+(node_id, node_group_id, external_id, sync_enabled)
+values
+('my_postgres_master_server_1', 'pgmastergroup1', 'my_postgres_master_server_1', 1);
+</pre>
+<p>Next we'll add <a href="http://www.symmetricds.org/doc/3.1/html/data-model.html#table_router" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>routers</ins></a>, which define the direction we want data to travel between the node groups. (If we wanted a master-slave relationship we’d only define one of these two routes.)</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+insert into my_symmetricds.sym_router
+(router_id, source_node_group_id, target_node_group_id, create_time, last_update_time)
+values
+('pgmaster1-2-pgmaster2', 'pgmastergroup1', ‘pgmastergroup2’,
+ current_timestamp, current_timestamp);
+
+insert into my_symmetricds.sym_router
+(router_id, source_node_group_id, target_node_group_id, create_time, last_update_time)
+values
+('pgmaster2-2-pgmaster1', 'pgmastergroup2', ‘pgmastergroup1’,
+ current_timestamp, current_timestamp);
+</pre>
+<p>Next we'll configure the tables we want to replicate by adding entries to the <a href="http://www.symmetricds.org/doc/3.1/html/data-model.html#table_trigger" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>trigger table</ins></a>.</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+-- set up one trigger for each schema, table, or set of tables you want to multimaster.
+-- SymmetricDS supports wild cards so you can define multiple tables with
+-- one sym_trigger entry:
+insert into my_symmetricds.sym_trigger
+(trigger_id, source_schema_name, source_table_name, channel_id, use_capture_lobs,
+sync_on_update, sync_on_insert, sync_on_delete,
+last_update_time, create_time)
+values
+(‘all_my_schema’, ‘my_schema’, ‘*’, ‘pgmultimaster’,
+1, 1, 1, 1,
+current_timestamp, current_timestamp);
+</pre>
+<p>For the last bit of SymmetricDS configuration, we'll map the <a href="http://www.symmetricds.org/doc/3.1/html/data-model.html#table_trigger_router" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>triggers to the routers</ins></a>:</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+-- We disable the ‘initial load’ feature because we’ve already initially
+-- loaded the table via other means.
+-- You’ll need a pair of trigger_router entries for each trigger_id:
+insert into my_symmetricds.sym_trigger_router
+(trigger_id, router_id,
+create_time, last_update_time, last_update_by,
+initial_load_order, initial_load_select,
+)
+values
+(‘all_my_schema’, ‘pgmaster1-2-pgmaster2’, ,
+current_timestamp, current_timestamp, ‘rotten’,
+9999, ‘1=0’);insert into my_symmetricds.sym_trigger_router
+(trigger_id, router_id,
+create_time, last_update_time, last_update_by,
+initial_load_order, initial_load_select,
+)
+values
+(‘all_my_schema’, ‘pgmaster2-2-pgmaster1’, ,
+current_timestamp, current_timestamp, ‘rotten’,
+9999, ‘1=0’);
+</pre>
+<p>Now let’s start SymmetricDS up. If you look in its log files, you should see it creating all of the triggers. At this point everything in the PostgreSQL master is still being stream-replicated to the PostgreSQL slave – including all of the SymmetricDS configuration. Before we break the streaming replication we need to get SymmetricDS to start saving database changes for the new node we are going to create.</p>
+<h3>Start Collecting Data Changes In SymmetricDS</h3>
+<p>Open registration for the new node. You can do this from the command line:</p>
+<pre class="brush: bash; light: true; title: ; notranslate" title="">
+${SYMMETRICDS_INSTALLATION_HOME}/bin/symadmin open-registration –properties ${PROPS_FILE}
+</pre>
+<p>... or from the MX4J web console. If you want to try the MX4J web console, you'll find it by default at the port number 1 higher than the sync port. In our example you would connect to http://<em>my_symmetricds_server</em>:3212<strong>2  </strong>then click on the 'Node', and scroll down to fill in the open registration dialog. You have to edit the ~/bin/sym script to change the java flag jmx.http.console.localhost.only.enabled to false to be able to get to it from a public IP address, otherwise you'll only be able to access it from localhost.</p>
+<p>In addition to allowing the new node to start up and talk to the registration server, that command will insert a line into the sym_node table. SymmetricDS will not start saving data changes for this node until you change sync_enabled to true:</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+update my_symmetricds.sym_node set sync_enabled = 1 where node_id = my_postgres_master_server_2 ;
+</pre>
+<p>Now if you change data in a table in <em>my_schema</em> you will see an entry written into <a href="http://www.symmetricds.org/doc/3.1/html/data-model.html#table_data" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>sym_data</ins></a>, and an entry with the status ‘NE’ for the pgmultimaster channel in <a href="http://www.symmetricds.org/doc/3.1/html/data-model.html#table_outgoing_batch" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.symmetricds.org']);"><ins>sym_outgoing_batch</ins></a>.</p>
+<h3>Break The Native Streaming Replication</h3>
+<p>You can go ahead and break the PostgreSQL streaming replication now. This is a simple matter of touching the PostgreSQL trigger_file on the slave database server. You can find the location of the trigger_file in recovery.conf.</p>
+<p>Once you’ve broken replication and the former PostgreSQL slave is a stand-alone master, you can clear out the local SymmetricDS configuration on the former slave:</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+drop owned by my_symmetricds cascade;
+</pre>
+<p>Then re-create the empty schema and re-run grants on all of the schemas it will be working with (just like when we were setting up the first SymmetricDS instance:</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+create schema authorization my_symmetricds;
+grant usage on schema my_schema to my_symmetricds;
+grant all on all tables in schema my_schema to my_symmetricds;
+grant create on schema my_schema to my_symmetricds;
+grant trigger on all tables in schema my_schema to my_symmetricds;
+grant execute on all functions in schema my_schema to my_symmetricds;
+</pre>
+<h3>Set Up And Start The New Node</h3>
+<p>The next step is to set up the second engine.  You can run multiple SymmetricDS engines in a single JVM. We prefer to run each SymmetricDS engine in its own JVM. It makes logging, management, moving the server it runs on, upgrades, tuning and such a little more straightforward from our perspective.</p>
+<p>If you take our approach, you would unzip the SymmetricDS distro again into a new directory tree somewhere. Then set up a new properties file. It is very similar to the first properties file we set up, but with some notable and important differences (in <strong>bold</strong>, below).  If you set it up on the same server as the other JVM, you will need to specify a different port in the sync.url, and when you start the daemon.</p>
+<pre class="brush: perl; light: true; title: ; notranslate" title="">
+# The class name for the JDBC Driver
+# It should find this in the SymmetricDS Home &amp;amp;quot;lib&amp;amp;quot; directory.
+# SymmetricDS comes with the PostgreSQL 9.1 JDBC driver so you don't
+# have to put it in there.
+db.driver=org.postgresql.Driver
+
+# The JDBC URL used to connect to the database
+db.url=jdbc:postgresql://my_postgres_master_server_2/my_database
+
+# The database user to login as who can create and update tables
+db.user=my_symmetricds
+
+# The database user password for the user to login as
+db.password=The Secret SymmetricDS Password.
+
+# The HTTP URL of the root node to contact for registration.
+# To keep things simple in this example we'll stick with plain HTTP
+# for inter-SymmetricDS communications rather than HTTPS.
+# ie, this is the SymmetricDS instance that will control the
+# SymmetricDS cluster configuration.
+# We are using the arbitrary high port number &amp;amp;quot;32123&amp;amp;quot; in this example. You
+# could assign whatever works for you.
+registration.url=http://my_symmetricds_server:32123/sync
+
+# This is the URL this SymmetricDS instance is listening on - where
+# the other nodes will connect.
+# Since we are setting up the registration server first, it has the
+# same value as the registration_url.
+sync.url=http://my_symmetricds_server_2:32123/sync
+
+# This is the node group this instance will be a member of.
+# You'll see it in the code example below when we set up the node groups and routers.
+group.id=pgmastergroup2
+
+# This is the name of our SymmetricDS instance.
+# Giving it the same name as the database it connects to can help you keep track
+# of which one you are working with.
+external.id=my_postgres_master_server_2
+
+# These determine how often the SymmetricDS instances communicate with each
+# other over HTTP. For our initial tests, 1 second is probably fast enough.
+job.push.period.time.ms=1000
+job.pull.period.time.ms=1000
+</pre>
+<p>When you start the second SymmetricDS daemon it will re-build all of the tables. It will then connect to the registration server and check in. It will automatically get the configuration information from the registration server. Once that is complete, it will start getting all of the changes that were backlogged since we set sync_enabled in the sym_node group.</p>
+<p>Multimaster replication will be running.</p>
+<p>There is one last thing to do, you should go back to the registration server database and update sym_node_security with an initial load time for your new node. The SymmetricDS data purge process will resist removing old data if it thinks the new node never had an initial load.</p>
+<pre class="brush: sql; light: true; title: ; notranslate" title="">
+update my_symmetricds.sym_node_security
+set initial_load_time = current_timestamp
+where node_id = my_postgres_master_server_2;
+</pre>
+<h3>Almost, But Not Quite, Done</h3>
+<p>Of course you’ll want to set up elegant start &amp; stop scripts for the SymmetricDS daemons, you’ll want to set up monitoring, you may want HTTPS instead of HTTP configuration, you’ll need to configuration documentation and operational procedures, and you may already want to expand on the idea, adding other nodes, transformations, and other features. You may also want to bump up the default heap size for your daemons if you are moving large blocks of data at once.  So you aren’t really <em>done</em>. But you do have a working PostgreSQL multimaster configuration at this point.</p>
+<hr />
+<p>Special thanks to Judd Montgomery for assistance with this article.</p>
+<div class="socialize-containter" style="background-color:#DEDEDE; border: 1px solid #ddd;"><div class="socialize-buttons"><div class="socialize-button"><su:badge layout="5" location="http://engineering.manta.com/2013/02/13/configuring-postgresql-multimaster-using-symmetricds/"></su:badge></div><div class="socialize-button"><div class="delicious-button"><div class="del-top"><span id="426">0</span>saves</div><div class="del-bot"><a href="http://delicious.com/save"  onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://delicious.com']);window.open("http://delicious.com/save?v=5&noui&jump=close&url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title), 'delicious','toolbar=no,width=550,height=550'); return false;">Save</a></div></div>
+		<script>
+			<!-- 
+			function displayURL(data) { var urlinfo = data[0]; if (!urlinfo.total_posts) return;document.getElementById('426').innerHTML = urlinfo.total_posts;}
+			//-->
+		</script>
+		<script src = "http://badges.del.icio.us/feeds/json/url/data?url=http://engineering.manta.com/2013/02/13/configuring-postgresql-multimaster-using-symmetricds/&amp;callback=displayURL"></script></div></div><div class="socialize-text">If you enjoyed this post, please consider <a href="http://engineering.manta.com/2013/02/13/configuring-postgresql-multimaster-using-symmetricds/#comments" >leaving a comment</a> or <a href="http://engineering.manta.com/feed/"  title="Syndicate this site using RSS">subscribing to the <abbr title="Really Simple Syndication">RSS</abbr> feed</a> to have future articles delivered to your feed reader.</div></div>				<div class="clear"></div>
+							</div>
+
+			
+			
+					<div class="separator"></div>			<div id="respond">
+				<h3 id="reply-title">Leave a Reply <small><a rel="nofollow" id="cancel-comment-reply-link" href="/2013/02/13/configuring-postgresql-multimaster-using-symmetricds/#respond" style="display:none;">Cancel reply</a></small></h3>
+									<form action="http://engineering.manta.com/wp-comments-post.php" method="post" id="commentform">
+																										<div class="comment-form-field comment-form-author"><input id="author" name="author" type="text" value="" size="30" aria-required='true' /><label for="author">Name</label></div>
+<div class="comment-form-field comment-form-email"><input id="email" name="email" type="text" value="" size="30" aria-required='true' /><label for="email">Email</label></div>
+<div class="comment-form-field comment-form-url"><input id="url" name="url" type="text" value="" size="30" aria-required='true' /><label for="url">Website</label></div>
+												<div class="comment-form-comment"><textarea id="comment" name="comment" cols="45" rows="8" aria-required="true" placeholder="Comment	"></textarea></div>												<p class="form-submit">
+							<input name="submit" type="submit" id="submit" value="Post Comment" />
+							<input type='hidden' name='comment_post_ID' value='426' id='comment_post_ID' />
+<input type='hidden' name='comment_parent' id='comment_parent' value='0' />
+						</p>
+											</form>
+							</div><!-- #respond -->
+				<script type="text/javascript">
+		jQuery(document).ready(function () {
+			jQuery('#commentform').submit(function () {
+				_gaq.push(
+					['_setAccount', 'UA-10299948-5'],
+					['_trackEvent', 'comment', 'submit']
+				);
+			});
+		});
+	</script>
+						</div>
+		<div id="sidebar" class="sidebar-container">
+			<li id="recent-posts-2" class="widget widget_recent_entries">		<h2 class="widgettitle">Recent Posts</h2>
+		<ul>
+				<li><a href="http://engineering.manta.com/2013/02/13/configuring-postgresql-multimaster-using-symmetricds/" title="Configuring PostgreSQL Multimaster Using SymmetricDS">Configuring PostgreSQL Multimaster Using SymmetricDS</a></li>
+				<li><a href="http://engineering.manta.com/2012/12/18/making-manta-responsive-advertising-challenges/" title="Making Manta Responsive: the challenges of advertising within a responsive design">Making Manta Responsive: the challenges of advertising within a responsive design</a></li>
+				<li><a href="http://engineering.manta.com/2012/11/19/accessing-build-version-and-build-date-in-java-application-built-with-maven/" title="Accessing build version and build date in a Java application built with Maven">Accessing build version and build date in a Java application built with Maven</a></li>
+				<li><a href="http://engineering.manta.com/2012/10/01/using-naive-bayes-to-classify-user-content/" title="Using Naive Bayes to classify user content">Using Naive Bayes to classify user content</a></li>
+				<li><a href="http://engineering.manta.com/2012/09/09/identifying-city-state-phrases/" title="Identifying City-State Phrases in Search Phrases">Identifying City-State Phrases in Search Phrases</a></li>
+				</ul>
+		<div class="separator"></div></li><li id="jobmanlatestjobswidget-2" class="widget widget_jobmanlatestjobswidget"><h2 class="widgettitle">Recent Engineering Jobs</h2>
+<ul><li><a href="http://engineering.manta.com/jobs/data-engineer/">Data Engineer</a></li><li><a href="http://engineering.manta.com/jobs/director-of-web-application-development/">Director of Web Application Development</a></li><li><a href="http://engineering.manta.com/jobs/software-engineer/">Software Engineer</a></li><li><a href="http://engineering.manta.com/jobs/systems-engineer/">Systems Engineer</a></li><li><a href="http://engineering.manta.com/jobs/tester/">Tester</a></li></ul><div class="separator"></div></li></div>		<div class="clear"></div>
+	</div>
+</div>
+
+
+<div id="footer">
+	<div class="pointer"></div>
+	<div class="container">
+		<ul class="widgets">
+					</ul>
+	</div>
+</div>
+
+<div id="copyright">
+	<div class="container">
+		Copyright Manta Media Inc - Powered By <a href="http://wordpress.org">WordPress</a>, Theme By <a href="http://siteorigin.com">SiteOrigin</a>	</div>
+</div>
+
+<script type='text/javascript' src='http://platform.twitter.com/widgets.js?ver=3.4.2'></script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-content/plugins/socialize/frontend/js/plusone.js?ver=3.4.2'></script>
+<script type='text/javascript' src='http://platform.linkedin.com/in.js?ver=3.4.2'></script>
+<script type="text/javascript">
+          (function() {
+            var li = document.createElement('script'); li.type = 'text/javascript'; li.async = true;
+            li.src = 'https://platform.stumbleupon.com/1/widgets.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(li, s);
+          })();
+        </script><script type='text/javascript' src='http://engineering.manta.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter3/scripts/shCore.js?ver=3.0.83c'></script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter3/scripts/shBrushSql.js?ver=3.0.83c'></script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter3/scripts/shBrushPerl.js?ver=3.0.83c'></script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter3/scripts/shBrushPlain.js?ver=3.0.83c'></script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter3/scripts/shBrushBash.js?ver=3.0.83c'></script>
+<script type='text/javascript'>
+	(function(){
+		var corecss = document.createElement('link');
+		var themecss = document.createElement('link');
+		var corecssurl = "http://engineering.manta.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter3/styles/shCore.css?ver=3.0.83c";
+		if ( corecss.setAttribute ) {
+				corecss.setAttribute( "rel", "stylesheet" );
+				corecss.setAttribute( "type", "text/css" );
+				corecss.setAttribute( "href", corecssurl );
+		} else {
+				corecss.rel = "stylesheet";
+				corecss.href = corecssurl;
+		}
+		document.getElementsByTagName("head")[0].insertBefore( corecss, document.getElementById("syntaxhighlighteranchor") );
+		var themecssurl = "http://engineering.manta.com/wp-content/plugins/syntaxhighlighter/syntaxhighlighter3/styles/shThemeDefault.css?ver=3.0.83c";
+		if ( themecss.setAttribute ) {
+				themecss.setAttribute( "rel", "stylesheet" );
+				themecss.setAttribute( "type", "text/css" );
+				themecss.setAttribute( "href", themecssurl );
+		} else {
+				themecss.rel = "stylesheet";
+				themecss.href = themecssurl;
+		}
+		//document.getElementById("syntaxhighlighteranchor").appendChild(themecss);
+		document.getElementsByTagName("head")[0].insertBefore( themecss, document.getElementById("syntaxhighlighteranchor") );
+	})();
+	SyntaxHighlighter.config.strings.expandSource = '+ expand source';
+	SyntaxHighlighter.config.strings.help = '?';
+	SyntaxHighlighter.config.strings.alert = 'SyntaxHighlighter\n\n';
+	SyntaxHighlighter.config.strings.noBrush = 'Can\'t find brush for: ';
+	SyntaxHighlighter.config.strings.brushNotHtmlScript = 'Brush wasn\'t configured for html-script option: ';
+	SyntaxHighlighter.defaults['pad-line-numbers'] = false;
+	SyntaxHighlighter.defaults['toolbar'] = false;
+	SyntaxHighlighter.all();
+</script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-includes/js/jquery/ui/jquery.ui.core.min.js?ver=1.8.20'></script>
+<script type='text/javascript' src='http://engineering.manta.com/wp-includes/js/jquery/ui/jquery.ui.datepicker.min.js?ver=1.8.20'></script>
+</body>
+</html>

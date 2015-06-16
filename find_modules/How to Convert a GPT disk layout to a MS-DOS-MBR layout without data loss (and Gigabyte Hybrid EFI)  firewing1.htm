@@ -1,0 +1,770 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN"
+  "http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd">
+<html lang="en" dir="ltr"
+  xmlns:fb="http://ogp.me/ns/fb#"
+  xmlns:og="http://ogp.me/ns#"
+  xmlns:article="http://ogp.me/ns/article#"
+  xmlns:book="http://ogp.me/ns/book#"
+  xmlns:profile="http://ogp.me/ns/profile#">
+<head profile="http://www.w3.org/1999/xhtml/vocab">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="shortlink" href="/node/610" />
+<link rel="shortcut icon" href="http://www.firewing1.com/sites/all/themes/fw_bootstrap/favicon.ico" type="image/vnd.microsoft.icon" />
+<link rel="canonical" href="/blog/2012/03/05/how-convert-gpt-disk-layout-ms-dosmbr-layout-without-data-loss-and-gigabyte-hybrid" />
+<meta name="description" content="If you&#039;re coming here from Google searching for how to convert a GPT disk layout to MS-DOS/MBR and don&#039;t want to read through my (probably boring) story, click here ;) Adventures with Hybrid EFI My gaming PC has been long overdue due for a reformat. I naively allocated only 30GB to the Windows partition (and the other 120GB to 3 flavours of Linux) thinking I wouldn&#039;t use Windows for much other than Starcraft 2, but a few months back I had the urge to play Battlefield 2 again. Ever since installing and fully patching it disk space has been running pretty tight. I had to disable sleep, hibernation as well as system restore and still only had 4GB of free space, so my filesystem became fragmented easily. With the release of Windows 8 Customer Preview (download it free here), I figured it was a good time to reformat my disk and reinstall all my OSs from scratch. I figured while I&#039;m at it, I would make all of the big changes at once and enabled EFI booting on my Gigabyte GA-Z68A-D3H board. Little did I know that when the BIOS says &quot;EFI,&quot; it really means Gigabyte&#039;s &quot;Hybrid EFI&quot; implementation and not UEFI (although in retrospect, the fact that I made the change in the BIOS should have been enough of a hint, right?). With Hybrid EFI enabled, Windows 7 and Windows 8CP installed perfectly and even created a nice GPT disk layout so reinstalled my games and activated Windows 7. Then I rebooted to play around in Windows 8CP for a bit (I do not like it, btw). I then tried installing Fedora 16. To my surprise EFI booting failed every time, despite the all of the Fedora 16 installation media being EFI-capable. When attempting to boot from my Fedora 16 Live (x86_64) USB key I just would get a black screen with &quot;.........&quot; printed one dot a time and then it would proceed to fall back to the next boot device (Windows boot manager on the hard disk). Upon re-examining my BIOS settings, I was disappointed to find that the setting was actually called &quot;CD/DVD EFI Boot Option&quot; indicating that perhaps USB EFI booting was not supported. Fair enough, I burnt the same F16 image I was using on the USB key to a CD and tried again. The same &quot;.........&quot; text appeared. It was then as I went back to boot Windows 7 that I discovered my attempts to set it as the default OS from Windows 8CP removed my capability of booting Windows 7 somehow. At this point it was 2AM and I was fed up with this stupid Hybrid EFI. I looked for a way to revert to a good old MS-DOS/MBR partition layout. After some Googling I stumbled across Rod Smith&#039;s website. He has extensive documentation on EFI booting, including with Gigabyte&#039;s implementation of Hybrid EFI. He says that it shares a large amount of code with EFI DUET (tianocore) and although it does work natively with Windows 7, it is not a full UEFI implementation. That would explain the problems I was having with Fedora, then. The actual GPT to MBR conversion Through the Rod Smith&#039;s guidance and a few dirty tricks, I was successfully able to convert my GPT partition - without data loss or deleting any partitions - and then boot Windows 7 in legacy/MBR mode. In order to do this you&#039;ll need your Windows installation media at hand as well as a copy of the Fedora 16 Live media. If you don&#039;t have a copy of Fedora 16 Live handy, you can download the Live media ISO (64-bit) from a local mirror here. See the Fedora 16 Installation Guide for details on burning this image to a CD or on creating a bootable USB key. Keep in mind that at this point I only had 3 partitions and a bunch of unpartitioned space on the disk, so conversion was a rather straightforward process (all GPT partitions mapped directly to primary partitions). Although it is theoretically possible to convert GPT partitions with &gt;4 partitions by defining which ones are to be logical partitions after conversion, I have not tested this. Boot your Fedora 16 Live media and wait for your session to start. If you&#039;re having troubles booting, press Tab at the boot loader screen and try booting with the nomodeset parameter added. Depending on your graphics card, you&#039;ll either be presented with the new Gnome 3 Shell or with the traditional interface. Start a terminal session by putting your mouse in the top right corner of the screen and typing &quot;terminal&quot; in the search (Gnome Shell) or by selecting Applications &gt; System Tools &gt; Terminal (traditional interface) Install gdisk:su -yum -y install gdiskThis may take a few moments. Make a backup of your current GPT scheme:gdisk -b sda-preconvert.gpt /dev/sda Now we will attempt to convert your GPT disk layout to MS-DOS/MBR. Start gdisk:gdisk /dev/sda You should be prompted with:Command (? for help): Press r to start recovery/transformation. Press g to convert GPT to MBR. Press p to preview the converted MBR partition table. Make any modification necessary to the partition layout. See Rod Smith&#039;s Converting to or from GPT page for more details on this. When you&#039;re happy with the MS-DOS/MBR layout, press w to write changes to the disk. Shutdown Fedora 16 and boot from the Windows 7 installation media Enter your language &amp; keyboard layout and then select the option to repair your computer in the bottom left corner. From the available options, select Startup Repair. Windows will ask for a reboot. Follow the previous three steps again to boot the Windows 7 installation and run startup repair Once again, boot the Windows 7 installation media but this time opt to open a command prompt instead of choosing startup repair. Type:bootrec /scanosbootrec /rebuildbcdbootrec /fixmbrbootrec /fixboot Close the command prompt and run Startup Repair one last time. That&#039;s it! You should now have a bootable installation of Windows 7 on a MBR partition layout. References Rod Smith&#039;s Gigabyte&#039;s Hybrid EFI Rod Smith&#039;s Converting to or from GPT Rod Smith&#039;s Repairing GPT disks Microsoft KB927392: How to use the Bootrec.exe tool in the Windows Recovery Environment to troubleshoot and repair startup issues in Windows" />
+<meta name="keywords" content="open-source, programming, blog, tutorials, how-to, firewing1, drupal, fwbackups, server administration" />
+<meta name="generator" content="Drupal 7 (http://drupal.org)" />
+<meta name="rights" content="2014 Stewart Adam" />
+<meta property="og:title" content="How to Convert a GPT disk layout to a MS-DOS/MBR layout without data loss (and Gigabyte Hybrid EFI)" />
+<meta property="og:description" content="If you&#039;re coming here from Google searching for how to convert a GPT disk layout to MS-DOS/MBR and don&#039;t want to read through my (probably boring) story, click here ;) Adventures with Hybrid EFI My gaming PC has been long overdue due for a reformat. I naively allocated only 30GB to the Windows partition (and the other 120GB to 3 flavours of Linux) thinking I wouldn&#039;t use Windows for much other than Starcraft 2, but a few months back I had the urge to play Battlefield 2 again. Ever since installing and fully patching it disk space has been running pretty tight. I had to disable sleep, hibernation as well as system restore and still only had 4GB of free space, so my filesystem became fragmented easily. With the release of Windows 8 Customer Preview (download it free here), I figured it was a good time to reformat my disk and reinstall all my OSs from scratch. I figured while I&#039;m at it, I would make all of the big changes at once and enabled EFI booting on my Gigabyte GA-Z68A-D3H board. Little did I know that when the BIOS says &quot;EFI,&quot; it really means Gigabyte&#039;s &quot;Hybrid EFI&quot; implementation and not UEFI (although in retrospect, the fact that I made the change in the BIOS should have been enough of a hint, right?). With Hybrid EFI enabled, Windows 7 and Windows 8CP installed perfectly and even created a nice GPT disk layout so reinstalled my games and activated Windows 7. Then I rebooted to play around in Windows 8CP for a bit (I do not like it, btw). I then tried installing Fedora 16. To my surprise EFI booting failed every time, despite the all of the Fedora 16 installation media being EFI-capable. When attempting to boot from my Fedora 16 Live (x86_64) USB key I just would get a black screen with &quot;.........&quot; printed one dot a time and then it would proceed to fall back to the next boot device (Windows boot manager on the hard disk). Upon re-examining my BIOS settings, I was disappointed to find that the setting was actually called &quot;CD/DVD EFI Boot Option&quot; indicating that perhaps USB EFI booting was not supported. Fair enough, I burnt the same F16 image I was using on the USB key to a CD and tried again. The same &quot;.........&quot; text appeared. It was then as I went back to boot Windows 7 that I discovered my attempts to set it as the default OS from Windows 8CP removed my capability of booting Windows 7 somehow. At this point it was 2AM and I was fed up with this stupid Hybrid EFI. I looked for a way to revert to a good old MS-DOS/MBR partition layout. After some Googling I stumbled across Rod Smith&#039;s website. He has extensive documentation on EFI booting, including with Gigabyte&#039;s implementation of Hybrid EFI. He says that it shares a large amount of code with EFI DUET (tianocore) and although it does work natively with Windows 7, it is not a full UEFI implementation. That would explain the problems I was having with Fedora, then. The actual GPT to MBR conversion Through the Rod Smith&#039;s guidance and a few dirty tricks, I was successfully able to convert my GPT partition - without data loss or deleting any partitions - and then boot Windows 7 in legacy/MBR mode. In order to do this you&#039;ll need your Windows installation media at hand as well as a copy of the Fedora 16 Live media. If you don&#039;t have a copy of Fedora 16 Live handy, you can download the Live media ISO (64-bit) from a local mirror here. See the Fedora 16 Installation Guide for details on burning this image to a CD or on creating a bootable USB key. Keep in mind that at this point I only had 3 partitions and a bunch of unpartitioned space on the disk, so conversion was a rather straightforward process (all GPT partitions mapped directly to primary partitions). Although it is theoretically possible to convert GPT partitions with &gt;4 partitions by defining which ones are to be logical partitions after conversion, I have not tested this. Boot your Fedora 16 Live media and wait for your session to start. If you&#039;re having troubles booting, press Tab at the boot loader screen and try booting with the nomodeset parameter added. Depending on your graphics card, you&#039;ll either be presented with the new Gnome 3 Shell or with the traditional interface. Start a terminal session by putting your mouse in the top right corner of the screen and typing &quot;terminal&quot; in the search (Gnome Shell) or by selecting Applications &gt; System Tools &gt; Terminal (traditional interface) Install gdisk:su -yum -y install gdiskThis may take a few moments. Make a backup of your current GPT scheme:gdisk -b sda-preconvert.gpt /dev/sda Now we will attempt to convert your GPT disk layout to MS-DOS/MBR. Start gdisk:gdisk /dev/sda You should be prompted with:Command (? for help): Press r to start recovery/transformation. Press g to convert GPT to MBR. Press p to preview the converted MBR partition table. Make any modification necessary to the partition layout. See Rod Smith&#039;s Converting to or from GPT page for more details on this. When you&#039;re happy with the MS-DOS/MBR layout, press w to write changes to the disk. Shutdown Fedora 16 and boot from the Windows 7 installation media Enter your language &amp; keyboard layout and then select the option to repair your computer in the bottom left corner. From the available options, select Startup Repair. Windows will ask for a reboot. Follow the previous three steps again to boot the Windows 7 installation and run startup repair Once again, boot the Windows 7 installation media but this time opt to open a command prompt instead of choosing startup repair. Type:bootrec /scanosbootrec /rebuildbcdbootrec /fixmbrbootrec /fixboot Close the command prompt and run Startup Repair one last time. That&#039;s it! You should now have a bootable installation of Windows 7 on a MBR partition layout. References Rod Smith&#039;s Gigabyte&#039;s Hybrid EFI Rod Smith&#039;s Converting to or from GPT Rod Smith&#039;s Repairing GPT disks Microsoft KB927392: How to use the Bootrec.exe tool in the Windows Recovery Environment to troubleshoot and repair startup issues in Windows" />
+<meta property="og:updated_time" content="2012-06-07T11:03:47-04:00" />
+<meta property="article:published_time" content="2012-03-05T20:34:54-05:00" />
+<meta property="article:modified_time" content="2012-06-07T11:03:47-04:00" />
+  <title>How to Convert a GPT disk layout to a MS-DOS/MBR layout without data loss (and Gigabyte Hybrid EFI) | firewing1</title>
+  <link type="text/css" rel="stylesheet" href="http://www.firewing1.com/sites/default/files/css/css_ogjvJnfni1_P_WxvXAHlUOgCs860b3ip9DNMapcIGeM.css" media="all" />
+<link type="text/css" rel="stylesheet" href="http://www.firewing1.com/sites/default/files/css/css_SNPa1WSH3ksaUCm8I5II2Wy-wRjgqBqV-Vszgp9AWGc.css" media="all" />
+<link type="text/css" rel="stylesheet" href="http://www.firewing1.com/sites/default/files/css/css_hPAfOlBxf5KcHMXkZ9hPaVCmXlfxgmvAtqyD71YS-TA.css" media="all" />
+<link type="text/css" rel="stylesheet" href="http://www.firewing1.com/sites/default/files/css/css_Hj-L7XQcE0qfyJRECGV_H0uiR6AMwoPoTuTUbvzzim0.css" media="screen" />
+<link type="text/css" rel="stylesheet" href="http://www.firewing1.com/sites/default/files/css/css_RTbivWU-yYQ2Xwvm7LYMRrzEvqGR4iahOVu_zmsKOkY.css" media="all" />
+<link type="text/css" rel="stylesheet" href="http://www.firewing1.com/sites/default/files/css/css_tenQpti5B7DMRQyquRzWGc6L_U1Ixc55gmgX2WqNYxw.css" media="all" />
+<link type="text/css" rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css" media="all" />
+<link type="text/css" rel="stylesheet" href="http://www.firewing1.com/sites/default/files/css/css_NmO0NVjLbUiZ1kzduAkC3mjDBjPTXSdDm28D0avqeOk.css" media="all" />
+  <!-- HTML5 element support for IE6-8 -->
+  <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <script src="http://www.firewing1.com/sites/default/files/js/js_0gj6QcpfRH2jzTbCQqf7kEkm4MXY0UA_sRhwPc8jC1o.js"></script>
+<script src="http://www.firewing1.com/sites/default/files/js/js_1K2iIQwhQJGxS9xTdaM8RQYqYAied8RvG95RlXay5EU.js"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.2/js/bootstrap.min.js"></script>
+<script src="http://www.firewing1.com/sites/default/files/js/js__lcCtTEl5cM9HJE6S2wmzFwl_tLIHZ6q4zajiUmvT8M.js"></script>
+<script src="http://www.firewing1.com/sites/default/files/js/js__c0QOtOdJeq0GWs-VDlWbj9ySXwlke9S0NOhOoyUFQs.js"></script>
+<script>var _gaq = _gaq || [];_gaq.push(["_setAccount", "UA-46980408-1"]);_gaq.push(["_trackPageview"]);(function() {var ga = document.createElement("script");ga.type = "text/javascript";ga.async = true;ga.src = ("https:" == document.location.protocol ? "https://ssl" : "http://www") + ".google-analytics.com/ga.js";var s = document.getElementsByTagName("script")[0];s.parentNode.insertBefore(ga, s);})();</script>
+<script src="http://www.firewing1.com/sites/default/files/js/js_rvXZ5EsLq51Zzd9RjkSbWjyq9nUlF93fsVp15Wn5zqE.js"></script>
+<script src="http://www.firewing1.com/sites/default/files/js/js_C3djXrEWBgnTGkqny8HLIHZJZEjft4IWry9NBH4NuAs.js"></script>
+<script src="http://www.firewing1.com/sites/default/files/js/js_iiro2olv-RX3gC3Gs2RbWAN3fitln8gMi7wDaiQWkFg.js"></script>
+<script>jQuery.extend(Drupal.settings, {"basePath":"\/","pathPrefix":"","ajaxPageState":{"theme":"fw_bootstrap","theme_token":"tQhOA3BVCktCpwDLfvarMbv01MjML3cCb1lF6QBgeZs","jquery_version":"1.7","js":{"0":1,"http:\/\/s7.addthis.com\/js\/250\/addthis_widget.js#pubid=\u0026async=1":1,"sites\/all\/modules\/addthis\/addthis.js":1,"sites\/all\/themes\/bootstrap\/js\/bootstrap.js":1,"sites\/all\/modules\/jquery_update\/replace\/jquery\/1.7\/jquery.min.js":1,"misc\/jquery.once.js":1,"misc\/drupal.js":1,"sites\/all\/modules\/jquery_update\/replace\/ui\/external\/jquery.cookie.js":1,"sites\/all\/modules\/jquery_update\/replace\/misc\/jquery.form.min.js":1,"misc\/ajax.js":1,"sites\/all\/modules\/jquery_update\/js\/jquery_update.js":1,"\/\/netdna.bootstrapcdn.com\/bootstrap\/3.0.2\/js\/bootstrap.min.js":1,"sites\/all\/modules\/codefilter\/codefilter.js":1,"sites\/all\/modules\/extlink\/extlink.js":1,"sites\/all\/modules\/views\/js\/base.js":1,"sites\/all\/themes\/bootstrap\/js\/misc\/_progress.js":1,"sites\/all\/modules\/views\/js\/ajax_view.js":1,"sites\/all\/modules\/google_analytics\/googleanalytics.js":1,"1":1,"sites\/all\/libraries\/chosen\/chosen.jquery.min.js":1,"sites\/all\/modules\/fivestar\/js\/fivestar.ajax.js":1,"sites\/all\/modules\/fivestar\/js\/fivestar.js":1,"sites\/all\/modules\/chosen\/chosen.js":1,"sites\/all\/themes\/bootstrap\/js\/modules\/views\/js\/ajax_view.js":1,"sites\/all\/themes\/bootstrap\/js\/misc\/ajax.js":1},"css":{"modules\/system\/system.base.css":1,"sites\/all\/libraries\/chosen\/chosen.css":1,"sites\/all\/modules\/chosen\/css\/chosen-drupal.css":1,"sites\/all\/modules\/comment_notify\/comment_notify.css":1,"sites\/all\/modules\/codefilter\/codefilter.css":1,"modules\/field\/theme\/field.css":1,"sites\/all\/modules\/mollom\/mollom.css":1,"sites\/all\/modules\/extlink\/extlink.css":1,"sites\/all\/modules\/views\/css\/views.css":1,"sites\/all\/modules\/ckeditor\/css\/ckeditor.css":1,"sites\/all\/modules\/ctools\/css\/ctools.css":1,"sites\/all\/modules\/fivestar\/css\/fivestar.css":1,"sites\/all\/modules\/fivestar\/widgets\/minimal\/minimal.css":1,"sites\/all\/modules\/self_advertisement\/self_advertisement.css":1,"\/\/netdna.bootstrapcdn.com\/bootstrap\/3.0.2\/css\/bootstrap.min.css":1,"sites\/all\/themes\/bootstrap\/css\/overrides.css":1,"sites\/all\/themes\/fw_bootstrap\/css\/style.css":1}},"addthis":{"load_type":"async"},"views":{"ajax_path":"\/views\/ajax","ajaxViews":{"views_dom_id:0e5449c45c9093617157bf242fa5b039":{"view_name":"tweets","view_display_id":"block_1","view_args":"1","view_path":"node\/610","view_base_path":"user\/%\/tweets","view_dom_id":"0e5449c45c9093617157bf242fa5b039","pager_element":0}}},"extlink":{"extTarget":0,"extClass":"ext","extLabel":"(link is external)","extImgClass":0,"extSubdomains":1,"extExclude":"http:\/\/(www)?\\.(addthis.com).*","extInclude":"","extCssExclude":"","extCssExplicit":"","extAlert":0,"extAlertText":"This link will take you to an external web site. We are not responsible for their content.","mailtoClass":"mailto","mailtoLabel":"(link sends e-mail)"},"googleanalytics":{"trackOutbound":1,"trackMailto":1,"trackDownload":1,"trackDownloadExtensions":"7z|aac|arc|arj|asf|asx|avi|bin|csv|doc|exe|flv|gif|gz|gzip|hqx|jar|jpe?g|js|mp(2|3|4|e?g)|mov(ie)?|msi|msp|pdf|phps|png|ppt|qtm?|ra(m|r)?|sea|sit|tar|tgz|torrent|txt|wav|wma|wmv|wpd|xls|xml|z|zip"},"chosen":{"selector":"select:visible","minimum_single":20,"minimum_multiple":20,"minimum_width":200,"options":{"disable_search":false,"disable_search_threshold":0,"search_contains":false,"placeholder_text_multiple":"Choose some options","placeholder_text_single":"Choose an option","no_results_text":"No results match","inherit_select_classes":true}},"ajax":{"edit-vote--2":{"callback":"fivestar_ajax_submit","event":"change","url":"\/system\/ajax","submit":{"_triggering_element_name":"vote"}}},"bootstrap":{"anchorsFix":"1","anchorsSmoothScrolling":"1","popoverEnabled":"1","popoverOptions":{"animation":1,"html":0,"placement":"right","selector":"","trigger":"click","title":"","content":"","delay":0,"container":"body"},"tooltipEnabled":"1","tooltipOptions":{"animation":1,"html":0,"placement":"auto left","selector":"","trigger":"hover focus","delay":0,"container":"body"}}});</script>
+</head>
+<body class="html not-front not-logged-in one-sidebar sidebar-second page-node page-node- page-node-610 node-type-blog" >
+  <div id="skip-link">
+    <a href="#main-content" class="element-invisible element-focusable">Skip to main content</a>
+  </div>
+    <header id="navbar" role="banner" class="navbar container navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+            <a class="logo navbar-btn pull-left" href="/" title="Home">
+        <img src="http://www.firewing1.com/sites/all/themes/fw_bootstrap/logo.png" alt="Home" />
+      </a>
+      
+            <a class="name navbar-brand" href="/" title="Home">firewing1</a>
+      
+      <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+
+          <div class="navbar-collapse collapse">
+        <nav role="navigation">
+                      <ul class="menu nav navbar-nav"><li class="first leaf"><a href="/" title="">Recent Posts</a></li>
+<li class="leaf"><a href="/whoami" title="View my CV or Portfolio">About Me</a></li>
+<li class="leaf"><a href="/inthemedia" title="In the Media">In the Media</a></li>
+<li class="last expanded dropdown"><a href="/howtos" data-target="#" class="dropdown-toggle" data-toggle="dropdown">Index of all Howtos <span class="caret"></span></a><ul class="dropdown-menu"><li class="first leaf"><a href="/howtos/servers/fedora20">Fedora 20 Home Server</a></li>
+<li class="leaf"><a href="/howtos/servers/centos5">CentOS 5 Server</a></li>
+<li class="leaf"><a href="/howtos/f11">Fedora 11 Howtos</a></li>
+<li class="leaf"><a href="/howtos/f10" title="">Fedora 10 Howtos</a></li>
+<li class="leaf"><a href="/howtos/f9">Fedora 9 Howtos</a></li>
+<li class="leaf"><a href="/howtos/f8">Fedora 8 Howtos</a></li>
+<li class="leaf"><a href="/howtos/f7">Fedora 7 Howtos</a></li>
+<li class="leaf"><a href="/howtos/fc6">Fedora Core 6 Howtos</a></li>
+<li class="last leaf"><a href="/howtos/fc5">Fedora Core 5 Howtos</a></li>
+</ul></li>
+</ul>                                      </nav>
+      </div>
+      </div>
+</header>
+
+<div class="main-container container">
+
+  <header role="banner" id="page-header">
+    
+      </header> <!-- /#page-header -->
+
+  <div class="row">
+
+    
+    <section class="col-sm-9">
+            <ol class="breadcrumb"><li class="first"><a href="/blog">Blogs</a></li>
+<li><a href="/blogs/firewing1">firewing1&#039;s blog</a></li>
+<li class="active last">How to Convert a GPT disk layout to a MS-DOS/MBR layout without data loss (and Gigabyte Hybrid EFI)</li>
+</ol>      <a id="main-content"></a>
+                    <h1 class="page-header">How to Convert a GPT disk layout to a MS-DOS/MBR layout without data loss (and Gigabyte Hybrid EFI)</h1>
+                                                          <div class="region region-content">
+    <section id="block-system-main" class="block block-system clearfix">
+
+      
+  <div id="node-610" class="node node-blog node-promoted clearfix">
+
+  
+      
+  
+  <div class="content">
+    <span class="submitted-by">Posted on Mon, 2012/03/05 - 8:34pm</span><div class="field field-name-body field-type-text-with-summary field-label-hidden"><div class="field-items"><div class="field-item even"><p><em>If you're coming here from Google searching for how to convert a GPT disk layout to MS-DOS/MBR and don't want to read through my (probably boring) story, click <a href="#gpttombr">here</a> ;)</em></p>
+<h1>Adventures with Hybrid EFI</h1>
+<p>My gaming PC has been long overdue due for a reformat. I naively allocated only 30GB to the Windows partition (and the other 120GB to 3 flavours of Linux) thinking I wouldn't use Windows for much other than Starcraft 2, but a few months back I had the urge to play Battlefield 2 again. Ever since installing and fully patching it disk space has been running pretty tight. I had to disable sleep, hibernation as well as system restore and still only had 4GB of free space, so my filesystem became fragmented easily. With the release of Windows 8 Customer Preview (download it free <a href="http://windows.microsoft.com/en-us/windows-8/iso">here</a>), I figured it was a good time to reformat my disk and reinstall all my OSs from scratch.</p>
+<p>I figured while I'm at it, I would make all of the big changes at once and enabled EFI booting on my Gigabyte GA-Z68A-D3H board. Little did I know that when the BIOS says "EFI," it really means Gigabyte's "Hybrid EFI" implementation and <strong>not</strong> UEFI (although in retrospect, the fact that I made the change in the <em>BIOS</em> should have been enough of a hint, right?). With Hybrid EFI enabled, Windows 7 and Windows 8CP installed perfectly and even created a nice GPT disk layout so reinstalled my games and activated Windows 7. Then I rebooted to play around in Windows 8CP for a bit (I do not like it, btw).</p>
+<p>I then tried installing Fedora 16. To my surprise EFI booting failed every time, despite the all of the Fedora 16 installation media being EFI-capable. When attempting to boot from my Fedora 16 Live (x86_64) USB key I just would get a black screen with "........." printed one dot a time and then it would proceed to fall back to the next boot device (Windows boot manager on the hard disk). Upon re-examining my BIOS settings, I was disappointed to find that the setting was actually called "CD/DVD EFI Boot Option" indicating that perhaps USB EFI booting was not supported. Fair enough, I burnt the same F16 image I was using on the USB key to a CD and tried again. The same "........." text appeared.</p>
+<p>It was then as I went back to boot Windows 7 that I discovered my attempts to set it as the default OS from Windows 8CP removed my capability of booting Windows 7 somehow. At this point it was 2AM and I was fed up with this stupid Hybrid EFI. I looked for a way to revert to a good old MS-DOS/MBR partition layout. After some Googling I stumbled across <a href="http://www.rodsbooks.com/gb-hybrid-efi/">Rod Smith's website</a>. He has extensive documentation on EFI booting, including with Gigabyte's implementation of Hybrid EFI. He says that it shares a large amount of code with <a href="http://tianocore.sourceforge.net">EFI DUET</a> (tianocore) and although it does work natively with Windows 7, it is not a full UEFI implementation. That would explain the problems I was having with Fedora, then.</p>
+<p><a name="gpttombr"></a></p>
+<h1>The actual GPT to MBR conversion</h1>
+<p>Through the Rod Smith's guidance and a few dirty tricks, I was successfully able to convert my GPT partition - without data loss or deleting any partitions - and then boot Windows 7 in legacy/MBR mode. In order to do this you'll need your Windows installation media at hand as well as a copy of the Fedora 16 Live media. If you don't have a copy of Fedora 16 Live handy, you can download the Live media ISO (64-bit) from a local mirror <a href="http://download.fedoraproject.org/pub/fedora/linux/releases/16/Live/x86_64/Fedora-16-x86_64-Live-Desktop.iso">here</a>. See the <a href="http://docs.fedoraproject.org/en-US/Fedora/16/html/Installation_Guide/sn-making-media.html">Fedora 16 Installation Guide</a> for details on burning this image to a CD or on creating a bootable USB key.</p>
+<p>Keep in mind that at this point I only had 3 partitions and a bunch of unpartitioned space on the disk, so conversion was a rather straightforward process (all GPT partitions mapped directly to primary partitions). Although it is theoretically possible to convert GPT partitions with &gt;4 partitions by defining which ones are to be logical partitions after conversion, I have not tested this.</p>
+<ol>
+<li>Boot your Fedora 16 Live media and wait for your session to start. If you're having troubles booting, press Tab at the boot loader screen and try booting with the <code>nomodeset</code> parameter added.</li>
+<li>Depending on your graphics card, you'll either be presented with the new Gnome 3 Shell or with the traditional interface. Start a terminal session by putting your mouse in the top right corner of the screen and typing "terminal" in the search (Gnome Shell) or by selecting Applications &gt; System Tools &gt; Terminal (traditional interface)</li>
+<li>Install gdisk:<div class="codeblock"><code>su -<br />yum -y install gdisk</code></div>This may take a few moments.</li>
+<li>Make a backup of your current GPT scheme:<div class="codeblock"><code>gdisk -b sda-preconvert.gpt /dev/sda</code></div></li>
+<li>Now we will attempt to convert your GPT disk layout to MS-DOS/MBR. Start gdisk:<div class="codeblock"><code>gdisk /dev/sda</code></div><br />
+You should be prompted with:<div class="codeblock"><code>Command (? for help):</code></div>
+</li>
+<li>Press <code>r</code> to start recovery/transformation.</li>
+<li>Press <code>g</code> to convert GPT to MBR.</li>
+<li>Press <code>p</code> to preview the converted MBR partition table.</li>
+<li>Make any modification necessary to the partition layout. See Rod Smith's <a href="http://www.rodsbooks.com/gdisk/mbr2gpt.html#gpt2mbr">Converting to or from GPT</a> page for more details on this.</li>
+<li>When you're happy with the MS-DOS/MBR layout, press <code>w</code> to write changes to the disk.</li>
+<li>Shutdown Fedora 16 and boot from the Windows 7 installation media</li>
+<li>Enter your language &amp; keyboard layout and then select the option to repair your computer in the bottom left corner.</li>
+<li>From the available options, select Startup Repair. Windows will ask for a reboot.</li>
+<li>Follow the previous three steps again to boot the Windows 7 installation and run startup repair</li>
+<li>Once again, boot the Windows 7 installation media but this time opt to open a command prompt instead of choosing startup repair. Type:<div class="codeblock"><code>bootrec /scanos<br />bootrec /rebuildbcd<br />bootrec /fixmbr<br />bootrec /fixboot</code></div>
+<li>Close the command prompt and run Startup Repair one last time.</li>
+</li>
+</ol>
+<p>That's it! You should now have a bootable installation of Windows 7 on a MBR partition layout.</p>
+<h1>References</h1>
+<ul>
+<li>Rod Smith's <a href="http://www.rodsbooks.com/gb-hybrid-efi/index.html">Gigabyte's Hybrid EFI</a></li>
+<li>Rod Smith's <a href="http://www.rodsbooks.com/gdisk/mbr2gpt.html#gpt2mbr">Converting to or from GPT</a></li>
+<li>Rod Smith's <a href="http://www.rodsbooks.com/gdisk/repairing.html">Repairing GPT disks</a></li>
+<li>Microsoft KB927392: <a href="http://support.microsoft.com/kb/927392">How to use the Bootrec.exe tool in the Windows Recovery Environment to troubleshoot and repair startup issues in Windows</a></li>
+</ul>
+</div></div></div><div class="field field-name-field-vote field-type-fivestar field-label-inline clearfix"><div class="field-label">Rating:&nbsp;</div><div class="field-items"><div class="field-item even"><form class="fivestar-widget" action="/blog/2012/03/05/how-convert-gpt-disk-layout-ms-dosmbr-layout-without-data-loss-and-gigabyte-hybrid" method="post" id="fivestar-custom-widget" accept-charset="UTF-8"><div><div  class="clearfix fivestar-average-stars fivestar-form-item fivestar-minimal"><div class="form-type-fivestar form-item-vote form-item form-group">
+ <div class="form-type-select form-item-vote form-item form-group">
+ <select class="form-control form-select" id="edit-vote--2" name="vote"><option value="-">Select rating</option><option value="20">Give it 1/5</option><option value="40">Give it 2/5</option><option value="60">Give it 3/5</option><option value="80">Give it 4/5</option><option value="100" selected="selected">Give it 5/5</option></select>
+</div>
+
+</div>
+</div><button class="fivestar-submit btn btn-default form-submit" id="edit-fivestar-submit" name="op" value="Rate" type="submit">Rate</button>
+<input type="hidden" name="form_build_id" value="form-Qus-17kNV4H08dIOHX_lNRyJkLultctrNaeymVhGHnQ" />
+<input type="hidden" name="form_id" value="fivestar_custom_widget" />
+</div></form></div></div></div><div class="field field-name-field-share field-type-addthis field-label-hidden"><div class="field-items"><div class="field-item even"><div class="addthis_toolbox addthis_default_style  " addthis:title="How to Convert a GPT disk layout to a MS-DOS/MBR layout without data loss (and Gigabyte Hybrid EFI) - firewing1" addthis:url="http://www.firewing1.com/blog/2012/03/05/how-convert-gpt-disk-layout-ms-dosmbr-layout-without-data-loss-and-gigabyte-hybrid"><a href="http://www.addthis.com/bookmark.php?v=250" class="addthis_button_email"></a>
+<a href="http://www.addthis.com/bookmark.php?v=250" class="addthis_button_facebook"></a>
+<a href="http://www.addthis.com/bookmark.php?v=250" class="addthis_button_twitter"></a>
+<a href="http://www.addthis.com/bookmark.php?v=250" class="addthis_button_google_plusone_share"></a>
+</div>
+</div></div></div><div class="field field-name-taxonomy-vocabulary-1 field-type-taxonomy-term-reference field-label-inline clearfix"><div class="field-label">Tags:&nbsp;</div><div class="field-items"><div class="field-item even"><a href="/taxonomy/term/12">windows</a></div><div class="field-item odd"><a href="/taxonomy/term/43">linux</a></div><div class="field-item even"><a href="/taxonomy/term/42">fedora</a></div><div class="field-item odd"><a href="/taxonomy/term/152">uefi</a></div><div class="field-item even"><a href="/taxonomy/term/153">gigabyte</a></div><div class="field-item odd"><a href="/taxonomy/term/154">hybrid efi</a></div><div class="field-item even"><a href="/taxonomy/term/155">gpt</a></div><div class="field-item odd"><a href="/taxonomy/term/156">mbr</a></div></div></div>  </div>
+
+  <ul class="links list-inline"><li class="comment-add first last"><a href="/comment/reply/610#comment-form" title="Share your thoughts and opinions related to this posting.">Add new comment</a></li>
+</ul>
+  <div id="comments" class="comment-wrapper">
+          <h2 class="title">Comments</h2>
+      
+  <a id="comment-2439"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/2439#comment-2439" class="permalink" rel="bookmark">THANK YOU SO MUCH!!!!</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/2439#comment-2439" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>worked like a charm!<br />
+Steps I used:<br />
+I used ubuntu 10.4 live cd and apt-get instead of yum. I noticed there was a typo with 'sgdisk' for the first gdisk command, should be 'gdisk'. For Ubuntu, you must use sudo before all "gdisk" commands. There is a newer version of gdisk out, apparently, so the questions asked is a little different. When it asked for a hex key after I typed 'g', I just hit enter to let it use the default. From there it was simply saying yes to the following questions. The only thing that scared me was that after I ran gdisk I opened gparted to see that my partition was marked as unallocated. O_O having confidence, I just ignored it and booted into win7 install disk and hit startup repair (before this I couldn't even access startup repair... it said I had the wrong version of windows!). It took a LONG time to do repairs, but once it finished I rebooted into the w7 install disk again and hit startup repair, where I was prompted to continue repairing startup. I clicked cancel, and did the cmd prompt commands instead. Worked perfectly!<br />
+THANK YOU SOOOOOOOOOO MUCH!!! I was about ready to wipe my hdd and do a clean install!</p>
+</div></div></div><span class="submitted-by">Submitted by Armando Montanez on Tue, 2012/06/05 - 5:38pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/2439">reply</a></li>
+</ul></div>
+
+<div class="indented"><a id="comment-2440"></a>
+<div class="comment comment-by-node-author clearfix">
+  
+  
+    <h3><a href="/comment/2440#comment-2440" class="permalink" rel="bookmark">:)</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/2440#comment-2440" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Glad to hear it worked! Thank you for pointing out the typo, I have updated the main post.</p>
+</div></div></div><span class="submitted-by">Submitted by firewing1 on Thu, 2012/06/07 - 11:07am</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/2440">reply</a></li>
+</ul></div>
+</div><a id="comment-2667"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/2667#comment-2667" class="permalink" rel="bookmark">Must have live network</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/2667#comment-2667" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Thanks for these instructions. I'm working through them now. My first trip was step 3 as I didn't have a live Internet connection and yum install needs that connection. I would suggest that this be mentioned.</p>
+</div></div></div><span class="submitted-by">Submitted by Brian B on Mon, 2012/10/15 - 12:18pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/2667">reply</a></li>
+</ul></div>
+
+<div class="indented"><a id="comment-2762"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/2762#comment-2762" class="permalink" rel="bookmark">Fedora 17</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/2762#comment-2762" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>gdisk is included in Fedora (starting with 16?), so no download would be needed if you use a newer version of Fedora.</p>
+</div></div></div><span class="submitted-by">Submitted by Frank on Fri, 2012/11/09 - 4:27pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/2762">reply</a></li>
+</ul></div>
+<a id="comment-3664"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3664#comment-3664" class="permalink" rel="bookmark">thanks for sharing</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3664#comment-3664" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>We are very happy with <a href="http://www.softwaretailor.com">http://www.softwaretailor.com</a>. They are reliable, responsive and extremely customer focused.</p>
+</div></div></div><span class="submitted-by">Submitted by kaceylu on Wed, 2014/08/20 - 4:46am</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3664">reply</a></li>
+</ul></div>
+</div><a id="comment-2868"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/2868#comment-2868" class="permalink" rel="bookmark">Thanks</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/2868#comment-2868" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>This is great stuff, worked for me prepping for a Cache SSD that only supports MBR.</p>
+<p>i note that i did not have to run the extra commands and Windows 7 booted fine, should i be worried or will it be cool?</p>
+<p>Thanks again, great guide!</p>
+</div></div></div><span class="submitted-by">Submitted by Mark on Sat, 2012/12/15 - 6:20am</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/2868">reply</a></li>
+</ul></div>
+<a id="comment-2983"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/2983#comment-2983" class="permalink" rel="bookmark">Hello,</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/2983#comment-2983" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Hello,</p>
+<p>I have Parted Magic live USB. It has gdisk but it does not have yum. Can I just run the gdisk command without runing the yum command? If not, then I have to download the ~600 MB Fedora ISO file ...</p>
+<p>Thanks!</p>
+</div></div></div><span class="submitted-by">Submitted by Anonymous on Mon, 2012/12/24 - 5:34pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/2983">reply</a></li>
+</ul></div>
+
+<div class="indented"><a id="comment-3043"></a>
+<div class="comment comment-by-node-author clearfix">
+  
+  
+    <h3><a href="/comment/3043#comment-3043" class="permalink" rel="bookmark">Yes</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3043#comment-3043" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>I haven't tested this, but if partition magic has the required utilities already then there should be no need to grab them with a package manager like yum.</p>
+</div></div></div><span class="submitted-by">Submitted by firewing1 on Tue, 2013/01/08 - 12:41pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3043">reply</a></li>
+</ul></div>
+<a id="comment-3665"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3665#comment-3665" class="permalink" rel="bookmark">find good friend</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3665#comment-3665" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p><a href="http://www.chinaenglishtour.com">China English Tour</a> is the largest<br />
+tour club in China.With decades of travelling experience, our club offers the most<br />
+comprehensive tours, from group packages, tailor-made private itineraries to hotel,<br />
+flight and train ticket booking services. Our club members are ready to help you.</p>
+</div></div></div><span class="submitted-by">Submitted by joy on Wed, 2014/08/20 - 4:47am</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3665">reply</a></li>
+</ul></div>
+</div><a id="comment-3029"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3029#comment-3029" class="permalink" rel="bookmark">Thank you!</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3029#comment-3029" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Thank you!</p>
+</div></div></div><span class="submitted-by">Submitted by Mick on Sat, 2013/01/05 - 12:35pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3029">reply</a></li>
+</ul></div>
+<a id="comment-3086"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3086#comment-3086" class="permalink" rel="bookmark">Thanks for saving my files!!!!</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3086#comment-3086" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Be sure to select your windows partion as bootable and as primary in step 9. steps 14-16 were not necessary for me. Thanks again man.</p>
+</div></div></div><span class="submitted-by">Submitted by original_don on Mon, 2013/01/21 - 9:01am</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3086">reply</a></li>
+</ul></div>
+<a id="comment-3210"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3210#comment-3210" class="permalink" rel="bookmark">Thanks, worked great on</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3210#comment-3210" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Thanks, worked great on Windows 8 as well (only one Repair session was needed).</p>
+</div></div></div><span class="submitted-by">Submitted by Anonymous on Wed, 2013/02/20 - 10:10am</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3210">reply</a></li>
+</ul></div>
+<a id="comment-3223"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3223#comment-3223" class="permalink" rel="bookmark">Got this to work on Win8 too.</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3223#comment-3223" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Got this to work on Win8 too. :)<br />
+Conversion went fine, i used Linux Mint because fedora couln't find my mobile broadband device for downloading gdisk..<br />
+Had serious problems with the bootloader repair though but finally got my os to boot properly.<br />
+Thanks a lot for these great instructions!</p>
+</div></div></div><span class="submitted-by">Submitted by Anonymous on Sun, 2013/03/24 - 9:22pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3223">reply</a></li>
+</ul></div>
+<a id="comment-3238"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3238#comment-3238" class="permalink" rel="bookmark">Didn&#039;t work for me, though I</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3238#comment-3238" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Didn't work for me, though I accidentally did only one startup repair before doing the bootrec commands. Did the correct series of two repairs, bootrecs, and one repair afterwards, but it didn't work, though at one point I got a menu asking whether to boot windows in safe mode, etc, or normally. Was very excited and chose normally, but it just put me in the windows cd setup menu :/. Also, the backup command you give is useless, because it saves the backup in a directory on livecd OS, which is wiped out when the computer is restarted... It's not a disaster because I'm doing this on a cloned disk because I expected something like this to happen.</p>
+</div></div></div><span class="submitted-by">Submitted by meh on Fri, 2013/04/12 - 2:50pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3238">reply</a></li>
+</ul></div>
+
+<div class="indented"><a id="comment-3239"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3239#comment-3239" class="permalink" rel="bookmark">To clarify, by &quot;didn&#039;t work&quot;,</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3239#comment-3239" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>To clarify, by "didn't work", I mean I ended up in an endless sequence of startup repairs, with windows itself never booting.</p>
+</div></div></div><span class="submitted-by">Submitted by meh on Fri, 2013/04/12 - 2:59pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3239">reply</a></li>
+</ul></div>
+
+<div class="indented"><a id="comment-3240"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3240#comment-3240" class="permalink" rel="bookmark">Problem solved. I googled a</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3240#comment-3240" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Problem solved. I googled a bit for the "Element not found" error that I was getting for the bootrec commands, and found remedies that really repaired the startup. I now have my win7 on an MBR disk :).</p>
+</div></div></div><span class="submitted-by">Submitted by meh on Fri, 2013/04/12 - 3:46pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3240">reply</a></li>
+</ul></div>
+
+<div class="indented"><a id="comment-3254"></a>
+<div class="comment comment-by-node-author clearfix">
+  
+  
+    <h3><a href="/comment/3254#comment-3254" class="permalink" rel="bookmark">Great!</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3254#comment-3254" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Glad to hear it! Feel free to post the command here if you still have it handy for others with the same problem.</p>
+<p>Cheers,<br />
+Stewart</p>
+</div></div></div><span class="submitted-by">Submitted by firewing1 on Wed, 2013/04/24 - 3:57pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3254">reply</a></li>
+</ul></div>
+<a id="comment-3412"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3412#comment-3412" class="permalink" rel="bookmark">I had the same problem too.</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3412#comment-3412" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>I had the same problem too. In my case, this was caused by the relevant Windows partition not being set to "Active". I used gparted on a Linux live CD to fix this, then re-ran the commands on the Windows live CD and all was good.</p>
+<p>Also, don't forget to change your BIOS settings to do a non UEFI boot.</p>
+</div></div></div><span class="submitted-by">Submitted by Martin Smith on Wed, 2013/06/05 - 5:36am</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3412">reply</a></li>
+</ul></div>
+<a id="comment-3519"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3519#comment-3519" class="permalink" rel="bookmark">Having trouble with &quot;element not found&quot;</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3519#comment-3519" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Having trouble with <i>element not found</i> while running some <i>bootrec</i> commands. Probably to many partitions (3) on that SSD/HDD. 1. "GPT/EFI", 2. “System partition” 3. "real Windows partition". <i>DISKPART</i> and <i>bootrec /scanos</i> revealed that Windows repair thinks the Windows partition is “D:\” and does not know what to do with the first partition (1. "GPT/EFI", ).<br />
+Try the manual I found, it solved my problem. I additionally deleted the GPT/EFI Partition and unassigned C:\ from 2. “system partition” and assigned it to 3. Windows partition.<br />
+A simple <i>BCDBOOT c:\windows /s C:</i> and my system is booting again!<br />
+Although I deleted 1. "GPT/EFI" I cannot assign it’s space to any other partition! Even with gparted live cd I could not move it around 2. “system partition” which seems to be very very different.<br />
+So I lost 100 MB I couldn’t access before either…</p>
+<p>Manual I found:<br />
+You can remove this partition AFTER install.</p>
+<p>1. Open CMD<br />
+2. Type DISKPART (enter).<br />
+3. Type LIST DISK (enter).<br />
+4. Choose the disk that contains your WinRE partition. If it is disk zero, you type SELECT DISK 0.<br />
+5. Type LIST PARTITION.<br />
+6. Select the 100MB (or 200MB, depending) partition. If it were partition 1, you would type SELECT PARTITION 1 (enter).<br />
+7. Type DETAIL PARTITION. Examine details to make sure this is the 100/200MB WinRE partition.<br />
+8. Type INACTIVE to make this no longer the active, bootable partition.<br />
+9. Now select your Windows disk – the one you want to boot from. If it is partition 2, you’ll type SELECT PARTITION 2.<br />
+10. Again examine details with DETAIL PARTITION.<br />
+11. Once you’re sure, mark it active with the command ACTIVE.<br />
+12. Type EXIT to get out of Diskpart. You’re back at the commandline.<br />
+13. You need to be sure there are system files on the new bootloader drive. if that drive is C:, you will put them there with this command: BCDBOOT c:\windows /s C: (you can use BCDBOOT /? to learn the other options available.)<br />
+14. Now reboot the machine.<br />
+15. When it comes back, use Disk Manager to delete the old 100/200MB partition. You’re done, though I recommend a reboot to test.</p>
+</div></div></div><span class="submitted-by">Submitted by Frank on Fri, 2013/07/12 - 5:30pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3519">reply</a></li>
+</ul></div>
+</div></div></div><a id="comment-3533"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3533#comment-3533" class="permalink" rel="bookmark">Awesome!</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3533#comment-3533" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>I did it folks!<br />
+But instead of doing a repair, I decided only to do at the cmd:<br />
+bootrec /scanos<br />
+bootrec /rebuildbcd<br />
+bootrec /fixmbr<br />
+bootrec /fixboot</p>
+<p>that´s it! : )<br />
+thanks so much!</p>
+</div></div></div><span class="submitted-by">Submitted by Anatolij on Sun, 2013/09/22 - 3:06pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3533">reply</a></li>
+</ul></div>
+<a id="comment-3659"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3659#comment-3659" class="permalink" rel="bookmark">All hail this man for the write up and team who wrote this util!</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3659#comment-3659" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>My hat goes off to you good sir, you just saved me a ton of work. I had built out a session host template and went to image it with Citrix PVS, only to discover that PVS doesn't support EFI &gt;:( All on he off chance that I may one day need a C:\ drive that might exceed 2TB. Sigh. </p>
+<p>Thanks for the write up, you're a life saver.</p>
+</div></div></div><span class="submitted-by">Submitted by Cory Pechon on Thu, 2014/08/14 - 10:01pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3659">reply</a></li>
+</ul></div>
+<a id="comment-3667"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3667#comment-3667" class="permalink" rel="bookmark">tutorial</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3667#comment-3667" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Having trouble with element not found while running some bootrec commands. Probably to many partitions (3) on that SSD/HDD. 1. "GPT/EFI", 2. “System partition” 3. "real Windows partition". DISKPART and bootrec /scanos revealed that Windows repair thinks the Windows partition is “D:\” and does not know what to do with the first partition (1. "GPT/EFI", ).<br />
+Try the manual I found, it solved my problem. I additionally deleted the GPT/EFI Partition and unassigned C:\ from 2. “system partition” and assigned it to 3. Windows partition.<br />
+A simple BCDBOOT c:\windows /s C: and my system is booting again!<br />
+Although I deleted 1. "GPT/EFI" I cannot assign it’s space to any other partition! Even with gparted live cd I could not move it around 2. “system partition” which seems to be very very different.<br />
+So I lost 100 MB I couldn’t access before either…<br />
+<a />Linux for beginners</a><br />
+Manual I found:<br />
+You can remove this partition AFTER install.</p>
+<p>1. Open CMD<br />
+2. Type DISKPART (enter).<br />
+3. Type LIST DISK (enter).<br />
+4. Choose the disk that contains your WinRE partition. If it is disk zero, you type SELECT DISK 0.<br />
+5. Type LIST PARTITION.<br />
+6. Select the 100MB (or 200MB, depending) partition. If it were partition 1, you would type SELECT PARTITION 1 (enter).<br />
+7. Type DETAIL PARTITION. Examine details to make sure this is the 100/200MB WinRE partition.<br />
+8. Type INACTIVE to make this no longer the active, bootable partition.<br />
+9. Now select your Windows disk – the one you want to boot from. If it is partition 2, you’ll type SELECT PARTITION 2.<br />
+10. Again examine details with DETAIL PARTITION.<br />
+11. Once you’re sure, mark it active with the command ACTIVE.<br />
+12. Type EXIT to get out of Diskpart. You’re back at the commandline.<br />
+13. You need to be sure there are system files on the new bootloader drive. if that drive is C:, you will put them there with this command: BCDBOOT c:\windows /s C: (you can use BCDBOOT /? to learn the other options available.)<br />
+14. Now reboot the machine.<br />
+15. When it comes back, use Disk Manager to delete the old 100/200MB partition. You’re done, though I recommend a reboot to test.</p>
+</div></div></div><span class="submitted-by">Submitted by TheLinuxTerminal on Sun, 2014/08/24 - 2:23pm</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3667">reply</a></li>
+</ul></div>
+<a id="comment-3670"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3670#comment-3670" class="permalink" rel="bookmark">Ecurancy Exchangers</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3670#comment-3670" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>hrough the Rod Smith's guidance and a few dirty tricks, I was successfully able to convert my GPT partition - without data loss or deleting any partitions.<br />
+<a href="http://Ecurrancy.com">Exchange Perfect money</a></p>
+</div></div></div><span class="submitted-by">Submitted by Ecurrancy Exchanger on Mon, 2014/09/01 - 10:55am</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3670">reply</a></li>
+</ul></div>
+<a id="comment-3671"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3671#comment-3671" class="permalink" rel="bookmark">Ecurancy Exchangers</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3671#comment-3671" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Perfect Money is an Electronic Funds. Mostly people can’t upload $ with their credit card and debit card. There is good option to get perfect money. We offer to buy / Sell Perfect Money and other all E-currencies. Easy method. You can send fund with Western Union and Money gram.<br />
+<a href="http://Ecurrancy.com">Ecurrancy.com | Exchange ecurrency | Buy &amp; Sell | Perfect Money | Webmoney | Skrill | Bitcoin | Payza | Ukash | PayPal | Ego pay</a></p>
+</div></div></div><span class="submitted-by">Submitted by dougiebraziervop on Sat, 2014/09/06 - 9:03am</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3671">reply</a></li>
+</ul></div>
+<a id="comment-3672"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3672#comment-3672" class="permalink" rel="bookmark">excange perfect money </a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3672#comment-3672" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>GUID Partition Table, short for GPT, is a standard for the layout of the partition table on a physical hard disk. Although it forms a part of the Extensible Firmware Interface (EFI) standard</p>
+<p><a href="http://www.firewing1.com/www.Ecurrancy.com">Buy Perfect money</a></p>
+</div></div></div><span class="submitted-by">Submitted by ecurrancy on Sat, 2014/09/06 - 10:25am</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3672">reply</a></li>
+</ul></div>
+<a id="comment-3673"></a>
+<div class="comment comment-by-anonymous clearfix">
+  
+  
+    <h3><a href="/comment/3673#comment-3673" class="permalink" rel="bookmark">Portfoliofonds</a></h3>
+  
+  <div class="submitted">
+    <a href="/comment/3673#comment-3673" class="permalink" rel="bookmark">Permalink</a>      </div>
+
+  <div class="content">
+    <div class="field field-name-comment-body field-type-text-long field-label-hidden"><div class="field-items"><div class="field-item even"><p>Here i found nice environment to get new ideas and views and the i have read the comments of this blog and these are really nice and it is glad to comment here.</p>
+</div></div></div><span class="submitted-by">Submitted by Portfoliofonds on Fri, 2014/09/12 - 1:24am</span>      </div>
+
+  <ul class="links list-inline"><li class="comment-reply first last"><a href="/comment/reply/610/3673">reply</a></li>
+</ul></div>
+
+  </div>
+
+</div>
+
+</section> <!-- /.block -->
+  </div>
+    </section>
+
+          <aside class="col-sm-3" role="complementary">
+          <div class="region region-sidebar-second">
+    <section id="block-self-advertisement-self-advertisement" class="block block-self-advertisement clearfix">
+
+        <h2 class="block-title">Need a programmer?</h2>
+    
+  I do web development and Drupal module design! You can find my contact details <a href="/whoami">here</a>.
+</section> <!-- /.block -->
+<section id="block-search-form" class="block block-search clearfix">
+
+      
+  <form class="form-search content-search" action="/blog/2012/03/05/how-convert-gpt-disk-layout-ms-dosmbr-layout-without-data-loss-and-gigabyte-hybrid" method="post" id="search-block-form" accept-charset="UTF-8"><div><div>
+      <h2 class="element-invisible">Search form</h2>
+    <div class="input-group"><input title="Enter the terms you wish to search for." placeholder="Search" class="form-control form-text" type="text" id="edit-search-block-form--2" name="search_block_form" value="" size="15" maxlength="128" /><span class="input-group-btn"><button type="submit" class="btn btn-default"><i class="icon glyphicon glyphicon-search" aria-hidden="true"></i></button></span></div><button class="element-invisible btn btn-primary form-submit" id="edit-submit" name="op" value="Search" type="submit">Search</button>
+<input type="hidden" name="form_build_id" value="form-EnijffqUIalcC-oIXVDCMXpeZ_9RqdTmTfkgFA1gHQE" />
+<input type="hidden" name="form_id" value="search_block_form" />
+</div>
+</div></form>
+</section> <!-- /.block -->
+<section id="block-views-tweets-block-1" class="block block-views clearfix">
+
+        <h2 class="block-title">Tweets</h2>
+    
+  <div class="view view-tweets view-id-tweets view-display-id-block_1 view-dom-id-0e5449c45c9093617157bf242fa5b039">
+        
+  
+  
+      <div class="view-content">
+      <div class="item-list">    <ul>          <li class="views-row views-row-1 views-row-odd views-row-first">  
+  <div class="views-field views-field-text">        <span class="field-content">My stomach gurgle just sounded like a Skype message notification… Mildly interesting</span>  </div>  
+  <div class="views-field views-field-created-time">        <span class="field-content"><em class="placeholder">2 weeks 2 days</em> ago</span>  </div></li>
+          <li class="views-row views-row-2 views-row-even">  
+  <div class="views-field views-field-text">        <span class="field-content">Check out <a target="_blank" rel="nofollow" href="http://twitter.com/odesza">@odesza</a>'s In Return megamix: <a target="_blank" rel="nofollow" href="https://t.co/iuuZOyjbG9">https://t.co/iuuZOyjbG9</a></span>  </div>  
+  <div class="views-field views-field-created-time">        <span class="field-content"><em class="placeholder">3 weeks 12 hours</em> ago</span>  </div></li>
+          <li class="views-row views-row-3 views-row-odd">  
+  <div class="views-field views-field-text">        <span class="field-content">'pv' is my new favourite CLI tool. How did I not know about this earlier? Pipe all the things!</span>  </div>  
+  <div class="views-field views-field-created-time">        <span class="field-content"><em class="placeholder">3 weeks 1 day</em> ago</span>  </div></li>
+          <li class="views-row views-row-4 views-row-even">  
+  <div class="views-field views-field-text">        <span class="field-content">The 404th comic of XKCD doesn't exist</span>  </div>  
+  <div class="views-field views-field-created-time">        <span class="field-content"><em class="placeholder">1 month 1 week</em> ago</span>  </div></li>
+          <li class="views-row views-row-5 views-row-odd">  
+  <div class="views-field views-field-text">        <span class="field-content">If you use Antidote 8 and can’t get the  menu bar widget back, run “defaults write com.druide.AgentAntidote SansMenu 0” and restart</span>  </div>  
+  <div class="views-field views-field-created-time">        <span class="field-content"><em class="placeholder">1 month 1 week</em> ago</span>  </div></li>
+          <li class="views-row views-row-6 views-row-even">  
+  <div class="views-field views-field-text">        <span class="field-content">PyCon 2015 registration is soon and it's in Montreal again! <a target="_blank" rel="nofollow" href="http://t.co/Exnflp8bhI">http://t.co/Exnflp8bhI</a></span>  </div>  
+  <div class="views-field views-field-created-time">        <span class="field-content"><em class="placeholder">1 month 1 week</em> ago</span>  </div></li>
+          <li class="views-row views-row-7 views-row-odd views-row-last">  
+  <div class="views-field views-field-text">        <span class="field-content">New Drupal module: Product as Attribute Options. Associates product nodes to attribute options. <a target="_blank" rel="nofollow" href="https://t.co/AzyEoLfWJo">https://t.co/AzyEoLfWJo</a></span>  </div>  
+  <div class="views-field views-field-created-time">        <span class="field-content"><em class="placeholder">1 month 3 weeks</em> ago</span>  </div></li>
+      </ul></div>    </div>
+  
+  
+  
+      
+<div class="more-link">
+  <a href="http://www.twitter.com/stewartadam">
+    view all tweets...  </a>
+</div>
+  
+  
+  
+</div>
+</section> <!-- /.block -->
+<section id="block-poll-recent" class="block block-poll clearfix">
+
+        <h2 class="block-title">Poll</h2>
+    
+  <form action="/v1/33" method="post" id="poll-view-voting" accept-charset="UTF-8"><div><div class="poll">
+  <div class="vote-form">
+    <div class="choices">
+              <div class="title">Your computer boots via...</div>
+            <div class="form-type-radios form-item-choice form-item form-group">
+  <label class="element-invisible" for="edit-choice">Choices </label>
+ <div id="edit-choice" class="form-radios"><div class="form-type-radio form-item-choice form-item radio">
+ <input type="radio" id="edit-choice-79" name="choice" value="79" class="form-radio" />  <label for="edit-choice-79">EFI </label>
+
+</div>
+<div class="form-type-radio form-item-choice form-item radio">
+ <input type="radio" id="edit-choice-80" name="choice" value="80" class="form-radio" />  <label for="edit-choice-80">BIOS </label>
+
+</div>
+</div>
+</div>
+    </div>
+    <button class="btn btn-default form-submit" id="edit-vote--3" name="op" value="Vote" type="submit">Vote</button>
+  </div>
+    <input type="hidden" name="form_build_id" value="form-ZL0KDKkiLZLhaPQPQDZZzmo-Gki-R7YsWOfabjJ_4vg" />
+<input type="hidden" name="form_id" value="poll_view_voting" />
+</div>
+</div></form><ul class="links"><li class="0 first"><a href="/poll" title="View the list of polls on this site.">Older polls</a></li>
+<li class="1 last"><a href="/node/611/results" title="View the current poll results.">Results</a></li>
+</ul>
+</section> <!-- /.block -->
+  </div>
+      </aside>  <!-- /#sidebar-second -->
+    
+  </div>
+</div>
+<footer class="footer container">
+    <div class="region region-footer">
+    <section id="block-system-powered-by" class="block block-system clearfix">
+
+      
+  <span>Powered by <a href="http://drupal.org">Drupal</a></span>
+</section> <!-- /.block -->
+<section id="block-block-1" class="block block-block clearfix">
+
+      
+  <p>Copyright &copy; 2008-2014 Stewart Adam.<br />Original code samples provided on this site are released to the public domain unless otherwise stated.</p>
+
+</section> <!-- /.block -->
+  </div>
+</footer>
+  <script>var addthis_config = {"pubid":"","services_compact":"facebook,google_plusone,google_plusone_share,twitter,more","data_track_clickback":false,"ui_508_compliant":false,"ui_click":false,"ui_cobrand":"","ui_delay":0,"ui_header_background":"","ui_header_color":"","ui_open_windows":false,"ui_use_css":true,"ui_use_addressbook":false,"ui_language":"en"}
+var addthis_share = {"templates":{"twitter":"{{title}} {{url}} via @AddThis"}}</script>
+<script src="http://s7.addthis.com/js/250/addthis_widget.js#pubid=&amp;async=1"></script>
+<script src="http://www.firewing1.com/sites/default/files/js/js_33BaXx14mLWwIKRLHiDD1YUISrtmHDN9BKx9c77CeZ0.js"></script>
+<script src="http://www.firewing1.com/sites/default/files/js/js_B2uv6dkjoYobfQVyuXdchgrpnnx4oM0TkP_bDVf8Qrg.js"></script>
+</body>
+</html>

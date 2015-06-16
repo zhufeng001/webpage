@@ -1,0 +1,116 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Chapter 11. Menu Widget</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="prev" href="sec-PlugsAndSockets.html" title="10.13. Plugs and Sockets"><link rel="next" href="sec-ManualMenuExample.html" title="11.2. Manual Menu Example"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter 11. Menu Widget</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-PlugsAndSockets.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="sec-ManualMenuExample.html">Next</a></td></tr></table><hr></div><div class="chapter" title="Chapter 11. Menu Widget"><div class="titlepage"><div><div><h2 class="title"><a name="ch-MenuWidget"></a>Chapter 11. Menu Widget</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="ch-MenuWidget.html#sec-ManualMenuCreation">11.1. Manual Menu Creation</a></span></dt><dt><span class="sect1"><a href="sec-ManualMenuExample.html">11.2. Manual Menu Example</a></span></dt><dt><span class="sect1"><a href="sec-UsingItemFactory.html">11.3. Using ItemFactory</a></span></dt><dt><span class="sect1"><a href="sec-ItemFactoryExample.html">11.4. Item Factory Example</a></span></dt></dl></div><p>There are two ways to create menus: there's the easy way, and
+there's the hard way. Both have their uses, but you can usually use the
+<code class="classname">ItemFactory</code> (the easy way). The "hard" way is to
+create all the menus using the calls directly. The easy way is to use the
+<code class="classname">gtk.ItemFactory</code> calls. This is much simpler, but there
+are advantages and disadvantages to each approach.</p><div class="note" title="Note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>In PyGTK 2.4 ItemFactory is deprecated - use the UIManager
+instead.</p></div><p>The <code class="classname">ItemFactory</code> is much easier to use, and
+to add new menus to, although writing a few wrapper functions to create
+menus using the manual method could go a long way towards usability. With
+the <code class="classname">Itemfactory</code>, it is not possible to add images or
+the character '/' to the menus.</p><div class="sect1" title="11.1. Manual Menu Creation"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-ManualMenuCreation"></a>11.1. Manual Menu Creation</h2></div></div></div><p>In the true tradition of teaching, we'll show you the hard way
+first. :)</p><p>There are three widgets that go into making a menubar and
+submenus:</p><div class="itemizedlist"><ul class="itemizedlist" type="none"><li class="listitem" style="list-style-type: none"><p>a menu item, which is what the user wants to select, e.g., "Save"</p></li><li class="listitem" style="list-style-type: none"><p>a menu, which acts as a container for the menu items, and</p></li><li class="listitem" style="list-style-type: none"><p>a menubar, which is a container for each of the individual menus.</p></li></ul></div><p>This is slightly complicated by the fact that menu item widgets
+are used for two different things. They are both the widgets that are packed
+into the menu, and the widget that is packed into the menubar, which, when
+selected, activates the menu.</p><p>Let's look at the functions that are used to create menus and
+menubars. This first function is used to create a new menubar:</p><pre class="programlisting">
+  menu_bar = gtk.MenuBar()
+</pre><p>This rather self explanatory function creates a new menubar. You
+use the <code class="classname">gtk.Container</code> <code class="methodname">add</code>()
+method to pack this into a window, or the <code class="classname">gtk.Box</code> pack
+methods to pack it into a box - the same as buttons.</p><pre class="programlisting">
+  menu = gtk.Menu()
+</pre><p>This function returns a reference to a new menu; it is never
+actually shown (with the <code class="methodname">show</code>() method), it is just a
+container for the menu items. I hope this will become more clear when you
+look at the example below.</p><p>The next function is used to create menu items that are packed
+into the menu (and menubar):</p><pre class="programlisting">
+  menu_item = gtk.MenuItem(<strong class="parameter"><code>label</code></strong>=None)
+</pre><p>The <em class="parameter"><code>label</code></em>, if any, will be parsed for
+mnemonic characters. This call is used to create the menu items that are to
+be displayed. Remember to differentiate between a "menu" as created with
+<code class="function">gtk.Menu</code>() and a "menu item" as created by the
+<code class="function">gtk.MenuItem</code>() functions. The menu item will be an
+actual button with an associated action, whereas a menu will be a container
+holding menu items.</p><p>Once you've created a menu item you have to put it into a menu.
+This is done using the <code class="methodname">append</code>() method. In order to
+capture when the item is selected by the user, we need to connect to the
+"activate" signal in the usual way. So, if we wanted to create a standard
+<span class="guimenu">File</span> menu, with the options
+<span class="guimenuitem">Open</span>,
+<span class="guimenuitem"><span class="guimenuitem">Save</span>, and </span>Quit, the
+code would look something like:</p><pre class="programlisting">
+  file_menu = gtk.Menu()    # Don't need to show menus
+
+  # Create the menu items
+  open_item = gtk.MenuItem("Open")
+  save_item = gtk.MenuItem("Save")
+  quit_item = gtk.MenuItem("Quit")
+
+  # Add them to the menu
+  file_menu.append(open_item)
+  file_menu.append(save_item)
+  file_menu.append(quit_item)
+
+  # Attach the callback functions to the activate signal
+  open_item.connect_object("activate", menuitem_response, "file.open")
+  save_item.connect_object("activate", menuitem_response, "file.save")
+
+  # We can attach the Quit menu item to our exit function
+  quit_item.connect_object ("activate", destroy, "file.quit")
+
+  # We do need to show menu items
+  open_item.show()
+  save_item.show()
+  quit_item.show()
+</pre><p>At this point we have our menu. Now we need to create a menubar
+and a menu item for the <span class="guimenu">File</span> entry, to which we add our
+menu. The code looks like this:</p><pre class="programlisting">
+  menu_bar = gtk.MenuBar()
+  window.add(menu_bar)
+  menu_bar.show()
+
+  file_item = gtk.MenuItem("File")
+  file_item.show()
+</pre><p>Now we need to associate the menu with
+<em class="parameter"><code>file_item</code></em>. This is done with the method:</p><pre class="programlisting">
+  menu_item.set_submenu(<strong class="parameter"><code>submenu</code></strong>)
+</pre><p>So, our example would continue with:</p><pre class="programlisting">
+  file_item.set_submenu(file_menu)
+</pre><p>All that is left to do is to add the menu to the menubar, which
+is accomplished using the method:</p><pre class="programlisting">
+  menu_bar.append(<strong class="parameter"><code>child</code></strong>)
+</pre><p>which in our case looks like this:</p><pre class="programlisting">
+  menu_bar.append(file_item)
+</pre><p>If we wanted the menu right justified on the menubar, such as
+help menus often are, we can use the following method (again on
+<em class="parameter"><code>file_item</code></em> in the current example) before attaching it to
+the menubar.</p><pre class="programlisting">
+  menu_item.set_right_justified(right_justified)
+</pre><p>Here is a summary of the steps needed to create a menu bar with
+menus attached:</p><div class="itemizedlist"><ul class="itemizedlist" type="none"><li class="listitem" style="list-style-type: none"><p>Create a new menu using <code class="function">gtk.Menu</code>()</p></li><li class="listitem" style="list-style-type: none"><p>Use multiple calls to <code class="function">gtk.MenuItem</code>()
+for each item you wish to have on your menu. And use the
+<code class="methodname">append</code>() method to put each of these new items on to
+the menu.</p></li><li class="listitem" style="list-style-type: none"><p>Create a menu item using
+<code class="function">gtk.MenuItem</code>(). This will be the root of the menu, the
+text appearing here will be on the menubar itself.</p></li><li class="listitem" style="list-style-type: none"><p>Use the <code class="methodname">set_submenu</code>() method to attach
+the menu to the root menu item (the one created in the above step).</p></li><li class="listitem" style="list-style-type: none"><p>Create a new menubar using
+<code class="function">gtk.MenuBar</code>(). This step only needs to be done once
+when creating a series of menus on one menu bar.</p></li><li class="listitem" style="list-style-type: none"><p> Use the <code class="methodname">append</code>() method to put the
+root menu onto the menubar.</p></li></ul></div><p>Creating a popup menu is nearly the same. The difference is that
+the menu is not posted "automatically" by a menubar, but explicitly by
+calling the <code class="methodname">popup</code>() method from a button-press
+event, for example. Take these steps:</p><div class="itemizedlist"><ul class="itemizedlist" type="none"><li class="listitem" style="list-style-type: none"><p>Create an event handling callback. It needs to have the
+format:</p><pre class="programlisting">
+  def handler(widget, event):
+</pre></li><li class="listitem" style="list-style-type: none"><p>and it will use the event to find out where to pop up the
+menu.</p></li><li class="listitem" style="list-style-type: none"><p>In the event handler, if the event is a mouse button press,
+treat event as a button event (which it is) and use it as shown in the
+sample code to pass information to the <code class="methodname">popup</code>()
+method.</p></li><li class="listitem" style="list-style-type: none"><p>Bind that event handler to a widget with:</p><pre class="programlisting">
+  widget.connect_object("event", handler, menu)
+</pre></li><li class="listitem" style="list-style-type: none"><p>where widget is the widget you are binding to, handler is
+the handling function, and menu is a menu created with
+<code class="function">gtk.Menu</code>(). This can be a menu which is also posted by a
+menu bar, as shown in the sample code.</p></li></ul></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-PlugsAndSockets.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="sec-ManualMenuExample.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">10.13. Plugs and Sockets </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 11.2. Manual Menu Example</td></tr></table></div></body></html>

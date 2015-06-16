@@ -1,0 +1,2985 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+
+<title>Linux cgroup机制分析之框架分析 - 技术文档 - 网络技术 Linux时代 - 开源、自由、共享 - 中国最大的Linux技术社区</title>
+<meta name="keywords" content="Linux cgroup机制分析之框架分析 - 技术文档 - 网络技术 Linux时代 - 开源、自由、共享 - 中国最大的Linux技术社区">
+<meta name="description" content="Linux cgroup机制分析之框架分析 - 技术文档 - 网络技术  网络技术 Linux 技术文档">
+
+<link href="/css/all.css" rel="stylesheet" type="text/css" />
+
+<style type="text/css">
+
+<!--
+
+.STYLE1 {color: #FF0000}
+
+.STYLE2 {font-size: 14px}
+
+-->
+
+</style>
+
+</head>
+
+
+
+<body>
+
+<table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+
+  <tr>
+
+    <td height="27">	<table border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse" width="100%">
+	<tr><FORM name="login" action="http://linux.chinaunix.net/bbs/logging.php?action=login"  method=post>
+	<td><script language="javascript" src="http://linux.chinaunix.net/bbs/loginbox.php"></script></td>
+	</form>
+	<td align="right">
+	·<a href="http://www.chinaunix.net" class="list1">ChinaUnix首页</a>
+
+	·<a href="http://bbs.chinaunix.net" class="list1">论坛</a>
+	·<a href="http://blog.chinaunix.net" class="list1">博客</a>&nbsp;
+	</td>
+	</tr>
+	</table></td>
+
+  </tr>
+
+  <tr>
+
+    <td height="1" bgcolor="#CCCCCC"></td>
+
+  </tr>
+
+  <tr>
+
+    <td><table width="100%" border="0" cellpadding="0" cellspacing="0">
+
+      <tr>
+
+        <td height="84"><img src="/images/logo.jpg" /></td>
+
+        <td align="right" ><IFRAME SRC="http://count.chinaunix.net/iframe.php?id=54" width="750" height="80" frameborder="0"  scrolling="no"></IFRAME>
+</td>
+
+      </tr>
+
+    </table></td>
+
+  </tr>
+
+  <tr>
+
+    <td><table width="100%" border="0" cellspacing="0" cellpadding="0">
+
+      <tr>
+
+        <td width="3"><img src="/images/bgtop1.jpg" width="3" height="26" /></td>
+
+        <td width="944" background="/images/bgtop2.gif" class="whitetop">
+<a href="http://linux.chinaunix.net/" target="_blank">Linux首页</a> |
+<a href="http://linux.chinaunix.net/news/">Linux新闻</a> |
+<a target="_blank" href="http://linux.chinaunix.net/bbs" style=color:red><b>Linux论坛</b></a> |
+<a href="http://linux.chinaunix.net/techdoc/">Linux文档</a> |
+<a target="_blank" href="http://download.chinaunix.net/disc/linux/">Linux下载</a> |
+<a target="_blank" href="http://blog.chinaunix.net/techart.php?frmid=6">Linux博客</a> |
+<a target="_blank" href="http://search.chinaunix.net/">Linux搜索</a> |
+<a target="_blank" href="http://linux.chinaunix.net/bbs/index.php?gid=68">开源项目孵化平台</a>
+ |
+<a target="_blank" href="http://linux.chinaunix.net/ebook/"  style=color:red>《开源时代》</a></td>
+
+        <td width="3" align="right"><img src="/images/bgtop3.jpg" width="3" height="26" /></td>
+
+      </tr>
+
+    </table></td>
+
+  </tr>
+
+</table>
+
+<table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+
+<tr>
+
+    <td valign="bottom" class="BlkLightblue">
+<a target="_blank" href="http://linux.chinaunix.net/techdoc/beginner/">
+		新手入门</a> | <span lang="zh-cn">
+		<a target="_blank" href="http://linux.chinaunix.net/techdoc/install/">
+		安装启动</a> | </span>
+		<a target="_blank" href="http://linux.chinaunix.net/techdoc/system/">
+		管理员指南</a> | <a target="_blank" href="http://man.chinaunix.net/">开发手册</a> 
+		| <a target="_blank" href="http://linux.chinaunix.net/techdoc/desktop/">
+		桌面应用</a> |
+		<a target="_blank" href="http://linux.chinaunix.net/techdoc/develop/">
+		程序开发</a> |
+		<a target="_blank" href="http://linux.chinaunix.net/techdoc/database/">
+		数据库</a> | <span lang="zh-cn">
+		<a target="_blank" href="http://linux.chinaunix.net/techdoc/net/">网络技术</a>|
+<a target="_blank" href="http://linux.chinaunix.net/topics/2007-01-25/15/index.shtml">
+CentOS</a></span> |
+<a target="_blank" href="http://linux.chinaunix.net/search2.php?key=fedora&id=0">
+Fedora</a> <span lang="zh-cn">| </span>
+<a target="_blank" href="http://linux.chinaunix.net/search2.php?key=mysql&id=0">
+MySQL</a>
+
+<span lang="zh-cn">| </span>
+<a target="_blank" href="http://linux.chinaunix.net/search2.php?key=apache&id=0">
+Apache</a>
+
+<span lang="zh-cn">| </span>
+<a target="_blank" href="http://linux.chinaunix.net/search2.php?key=ubuntu&id=0">
+<font color="#FF0000">Ubuntu</font></a>
+
+<span lang="zh-cn">| </span>
+<a target="_blank" href="http://linux.chinaunix.net/topics/2008-07-10/18/index.shtml">
+<font color="#FF0000">Gentoo</font></a>| </span>
+<b>
+<a target="_blank" href="http://linux.chinaunix.net/topics/2008-07-30/19/index.shtml">
+<font color="#FF0000">OSCON08</font></a></b>
+</td>
+
+</tr>
+<tr><td>
+
+</td></tr>
+  <tr>
+
+    <td height="30" valign="bottom">&nbsp;&nbsp;<a href="http://linux.chinaunix.net">Linux时代</a> &gt;&gt;  <a href="http://linux.chinaunix.net/techdoc/" class='list1'>技术文档</a> >> <a href="http://linux.chinaunix.net/techdoc/net/" class='list1'>网络技术</a></td>
+
+  </tr>
+
+  <tr>
+
+    <td height="1" bgcolor="#CCCCCC"></td>
+
+  </tr>
+
+  <tr>
+
+    <td height="8"></td>
+
+  </tr>
+
+</table><table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+
+  <tr>
+
+    <td valign="top" class="BLKtext"><table width="660" border="0" align="center" cellpadding="0" cellspacing="0">
+
+      <tr>
+
+        <td height="8">&nbsp;</td>
+
+      </tr>
+
+      <tr>
+
+        <td height="30" class="Ftext1">Linux cgroup机制分析之框架分析</td>
+
+      </tr>
+
+      <tr>
+
+        <td><table width="80%" border="0" align="center" cellpadding="0" cellspacing="0">
+
+          <tr>
+
+            <td height="1" bgcolor="#CCCCCC"></td>
+
+          </tr>
+
+        </table></td>
+
+      </tr>
+
+      <tr>
+
+        <td height="40" align="center">来源: 
+ ChinaUnix博客 　日期：
+2008.12.23 16:15　(共有<span class="STYLE1" id ="postcount"></span>条评论)  <a href="http://linux.chinaunix.net/bbs/thread-1054425-1-1.html" target="_blank">我要评论</a></td>
+
+      </tr>
+
+      <tr>
+
+        <td>&nbsp;</td>
+
+      </tr>
+
+      <tr>
+
+        <td class="F14">
+<br />
+------------------------------------------ <br />
+本文系本站原创,欢迎转载!<br />
+转载请注明出处:http://ericxiao.cublog.cn/<br />
+------------------------------------------<br />
+一: 前言<br />
+前段时间,一直在写操作系统和研究Solaris kernel.从而对linux kernel关心甚少.不久前偶然收到富士通的面试,由于诸多原因推辞掉了这次机会.不过招聘要求给我留下了较深的印像.其中涉及到了cgroup机制.cgroup对我来说并不陌生,在LKML上看到过它的path.在2008 AKA大会上也有人对它做为专题分析.不过一直都没有深入代码研究.这段时间打算将kernel中新加的功能整理一下,就先从cgroup开始吧.<br />
+Cgroup是近代linux kernel出现的.它为进程和其后续的子进程提供了一种性能控制机制.在这里不打算对cgroup的作用和使用做过多的描述.本文从linux kernel的源代码出发分析cgroup机制的相关实现.在本节中,主要分析cgroup的框架实现.在后续的部份再来详细分析kernel中的几个重要的subsystem.关于cgroup的使用和介绍可以查看linux-2.6.28-rc7/Documentation/cgroups/cgroup.txt.另外,本文的源代码分析基于linux kernel 2.6.28版本.分析的源文件基本位于inux-2.6.28-rc7/kernel/cgroup.c和inux-2.6.28-rc7/kernel/debug_cgroup.c中.<br />
+二:cgroup中的概念<br />
+在深入到cgroup的代码分析之前.先来了解一下cgroup中涉及到的几个概念:<br />
+1:cgroup: 它的全称为control group.即一组进程的行为控制.比如,我们限制进程/bin/sh的CPU使用为20%.我们就可以建一个cpu占用为20%的cgroup.然后将/bin/sh进程添加到这个cgroup中.当然,一个cgroup可以有多个进程.<br />
+2:subsystem: 它类似于我们在netfilter中的过滤hook.比如上面的CPU占用率就是一个subsystem.简而言之.subsystem就是cgroup中可添加删除的模块.在cgroup架构的封装下为cgroup提供多种行为控制.subsystem在下文中简写成subsys.<br />
+3: hierarchy: 它是cgroup的集合.可以把它理解成cgroup的根.cgroup是hierarchy的结点.还是拿上面的例子: 整个cpu占用为100%.这就是根,也就是hierarchy.然后,cgroup A设置cpu占用20%,cgroup B点用50%,cgroup A和cgroup B就是它下面的子层cgroup.<br />
+三:cgroup中的重要数据结构<br />
+我们先来看cgroup的使用.有三面一个例子:<br />
+[root@localhost cgroups]# mount -t cgroup cgroup -o debug /dev/cgroup<br />
+[root@localhost cgroups]# mkdir /dev/cgroup/eric_test<br />
+如上所示,用debug subsystem做的一个测试. /dev/cgroup是debug subsys的挂载点.也就是我们在上面所分析的hierarchy.然后在hierarchy下又创建了一个名为eric_test的cgroup.<br />
+在kernel的源代码中.挂载目录,也就是cgroup的根目录用数据结构struct cgroupfs_root表示.而cgroup用struct cgroup表示.<br />
+分别来看一下这两个结构的含义,struct cgroupfs_root定义如下:<br />
+struct cgroupfs_root {<br />
+//cgroup文件系统的超级块<br />
+&nbsp; &nbsp;struct super_block *sb;<br />
+ <br />
+&nbsp; &nbsp; /*<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* The bitmask of subsystems intended to be attached to this<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* hierarchy<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp;&nbsp;&nbsp;//hierarchy相关联的subsys 位图<br />
+&nbsp; &nbsp; unsigned long subsys_bits;<br />
+ <br />
+&nbsp; &nbsp; /* The bitmask of subsystems currently attached to this hierarchy */<br />
+&nbsp; &nbsp; //当前hierarchy 中的subsys位图<br />
+&nbsp; &nbsp; unsigned long actual_subsys_bits;<br />
+ <br />
+&nbsp; &nbsp; /* A list running through the attached subsystems */<br />
+&nbsp; &nbsp; //hierarchy中的subsys链表<br />
+&nbsp; &nbsp; struct list_head subsys_list;<br />
+ <br />
+&nbsp; &nbsp; /* The root cgroup for this hierarchy */<br />
+&nbsp; &nbsp; //hierarchy中的顶层cgroup<br />
+&nbsp; &nbsp; struct cgroup top_cgroup;<br />
+ <br />
+&nbsp; &nbsp; /* Tracks how many cgroups are currently defined in hierarchy.*/<br />
+&nbsp; &nbsp; //hierarchy中cgroup的数目<br />
+&nbsp; &nbsp; int number_of_cgroups;<br />
+ <br />
+&nbsp; &nbsp; /* A list running through the mounted hierarchies */<br />
+&nbsp; &nbsp; //用来链入全局链表roots<br />
+&nbsp; &nbsp; struct list_head root_list;<br />
+ <br />
+&nbsp; &nbsp; /* Hierarchy-specific flags */<br />
+&nbsp; &nbsp; //hierarchy的标志<br />
+&nbsp; &nbsp; unsigned long flags;<br />
+ <br />
+&nbsp; &nbsp; /* The path to use for release notifications. */<br />
+&nbsp; &nbsp; char release_agent_path[PATH_MAX];<br />
+};<br />
+注意cgroupfs_root中有个struct cgroup结构的成员:top_cgroup.即在每个挂载点下面都会有一个总的cgroup.而通过mkdir创建的cgroup是它的子结点.<br />
+其中,release_agent_path[ ]的成员含义.我们在后面再来详细分析.<br />
+ <br />
+Struct cgroup的定义如下:<br />
+struct cgroup {<br />
+&nbsp; &nbsp; //cgroup的标志<br />
+&nbsp; &nbsp; unsigned long flags;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* &quot;unsigned long&quot; so bitops work */<br />
+ <br />
+&nbsp; &nbsp; /* count users of this cgroup. &gt;0 means busy, but doesn't<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* necessarily indicate the number of tasks in the<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* cgroup */<br />
+&nbsp; &nbsp;&nbsp;&nbsp;//引用计数<br />
+&nbsp; &nbsp; atomic_t count;<br />
+ <br />
+&nbsp; &nbsp; /*<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* We link our 'sibling' struct into our parent's 'children'.<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* Our children link their 'sibling' into our 'children'.<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp;&nbsp;&nbsp;//用来链入父结点的children链表<br />
+&nbsp; &nbsp; struct list_head sibling;&nbsp; &nbsp;/* my parent's children */<br />
+&nbsp; &nbsp; //子结点链表<br />
+&nbsp; &nbsp; struct list_head children;&nbsp;&nbsp;/* my children */<br />
+&nbsp; &nbsp; //cgroup的父结点<br />
+&nbsp; &nbsp; struct cgroup *parent;&nbsp;&nbsp;/* my parent */<br />
+&nbsp; &nbsp; //cgroup所处的目录<br />
+&nbsp; &nbsp; struct dentry *dentry;&nbsp; &nbsp;&nbsp; &nbsp;/* cgroup fs entry */<br />
+ <br />
+&nbsp; &nbsp; /* Private pointers for each registered subsystem */<br />
+&nbsp; &nbsp; struct cgroup_subsys_state *subsys[CGROUP_SUBSYS_COUNT];<br />
+&nbsp; &nbsp; //cgroup所属的cgroupfs_root<br />
+&nbsp; &nbsp; struct cgroupfs_root *root;<br />
+&nbsp; &nbsp; //挂载目录下的最上层cgroup<br />
+&nbsp; &nbsp; struct cgroup *top_cgroup;<br />
+&nbsp; &nbsp; ……<br />
+……<br />
+}<br />
+上面并没有将cgroup的结构全部都列出来.其它的全部我们等遇到的时候再来进行分析.<br />
+其实,struct cgroupfs_root和struct cgroup就是表示了一种空间层次关系,它就对应着挂着点下面的文件示图.<br />
+ <br />
+在上面说过了,cgroup表示进程的行为控制.因为subsys必须要知道进程是位于哪一个cgroup.<br />
+所以.在struct task_struct和cgroup中存在一种映射.<br />
+Cgroup在struct task_struct中增加了两个成员,如下示:<br />
+struct task_struct {<br />
+&nbsp; &nbsp; ……<br />
+&nbsp; &nbsp; ……<br />
+#ifdef CONFIG_CGROUPS<br />
+&nbsp; &nbsp; /* Control Group info protected by css_set_lock */<br />
+&nbsp; &nbsp; struct css_set *cgroups;<br />
+&nbsp; &nbsp; /* cg_list protected by css_set_lock and tsk-&gt;alloc_lock */<br />
+&nbsp; &nbsp; struct list_head cg_list;<br />
+#endif<br />
+&nbsp; &nbsp; ……<br />
+&nbsp; &nbsp; ……<br />
+}<br />
+注意struct task_struct中并没有一个直接的成员指向cgroup,而是指向了css_set.css_set的结构如下:<br />
+struct css_set {<br />
+&nbsp; &nbsp; //css_set引用计数<br />
+&nbsp; &nbsp; atomic_t refcount;<br />
+//哈希指针.指向css_set_table[ ]<br />
+&nbsp; &nbsp; struct hlist_node hlist;<br />
+//与css_set关联的task链表<br />
+&nbsp; &nbsp; struct list_head tasks;<br />
+&nbsp; &nbsp; //与css_set关联的cg_cgroup_link链表<br />
+&nbsp; &nbsp; struct list_head cg_links;<br />
+//一组subsystem states.由subsys-&gt;create()创建而成<br />
+&nbsp; &nbsp; struct cgroup_subsys_state *subsys[CGROUP_SUBSYS_COUNT];<br />
+}<br />
+那从css_set怎么转换到cgroup呢? 再来看一个辅助的数据结构.struct cg_cgroup_link.它的定义如下:<br />
+struct cg_cgroup_link {<br />
+&nbsp; &nbsp; /*<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* List running through cg_cgroup_links associated with a<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* cgroup, anchored on cgroup-&gt;css_sets<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp; struct list_head cgrp_link_list;<br />
+&nbsp; &nbsp; /*<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* List running through cg_cgroup_links pointing at a<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* single css_set object, anchored on css_set-&gt;cg_links<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp; struct list_head cg_link_list;<br />
+&nbsp; &nbsp; struct css_set *cg;<br />
+};<br />
+如上所示.它的cgrp_link_list链入到了cgroup-&gt;css_sets. Cg_link_list链入到css_set-&gt;cg_links.<br />
+其中.cg就是批向cg_link_list所指向的css_set.<br />
+ <br />
+上面分析的几个数据结构关系十分复杂.联系也十分紧密.下面以图示的方式直观将各结构的联系表示如下:<br />
+ <br />
+<img src="http://blogimg.chinaunix.net/blog/upfile2/081223161329.jpg" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://blogimg.chinaunix.net/blog/upfile2/081223161329.jpg');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+注意上图中的css_set_table[ ].它是一个哈希数组.用来存放struct css_set.它的哈希函数为css_set_hash().所有的冲突项都链入数组对应项的hlist.<br />
+ <br />
+四:cgroup初始化<br />
+Cgroup的初始化包括两个部份.即cgroup_init_early()和cgroup_init().分别表示在系统初始时的初始化和系统初始化完成时的初始化.分为这两个部份是因为有些subsys是要在系统刚启动的时候就必须要初始化的.<br />
+ <br />
+4.1: cgroup_init_early()<br />
+先看cgroup_init_early()的代码:<br />
+int __init cgroup_init_early(void)<br />
+{<br />
+&nbsp; &nbsp; int i;<br />
+&nbsp; &nbsp; //初始化全局量init_css_set <br />
+&nbsp; &nbsp; atomic_set(&amp;init_css_set.refcount, 1);<br />
+&nbsp; &nbsp; INIT_LIST_HEAD(&amp;init_css_set.cg_links);<br />
+&nbsp; &nbsp; INIT_LIST_HEAD(&amp;init_css_set.tasks);<br />
+&nbsp; &nbsp; INIT_HLIST_NODE(&amp;init_css_set.hlist);<br />
+&nbsp; &nbsp; //css_set_count:系统中struct css_set计数<br />
+&nbsp; &nbsp; css_set_count = 1;<br />
+&nbsp; &nbsp; //初始化全局变量rootnode<br />
+&nbsp; &nbsp; init_cgroup_root(&amp;rootnode);<br />
+&nbsp; &nbsp; //将全局变量rootnode添加到roots链表<br />
+&nbsp; &nbsp; list_add(&amp;rootnode.root_list, &amp;roots);<br />
+&nbsp; &nbsp; root_count = 1;<br />
+&nbsp; &nbsp; //使系统的初始化进程cgroup指向init_css_set<br />
+&nbsp; &nbsp; init_task.cgroups = &amp;init_css_set;<br />
+&nbsp; &nbsp; //将init_css_set和rootnode.top_cgroup关联起来<br />
+&nbsp; &nbsp; init_css_set_link.cg = &amp;init_css_set;<br />
+&nbsp; &nbsp; list_add(&amp;init_css_set_link.cgrp_link_list,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&amp;rootnode.top_cgroup.css_sets);<br />
+&nbsp; &nbsp; list_add(&amp;init_css_set_link.cg_link_list,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&amp;init_css_set.cg_links);<br />
+&nbsp; &nbsp; //初始化css_set_table[ ]<br />
+&nbsp; &nbsp; for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;INIT_HLIST_HEAD(&amp;css_set_table<i>);<br />
+&nbsp; &nbsp; //对一些需要在系统启动时初始化的subsys进行初始化<br />
+&nbsp; &nbsp; for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup_subsys *ss = subsys<i>;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;BUG_ON(!ss-&gt;name);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;BUG_ON(strlen(ss-&gt;name) &gt; MAX_CGROUP_TYPE_NAMELEN);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;BUG_ON(!ss-&gt;create);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;BUG_ON(!ss-&gt;destroy);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (ss-&gt;subsys_id != i) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;printk(KERN_ERR &quot;cgroup: Subsys %s id == %d\n&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; ss-&gt;name, ss-&gt;subsys_id);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;BUG();<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (ss-&gt;early_init)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;cgroup_init_subsys(ss);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+这里主要是初始化init_task.cgroup结构.伴随着它的初始化.相继需要初始化rootnode和init_css_set.接着,又需要初始化init_css_set_link将rootnode.top_cgroup和init_css_set关联起来.<br />
+接着初始化了哈希数组css_set_table[]并且将一些需要在系统刚启动时候需要初始化的subsys进行初始化.<br />
+从上面的代码可以看到.系统中的cgroup subsystem都存放在subsys[].定义如下:<br />
+static struct cgroup_subsys *subsys[] = {<br />
+#include <br />
+}<br />
+即所有的subsys都定义在linux/cgroup_subsys.h中.<br />
+ <br />
+对照之前分析的数据结构,应该不难理解这段代码.下面来分析一下里面所遇到的一些重要的子函数.<br />
+ <br />
+Init_cgroup_root()代码如下:<br />
+static void init_cgroup_root(struct cgroupfs_root *root)<br />
+{<br />
+&nbsp; &nbsp; struct cgroup *cgrp = &amp;root-&gt;top_cgroup;<br />
+&nbsp; &nbsp; INIT_LIST_HEAD(&amp;root-&gt;subsys_list);<br />
+&nbsp; &nbsp; INIT_LIST_HEAD(&amp;root-&gt;root_list);<br />
+&nbsp; &nbsp; root-&gt;number_of_cgroups = 1;<br />
+&nbsp; &nbsp; cgrp-&gt;root = root;<br />
+&nbsp; &nbsp; cgrp-&gt;top_cgroup = cgrp;<br />
+&nbsp; &nbsp; init_cgroup_housekeeping(cgrp);<br />
+}<br />
+它先初始化root中的几条链表.因为root中有一个top_cgroup.因此将root-&gt;number_of_cgroups置为1.然后,对root-&gt;top_cgroup进行初始化.使root-&gt;top_cgroup.root指向root. root-&gt;top_cgroup.top_cgroup指向它的本身.因为root-&gt;top_cgroup就是目录下的第一个cgroup.<br />
+最后在init_cgroup_housekeeping()初始化cgroup的链表和读写锁.<br />
+ <br />
+Cgroup_init_subsys()代码如下:<br />
+static void __init cgroup_init_subsys(struct cgroup_subsys *ss)<br />
+{<br />
+&nbsp; &nbsp; struct cgroup_subsys_state *css;<br />
+ <br />
+&nbsp; &nbsp; printk(KERN_INFO &quot;Initializing cgroup subsys %s\n&quot;, ss-&gt;name);<br />
+ <br />
+&nbsp; &nbsp; /* Create the top cgroup state for this subsystem */<br />
+&nbsp; &nbsp; ss-&gt;root = &amp;rootnode;<br />
+&nbsp; &nbsp; css = ss-&gt;create(ss, dummytop);<br />
+&nbsp; &nbsp; /* We don't handle early failures gracefully */<br />
+&nbsp; &nbsp; BUG_ON(IS_ERR(css));<br />
+&nbsp; &nbsp; init_cgroup_css(css, ss, dummytop);<br />
+ <br />
+&nbsp; &nbsp; /* Update the init_css_set to contain a subsys<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* pointer to this state - since the subsystem is<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* newly registered, all tasks and hence the<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* init_css_set is in the subsystem's top cgroup. */<br />
+&nbsp; &nbsp; init_css_set.subsys[ss-&gt;subsys_id] = dummytop-&gt;subsys[ss-&gt;subsys_id];<br />
+ <br />
+&nbsp; &nbsp; need_forkexit_callback |= ss-&gt;fork || ss-&gt;exit;<br />
+&nbsp; &nbsp; need_mm_owner_callback |= !!ss-&gt;mm_owner_changed;<br />
+ <br />
+&nbsp; &nbsp; /* At system boot, before all subsystems have been<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* registered, no tasks have been forked, so we don't<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* need to invoke fork callbacks here. */<br />
+&nbsp; &nbsp; BUG_ON(!list_empty(&amp;init_task.tasks));<br />
+ <br />
+&nbsp; &nbsp; ss-&gt;active = 1;<br />
+}<br />
+dummytop定义如下:<br />
+#define dummytop (&amp;rootnode.top_cgroup)<br />
+在这个函数中:<br />
+1):将每个要注册的subsys-&gt;root都指向rootnode.<br />
+2):调用subsys-&gt;create()生成一个cgroup_subsys_state.<br />
+3):调用init_cgroup_css()将dummytop.subsys<i>设置成ss-&gt;create()生成的cgroup_subsys_state<br />
+4):更新init_css_set-&gt;subsys()对应项的值.<br />
+5):将ss-&gt;active设为1.表示它已经初始化了.<br />
+ <br />
+4.2: cgroup_init()<br />
+cgroup_init()是cgroup的第二阶段的初始化.代码如下:<br />
+int __init cgroup_init(void)<br />
+{<br />
+&nbsp; &nbsp; int err;<br />
+&nbsp; &nbsp; int i;<br />
+&nbsp; &nbsp; struct hlist_head *hhead;<br />
+ <br />
+&nbsp; &nbsp; err = bdi_init(&amp;cgroup_backing_dev_info);<br />
+&nbsp; &nbsp; if (err)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return err;<br />
+&nbsp; &nbsp; //将剩下的(不需要在系统启动时初始化的subsys)的subsys进行初始化<br />
+&nbsp; &nbsp; for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup_subsys *ss = subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!ss-&gt;early_init)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;cgroup_init_subsys(ss);<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; /* Add init_css_set to the hash table */<br />
+&nbsp; &nbsp; //将init_css_set添加到css_set_table[ ]<br />
+&nbsp; &nbsp; hhead = css_set_hash(init_css_set.subsys);<br />
+&nbsp; &nbsp; hlist_add_head(&amp;init_css_set.hlist, hhead);<br />
+&nbsp; &nbsp; //注册cgroup文件系统<br />
+&nbsp; &nbsp; err = register_filesystem(&amp;cgroup_fs_type);<br />
+&nbsp; &nbsp; if (err <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;goto out;<br />
+&nbsp; &nbsp; //在proc文件系统的根目录下创建一个名为cgroups的文件<br />
+&nbsp; &nbsp; proc_create(&quot;cgroups&quot;, 0, NULL, &amp;proc_cgroupstats_operations);<br />
+ <br />
+out:<br />
+&nbsp; &nbsp; if (err)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;bdi_destroy(&amp;cgroup_backing_dev_info);<br />
+ <br />
+&nbsp; &nbsp; return err;<br />
+}<br />
+这个函数比较简单.首先.它将剩余的subsys初始化.然后将init_css_set添加进哈希数组css_set_table[ ]中.在上面的代码中css_set_hash()是css_set_table的哈希函数.它是css_set-&gt;subsys为哈希键值,到css_set_table[ ]中找到对应项.然后调用hlist_add_head()将init_css_set添加到冲突项中.<br />
+然后,注册了cgroup文件系统.这个文件系统也是我们在用户空间使用cgroup时必须挂载的.<br />
+最后,在proc的根目录下创建了一个名为cgroups的文件.用来从用户空间观察cgroup的状态.<br />
+ <br />
+经过cgroup的两个阶段的初始化, init_css_set, rootnode,subsys已经都初始化完成.表面上看起来它们很复杂,其实,它们只是表示cgroup的初始化状态而已.例如,如果subsys-&gt;root等于rootnode,那表示subsys没有被其它的cgroup所使用.<br />
+五:父子进程之间的cgroup关联<br />
+在上面看到的代码中.将init_task.cgroup设置为了init_css_set.我们知道,init_task是系统的第一个进程.所有的过程都是由它创建的.init_task.cgroup到底会在它后面的子进程造成什么样的影响呢?接下来我们就来分析这个问题.<br />
+5.1:创建进程时的父子进程cgroup关联<br />
+在进程创建的时候,有:do_fork()àcopy_process(),有如下代码片段:<br />
+static struct task_struct *copy_process(unsigned long clone_flags,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;unsigned long stack_start,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct pt_regs *regs,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;unsigned long stack_size,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int __user *child_tidptr,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct pid *pid,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int trace)<br />
+{<br />
+&nbsp; &nbsp; ……<br />
+&nbsp; &nbsp; ……<br />
+&nbsp; &nbsp; cgroup_fork(p);<br />
+&nbsp; &nbsp; ……<br />
+&nbsp; &nbsp; cgroup_fork_callbacks(p);<br />
+&nbsp; &nbsp; ……<br />
+&nbsp; &nbsp; cgroup_post_fork(p);<br />
+&nbsp; &nbsp; ……<br />
+}<br />
+上面的代码片段是创建新进程的时候与cgroup关联的函数.挨个分析如下:<br />
+void cgroup_fork(struct task_struct *child)<br />
+{<br />
+&nbsp; &nbsp; task_lock(current);<br />
+&nbsp; &nbsp; child-&gt;cgroups = current-&gt;cgroups;<br />
+&nbsp; &nbsp; get_css_set(child-&gt;cgroups);<br />
+&nbsp; &nbsp; task_unlock(current);<br />
+&nbsp; &nbsp; INIT_LIST_HEAD(&amp;child-&gt;cg_list);<br />
+}<br />
+如上面代码所示,子进程和父进程指向同一个cgroups.并且由于增加了一次引用.所以要调用get_css_set()来增加它的引用计数.最后初始化child-&gt;cg_list链表.<br />
+如代码注释上说的,这里就有一个问题了:在dup_task_struct()为子进程创建struct task_struct的时候不是已经复制了父进程的cgroups么?为什么这里还要对它进行一次赋值呢?这里因为在dup_task_struct()中没有持有保护锁.而这里又是一个竞争操作.因为在cgroup_attach_task()中可能会更改进程的cgroups指向.因此通过cgroup_attach_task()所得到的cgroups可能是一个无效的指向.在递增其引用计数的时候就会因为它是一个无效的引用而发生错误.所以,这个函数在加锁的情况下进行操作.确保了父子进程之间的同步.<br />
+ <br />
+cgroup_fork_callbacks()代码如下,<br />
+void cgroup_fork_callbacks(struct task_struct *child)<br />
+{<br />
+&nbsp; &nbsp; if (need_forkexit_callback) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int i;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct cgroup_subsys *ss = subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;if (ss-&gt;fork)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; ss-&gt;fork(ss, child);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+}<br />
+它主要是在进程创建时调用subsys中的跟踪函数:subsys-&gt;fork().<br />
+首先来跟踪一下need_forkexita_callback这个变量.在如下代码片段中:<br />
+static void __init cgroup_init_subsys(struct cgroup_subsys *ss)<br />
+{<br />
+&nbsp; &nbsp; ……<br />
+&nbsp; &nbsp; need_forkexit_callback |= ss-&gt;fork || ss-&gt;exit;<br />
+&nbsp; &nbsp; ……<br />
+}<br />
+从这段代码中我们可以看到,如果有subsys定义了fork和exit函数,就会调need_forkexit_callback设置为1.<br />
+回到cgroup_fork_callback()这个函数中.我们发现.进程会跟所有定义了fork的subsys进行这次操作.就算进程没有在这个subsys中,也会有这个操作.<br />
+ <br />
+Cgroup_pos_fork()如下所示:<br />
+void cgroup_post_fork(struct task_struct *child)<br />
+{<br />
+&nbsp; &nbsp; if (use_task_css_set_links) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;write_lock(&amp;css_set_lock);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (list_empty(&amp;child-&gt;cg_list))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;list_add(&amp;child-&gt;cg_list, &amp;child-&gt;cgroups-&gt;tasks);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;write_unlock(&amp;css_set_lock);<br />
+&nbsp; &nbsp; }<br />
+在use_task_css_set_link为1的情况下.就将子进程链入到它所指向的css_set-&gt;task链表.<br />
+那什么时候会将use_task_css_set_link设置为1呢?实际上,当你往cgroup中添加进程的时候就会将其置1了.<br />
+例如我们之前举的一个例子中:<br />
+echo $$ &gt; /dev/cgroup/eric_task/tasks<br />
+这个过程就会将use_task_css_set_link置1了.这个过程我们之后再来详细分析.<br />
+ <br />
+5.2:子进程结束时的操作<br />
+子进程结束的时候,有:<br />
+Do_exit() à cgroup_exit().<br />
+Cgroup_exit()代码如下:<br />
+void cgroup_exit(struct task_struct *tsk, int run_callbacks)<br />
+{<br />
+&nbsp; &nbsp; int i;<br />
+&nbsp; &nbsp; struct css_set *cg;<br />
+ <br />
+&nbsp; &nbsp; if (run_callbacks &amp;&amp; need_forkexit_callback) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct cgroup_subsys *ss = subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;if (ss-&gt;exit)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; ss-&gt;exit(ss, tsk);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; /*<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* Unlink from the css_set task list if necessary.<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* Optimistically check cg_list before taking<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* css_set_lock<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp; if (!list_empty(&amp;tsk-&gt;cg_list)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;write_lock(&amp;css_set_lock);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!list_empty(&amp;tsk-&gt;cg_list))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;list_del(&amp;tsk-&gt;cg_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;write_unlock(&amp;css_set_lock);<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; /* Reassign the task to the init_css_set. */<br />
+&nbsp; &nbsp; task_lock(tsk);<br />
+&nbsp; &nbsp; cg = tsk-&gt;cgroups;<br />
+&nbsp; &nbsp; tsk-&gt;cgroups = &amp;init_css_set;<br />
+&nbsp; &nbsp; task_unlock(tsk);<br />
+&nbsp; &nbsp; if (cg)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;put_css_set_taskexit(cg);<br />
+}<br />
+这个函数的代码逻辑比较清晰.首先,如果以1为调用参数(run_callbacks为1),且有定义了exit操作的subsys.就调用这个subsys的exit操作.<br />
+然后断开task-&gt;cg_list链表.将其从所指向的css_set-&gt;task链上断开.<br />
+最后,断开当前的cgroup指向.将其指向init_css_set.也就是将其回复到初始状态.最后,减少旧指向css_set的引用计数.<br />
+ <br />
+在这个函数中,我们来跟踪分析put_css_set_taskexit(),代码如下:<br />
+static inline void put_css_set_taskexit(struct css_set *cg)<br />
+{<br />
+&nbsp; &nbsp; __put_css_set(cg, 1);<br />
+}<br />
+ <br />
+跟踪到__put_css_set()中:<br />
+static void __put_css_set(struct css_set *cg, int taskexit)<br />
+{<br />
+&nbsp; &nbsp; int i;<br />
+&nbsp; &nbsp; /*<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* Ensure that the refcount doesn't hit zero while any readers<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* can see it. Similar to atomic_dec_and_lock(), but for an<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* rwlock<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp; if (atomic_add_unless(&amp;cg-&gt;refcount, -1, 1))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return;<br />
+&nbsp; &nbsp; write_lock(&amp;css_set_lock);<br />
+&nbsp; &nbsp; if (!atomic_dec_and_test(&amp;cg-&gt;refcount)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;write_unlock(&amp;css_set_lock);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return;<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; unlink_css_set(cg);<br />
+&nbsp; &nbsp; write_unlock(&amp;css_set_lock);<br />
+ <br />
+&nbsp; &nbsp; rcu_read_lock();<br />
+&nbsp; &nbsp; for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup *cgrp = cg-&gt;subsys<i>-&gt;cgroup;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (atomic_dec_and_test(&amp;cgrp-&gt;count) &amp;&amp;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;notify_on_release(cgrp)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;if (taskexit)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; set_bit(CGRP_RELEASABLE, &amp;cgrp-&gt;flags);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;check_for_release(cgrp);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; rcu_read_unlock();<br />
+&nbsp; &nbsp; kfree(cg);<br />
+}<br />
+atomic_add_unless(v,a,u)表示如果v的值不为u就加a.返回1.如果v的值等于u就返回0<br />
+因此,这个函数首先减小css_set的引用计数.如果css_set的引用计数为1.就会将css_set释放掉了. 要释放css_set.首先要释放css_set上挂载的链表.再释放css_set结构本身所占空间.<br />
+释放css_set上的挂载链表是在unlink_css_set()中完成的.代码如下:<br />
+static void unlink_css_set(struct css_set *cg)<br />
+{<br />
+&nbsp; &nbsp; struct cg_cgroup_link *link;<br />
+&nbsp; &nbsp; struct cg_cgroup_link *saved_link;<br />
+ <br />
+&nbsp; &nbsp; hlist_del(&amp;cg-&gt;hlist);<br />
+&nbsp; &nbsp; css_set_count--;<br />
+ <br />
+&nbsp; &nbsp; list_for_each_entry_safe(link, saved_link, &amp;cg-&gt;cg_links,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;cg_link_list) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;list_del(&amp;link-&gt;cg_link_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;list_del(&amp;link-&gt;cgrp_link_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;kfree(link);<br />
+&nbsp; &nbsp; }<br />
+}<br />
+它首先将cg-&gt;hlist断开,也就是将其从css_set_table[ ]中删除.然后减小css_set_count计数.最后遍历删除与css_set关联的cg_cgroup_link.<br />
+另外,在这个函数中还涉及到了notify_on_release的操作.在后面再来详细分析这一过程.这里先把它放一下.<br />
+六:cgroup文件系统的挂载<br />
+Cgroup文件系统定义如下:<br />
+static struct file_system_type cgroup_fs_type = {<br />
+&nbsp; &nbsp; .name = &quot;cgroup&quot;,<br />
+&nbsp; &nbsp; .get_sb = cgroup_get_sb,<br />
+&nbsp; &nbsp; .kill_sb = cgroup_kill_sb,<br />
+}<br />
+根据我们之前有关linux文件系统系列的文析.在挂载文件系统的时候,流程会流入file_system_type.get_sb().也就是cgroup_get_sb().由于该代码较长.分段分析如下:<br />
+static int cgroup_get_sb(struct file_system_type *fs_type,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; int flags, const char *unused_dev_name,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; void *data, struct vfsmount *mnt)<br />
+{<br />
+&nbsp; &nbsp; struct cgroup_sb_opts opts;<br />
+&nbsp; &nbsp; int ret = 0;<br />
+&nbsp; &nbsp; struct super_block *sb;<br />
+&nbsp; &nbsp; struct cgroupfs_root *root;<br />
+&nbsp; &nbsp; struct list_head tmp_cg_links;<br />
+ <br />
+&nbsp; &nbsp; /* First find the desired set of subsystems */<br />
+&nbsp; &nbsp; //解析挂载参数<br />
+&nbsp; &nbsp; ret = parse_cgroupfs_options(data, &amp;opts);<br />
+&nbsp; &nbsp; if (ret) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (opts.release_agent)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;kfree(opts.release_agent);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return ret;<br />
+&nbsp; &nbsp; }<br />
+在这一部份,解析挂载的参数,并将解析的结果存放到opts.opts-&gt; subsys_bits表示指定关联的subsys位图,opts-&gt;flags:挂载的标志: opts-&gt;release_agent表示指定的release_agent路径.<br />
+ <br />
+&nbsp; &nbsp; //分配并初始化cgroufs_root<br />
+&nbsp; &nbsp; root = kzalloc(sizeof(*root), GFP_KERNEL);<br />
+&nbsp; &nbsp; if (!root) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (opts.release_agent)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;kfree(opts.release_agent);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ENOMEM;<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; init_cgroup_root(root);<br />
+&nbsp; &nbsp; /*root-&gt;subsys_bits: 该hierarchy上关联的subsys*/<br />
+&nbsp; &nbsp; root-&gt;subsys_bits = opts.subsys_bits;<br />
+&nbsp; &nbsp; root-&gt;flags = opts.flags;<br />
+&nbsp; &nbsp; /*如果带了release_agent参数,将其copy到root0<br />
+&nbsp; &nbsp; if (opts.release_agent) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;strcpy(root-&gt;release_agent_path, opts.release_agent);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;kfree(opts.release_agent);<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; /*初始化一个super block*/<br />
+&nbsp; &nbsp; sb = sget(fs_type, cgroup_test_super, cgroup_set_super, root);<br />
+ <br />
+&nbsp; &nbsp; /*如果发生错误*/<br />
+&nbsp; &nbsp; if (IS_ERR(sb)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;kfree(root);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return PTR_ERR(sb);<br />
+&nbsp; &nbsp; }<br />
+在这一部份,主要分配并初始化了一个cgroupfs_root结构.里面的子函数init_cgroup_root()我们在之前已经分析过,这里不再赘述.其实的初始化包括:设置与之关联的subsys位图,挂载标志和release_agent路径.然后再调用sget()生成一个super_block结构.调用cgroup_test_super来判断系统中是否有机同的cgroups_root.调用cgroup_set_super来对super_block进行初始化.<br />
+在cgroup_set_super()中,将sb-&gt;s_fs_info 指向了cgroutfs_root,cgroufs_root.sb指向生成的super_block.<br />
+类似的.如果找到的super_block相关联的cgroupfs_root所表示的subsys_bits和flags与当前cgroupfs_root相同的话,就表示是一个相同的super_block.因为它们的挂载参数是一样的.<br />
+举个例子来说明一下有重复super_block的情况:<br />
+[root@localhost ~]# mount -t cgroup cgroup -o debug /dev/cgroup/<br />
+[root@localhost ~]# mount -t cgroup cgroup -o debug /dev/eric_cgroup/<br />
+在上面的例子中,在挂载到/dev/eric_cgroup目录的时候,就会找到一个相同的super_block.这样实例上两者的操作是一样的.这两个不同挂载点所代码的vfsmount会找到同一个super_block.也就是说对其中一个目录的操作都会同表现在另一个目录中.<br />
+ <br />
+&nbsp; &nbsp; /*重复挂载*/<br />
+&nbsp; &nbsp; if (sb-&gt;s_fs_info != root) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* Reusing an existing superblock */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;BUG_ON(sb-&gt;s_root == NULL);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;kfree(root);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;root = NULL;<br />
+&nbsp; &nbsp; } else {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* New superblock */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup *cgrp = &amp;root-&gt;top_cgroup;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct inode *inode;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int i;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;BUG_ON(sb-&gt;s_root != NULL);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*初始化super_block对应的dentry和inode*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;ret = cgroup_get_rootdir(sb);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (ret)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;goto drop_new_super;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;inode = sb-&gt;s_root-&gt;d_inode;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;mutex_lock(&amp;inode-&gt;i_mutex);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;mutex_lock(&amp;cgroup_mutex);<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* We're accessing css_set_count without locking<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* css_set_lock here, but that's OK - it can only be<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* increased by someone holding cgroup_lock, and<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* that's us. The worst that can happen is that we<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* have some link structures left over<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/*分配css_set_count个cg_cgroup_link并将它们链入到tmp_cg_links*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;ret = allocate_cg_links(css_set_count, &amp;tmp_cg_links);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (ret) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;mutex_unlock(&amp;cgroup_mutex);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;mutex_unlock(&amp;inode-&gt;i_mutex);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;goto drop_new_super;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*bind subsys 到hierarchy*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;ret = rebind_subsystems(root, root-&gt;subsys_bits);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (ret == -EBUSY) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;mutex_unlock(&amp;cgroup_mutex);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;mutex_unlock(&amp;inode-&gt;i_mutex);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;goto drop_new_super;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* EBUSY should be the only error here */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;BUG_ON(ret);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*将root添加到roots链入.增加root_count计数*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;list_add(&amp;root-&gt;root_list, &amp;roots);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;root_count++;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*将挂载根目录dentry的私有结构d_fsdata反映向root-&gt;top_cgroup*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*将root-&gt;top_cgroup.dentry指向挂载的根目录*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;sb-&gt;s_root-&gt;d_fsdata = &amp;root-&gt;top_cgroup;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;root-&gt;top_cgroup.dentry = sb-&gt;s_root;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* Link the top cgroup in this hierarchy into all<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* the css_set objects */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/*将所有的css_set都和root-&gt;top_cgroup关联起来*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;write_lock(&amp;css_set_lock);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct hlist_head *hhead = &amp;css_set_table<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct hlist_node *node;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct css_set *cg;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;hlist_for_each_entry(cg, node, hhead, hlist) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; struct cg_cgroup_link *link;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; BUG_ON(list_empty(&amp;tmp_cg_links));<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; link = list_entry(tmp_cg_links.next,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cg_cgroup_link,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;cgrp_link_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; list_del(&amp;link-&gt;cgrp_link_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; link-&gt;cg = cg;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; list_add(&amp;link-&gt;cgrp_link_list,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&amp;root-&gt;top_cgroup.css_sets);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; list_add(&amp;link-&gt;cg_link_list, &amp;cg-&gt;cg_links);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;}<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;write_unlock(&amp;css_set_lock);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*释放tmp_cg_links的多余项*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;free_cg_links(&amp;tmp_cg_links);<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;BUG_ON(!list_empty(&amp;cgrp-&gt;sibling));<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;BUG_ON(!list_empty(&amp;cgrp-&gt;children));<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;BUG_ON(root-&gt;number_of_cgroups != 1);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*在root-&gt;top_cgroup下面创建一些文件,包括cgroup共有的和subsys私有的文件*/&nbsp;&nbsp;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;cgroup_populate_dir(cgrp);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;mutex_unlock(&amp;inode-&gt;i_mutex);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;mutex_unlock(&amp;cgroup_mutex);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; /*将vfsmount和super_block关联起来*/<br />
+&nbsp; &nbsp; return simple_set_mnt(mnt, sb);<br />
+ <br />
+ drop_new_super:<br />
+&nbsp; &nbsp; up_write(&amp;sb-&gt;s_umount);<br />
+&nbsp; &nbsp; deactivate_super(sb);<br />
+&nbsp; &nbsp; free_cg_links(&amp;tmp_cg_links);<br />
+&nbsp; &nbsp; return ret;<br />
+}<br />
+这一部份,首先判断找到的super_block是不是之前就存在的.如果是已经存在的,那就用不着再初始化一个cgroupfs_root结构了.将之前分配的结构释放掉.然后调用simple_set_mnt()将取得的super_block和vfsmount相关联后退出.<br />
+如果super_block是一个新建的.那么就必须要继续初始化cgroupfs_root了.<br />
+首先,调用cgroup_get_rootdir()初始化super_block对应的dentry和inode.<br />
+然后,调用rebind_subsystems()将需要关联到hierarchy的subsys和root-&gt;top_cgroup绑定起来.<br />
+最后,将所有的css_set都和root-&gt;top_cgroup关联起来.这样就可以从root-&gt;top_cgroup找到所有的进程了.再调用cgroup_populate_dir()在挂载目录下创建一些文件,然后,调用simple_set_mnt()将取得的super_block和vfsmount相关联后退出.<br />
+ <br />
+这个函数的流程还算简单.下面来分析一下里面涉及到的重要的子函数:<br />
+6.1: parse_cgroupfs_options()函数分析<br />
+这个函数主要是对挂载的参数进行解析.函数代码如下:<br />
+static int parse_cgroupfs_options(char *data,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct cgroup_sb_opts *opts)<br />
+{<br />
+&nbsp; &nbsp; /*如果挂载的时候没有带参数,将o设为&quot;all&quot;.表示将所有<br />
+&nbsp; &nbsp;&nbsp; &nbsp;*的subsys都与之关联<br />
+&nbsp; &nbsp;&nbsp; &nbsp;*/<br />
+&nbsp; &nbsp; char *token, *o = data ?: &quot;all&quot;;<br />
+ <br />
+&nbsp; &nbsp; opts-&gt;subsys_bits = 0;<br />
+&nbsp; &nbsp; opts-&gt;flags = 0;<br />
+&nbsp; &nbsp; opts-&gt;release_agent = NULL;<br />
+ <br />
+&nbsp; &nbsp; /*各参数是以&quot;,&quot;分隔的*/<br />
+&nbsp; &nbsp; while ((token = strsep(&amp;o, &quot;,&quot;)) != NULL) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!*token)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;return -EINVAL;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*如果为all.表示关联所有的subsys*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!strcmp(token, &quot;all&quot;)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/* Add all non-disabled subsystems */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;int i;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;opts-&gt;subsys_bits = 0;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; struct cgroup_subsys *ss = subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; if (!ss-&gt;disabled)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;opts-&gt;subsys_bits |= 1ul <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;}<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*如果指定参数noprefix.设定ROOT_NOPREFIX标志*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*在指定noprefix的情况下.subsys创建的文件不会带subsys名称的前缀*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;else if (!strcmp(token, &quot;noprefix&quot;)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;set_bit(ROOT_NOPREFIX, &amp;opts-&gt;flags);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*如果指定了release_agent.分opt-&gt;release_agent分配内存,并将参数copy到里面*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;else if (!strncmp(token, &quot;release_agent=&quot;, 14)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/* Specifying two release agents is forbidden */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;if (opts-&gt;release_agent)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; return -EINVAL;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;opts-&gt;release_agent = kzalloc(PATH_MAX, GFP_KERNEL);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;if (!opts-&gt;release_agent)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; return -ENOMEM;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;strncpy(opts-&gt;release_agent, token + 14, PATH_MAX - 1);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;opts-&gt;release_agent[PATH_MAX - 1] = 0;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/*其它情况下,将所带参数做为一个susys名处理.到sussys[]找到<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;*对应的subsys.然后将opts-&gt;subsys_bits中的位置1<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;else {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct cgroup_subsys *ss;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;int i;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; ss = subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; if (!strcmp(token, ss-&gt;name)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!ss-&gt;disabled)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;set_bit(i, &amp;opts-&gt;subsys_bits);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;break;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; }<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;}<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;if (i == CGROUP_SUBSYS_COUNT)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; return -ENOENT;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; /* We can't have an empty hierarchy */<br />
+&nbsp; &nbsp; /*如果没有关联到subsys.错误*/<br />
+&nbsp; &nbsp; if (!opts-&gt;subsys_bits)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -EINVAL;<br />
+ <br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+对照代码中添加的注释应该很容易看懂.这里就不再做详细分析了.<br />
+ <br />
+6.2: rebind_subsystems()函数分析<br />
+rebind_subsystems()用来将cgroupfs_root和subsys绑定.代码如下:<br />
+static int rebind_subsystems(struct cgroupfs_root *root,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;unsigned long final_bits)<br />
+{<br />
+&nbsp; &nbsp; unsigned long added_bits, removed_bits;<br />
+&nbsp; &nbsp; struct cgroup *cgrp = &amp;root-&gt;top_cgroup;<br />
+&nbsp; &nbsp; int i;<br />
+ <br />
+&nbsp; &nbsp; /*root-&gt;actual_subsys_bits表示当进root中所关键的subsys位图*/<br />
+&nbsp; &nbsp;&nbsp;&nbsp;/*如果在root-&gt;actual_subsys_bits中.但没有在final_bits中.表示这是<br />
+&nbsp; &nbsp; *一次remonut的操作.需要将旧的subsys移除.如果在final_bits中<br />
+&nbsp; &nbsp; *存在,但没有在root-&gt;actual_subsys_bits中,表示是需要添加的.<br />
+&nbsp; &nbsp; */<br />
+&nbsp; &nbsp; removed_bits = root-&gt;actual_subsys_bits &amp; ~final_bits;<br />
+&nbsp; &nbsp; added_bits = final_bits &amp; ~root-&gt;actual_subsys_bits;<br />
+&nbsp; &nbsp; /* Check that any added subsystems are currently free */<br />
+&nbsp; &nbsp;&nbsp;&nbsp;/*如果要关联的subsys已经在其它的hierarchy中了.失败.<br />
+&nbsp; &nbsp; *如果ss-&gt;root != &amp;rootnode表示ss已经链入了其它的cgroupfs_root<br />
+&nbsp; &nbsp; */<br />
+&nbsp; &nbsp; for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;unsigned long bit = 1UL <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup_subsys *ss = subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!(bit &amp; added_bits))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;continue;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (ss-&gt;root != &amp;rootnode) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/* Subsystem isn't free */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;return -EBUSY;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; /* Currently we don't handle adding/removing subsystems when<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* any child cgroups exist. This is theoretically supportable<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* but involves complex error handling, so it's being left until<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* later */<br />
+&nbsp; &nbsp;&nbsp;&nbsp;/*如果root-&gt;top_cgroup-&gt;children不为空.表示该hierarchy还要其它的cgroup<br />
+&nbsp; &nbsp; *是不能被remount的.(新挂载的root-&gt;top_cgroup在初始化的时候将children置空了)<br />
+&nbsp; &nbsp; */<br />
+&nbsp; &nbsp; if (!list_empty(&amp;cgrp-&gt;children))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -EBUSY;<br />
+ <br />
+&nbsp; &nbsp; /* Process each subsystem */<br />
+&nbsp; &nbsp; for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup_subsys *ss = subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;unsigned long bit = 1UL <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*添加subsys的情况*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (bit &amp; added_bits) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/* We're binding this subsystem to this hierarchy */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/* 添加情况下.将cgrp-&gt;subsys<i>指向dummytop-&gt;subsys<i> <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;* 并更新dummytop-&gt;subsys<i>-&gt;root.将其指向要添加的root<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;* 最后调用subsys-&gt;bind()操作<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;BUG_ON(cgrp-&gt;subsys<i>);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;BUG_ON(!dummytop-&gt;subsys<i>);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;BUG_ON(dummytop-&gt;subsys<i>-&gt;cgroup != dummytop);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;cgrp-&gt;subsys<i> = dummytop-&gt;subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;cgrp-&gt;subsys<i>-&gt;cgroup = cgrp;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;list_add(&amp;ss-&gt;sibling, &amp;root-&gt;subsys_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;rcu_assign_pointer(ss-&gt;root, root);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;if (ss-&gt;bind)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; ss-&gt;bind(ss, cgrp);<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*移除subsys的情况*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;else if (bit &amp; removed_bits) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/* 移除操作,将对应的cgroup_subsys_state回归到原来的样子.并且也需要<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;* 将与其subsys bind<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/* We're removing this subsystem */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;BUG_ON(cgrp-&gt;subsys<i> != dummytop-&gt;subsys<i>);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;BUG_ON(cgrp-&gt;subsys<i>-&gt;cgroup != cgrp);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;if (ss-&gt;bind)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; ss-&gt;bind(ss, dummytop);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;dummytop-&gt;subsys<i>-&gt;cgroup = dummytop;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;cgrp-&gt;subsys<i> = NULL;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;rcu_assign_pointer(subsys<i>-&gt;root, &amp;rootnode);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;list_del(&amp;ss-&gt;sibling);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;} else if (bit &amp; final_bits) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/* Subsystem state should already exist */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;BUG_ON(!cgrp-&gt;subsys<i>);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;} else {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/* Subsystem state shouldn't exist */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;BUG_ON(cgrp-&gt;subsys<i>);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; /*更新root的位图*/<br />
+&nbsp; &nbsp; root-&gt;subsys_bits = root-&gt;actual_subsys_bits = final_bits;<br />
+&nbsp; &nbsp; synchronize_rcu();<br />
+ <br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+从这个函数也可以看出来.rootnode就是起一个参照的作用.用来判断subsys是否处于初始化状态.<br />
+ <br />
+6.3: cgroup_populate_dir()函数分析<br />
+cgroup_populate_dir()用来在挂载目录下创建交互文件.代码如下:<br />
+static int cgroup_populate_dir(struct cgroup *cgrp)<br />
+{<br />
+&nbsp; &nbsp; int err;<br />
+&nbsp; &nbsp; struct cgroup_subsys *ss;<br />
+ <br />
+&nbsp; &nbsp; /* First clear out any existing files */<br />
+&nbsp; &nbsp; /*先将cgrp所在的目录清空*/<br />
+&nbsp; &nbsp; cgroup_clear_directory(cgrp-&gt;dentry);<br />
+ <br />
+&nbsp; &nbsp; /*创建files所代码的几个文件*/<br />
+&nbsp; &nbsp; err = cgroup_add_files(cgrp, NULL, files, ARRAY_SIZE(files));<br />
+&nbsp; &nbsp; if (err <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return err;<br />
+&nbsp; &nbsp; /*如果是顶层top_cgroup.创建cft_release_agent所代码的文件*/<br />
+&nbsp; &nbsp; if (cgrp == cgrp-&gt;top_cgroup) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if ((err = cgroup_add_file(cgrp, NULL, &amp;cft_release_agent)) <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;return err;<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; /*对所有与cgrp-&gt;root关联的subsys都调用populate()*/<br />
+&nbsp; &nbsp; for_each_subsys(cgrp-&gt;root, ss) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (ss-&gt;populate &amp;&amp; (err = ss-&gt;populate(ss, cgrp)) <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;return err;<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+这个函数比较简单.跟踪cgroup_add_file().如下:<br />
+nt cgroup_add_file(struct cgroup *cgrp,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct cgroup_subsys *subsys,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;const struct cftype *cft)<br />
+{<br />
+&nbsp; &nbsp; struct dentry *dir = cgrp-&gt;dentry;<br />
+&nbsp; &nbsp; struct dentry *dentry;<br />
+&nbsp; &nbsp; int error;<br />
+ <br />
+&nbsp; &nbsp; char name[MAX_CGROUP_TYPE_NAMELEN + MAX_CFTYPE_NAME + 2] = { 0 };<br />
+&nbsp; &nbsp; /*如果有指定subsys.且没有使用ROOT_NOPREFIX标志.需要在名称前加上<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*subsys的名称<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp; if (subsys &amp;&amp; !test_bit(ROOT_NOPREFIX, &amp;cgrp-&gt;root-&gt;flags)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;strcpy(name, subsys-&gt;name);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;strcat(name, &quot;.&quot;);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; /*将cft-&gt;name链接到name代表的字串后面*/<br />
+&nbsp; &nbsp; strcat(name, cft-&gt;name);<br />
+&nbsp; &nbsp; BUG_ON(!mutex_is_locked(&amp;dir-&gt;d_inode-&gt;i_mutex));<br />
+&nbsp; &nbsp; /*到cgroup所在的目录下寻找name所表示的dentry,如果不存在,则新建之*/<br />
+&nbsp; &nbsp; dentry = lookup_one_len(name, dir, strlen(name));<br />
+&nbsp; &nbsp; if (!IS_ERR(dentry)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*创建文件inode*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;error = cgroup_create_file(dentry, 0644 | S_IFREG,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;cgrp-&gt;root-&gt;sb);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*使dentry-&gt;d_fsdata指向文件所代表的cftype*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!error)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;dentry-&gt;d_fsdata = (void *)cft;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;dput(dentry);<br />
+&nbsp; &nbsp; } else<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;error = PTR_ERR(dentry);<br />
+&nbsp; &nbsp; return error;<br />
+}<br />
+ <br />
+cgroup_create_file()函数代码如下:<br />
+static int cgroup_create_file(struct dentry *dentry, int mode,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; struct super_block *sb)<br />
+{<br />
+&nbsp; &nbsp; static struct dentry_operations cgroup_dops = {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.d_iput = cgroup_diput,<br />
+&nbsp; &nbsp; };<br />
+ <br />
+&nbsp; &nbsp; struct inode *inode;<br />
+ <br />
+&nbsp; &nbsp; if (!dentry)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ENOENT;<br />
+&nbsp; &nbsp; if (dentry-&gt;d_inode)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -EEXIST;<br />
+&nbsp; &nbsp; /*分配一个inode*/<br />
+&nbsp; &nbsp; inode = cgroup_new_inode(mode, sb);<br />
+&nbsp; &nbsp; if (!inode)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ENOMEM;<br />
+&nbsp; &nbsp; /*如果新建的是目录*/<br />
+&nbsp; &nbsp; if (S_ISDIR(mode)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;inode-&gt;i_op = &amp;cgroup_dir_inode_operations;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;inode-&gt;i_fop = &amp;simple_dir_operations;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* start off with i_nlink == 2 (for &quot;.&quot; entry) */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;inc_nlink(inode);<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* start with the directory inode held, so that we can<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* populate it without racing with another mkdir */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;mutex_lock_nested(&amp;inode-&gt;i_mutex, I_MUTEX_CHILD);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; /*新建一般文件*/<br />
+&nbsp; &nbsp; else if (S_ISREG(mode)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;inode-&gt;i_size = 0;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;inode-&gt;i_fop = &amp;cgroup_file_operations;<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; dentry-&gt;d_op = &amp;cgroup_dops;<br />
+&nbsp; &nbsp; /*将dentry和inode关联起来*/<br />
+&nbsp; &nbsp; d_instantiate(dentry, inode);<br />
+&nbsp; &nbsp; dget(dentry);&nbsp; &nbsp;/* Extra count - pin the dentry in core */<br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+从这个函数我们可以看到.如果是目录的话,对应的操作集为simple_dir_operations和cgroup_dir_inode_operations.它与cgroup_get_rootdir()中对根目录对应的inode所设置的操作集是一样的.如果是一般文件,它的操作集为cgroup_file_operations.<br />
+在这里,先将cgroup中的文件操作放到一边,我们在之后再来详细分析这个过程.<br />
+现在.我们已经将cgroup文件系统的挂载分析完成.接下来看它下面子层cgroup的创建.<br />
+ <br />
+七:创建子层cgroup<br />
+在目录下通过mkdir调用就可以创建一个子层cgroup.下面就分析这一过程:<br />
+经过上面的分析可以得知,cgroup中目录的操作集为: cgroup_dir_inode_operations.结构如下:<br />
+static struct inode_operations cgroup_dir_inode_operations = {<br />
+&nbsp; &nbsp; .lookup = simple_lookup,<br />
+&nbsp; &nbsp; .mkdir = cgroup_mkdir,<br />
+&nbsp; &nbsp; .rmdir = cgroup_rmdir,<br />
+&nbsp; &nbsp; .rename = cgroup_rename,<br />
+};<br />
+从上面看到,对应mkdir的入口为cgroup_mkdir().代码如下:<br />
+static int cgroup_mkdir(struct inode *dir, struct dentry *dentry, int mode)<br />
+{<br />
+&nbsp; &nbsp; /*找到它的上一级cgroup*/<br />
+&nbsp; &nbsp; struct cgroup *c_parent = dentry-&gt;d_parent-&gt;d_fsdata;<br />
+ <br />
+&nbsp; &nbsp; /* the vfs holds inode-&gt;i_mutex already */<br />
+&nbsp; &nbsp; /*调用cgroup_create创建cgroup*/<br />
+&nbsp; &nbsp; return cgroup_create(c_parent, dentry, mode | S_IFDIR);<br />
+}<br />
+跟踪cgroup_create().代码如下:<br />
+static long cgroup_create(struct cgroup *parent, struct dentry *dentry,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int mode)<br />
+{<br />
+&nbsp; &nbsp; struct cgroup *cgrp;<br />
+&nbsp; &nbsp; struct cgroupfs_root *root = parent-&gt;root;<br />
+&nbsp; &nbsp; int err = 0;<br />
+&nbsp; &nbsp; struct cgroup_subsys *ss;<br />
+&nbsp; &nbsp; struct super_block *sb = root-&gt;sb;<br />
+&nbsp; &nbsp; /*分配并初始化一个cgroup*/<br />
+&nbsp; &nbsp; cgrp = kzalloc(sizeof(*cgrp), GFP_KERNEL);<br />
+&nbsp; &nbsp; if (!cgrp)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ENOMEM;<br />
+ <br />
+&nbsp; &nbsp; /* Grab a reference on the superblock so the hierarchy doesn't<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* get deleted on unmount if there are child cgroups.&nbsp;&nbsp;This<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* can be done outside cgroup_mutex, since the sb can't<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* disappear while someone has an open control file on the<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* fs */<br />
+&nbsp; &nbsp; atomic_inc(&amp;sb-&gt;s_active);<br />
+ <br />
+&nbsp; &nbsp; mutex_lock(&amp;cgroup_mutex);<br />
+ <br />
+&nbsp; &nbsp; init_cgroup_housekeeping(cgrp);<br />
+ <br />
+&nbsp; &nbsp; /*设置cgrp的层次关系*/<br />
+&nbsp; &nbsp; cgrp-&gt;parent = parent;<br />
+&nbsp; &nbsp; cgrp-&gt;root = parent-&gt;root;<br />
+&nbsp; &nbsp; cgrp-&gt;top_cgroup = parent-&gt;top_cgroup;<br />
+ <br />
+&nbsp; &nbsp; /*如果上一级cgroup设置了CGRP_NOTIFY_ON_RELEASE.那cgrp也设置这个标志*/<br />
+&nbsp; &nbsp; if (notify_on_release(parent))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;set_bit(CGRP_NOTIFY_ON_RELEASE, &amp;cgrp-&gt;flags);<br />
+ <br />
+&nbsp; &nbsp; /*调用subsys_create()生成cgroup_subsys_state.并与cgrp相关联*/<br />
+&nbsp; &nbsp; for_each_subsys(root, ss) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup_subsys_state *css = ss-&gt;create(ss, cgrp);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (IS_ERR(css)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;err = PTR_ERR(css);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;goto err_destroy;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;init_cgroup_css(css, ss, cgrp);<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; /*将cgrp添加到上一层cgroup的children链表*/<br />
+&nbsp; &nbsp; list_add(&amp;cgrp-&gt;sibling, &amp;cgrp-&gt;parent-&gt;children);<br />
+&nbsp; &nbsp; /*增加root的cgroups数目计数*/<br />
+&nbsp; &nbsp; root-&gt;number_of_cgroups++;<br />
+&nbsp; &nbsp; /*在当前目录生成一个目录*/<br />
+&nbsp; &nbsp; err = cgroup_create_dir(cgrp, dentry, mode);<br />
+&nbsp; &nbsp; if (err <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;goto err_remove;<br />
+ <br />
+&nbsp; &nbsp; /* The cgroup directory was pre-locked for us */<br />
+&nbsp; &nbsp; BUG_ON(!mutex_is_locked(&amp;cgrp-&gt;dentry-&gt;d_inode-&gt;i_mutex));<br />
+&nbsp; &nbsp; /*在cgrp下创建几个交互文件*/<br />
+&nbsp; &nbsp; err = cgroup_populate_dir(cgrp);<br />
+&nbsp; &nbsp; /* If err <br />
+ <br />
+&nbsp; &nbsp; mutex_unlock(&amp;cgroup_mutex);<br />
+&nbsp; &nbsp; mutex_unlock(&amp;cgrp-&gt;dentry-&gt;d_inode-&gt;i_mutex);<br />
+ <br />
+&nbsp; &nbsp; return 0;<br />
+ <br />
+ err_remove:<br />
+ <br />
+&nbsp; &nbsp; list_del(&amp;cgrp-&gt;sibling);<br />
+&nbsp; &nbsp; root-&gt;number_of_cgroups--;<br />
+ <br />
+ err_destroy:<br />
+ <br />
+&nbsp; &nbsp; for_each_subsys(root, ss) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (cgrp-&gt;subsys[ss-&gt;subsys_id])<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;ss-&gt;destroy(ss, cgrp);<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; mutex_unlock(&amp;cgroup_mutex);<br />
+ <br />
+&nbsp; &nbsp; /* Release the reference count that we took on the superblock */<br />
+&nbsp; &nbsp; deactivate_super(sb);<br />
+ <br />
+&nbsp; &nbsp; kfree(cgrp);<br />
+&nbsp; &nbsp; return err;<br />
+}<br />
+在这个函数中,主要分配并初始化了一个cgroup结构.并且将它和它的上一层目录以及整个cgroupfs_root构成一个空间层次关系.然后,再调用subsys&gt;create()操作函数.来让subsys知道已经创建了一个cgroup结构.<br />
+为了理顺这一部份.将前面分析的cgroup文件系统挂载和cgroup的创建.以及接下来要分析的attach_task()操作总结成一个图.如下示:<br />
+<img src="http://blogimg.chinaunix.net/blog/upfile2/081223161723.jpg" border="0" onload="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onmouseover="if(this.width>screen.width*0.7) {this.resized=true; this.width=screen.width*0.7; this.style.cursor='hand'; this.alt='Click here to open new window\nCTRL+Mouse wheel to zoom in/out';}" onclick="if(!this.resized) {return true;} else {window.open('http://blogimg.chinaunix.net/blog/upfile2/081223161723.jpg');}" onmousewheel="return imgzoom(this);" alt="" /><br />
+八:cgroup中文件的操作<br />
+接下来,就来看cgroup文件的操作.在上面曾分析到:文件对应的操作集为cgroup_file_operations.如下所示:<br />
+static struct file_operations cgroup_file_operations = {<br />
+&nbsp; &nbsp; .read = cgroup_file_read,<br />
+&nbsp; &nbsp; .write = cgroup_file_write,<br />
+&nbsp; &nbsp; .llseek = generic_file_llseek,<br />
+&nbsp; &nbsp; .open = cgroup_file_open,<br />
+&nbsp; &nbsp; .release = cgroup_file_release,<br />
+}<br />
+ <br />
+7.1:cgrou文件的open操作<br />
+对应的函数为cgroup_file_open().代码如下:<br />
+static int cgroup_file_open(struct inode *inode, struct file *file)<br />
+{<br />
+&nbsp; &nbsp; int err;<br />
+&nbsp; &nbsp; struct cftype *cft;<br />
+ <br />
+&nbsp; &nbsp; err = generic_file_open(inode, file);<br />
+&nbsp; &nbsp; if (err)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return err;<br />
+ <br />
+&nbsp; &nbsp; /*取得文件对应的struct cftype*/<br />
+&nbsp; &nbsp; cft = __d_cft(file-&gt;f_dentry);<br />
+&nbsp; &nbsp; if (!cft)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ENODEV;<br />
+&nbsp; &nbsp; /*如果定义了read_map或者是read_seq_string*/<br />
+&nbsp; &nbsp; if (cft-&gt;read_map || cft-&gt;read_seq_string) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup_seqfile_state *state =<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;kzalloc(sizeof(*state), GFP_USER);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!state)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;return -ENOMEM;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;state-&gt;cft = cft;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;state-&gt;cgroup = __d_cgrp(file-&gt;f_dentry-&gt;d_parent);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;file-&gt;f_op = &amp;cgroup_seqfile_operations;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;err = single_open(file, cgroup_seqfile_show, state);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (err <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;kfree(state);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; /*否则调用cft-&gt;open()*/<br />
+&nbsp; &nbsp; else if (cft-&gt;open)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;err = cft-&gt;open(inode, file);<br />
+&nbsp; &nbsp; else<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;err = 0;<br />
+ <br />
+&nbsp; &nbsp; return err;<br />
+}<br />
+有两种情况.一种是定义了read_map或者是read_seq_string的情况.这种情况下,它对应的操作集为cgroup_seqfile_operations.如果是其它的情况.调用cftype的open()函数.第一种情况,我们等以后遇到了这样的情况再来详细分析.<br />
+ <br />
+7.2:cgroup文件的read操作<br />
+对应函数为cgroup_file_read().代码如下:<br />
+static ssize_t cgroup_file_read(struct file *file, char __user *buf,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; size_t nbytes, loff_t *ppos)<br />
+{<br />
+&nbsp; &nbsp; struct cftype *cft = __d_cft(file-&gt;f_dentry);<br />
+&nbsp; &nbsp; struct cgroup *cgrp = __d_cgrp(file-&gt;f_dentry-&gt;d_parent);<br />
+ <br />
+&nbsp; &nbsp; if (!cft || cgroup_is_removed(cgrp))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ENODEV;<br />
+ <br />
+&nbsp; &nbsp; if (cft-&gt;read)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return cft-&gt;read(cgrp, cft, file, buf, nbytes, ppos);<br />
+&nbsp; &nbsp; if (cft-&gt;read_u64)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return cgroup_read_u64(cgrp, cft, file, buf, nbytes, ppos);<br />
+&nbsp; &nbsp; if (cft-&gt;read_s64)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return cgroup_read_s64(cgrp, cft, file, buf, nbytes, ppos);<br />
+&nbsp; &nbsp; return -EINVAL;<br />
+}<br />
+如上代码所示.read操作会转入到cftype的read()或者read_u64或者read_s64的函数中.<br />
+ <br />
+7.3:cgroup文件的wirte操作<br />
+对应的操作函数是cgroup_file_write().如下示:<br />
+static ssize_t cgroup_file_write(struct file *file, const char __user *buf,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;size_t nbytes, loff_t *ppos)<br />
+{<br />
+&nbsp; &nbsp; struct cftype *cft = __d_cft(file-&gt;f_dentry);<br />
+&nbsp; &nbsp; struct cgroup *cgrp = __d_cgrp(file-&gt;f_dentry-&gt;d_parent);<br />
+ <br />
+&nbsp; &nbsp; if (!cft || cgroup_is_removed(cgrp))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ENODEV;<br />
+&nbsp; &nbsp; if (cft-&gt;write)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return cft-&gt;write(cgrp, cft, file, buf, nbytes, ppos);<br />
+&nbsp; &nbsp; if (cft-&gt;write_u64 || cft-&gt;write_s64)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return cgroup_write_X64(cgrp, cft, file, buf, nbytes, ppos);<br />
+&nbsp; &nbsp; if (cft-&gt;write_string)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return cgroup_write_string(cgrp, cft, file, buf, nbytes, ppos);<br />
+&nbsp; &nbsp; if (cft-&gt;trigger) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int ret = cft-&gt;trigger(cgrp, (unsigned int)cft-&gt;private);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return ret ? ret : nbytes;<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; return -EINVAL;<br />
+}<br />
+从上面可以看到.最终的操作会转入到cftype的write或者wirte_u64或者wirte_string或者trigger函数中.<br />
+ <br />
+7.4:debug subsytem分析<br />
+以debug subsystem为例来说明cgroup中的文件操作<br />
+Debug subsys定义如下:<br />
+struct cgroup_subsys debug_subsys = {<br />
+&nbsp; &nbsp; .name = &quot;debug&quot;,<br />
+&nbsp; &nbsp; .create = debug_create,<br />
+&nbsp; &nbsp; .destroy = debug_destroy,<br />
+&nbsp; &nbsp; .populate = debug_populate,<br />
+&nbsp; &nbsp; .subsys_id = debug_subsys_id,<br />
+}<br />
+在cgroup_init_subsys()中,会以dummytop为参数调用debug.create().对应函数为debug_create().代码如下:<br />
+static struct cgroup_subsys_state *debug_create(struct cgroup_subsys *ss,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct cgroup *cont)<br />
+{<br />
+&nbsp; &nbsp; struct cgroup_subsys_state *css = kzalloc(sizeof(*css), GFP_KERNEL);<br />
+ <br />
+&nbsp; &nbsp; if (!css)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return ERR_PTR(-ENOMEM);<br />
+ <br />
+&nbsp; &nbsp; return css;<br />
+}<br />
+这里没啥好说的,就是分配了一个cgroup_subsys_state结构.<br />
+ <br />
+然后,将cgroup挂载.指令如下:<br />
+[root@localhost ~]# mount -t cgroup cgroup -o debug /dev/cgroup/<br />
+在rebind_subsystems()中,会调用subsys的bind函数.但在debug中无此接口.故不需要考虑.<br />
+然后在cgroup_populate_dir()中会调用populate接口.对应函数为debug_populate().代码如下:<br />
+static int debug_populate(struct cgroup_subsys *ss, struct cgroup *cont)<br />
+{<br />
+&nbsp; &nbsp; return cgroup_add_files(cont, ss, files, ARRAY_SIZE(files));<br />
+}<br />
+Debug中的files定义如下:<br />
+static struct cftype files[] =&nbsp;&nbsp;{<br />
+&nbsp; &nbsp; {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.name = &quot;cgroup_refcount&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.read_u64 = cgroup_refcount_read,<br />
+&nbsp; &nbsp; },<br />
+&nbsp; &nbsp; {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.name = &quot;taskcount&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.read_u64 = taskcount_read,<br />
+&nbsp; &nbsp; },<br />
+ <br />
+&nbsp; &nbsp; {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.name = &quot;current_css_set&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.read_u64 = current_css_set_read,<br />
+&nbsp; &nbsp; },<br />
+ <br />
+&nbsp; &nbsp; {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.name = &quot;current_css_set_refcount&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.read_u64 = current_css_set_refcount_read,<br />
+&nbsp; &nbsp; },<br />
+ <br />
+&nbsp; &nbsp; {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.name = &quot;releasable&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.read_u64 = releasable_read,<br />
+&nbsp; &nbsp; },<br />
+}<br />
+来观察一下 /dev/cgroup下的文件:<br />
+[root@localhost ~]# tree /dev/cgroup/<br />
+/dev/cgroup/<br />
+|-- debug.cgroup_refcount<br />
+|-- debug.current_css_set<br />
+|-- debug.current_css_set_refcount<br />
+|-- debug.releasable<br />
+|-- debug.taskcount<br />
+|-- notify_on_release<br />
+|-- release_agent<br />
+`-- tasks<br />
+ <br />
+0 directories, 8 files<br />
+上面带debug字样的文件是从debug subsys中创建的.其它的是cgroup.c的files中创建的.<br />
+我们先来分析每一个subsys共有的文件.即tasks,release_agent和notify_on_release.<br />
+ <br />
+7.5:task文件操作<br />
+Tasks文件对应的cftype结构如下:<br />
+static struct cftype files[] = {<br />
+&nbsp; &nbsp; {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.name = &quot;tasks&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.open = cgroup_tasks_open,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.write_u64 = cgroup_tasks_write,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.release = cgroup_tasks_release,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.private = FILE_TASKLIST,<br />
+&nbsp; &nbsp; }<br />
+ <br />
+7.5.1:task文件的open操作<br />
+当打开文件时,流程就会转入cgroup_tasks_open().代码如下:<br />
+static int cgroup_tasks_open(struct inode *unused, struct file *file)<br />
+{<br />
+&nbsp; &nbsp; /*取得该文件所在层次的cgroup*/<br />
+&nbsp; &nbsp; struct cgroup *cgrp = __d_cgrp(file-&gt;f_dentry-&gt;d_parent);<br />
+&nbsp; &nbsp; pid_t *pidarray;<br />
+&nbsp; &nbsp; int npids;<br />
+&nbsp; &nbsp; int retval;<br />
+ <br />
+&nbsp; &nbsp; /* Nothing to do for write-only files */<br />
+&nbsp; &nbsp; /*如果是只写的文件系统*/<br />
+&nbsp; &nbsp; if (!(file-&gt;f_mode &amp; FMODE_READ))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return 0;<br />
+ <br />
+&nbsp; &nbsp; /*<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* If cgroup gets more users after we read count, we won't have<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* enough space - tough.&nbsp;&nbsp;This race is indistinguishable to the<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* caller from the case that the additional cgroup users didn't<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* show up until sometime later on.<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp;&nbsp;&nbsp;/*得到该层cgroup所关联的进程个数*/<br />
+&nbsp; &nbsp; npids = cgroup_task_count(cgrp);<br />
+&nbsp; &nbsp; /*为npids个进程的pid存放分配空间*/<br />
+&nbsp; &nbsp; pidarray = kmalloc(npids * sizeof(pid_t), GFP_KERNEL);<br />
+&nbsp; &nbsp; if (!pidarray)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ENOMEM;<br />
+&nbsp; &nbsp; /* 将与cgroup关联进程的pid存放到pid_array_load数组.<br />
+&nbsp; &nbsp;&nbsp; &nbsp;* 并且按照从小到大的顺序排列<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp; npids = pid_array_load(pidarray, npids, cgrp);<br />
+&nbsp; &nbsp; sort(pidarray, npids, sizeof(pid_t), cmppid, NULL);<br />
+ <br />
+&nbsp; &nbsp; /*<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* Store the array in the cgroup, freeing the old<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* array if necessary<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp;&nbsp;&nbsp;/* 将npids,pidarray信息存放到cgroup中.如果cgroup之前<br />
+&nbsp; &nbsp;&nbsp; &nbsp; * 就有task_pids.将其占放的空间释放<br />
+&nbsp; &nbsp;&nbsp; &nbsp; */<br />
+&nbsp; &nbsp; down_write(&amp;cgrp-&gt;pids_mutex);<br />
+&nbsp; &nbsp; kfree(cgrp-&gt;tasks_pids);<br />
+&nbsp; &nbsp; cgrp-&gt;tasks_pids = pidarray;<br />
+&nbsp; &nbsp; cgrp-&gt;pids_length = npids;<br />
+&nbsp; &nbsp; cgrp-&gt;pids_use_count++;<br />
+&nbsp; &nbsp; up_write(&amp;cgrp-&gt;pids_mutex);<br />
+ <br />
+&nbsp; &nbsp; /*将文件对应的操作集更改为cgroup_task_operations*/<br />
+&nbsp; &nbsp; file-&gt;f_op = &amp;cgroup_tasks_operations;<br />
+ <br />
+&nbsp; &nbsp; retval = seq_open(file, &amp;cgroup_tasks_seq_operations);<br />
+&nbsp; &nbsp; /*如果操作失败,将cgroup中的pid信息释放*/<br />
+&nbsp; &nbsp; if (retval) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;release_cgroup_pid_array(cgrp);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return retval;<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; ((struct seq_file *)file-&gt;private_data)-&gt;private = cgrp;<br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+首先,我们来思考一下这个问题:怎么得到与cgroup关联的进程呢?<br />
+回到在上面列出来的数据结构关系图.每个进程都会指向一个css_set.而与这个css_set关联的所有进程都会链入到css_set-&gt;tasks链表.而cgroup又可能通过一个中间结构cg_cgroup_link来寻找所有与之关联的所有css_set.从而可以得到与cgroup关联的所有进程.<br />
+在上面的代码中,通过调用cgroup_task_count()来得到与之关联的进程数目,代码如下:<br />
+int cgroup_task_count(const struct cgroup *cgrp)<br />
+{<br />
+&nbsp; &nbsp; int count = 0;<br />
+&nbsp; &nbsp; struct cg_cgroup_link *link;<br />
+ <br />
+&nbsp; &nbsp; read_lock(&amp;css_set_lock);<br />
+&nbsp; &nbsp; list_for_each_entry(link, &amp;cgrp-&gt;css_sets, cgrp_link_list) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;count += atomic_read(&amp;link-&gt;cg-&gt;refcount);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; read_unlock(&amp;css_set_lock);<br />
+&nbsp; &nbsp; return count;<br />
+}<br />
+它就是遍历cgro-&gt;css_sets.并调其转换为cg_cgroup_link.再从这个link得到css_set.这个css_set的引用计数就是与这个指向这个css_set的task数目.<br />
+ <br />
+在代码中,是通过pid_array_load()来得到与cgroup关联的task,并且将进程的pid写入数组pidarray中.代码如下:<br />
+static int pid_array_load(pid_t *pidarray, int npids, struct cgroup *cgrp)<br />
+{<br />
+&nbsp; &nbsp; int n = 0;<br />
+&nbsp; &nbsp; struct cgroup_iter it;<br />
+&nbsp; &nbsp; struct task_struct *tsk;<br />
+&nbsp; &nbsp; cgroup_iter_start(cgrp, &amp;it);<br />
+&nbsp; &nbsp; while ((tsk = cgroup_iter_next(cgrp, &amp;it))) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (unlikely(n == npids))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;break;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;pidarray[n++] = task_pid_vnr(tsk);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; cgroup_iter_end(cgrp, &amp;it);<br />
+&nbsp; &nbsp; return n;<br />
+}<br />
+我们在这里遇到了一个新的结构:struct cgroup_iter.它是cgroup的一个迭代器,通过它可以遍历取得与cgroup关联的task.它的使用方法为:<br />
+1:调用cgroup_iter_start()来初始化这个迭代码.<br />
+2:调用cgroup_iter_next()用来取得cgroup中的下一个task<br />
+3:使用完了,调用cgroup_iner_end().<br />
+下面来分析这三个过程:<br />
+Cgroup_iter_start()代码如下:<br />
+void cgroup_iter_start(struct cgroup *cgrp, struct cgroup_iter *it)<br />
+{<br />
+&nbsp; &nbsp; /*<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* The first time anyone tries to iterate across a cgroup,<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* we need to enable the list linking each css_set to its<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* tasks, and fix up all existing tasks.<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp; if (!use_task_css_set_links)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;cgroup_enable_task_cg_lists();<br />
+ <br />
+&nbsp; &nbsp; read_lock(&amp;css_set_lock);<br />
+&nbsp; &nbsp; it-&gt;cg_link = &amp;cgrp-&gt;css_sets;<br />
+&nbsp; &nbsp; cgroup_advance_iter(cgrp, it);<br />
+}<br />
+我们在这里再次遇到了use_task_css_set_links变量.在之前分析cgroup_post_fork()中的时候,我们曾说过,只有在use_task_css_set_link设置为1的时候,才会调task-&gt;cg_list链入到css_set-&gt;tasks中.<br />
+所以,在这个地方,如果use_task_css_set_link为0.那就必须要将之前所有的进程都链入到它所指向的css_set-&gt;tasks链表.这个过程是在cgroup_enable_task_cg_lists()完成的,这个函数相当简单,就是一个task的遍历,然后就是链表的链入,在这里就不再详细分析了.请自行阅读它的代码.*^_^*<br />
+然后,将it-&gt;cg_link指向cgrp-&gt;css_sets.我们在前面说过,可以通过cgrp-&gt;css_sets就可以得得所有的与cgroup关联的css_set.<br />
+到这里,这个迭代器里面还是空的,接下来往里面填充数据.这个过程是在cgroup_advance_iter()中完成,代码如下示:<br />
+static void cgroup_advance_iter(struct cgroup *cgrp,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct cgroup_iter *it)<br />
+{<br />
+struct list_head *l = it-&gt;cg_link;<br />
+struct cg_cgroup_link *link;<br />
+struct css_set *cg;<br />
+ <br />
+/* Advance to the next non-empty css_set */<br />
+do {<br />
+&nbsp; &nbsp; l = l-&gt;next;<br />
+&nbsp; &nbsp; if (l == &amp;cgrp-&gt;css_sets) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;it-&gt;cg_link = NULL;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return;<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp;link = list_entry(l, struct cg_cgroup_link, cgrp_link_list);<br />
+&nbsp; &nbsp; cg = link-&gt;cg;<br />
+} while (list_empty(&amp;cg-&gt;tasks));<br />
+it-&gt;cg_link = l;<br />
+it-&gt;task = cg-&gt;tasks.next;<br />
+}<br />
+通过前面的分析可得知,可通过it-&gt;cg_link找到与之关联的css_set,然后再通过css_set找到与它关联的task链表.因此每次往cgroup迭代器里填充数据,就是找到一个tasks链表不为空的css_set.取数据就从css_set-&gt;tasks中取.如果数据取完了,就找下一个tasks链表不为空的css_set.<br />
+这样,这个函数的代码就很简单了.它就是找到it-&gt;cg_link上tasks链表不为空的css_set项.<br />
+ <br />
+cgroup_iter_next()的代码如下:<br />
+struct task_struct *cgroup_iter_next(struct cgroup *cgrp,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup_iter *it)<br />
+{<br />
+&nbsp; &nbsp; struct task_struct *res;<br />
+&nbsp; &nbsp; struct list_head *l = it-&gt;task;<br />
+ <br />
+&nbsp; &nbsp; /* If the iterator cg is NULL, we have no tasks */<br />
+&nbsp; &nbsp; if (!it-&gt;cg_link)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return NULL;<br />
+&nbsp; &nbsp; res = list_entry(l, struct task_struct, cg_list);<br />
+&nbsp; &nbsp; /* Advance iterator to find next entry */<br />
+&nbsp; &nbsp; l = l-&gt;next;<br />
+&nbsp; &nbsp; if (l == &amp;res-&gt;cgroups-&gt;tasks) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* We reached the end of this task list - move on to<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* the next cg_cgroup_link */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;cgroup_advance_iter(cgrp, it);<br />
+&nbsp; &nbsp; } else {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;it-&gt;task = l;<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; return res;<br />
+}<br />
+如果it-&gt;cg_link为空表示it-&gt;cg_link已经遍历完了,也就不存放在task了.否则,从it-&gt;task中取得task.如果已经是最后一个task就必须要调用cgroup_advance_iter()填充迭代器里面的数据.最后将取得的task返回.<br />
+ <br />
+cgroup_iter_end()用来对迭代码进行收尾的工作,代码如下:<br />
+void cgroup_iter_end(struct cgroup *cgrp, struct cgroup_iter *it)<br />
+{<br />
+&nbsp; &nbsp; read_unlock(&amp;css_set_lock);<br />
+}<br />
+它就是释放了在cgroup_iter_start()中持有的锁.<br />
+ <br />
+回到cgroup_tasks_open()中.我们接下来会遇到kernel为sequential file提供的一组接口.首先在代码遇到的是seq_open().代码如下:<br />
+int seq_open(struct file *file, const struct seq_operations *op)<br />
+{<br />
+&nbsp; &nbsp; struct seq_file *p = file-&gt;private_data;<br />
+ <br />
+&nbsp; &nbsp; if (!p) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;p = kmalloc(sizeof(*p), GFP_KERNEL);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!p)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;return -ENOMEM;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;file-&gt;private_data = p;<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; memset(p, 0, sizeof(*p));<br />
+&nbsp; &nbsp; mutex_init(&amp;p-&gt;lock);<br />
+&nbsp; &nbsp; p-&gt;op = op;<br />
+&nbsp; &nbsp; file-&gt;f_version = 0;<br />
+&nbsp; &nbsp; /* SEQ files support lseek, but not pread/pwrite */<br />
+&nbsp; &nbsp; file-&gt;f_mode &amp;= ~(FMODE_PREAD | FMODE_PWRITE);<br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+从代码中可以看出,它就是初始化了一个struct seq_file结构.并且将其关联到file-&gt;private_data.在这里要注意将seq_file-&gt;op设置成了参数op.在我们分析的这个情景中,也就是cgroup_tasks_seq_operations.这个在我们分析文件的读操作的时候会用到的.<br />
+ <br />
+7.5.2:task文件的read操作<br />
+从上面的代码中可看到.在open的时候,更改了file-&gt;f_op.将其指向了cgroup_tasks_operations.该结构如下:<br />
+static struct file_operations cgroup_tasks_operations = {<br />
+&nbsp; &nbsp; .read = seq_read,<br />
+&nbsp; &nbsp; .llseek = seq_lseek,<br />
+&nbsp; &nbsp; .write = cgroup_file_write,<br />
+&nbsp; &nbsp; .release = cgroup_tasks_release,<br />
+}<br />
+相应的,read操作就会转入到seq_read()中.由于该函数篇幅较大,这里就不列出了.感兴趣的可以自己跟踪看一下,其它就是循环调用seq_file-&gt;op-&gt;start() à seq_file-&gt;op-&gt;show() à seq_file-&gt;op-&gt;next() à seq_file-&gt;op-&gt;stop()的过程.<br />
+我们在上面分析task文件的open操作的时候,曾经提配过,seq_file-&gt;op被指向了cgroup_tasks_seq_operations.定义如下:<br />
+static struct seq_operations cgroup_tasks_seq_operations = {<br />
+&nbsp; &nbsp; .start = cgroup_tasks_start,<br />
+&nbsp; &nbsp; .stop = cgroup_tasks_stop,<br />
+&nbsp; &nbsp; .next = cgroup_tasks_next,<br />
+&nbsp; &nbsp; .show = cgroup_tasks_show,<br />
+}<br />
+Cgroup_tasks_start()代码如下:<br />
+static void *cgroup_tasks_start(struct seq_file *s, loff_t *pos)<br />
+{<br />
+&nbsp; &nbsp; /*<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* Initially we receive a position value that corresponds to<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* one more than the last pid shown (or 0 on the first call or<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* after a seek to the start). Use a binary-search to find the<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* next pid to display, if any<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp; struct cgroup *cgrp = s-&gt;private;<br />
+&nbsp; &nbsp; int index = 0, pid = *pos;<br />
+&nbsp; &nbsp; int *iter;<br />
+ <br />
+&nbsp; &nbsp; down_read(&amp;cgrp-&gt;pids_mutex);<br />
+&nbsp; &nbsp; if (pid) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int end = cgrp-&gt;pids_length;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;while (index <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;int mid = (index + end) / 2;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;if (cgrp-&gt;tasks_pids[mid] == pid) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; index = mid;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; break;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;} else if (cgrp-&gt;tasks_pids[mid] <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; index = mid + 1;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;else<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; end = mid;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; /* If we're off the end of the array, we're done */<br />
+&nbsp; &nbsp; if (index &gt;= cgrp-&gt;pids_length)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return NULL;<br />
+&nbsp; &nbsp; /* Update the abstract position to be the actual pid that we found */<br />
+&nbsp; &nbsp; iter = cgrp-&gt;tasks_pids + index;<br />
+&nbsp; &nbsp; *pos = *iter;<br />
+&nbsp; &nbsp; return iter;<br />
+}<br />
+它以二分法从cgrp-&gt;tasks_pids[ ]中去寻找第一个大于或者等于参数*pos值的项.如果找到了,返回该项.如果没找到.返回NULL.<br />
+ <br />
+cgroup_tasks_show()代码如下:<br />
+static int cgroup_tasks_show(struct seq_file *s, void *v)<br />
+{<br />
+&nbsp; &nbsp; return seq_printf(s, &quot;%d\n&quot;, *(int *)v);<br />
+}<br />
+它就是将pid转换为了字符串.<br />
+ <br />
+cgroup_tasks_next()就是找到数组中的下一项.代码如下:<br />
+static void *cgroup_tasks_next(struct seq_file *s, void *v, loff_t *pos)<br />
+{<br />
+&nbsp; &nbsp; struct cgroup *cgrp = s-&gt;private;<br />
+&nbsp; &nbsp; int *p = v;<br />
+&nbsp; &nbsp; int *end = cgrp-&gt;tasks_pids + cgrp-&gt;pids_length;<br />
+ <br />
+&nbsp; &nbsp; /*<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* Advance to the next pid in the array. If this goes off the<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* end, we're done<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp; p++;<br />
+&nbsp; &nbsp; if (p &gt;= end) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return NULL;<br />
+&nbsp; &nbsp; } else {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;*pos = *p;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return p;<br />
+&nbsp; &nbsp; }<br />
+}<br />
+ <br />
+cgroup_tasks_stop()代码如下:<br />
+static void cgroup_tasks_stop(struct seq_file *s, void *v)<br />
+{<br />
+&nbsp; &nbsp; struct cgroup *cgrp = s-&gt;private;<br />
+&nbsp; &nbsp; up_read(&amp;cgrp-&gt;pids_mutex);<br />
+}<br />
+它只是释放了在cgroup_tasks_start()中持有的读写锁.<br />
+ <br />
+7.5.3:task文件的close操作<br />
+Task文件close时,调用的相应接口为cgroup_tasks_release().代码如下:<br />
+static int cgroup_tasks_release(struct inode *inode, struct file *file)<br />
+{<br />
+&nbsp; &nbsp; struct cgroup *cgrp = __d_cgrp(file-&gt;f_dentry-&gt;d_parent);<br />
+ <br />
+&nbsp; &nbsp; if (!(file-&gt;f_mode &amp; FMODE_READ))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return 0;<br />
+ <br />
+&nbsp; &nbsp; release_cgroup_pid_array(cgrp);<br />
+&nbsp; &nbsp; return seq_release(inode, file);<br />
+}<br />
+它就是将cgroup中的pid信息与seqfile信息释放掉.<br />
+ <br />
+到这里,我们已经分析完了task文件的open,read,close操作.我们现在就可以实现一下,看上面的分析是否正确.<br />
+在前面已经分析中cgroupfs_root.top_cgroup会将系统中的所有css_set与之关联起来,那么通过cgroupfs_root_top_cgroup找到的进程应该是系统当前的所有进程.那么相应的,在挂载目录的task文件的内容.应该是系统中所有进程的pid.<br />
+如下所示:<br />
+[root@localhost cgroup]# cat tasks <br />
+1<br />
+2<br />
+3<br />
+………<br />
+………<br />
+2578<br />
+其实,这样做是cgroup子系统开发者特意设置的.它表示所有的进程都在hierarchy的控制之下.<br />
+反过来,当我们在挂载目录mkdir一个目录,它下面的task文件内容应该是空的.因为在mkdir后,它对应的cgroup并没有关联任何task.<br />
+如下所示:<br />
+[root@localhost cgroup]# mkdir eric<br />
+[root@localhost cgroup]# cat eric/tasks <br />
+[root@localhost cgroup]#<br />
+下面我们来看一下task文件的写操作,也就是怎样将进程添加进cgroup.<br />
+ <br />
+7.5.4:task文件的write操作<br />
+根据上面的文件,可得知task文件的write操作对应的函数为int cgroup_tasks_write().代码如下:<br />
+static int cgroup_tasks_write(struct cgroup *cgrp, struct cftype *cft, u64 pid)<br />
+{<br />
+&nbsp; &nbsp; int ret;<br />
+&nbsp; &nbsp; /*如果cgroup已经被移除了,非法*/<br />
+&nbsp; &nbsp; if (!cgroup_lock_live_group(cgrp))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ENODEV;<br />
+&nbsp; &nbsp; /*将PID为pid的进程与cgroup关联*/<br />
+&nbsp; &nbsp; ret = attach_task_by_pid(cgrp, pid);<br />
+&nbsp; &nbsp; cgroup_unlock();<br />
+&nbsp; &nbsp; return ret;<br />
+}<br />
+Attach_task_by_pid()的代码如下:<br />
+static int attach_task_by_pid(struct cgroup *cgrp, u64 pid)<br />
+{<br />
+&nbsp; &nbsp; struct task_struct *tsk;<br />
+&nbsp; &nbsp; int ret;<br />
+ <br />
+&nbsp; &nbsp; /*如果pid不为0.寻找PID为pid的task.并增加其引用计数*/<br />
+&nbsp; &nbsp; if (pid) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;rcu_read_lock();<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;tsk = find_task_by_vpid(pid);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!tsk || tsk-&gt;flags &amp; PF_EXITING) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;rcu_read_unlock();<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;return -ESRCH;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;get_task_struct(tsk);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;rcu_read_unlock();<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if ((current-&gt;euid) &amp;&amp; (current-&gt;euid != tsk-&gt;uid)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&amp;&amp; (current-&gt;euid != tsk-&gt;suid)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;put_task_struct(tsk);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;return -EACCES;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; /*如果pid为0.表示是将当前进程添加进cgroup*/<br />
+&nbsp; &nbsp; else {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;tsk = current;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;get_task_struct(tsk);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; /*将cgroup与task相关联*/<br />
+&nbsp; &nbsp; ret = cgroup_attach_task(cgrp, tsk);<br />
+&nbsp; &nbsp; /*操作完成,减少其引用计数*/<br />
+&nbsp; &nbsp; put_task_struct(tsk);<br />
+&nbsp; &nbsp; return ret;<br />
+}<br />
+如果写入的是一个不这0的数,表示的是进程的PID值.如果是写入0,表示是将当前进程.这个操作的核心操作是cgroup_attach_task().代码如下:<br />
+int cgroup_attach_task(struct cgroup *cgrp, struct task_struct *tsk)<br />
+{<br />
+&nbsp; &nbsp; int retval = 0;<br />
+&nbsp; &nbsp; struct cgroup_subsys *ss;<br />
+&nbsp; &nbsp; struct cgroup *oldcgrp;<br />
+&nbsp; &nbsp; struct css_set *cg = tsk-&gt;cgroups;<br />
+&nbsp; &nbsp; struct css_set *newcg;<br />
+&nbsp; &nbsp; struct cgroupfs_root *root = cgrp-&gt;root;<br />
+&nbsp; &nbsp; int subsys_id;<br />
+ <br />
+&nbsp; &nbsp; /*得到与cgroup关联的第一个subsys的序号*/<br />
+&nbsp; &nbsp; get_first_subsys(cgrp, NULL, &amp;subsys_id);<br />
+ <br />
+&nbsp; &nbsp; /* Nothing to do if the task is already in that cgroup */<br />
+&nbsp; &nbsp; /*找到这个进程之前所属的cgroup*/<br />
+&nbsp; &nbsp; oldcgrp = task_cgroup(tsk, subsys_id);<br />
+&nbsp; &nbsp; /*如果已经在这个cgrp里面了.*/<br />
+&nbsp; &nbsp; if (cgrp == oldcgrp)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return 0;<br />
+&nbsp; &nbsp; <br />
+&nbsp; &nbsp; /* 遍历与hierarchy关联的subsys<br />
+&nbsp; &nbsp;&nbsp; &nbsp;* 如果subsys定义了can_attach函数,就调用它<br />
+&nbsp; &nbsp;&nbsp; &nbsp;*/<br />
+&nbsp; &nbsp; for_each_subsys(root, ss) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (ss-&gt;can_attach) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;retval = ss-&gt;can_attach(ss, cgrp, tsk);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;if (retval)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; return retval;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; /*<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* Locate or allocate a new css_set for this task,<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* based on its final set of cgroups<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp;&nbsp;&nbsp;/*找到这个task所关联的css_set.如果不存在,则新建一个*/<br />
+&nbsp; &nbsp; newcg = find_css_set(cg, cgrp);<br />
+&nbsp; &nbsp; if (!newcg)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ENOMEM;<br />
+ <br />
+&nbsp; &nbsp; task_lock(tsk);<br />
+&nbsp; &nbsp; <br />
+&nbsp; &nbsp; /*如果task正在执行exit操作*/<br />
+&nbsp; &nbsp; if (tsk-&gt;flags &amp; PF_EXITING) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;task_unlock(tsk);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;put_css_set(newcg);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ESRCH;<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; /*将tak-&gt;cgroup指向这个css_set*/<br />
+&nbsp; &nbsp; rcu_assign_pointer(tsk-&gt;cgroups, newcg);<br />
+&nbsp; &nbsp; task_unlock(tsk);<br />
+ <br />
+&nbsp; &nbsp; /* Update the css_set linked lists if we're using them */<br />
+&nbsp; &nbsp; /*更改task-&gt;cg_list*/<br />
+&nbsp; &nbsp; write_lock(&amp;css_set_lock);<br />
+&nbsp; &nbsp; if (!list_empty(&amp;tsk-&gt;cg_list)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;list_del(&amp;tsk-&gt;cg_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;list_add(&amp;tsk-&gt;cg_list, &amp;newcg-&gt;tasks);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; write_unlock(&amp;css_set_lock);<br />
+ <br />
+&nbsp; &nbsp; /* 遍历与hierarchy关联的subsys<br />
+&nbsp; &nbsp;&nbsp; &nbsp;* 如果subsys定义了attach 函数,就调用它<br />
+&nbsp; &nbsp;&nbsp; &nbsp;*/<br />
+&nbsp; &nbsp; for_each_subsys(root, ss) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (ss-&gt;attach)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;ss-&gt;attach(ss, cgrp, oldcgrp, tsk);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; set_bit(CGRP_RELEASABLE, &amp;oldcgrp-&gt;flags);<br />
+&nbsp; &nbsp; synchronize_rcu();<br />
+&nbsp; &nbsp; /*减小旧指向的引用计数*/<br />
+put_css_set(cg);<br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+这个函数逻辑很清楚,它就是初始化task-&gt;cgroup.然后将它和subsys相关联.可自行参照代码中的注释进行分析.这里就不再赘述了.<br />
+在这里,详细分析一下find_css_set()函数,这个函数有点意思.代码如下:<br />
+static struct css_set *find_css_set(<br />
+&nbsp; &nbsp; struct css_set *oldcg, struct cgroup *cgrp)<br />
+{<br />
+&nbsp; &nbsp; struct css_set *res;<br />
+&nbsp; &nbsp; struct cgroup_subsys_state *template[CGROUP_SUBSYS_COUNT];<br />
+&nbsp; &nbsp; int i;<br />
+ <br />
+&nbsp; &nbsp; struct list_head tmp_cg_links;<br />
+&nbsp; &nbsp; struct cg_cgroup_link *link;<br />
+ <br />
+&nbsp; &nbsp; struct hlist_head *hhead;<br />
+ <br />
+&nbsp; &nbsp; /* First see if we already have a cgroup group that matches<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* the desired set */<br />
+&nbsp; &nbsp; read_lock(&amp;css_set_lock);<br />
+&nbsp; &nbsp; /*寻找从oldcg转换为cgrp的css_set.如果不存在,返回NULL */<br />
+&nbsp; &nbsp; res = find_existing_css_set(oldcg, cgrp, template);<br />
+&nbsp; &nbsp; /*如果css_set已经存在,增加其引用计数后退出*/<br />
+&nbsp; &nbsp; if (res)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;get_css_set(res);<br />
+&nbsp; &nbsp; read_unlock(&amp;css_set_lock);<br />
+ <br />
+&nbsp; &nbsp; if (res)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return res;<br />
+这一部份,先从哈希数组中搜索从oldcg转换cgrp的css_set.如果不存在,返回NULL.如果在哈希数组中存放,增加其引用计数返回即可.<br />
+Find_existing_css_set()的代码如下:<br />
+static struct css_set *find_existing_css_set(<br />
+&nbsp; &nbsp; struct css_set *oldcg,<br />
+&nbsp; &nbsp; struct cgroup *cgrp,<br />
+&nbsp; &nbsp; struct cgroup_subsys_state *template[])<br />
+{<br />
+&nbsp; &nbsp; int i;<br />
+&nbsp; &nbsp; struct cgroupfs_root *root = cgrp-&gt;root;<br />
+&nbsp; &nbsp; struct hlist_head *hhead;<br />
+&nbsp; &nbsp; struct hlist_node *node;<br />
+&nbsp; &nbsp; struct css_set *cg;<br />
+ <br />
+&nbsp; &nbsp; /* Built the set of subsystem state objects that we want to<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* see in the new css_set */<br />
+&nbsp; &nbsp; for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (root-&gt;subsys_bits &amp; (1UL <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/* Subsystem is in this hierarchy. So we want<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; * the subsystem state from the new<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; * cgroup */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;template<i> = cgrp-&gt;subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;} else {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/* Subsystem is not in this hierarchy, so we<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; * don't want to change the subsystem state */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;template<i> = oldcg-&gt;subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; hhead = css_set_hash(template);<br />
+&nbsp; &nbsp; hlist_for_each_entry(cg, node, hhead, hlist) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!memcmp(template, cg-&gt;subsys, sizeof(cg-&gt;subsys))) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/* All subsystems matched */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;return cg;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; /* No existing cgroup group matched */<br />
+&nbsp; &nbsp; return NULL;<br />
+}<br />
+如果subsys与新的cgroup相关联,那么它指向新的cgroup-&gt;subsys[]中的对应项.否则指向旧的cgrop的对应项.这样做主要是因为,该进程可能还被关联在其它的hierarchy中.所以要保持它在其它hierarchy中的信息.<br />
+最后,在css_set_table[ ]中寻找看是否有与template相等的项.有的话返回该项.如果没有.返回NULL.<br />
+ <br />
+&nbsp; &nbsp; /*分配一个css_set*/<br />
+&nbsp; &nbsp; res = kmalloc(sizeof(*res), GFP_KERNEL);<br />
+&nbsp; &nbsp; if (!res)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return NULL;<br />
+ <br />
+&nbsp; &nbsp; /* Allocate all the cg_cgroup_link objects that we'll need */<br />
+&nbsp; &nbsp; /*分配root_count项cg_cgroup_link*/<br />
+&nbsp; &nbsp; if (allocate_cg_links(root_count, &amp;tmp_cg_links) <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;kfree(res);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return NULL;<br />
+&nbsp; &nbsp; }<br />
+ <br />
+&nbsp; &nbsp; /* 初始化刚分配的css_set */<br />
+&nbsp; &nbsp; atomic_set(&amp;res-&gt;refcount, 1);<br />
+&nbsp; &nbsp; INIT_LIST_HEAD(&amp;res-&gt;cg_links);<br />
+&nbsp; &nbsp; INIT_LIST_HEAD(&amp;res-&gt;tasks);<br />
+&nbsp; &nbsp; INIT_HLIST_NODE(&amp;res-&gt;hlist);<br />
+ <br />
+&nbsp; &nbsp; /* Copy the set of subsystem state objects generated in<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* find_existing_css_set() */<br />
+&nbsp; &nbsp;&nbsp;&nbsp;/*设置css_set-&gt;subsys*/<br />
+&nbsp; &nbsp; memcpy(res-&gt;subsys, template, sizeof(res-&gt;subsys));<br />
+运行到这里的话.表示没有从css_set_table[ ]中找到相应项.因此需要分配并初始化一个css_set结构.并且设置css_set的subsys域.<br />
+ <br />
+&nbsp; &nbsp; write_lock(&amp;css_set_lock);<br />
+&nbsp; &nbsp; /* Add reference counts and links from the new css_set. */<br />
+&nbsp; &nbsp; /*遍历所有的subsys以及css_set 中的subsys[ ].<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*建立task所在的cgroup到css_set的引用<br />
+&nbsp; &nbsp;&nbsp;&nbsp;*/<br />
+&nbsp; &nbsp; for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup *cgrp = res-&gt;subsys<i>-&gt;cgroup;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup_subsys *ss = subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;atomic_inc(&amp;cgrp-&gt;count);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* We want to add a link once per cgroup, so we<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* only do it for the first subsystem in each<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* hierarchy<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (ss-&gt;root-&gt;subsys_list.next == &amp;ss-&gt;sibling) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;BUG_ON(list_empty(&amp;tmp_cg_links));<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;link = list_entry(tmp_cg_links.next,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; struct cg_cgroup_link,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; cgrp_link_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;list_del(&amp;link-&gt;cgrp_link_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;list_add(&amp;link-&gt;cgrp_link_list, &amp;cgrp-&gt;css_sets);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;link-&gt;cg = res;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;list_add(&amp;link-&gt;cg_link_list, &amp;res-&gt;cg_links);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; <br />
+&nbsp; &nbsp; /*似乎没有地方会更改rootnode.subsys_list.?这里的判断大部份情况是满足的*/<br />
+&nbsp; &nbsp; if (list_empty(&amp;rootnode.subsys_list)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*建立这个css_set到dumytop的引用*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* 这样做,是为了让新建的hierarchy能够关联到所有的进程*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;link = list_entry(tmp_cg_links.next,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct cg_cgroup_link,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;cgrp_link_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;list_del(&amp;link-&gt;cgrp_link_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;list_add(&amp;link-&gt;cgrp_link_list, &amp;dummytop-&gt;css_sets);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;link-&gt;cg = res;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;list_add(&amp;link-&gt;cg_link_list, &amp;res-&gt;cg_links);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; BUG_ON(!list_empty(&amp;tmp_cg_links));<br />
+这一部份的关键操作都在代码中添加了相应的注释.如果系统中存在多个hierarchy.那么这个进程肯定也位于其它的hierarchy所对应的cgroup中.因此需要在新分配的css_set中保存这些信息,也就是建立从cgroup到css_set的引用.<br />
+另外,关于ist_empty(&amp;rootnode.subsys_list)的操作.似乎没看到有什么地方会更改rootnode.subsys_list.不过,如果rootnode.subsys_list不为空的话,也会在它前面的for循环中检测出来.<br />
+总而言之.系统中有root_count个hierarchy.上述的引用保存过程就会进行root_count次.因此.到最后.tmp_cg_links肯定会空了.如果不为空.说明某处发生了错误.<br />
+ <br />
+&nbsp; &nbsp; /*增加css_set计数*/<br />
+&nbsp; &nbsp; css_set_count++;<br />
+ <br />
+&nbsp; &nbsp; /* Add this cgroup group to the hash table */<br />
+&nbsp; &nbsp; /*将其添加到全局哈希数组: css_set_table[ ]*/<br />
+&nbsp; &nbsp; hhead = css_set_hash(res-&gt;subsys);<br />
+&nbsp; &nbsp; hlist_add_head(&amp;res-&gt;hlist, hhead);<br />
+ <br />
+&nbsp; &nbsp; write_unlock(&amp;css_set_lock);<br />
+ <br />
+&nbsp; &nbsp; return res;<br />
+}<br />
+最后,将生成的css_set添加到哈希数组css_set_table[ ]中.<br />
+到这里,task文件的操作已经分析完了.<br />
+ <br />
+7.6: notify_on_release文件操作<br />
+notify_on_release文件对应的cftype结构如下:<br />
+{<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.name = &quot;notify_on_release&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.read_u64 = cgroup_read_notify_on_release,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.write_u64 = cgroup_write_notify_on_release,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.private = FILE_NOTIFY_ON_RELEASE,<br />
+}<br />
+ <br />
+从此得知.文件的读操作接口为cgroup_read_notify_on_release().代码如下:<br />
+static u64 cgroup_read_notify_on_release(struct cgroup *cgrp,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct cftype *cft)<br />
+{<br />
+&nbsp; &nbsp; return notify_on_release(cgrp);<br />
+}<br />
+继续跟进notify_on_release().如下示:<br />
+static int notify_on_release(const struct cgroup *cgrp)<br />
+{<br />
+&nbsp; &nbsp; return test_bit(CGRP_NOTIFY_ON_RELEASE, &amp;cgrp-&gt;flags);<br />
+}<br />
+从此可以看到,如果当前cgroup设置了CGRP_NOTIFY_ON_RELEASE标志.就会返回1.否则.就是为0.<br />
+从当前系统中测试一下,如下:<br />
+[root@localhost cgroup]# cat notify_on_release <br />
+0<br />
+[root@localhost cgroup]#<br />
+文件内容为零.因为top_cgroup上没有设置CGRP_NOTIFY_ON_RELEASE的标志.<br />
+ <br />
+notify_on_release文件读操作接口为cgroup_write_notify_on_release().代码如下:<br />
+static int cgroup_write_notify_on_release(struct cgroup *cgrp,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; struct cftype *cft,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; u64 val)<br />
+{<br />
+&nbsp; &nbsp; clear_bit(CGRP_RELEASABLE, &amp;cgrp-&gt;flags);<br />
+&nbsp; &nbsp; if (val)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;set_bit(CGRP_NOTIFY_ON_RELEASE, &amp;cgrp-&gt;flags);<br />
+&nbsp; &nbsp; else<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;clear_bit(CGRP_NOTIFY_ON_RELEASE, &amp;cgrp-&gt;flags);<br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+从上面的代码可以看到.如果我们写入的是1.就会设置cgroup标志的CGRP_NOTIFY_ON_RELEASE位.否则.清除CGRP_NOTIFY_ON_RELEASE位.测试如下:<br />
+[root@localhost cgroup]# echo 1 &gt; notify_on_release <br />
+[root@localhost cgroup]# cat notify_on_release <br />
+1<br />
+[root@localhost cgroup]# echo 0 &gt; notify_on_release <br />
+[root@localhost cgroup]# cat notify_on_release <br />
+0<br />
+[root@localhost cgroup]#<br />
+ <br />
+7.7: release_agent文件操作<br />
+release_agent只有在顶层目录才会有.它所代表的cftype结构如下:<br />
+static struct cftype cft_release_agent = {<br />
+&nbsp; &nbsp; .name = &quot;release_agent&quot;,<br />
+&nbsp; &nbsp; .read_seq_string = cgroup_release_agent_show,<br />
+&nbsp; &nbsp; .write_string = cgroup_release_agent_write,<br />
+&nbsp; &nbsp; .max_write_len = PATH_MAX,<br />
+&nbsp; &nbsp; .private = FILE_RELEASE_AGENT,<br />
+};<br />
+ <br />
+由此可以看到.读文件的接口为cgroup_release_agent_show.代码如下:<br />
+static int cgroup_release_agent_show(struct cgroup *cgrp, struct cftype *cft,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;struct seq_file *seq)<br />
+{<br />
+&nbsp; &nbsp; if (!cgroup_lock_live_group(cgrp))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ENODEV;<br />
+&nbsp; &nbsp; seq_puts(seq, cgrp-&gt;root-&gt;release_agent_path);<br />
+&nbsp; &nbsp; seq_putc(seq, '\n');<br />
+&nbsp; &nbsp; cgroup_unlock();<br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+从代码中可以看到.就是打印出root的release_agent_path.<br />
+ <br />
+写文件的接口为cgroup_release_agent_write().如下示:<br />
+static int cgroup_release_agent_write(struct cgroup *cgrp, struct cftype *cft,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; const char *buffer)<br />
+{<br />
+&nbsp; &nbsp; BUILD_BUG_ON(sizeof(cgrp-&gt;root-&gt;release_agent_path) <br />
+&nbsp; &nbsp; if (!cgroup_lock_live_group(cgrp))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;return -ENODEV;<br />
+&nbsp; &nbsp; strcpy(cgrp-&gt;root-&gt;release_agent_path, buffer);<br />
+&nbsp; &nbsp; cgroup_unlock();<br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+由此得知.往这个文件中写内容,就是设置root的release_agent_path.如下做个测试:<br />
+[root@localhost cgroup]# cat release_agent <br />
+ <br />
+[root@localhost cgroup]# echo /bin/ls &gt; release_agent <br />
+[root@localhost cgroup]# cat release_agent <br />
+/bin/ls<br />
+[root@localhost cgroup]#<br />
+ <br />
+7.8:debug创建的文件分析<br />
+下面分析一下debug subsys中的文件.由于我们挂载的时候没有带noprefix.因为.debug生成的文件都带了一个”debug_”前缀.由debug创建的文件如下示:<br />
+debug.cgroup_refcount&nbsp;&nbsp;debug.current_css_set_refcount&nbsp;&nbsp;debug.taskcount debug.current_css_set&nbsp;&nbsp;debug.releasable<br />
+挨个分析如下:<br />
+7.8.1: cgroup_refcount文件操作<br />
+Cgroup_refcount所代表的cftype结构如下示:<br />
+&nbsp; &nbsp; {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.name = &quot;cgroup_refcount&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.read_u64 = cgroup_refcount_read,<br />
+&nbsp; &nbsp; },<br />
+可以看到,该文件不能写,只能读.读操作接口为cgroup_refcount_read().代码如下:<br />
+static u64 cgroup_refcount_read(struct cgroup *cont, struct cftype *cft)<br />
+{<br />
+&nbsp; &nbsp; return atomic_read(&amp;cont-&gt;count);<br />
+}<br />
+它就是显示出当前cgroup的引用计数.<br />
+测试如下:<br />
+[root@localhost cgroup]# cat debug.cgroup_refcount <br />
+0<br />
+[root@localhost cgroup]#<br />
+顶层的cgroup是位于cgroupfs_root.top_cgroup.它的引用计数为0.<br />
+接下来,我们在下层创建一个子层cgroup.如下示:<br />
+[root@localhost cgroup]# mkdir /dev/cgroup/eric<br />
+[root@localhost cgroup]# cat /dev/cgroup/eric/debug.cgroup_refcount<br />
+0<br />
+[root@localhost cgroup]#<br />
+可见创建子层cgroup不会增加其引用计数.因为它只是与它的上一层cgroup构成指针指向关系.<br />
+现在我们让子层cgroup关联一个进程<br />
+[root@localhost cgroup]# echo 1673 &gt; /dev/cgroup/eric/tasks<br />
+[root@localhost cgroup]# cat /dev/cgroup/eric/debug.cgroup_refcount<br />
+1<br />
+[root@localhost cgroup]#<br />
+可以看到.它的计数比为了1.这里在关联进程的css_set和所在的cgroup时增加的.<br />
+ <br />
+7.8.2: current_css_set文件操作<br />
+current_css_set对应的cftype结构如下示:<br />
+&nbsp; &nbsp; {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.name = &quot;current_css_set&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.read_u64 = current_css_set_read,<br />
+&nbsp; &nbsp; },<br />
+可看出.它也是一个只读的.读接口为current_css_set_read().代码如下:<br />
+static u64 current_css_set_read(struct cgroup *cont, struct cftype *cft)<br />
+{<br />
+&nbsp; &nbsp; return (u64)(long)current-&gt;cgroups;<br />
+}<br />
+它就是显示了当前进程关联的css_set的地址.<br />
+测试如下:<br />
+[root@localhost cgroup]# cat debug.current_css_set<br />
+18446744072645980768<br />
+ <br />
+7.8.3: current_css_set_refcount文件操作<br />
+current_css_set_refcount文件对应的ctype结构如下:<br />
+&nbsp; &nbsp; {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.name = &quot;current_css_set_refcount&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.read_u64 = current_css_set_refcount_read,<br />
+&nbsp; &nbsp; },<br />
+照例.它也是只读的.接口如下:<br />
+static u64 current_css_set_refcount_read(struct cgroup *cont,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cftype *cft)<br />
+{<br />
+&nbsp; &nbsp; u64 count;<br />
+ <br />
+&nbsp; &nbsp; rcu_read_lock();<br />
+&nbsp; &nbsp; count = atomic_read(&amp;current-&gt;cgroups-&gt;refcount);<br />
+&nbsp; &nbsp; rcu_read_unlock();<br />
+&nbsp; &nbsp; return count;<br />
+}<br />
+它就是显示出与当前进程关联的css_set的引用计数.<br />
+测试如下:<br />
+[root@localhost cgroup]# cat debug.current_css_set_refcount <br />
+56<br />
+表示已经有56个进程关联到这个css_set了.<br />
+ <br />
+7.8.3: taskcount文件操作<br />
+Taskcount文件对应cftype结构如下:<br />
+&nbsp; &nbsp; {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.name = &quot;taskcount&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.read_u64 = taskcount_read,<br />
+&nbsp; &nbsp; },<br />
+只读文件.接口如下:<br />
+static u64 taskcount_read(struct cgroup *cont, struct cftype *cft)<br />
+{<br />
+&nbsp; &nbsp; u64 count;<br />
+ <br />
+&nbsp; &nbsp; cgroup_lock();<br />
+&nbsp; &nbsp; count = cgroup_task_count(cont);<br />
+&nbsp; &nbsp; cgroup_unlock();<br />
+&nbsp; &nbsp; return count;<br />
+}<br />
+其中,子函数cgroup_task_count()我们在之前已经分析过了.它就是计算与当前cgroup关联的进程数目.这里就不再分析了.测试如下:<br />
+[root@localhost cgroup]# cat debug.taskcount <br />
+56<br />
+ <br />
+7.8.4: releasable文件操作<br />
+Releasable文件对应的ctype结构如下示:<br />
+&nbsp; &nbsp; {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.name = &quot;releasable&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;.read_u64 = releasable_read,<br />
+&nbsp; &nbsp; },<br />
+只读,读接口代码如下:<br />
+static u64 releasable_read(struct cgroup *cgrp, struct cftype *cft)<br />
+{<br />
+&nbsp; &nbsp; return test_bit(CGRP_RELEASABLE, &amp;cgrp-&gt;flags);<br />
+}<br />
+它用来查看当前cgroup是否有CGRP_RELEASABLE标志.如果有.显示为1.否则显示为0.<br />
+测试如下:<br />
+[root@localhost cgroup]# cat debug.releasable <br />
+0<br />
+经过上面的分析.可以知道.如果往cgroup中删除一个关联进程,就会将其设置CGRP_RELEASABLE标志.有下面测试:<br />
+[root@localhost cgroup]# mkdir eric<br />
+[root@localhost cgroup]# cat eric/debug.releasable <br />
+0<br />
+[root@localhost cgroup]# echo 1650 &gt; eric/tasks <br />
+[root@localhost cgroup]# echo 1701 &gt; eric/tasks&nbsp; &nbsp;&nbsp;&nbsp;<br />
+[root@localhost cgroup]# cat eric/debug.releasable <br />
+0<br />
+[root@localhost cgroup]# echo 1650 &gt;tasks <br />
+[root@localhost cgroup]# cat eric/debug.releasable <br />
+1<br />
+ <br />
+到这里为止,各subsys共有的文件和debug中的文件操作就已经分析完了.其它的subsys远远比debug要复杂.之后再给出专题分析.详情请关注本站更新.*^_^*<br />
+ <br />
+九: notify_on_release操作<br />
+下面我们来分析在之前一直在忽略的一个问题.也就是涉及到CGRP_NOTIFY_ON_RELEASE标志和root-&gt; release_agent_path[]部份.<br />
+它的重用,就是在cgroup中最后的一个进程离开(包括进程退出.进程关联到其它同类型的cgroup),或者是在最后一个子层cgroup被移除的时候.就会调用用户空间的一个程序.这个程序的路径是在root-&gt; release_agent_path[]中指定的.<br />
+下面我们从代码的角度来跟踪一下.<br />
+ <br />
+9.1:进程退出<br />
+我们在之前在分析父子进程之间的cgroup关系的时候.忽略掉了__put_css_set函数中的一个部份.现在是时候来剥开它了.<br />
+次__put_css_set()被忽略的代码片段列出,如下:<br />
+static void __put_css_set(struct css_set *cg, int taskexit)<br />
+{<br />
+&nbsp; &nbsp; ．．．．．．<br />
+&nbsp; &nbsp; ．．．．．．<br />
+&nbsp; &nbsp; for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup *cgrp = cg-&gt;subsys<i>-&gt;cgroup;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (atomic_dec_and_test(&amp;cgrp-&gt;count) &amp;&amp;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;notify_on_release(cgrp)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;if (taskexit)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; set_bit(CGRP_RELEASABLE, &amp;cgrp-&gt;flags);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;check_for_release(cgrp);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; ．．．．．．<br />
+&nbsp; &nbsp; ．．．．．．<br />
+}<br />
+首先,进程退出时,调用__put_css_set时.taskexit参数是为1的,因此在这里,它会将cgroup的flag的CGRP_RELEASABLE位置1.<br />
+atomic_dec_and_test(&amp;cgrp-&gt;count)返回为真的话,说明进程所属的cgroup中已经没有其它的进程了.因此即将要退出的子进程就是cgroup中的最后一个进程.<br />
+notify_on_release(cgrp)代码如下:<br />
+static int notify_on_release(const struct cgroup *cgrp)<br />
+{<br />
+&nbsp; &nbsp; return test_bit(CGRP_NOTIFY_ON_RELEASE, &amp;cgrp-&gt;flags);<br />
+}<br />
+它用来判断cgroup有没有设定CGRP_NOTIFY_ON_RELEASE标志<br />
+综合上面的分析.如果cgroup中最后一个进程退出.且cgroup设定了CGRP_NOTIFY_ON_RELEASE标志.流程就会转到check_for_release()中.该函数代码如下:<br />
+static void check_for_release(struct cgroup *cgrp)<br />
+{<br />
+&nbsp; &nbsp; /* All of these checks rely on RCU to keep the cgroup<br />
+&nbsp; &nbsp;&nbsp;&nbsp;* structure alive */<br />
+&nbsp; &nbsp; if (cgroup_is_releasable(cgrp) &amp;&amp; !atomic_read(&amp;cgrp-&gt;count)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&amp;&amp; list_empty(&amp;cgrp-&gt;children) &amp;&amp; !cgroup_has_css_refs(cgrp)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* Control Group is currently removeable. If it's not<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* already queued for a userspace notification, queue<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* it now */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int need_schedule_work = 0;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;spin_lock(&amp;release_list_lock);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!cgroup_is_removed(cgrp) &amp;&amp;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;list_empty(&amp;cgrp-&gt;release_list)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;list_add(&amp;cgrp-&gt;release_list, &amp;release_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;need_schedule_work = 1;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;spin_unlock(&amp;release_list_lock);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (need_schedule_work)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;schedule_work(&amp;release_agent_work);<br />
+&nbsp; &nbsp; }<br />
+}<br />
+首先,在这里必须要满足以下四个条件才能继续下去:<br />
+1:cgroup_is_releasable()返回1.<br />
+代码如下:<br />
+static int cgroup_is_releasable(const struct cgroup *cgrp)<br />
+{<br />
+&nbsp; &nbsp; const int bits =<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;(1 <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;(1 <br />
+&nbsp; &nbsp; return (cgrp-&gt;flags &amp; bits) == bits;<br />
+}<br />
+它表示当前cgroup是含含有CGRP_RELEASABLE和CGRP_NOTIFY_ON_RELEASE标志.结合我们在上面分析的. CGRP_RELEASABLE标志是进程在退出是就会设置的.<br />
+ <br />
+2:cgroup的引用计数为0<br />
+3:cgroup没有子层cgroup<br />
+4: cgroup_has_css_refs()返回0.代码如下:<br />
+static int cgroup_has_css_refs(struct cgroup *cgrp)<br />
+{<br />
+&nbsp; &nbsp; int i;<br />
+&nbsp; &nbsp; for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup_subsys *ss = subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup_subsys_state *css;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* Skip subsystems not in this hierarchy */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (ss-&gt;root != cgrp-&gt;root)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;continue;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;css = cgrp-&gt;subsys[ss-&gt;subsys_id];<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (css &amp;&amp; atomic_read(&amp;css-&gt;refcnt))<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;return 1;<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+也就是说,cgroup关联的css_set引用计数必须要为0<br />
+ <br />
+满足上面几个条件之后.就说明该cgroup是可以释放的.因此将cgroup链接到了release_list.接着调度了工作队列.在工作队列中会完成余下的工作.<br />
+下面跟踪看看这个工作队列是怎么处理余下任务的.<br />
+release_agent_work定义如下:<br />
+static DECLARE_WORK(release_agent_work, cgroup_release_agent);<br />
+该工作队列对应的处理函数为cgroup_release_agent().代码如下:<br />
+static void cgroup_release_agent(struct work_struct *work)<br />
+{<br />
+&nbsp; &nbsp; BUG_ON(work != &amp;release_agent_work);<br />
+&nbsp; &nbsp; mutex_lock(&amp;cgroup_mutex);<br />
+&nbsp; &nbsp; spin_lock(&amp;release_list_lock);<br />
+&nbsp; &nbsp; /*遍历链表,直到其为空*/<br />
+&nbsp; &nbsp; while (!list_empty(&amp;release_list)) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;char *argv[3], *envp[3];<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int i;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;char *pathbuf = NULL, *agentbuf = NULL;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*取得链表项对应的cgroup*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup *cgrp = list_entry(release_list.next,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; struct cgroup,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; release_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*将cgroup从release_list中断开*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;list_del_init(&amp;cgrp-&gt;release_list);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;spin_unlock(&amp;release_list_lock);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*将cgroup的路径存放到pathbuf中*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;pathbuf = kmalloc(PAGE_SIZE, GFP_KERNEL);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!pathbuf)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;goto continue_free;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (cgroup_path(cgrp, pathbuf, PAGE_SIZE) <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;goto continue_free;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*agentbuf存放release_agent_path的内容*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;agentbuf = kstrdup(cgrp-&gt;root-&gt;release_agent_path, GFP_KERNEL);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!agentbuf)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;goto continue_free;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*初始化运行参数和环境变量*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;i = 0;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;argv[i++] = agentbuf;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;argv[i++] = pathbuf;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;argv<i> = NULL;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;i = 0;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* minimal command environment */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;envp[i++] = &quot;HOME=/&quot;;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;envp[i++] = &quot;PATH=/sbin:/bin:/usr/sbin:/usr/bin&quot;;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;envp<i> = NULL;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* Drop the lock while we invoke the usermode helper,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* since the exec could involve hitting disk and hence<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;* be a slow process */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;/*调用用户空间的进程*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;mutex_unlock(&amp;cgroup_mutex);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;mutex_lock(&amp;cgroup_mutex);<br />
+ continue_free:<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;kfree(pathbuf);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;kfree(agentbuf);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;spin_lock(&amp;release_list_lock);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; spin_unlock(&amp;release_list_lock);<br />
+&nbsp; &nbsp; mutex_unlock(&amp;cgroup_mutex);<br />
+}<br />
+该函数遍历release_list中的cgroup.然后以其路径做为参数.调用root-&gt;release_agent_path对应的程序.<br />
+我们来做如下的实验:<br />
+为了配合这次实验.必须要写两个测试的程序.代码如下:<br />
+Test.c<br />
+ <br />
+#include <br />
+#include <br />
+ <br />
+main()<br />
+{<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int i = 30;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;while(i){<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; i--;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; sleep(1);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+}<br />
+ <br />
+这个进程睡眠30s之后退出.编译成test<br />
+ <br />
+另外一个程序代码如下:<br />
+Main.c<br />
+#include <br />
+#include <br />
+ <br />
+int main(int argc,char *argv[])<br />
+{<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;char buf[125] = &quot;&quot;;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int i = 0;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;sprintf(buf,&quot;rm -f /var/eric_test&quot;);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;system(buf);<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;while(i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; sprintf(buf,&quot;echo %s &gt;&gt; /var/eric_test&quot;,argv<i>);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; system(buf);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp; i++;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;}<br />
+ <br />
+}<br />
+它就是将调用参数输出到/var/eric_test下面.<br />
+下面就可以开始我们的测试了.挂载目录下已经有一个子层cgroup.如下示:<br />
+.<br />
+|-- debug.cgroup_refcount<br />
+|-- debug.current_css_set<br />
+|-- debug.current_css_set_refcount<br />
+|-- debug.releasable<br />
+|-- debug.taskcount<br />
+|-- eric<br />
+|&nbsp; &nbsp;|-- debug.cgroup_refcount<br />
+|&nbsp; &nbsp;|-- debug.current_css_set<br />
+|&nbsp; &nbsp;|-- debug.current_css_set_refcount<br />
+|&nbsp; &nbsp;|-- debug.releasable<br />
+|&nbsp; &nbsp;|-- debug.taskcount<br />
+|&nbsp; &nbsp;|-- notify_on_release<br />
+|&nbsp; &nbsp;`-- tasks<br />
+|-- notify_on_release<br />
+|-- release_agent<br />
+`-- tasks<br />
+ <br />
+接下来设置realesse_agent_path和CGRP_NOTIFY_ON_RELEASE标志,指令如下:<br />
+[root@localhost cgroup]# echo /root/main &gt; release_agent<br />
+[root@localhost cgroup]# echo 1 &gt; eric/notify_on_release<br />
+下面往子层cgroup中添加一个进程.指令如下:<br />
+[root@localhost cgroup]# /root/test &amp;<br />
+[1] 4350<br />
+[root@localhost cgroup]# echo 4350 &gt; eric/tasks <br />
+[root@localhost cgroup]# <br />
+[1]+&nbsp;&nbsp;Done&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/root/test<br />
+等/root/test运行完之后.就会进行notify_on_release的操作了.印证一下:<br />
+[root@localhost cgroup]# cat /var/eric_test <br />
+/root/main<br />
+/eric<br />
+一切都如我们上面分析的一样<br />
+ <br />
+9.2:取消进程与cgroup的关联<br />
+当cgroup中的最后一个进程取消关联的时候,也会有notify_on_release过程.见下面的代码片段:<br />
+int cgroup_attach_task(struct cgroup *cgrp, struct task_struct *tsk)<br />
+{<br />
+&nbsp; &nbsp; int retval = 0;<br />
+&nbsp; &nbsp; struct cgroup_subsys *ss;<br />
+&nbsp; &nbsp; struct cgroup *oldcgrp;<br />
+&nbsp; &nbsp; struct css_set *cg = tsk-&gt;cgroups;<br />
+&nbsp; &nbsp; ......<br />
+&nbsp; &nbsp; ......<br />
+&nbsp; &nbsp; set_bit(CGRP_RELEASABLE, &amp;oldcgrp-&gt;flags);<br />
+&nbsp; &nbsp; synchronize_rcu();<br />
+&nbsp; &nbsp; put_css_set(cg);<br />
+}<br />
+这个函数我们在之前分析过,不过也把notify_on_release的过程去掉了.现在也把它加上.<br />
+代码中的cg是指向进程原本所引用的css_set<br />
+Oldcgrp是过程之前所在的cgroup<br />
+在代码中,会将oldcgrp标志设为CGRP_RELEASABLE.之后也会调用put_css_set().put_css_set()就是我们在上面分析的过程了.如果cgroup为空的话,就会产生notify_on_release的操作.<br />
+同样做个测试:<br />
+接着上面的测试环境.我们先来看下环境下的相关文件内容:<br />
+[root@localhost cgroup]# cat release_agent <br />
+/root/main<br />
+[root@localhost cgroup]# cat eric/tasks <br />
+[root@localhost cgroup]# cat eric/notify_on_release <br />
+1<br />
+[root@localhost cgroup]# pwd<br />
+/dev/cgroup<br />
+好了,测试开始了:<br />
+[root@localhost cgroup]# rm -rf /var/eric_test <br />
+[root@localhost cgroup]# echo 1701 &gt; eric/tasks <br />
+[root@localhost cgroup]# echo 1701 &gt;tasks <br />
+[root@localhost cgroup]# cat /var/eric_test <br />
+/root/main<br />
+/eric<br />
+在上面的测试过程中.为了避免影响测试效果.先将/var/eric_test文件删了.然后将进程1701关联到eric所表示的cgroup.然后再把1701再加最上层cgroup.这样就会造成eric下关联进程为空.相应的会发生notify_on_release过程.上面的测试也印证了这一说话.<br />
+ <br />
+9.3:移除cgroup<br />
+当移除cgroup下的最后一个子层cgroup时.也会发生notify_on_release.<br />
+看一下移除cgroup时的代码片段:<br />
+static int cgroup_rmdir(struct inode *unused_dir, struct dentry *dentry)<br />
+{<br />
+&nbsp; &nbsp; ......<br />
+&nbsp; &nbsp; ......<br />
+&nbsp; &nbsp; set_bit(CGRP_RELEASABLE, &amp;parent-&gt;flags);<br />
+&nbsp; &nbsp; check_for_release(parent);<br />
+&nbsp; &nbsp; ......<br />
+}<br />
+代码中,parent表示cgroup的上一层.在移除cgroup时,会设置上一层的cgroup标志的CGRP_RELEASABLE位.然后流程同样会转入到check_for_release().这样,如果上一层cgroup是空的话.就会生notify_on_release操作了.<br />
+测试如下:<br />
+还是用上层的测试环境.先来看一下初始环境:<br />
+[root@localhost cgroup]# pwd<br />
+/dev/cgroup<br />
+[root@localhost cgroup]# cat release_agent <br />
+/root/main<br />
+[root@localhost cgroup]# cat eric/notify_on_release <br />
+1<br />
+在eric下面再加一层cgroup.<br />
+[root@localhost cgroup]# mkdir eric/test<br />
+[root@localhost cgroup]# tree<br />
+.<br />
+|-- debug.cgroup_refcount<br />
+|-- debug.current_css_set<br />
+|-- debug.current_css_set_refcount<br />
+|-- debug.releasable<br />
+|-- debug.taskcount<br />
+|-- eric<br />
+|&nbsp; &nbsp;|-- debug.cgroup_refcount<br />
+|&nbsp; &nbsp;|-- debug.current_css_set<br />
+|&nbsp; &nbsp;|-- debug.current_css_set_refcount<br />
+|&nbsp; &nbsp;|-- debug.releasable<br />
+|&nbsp; &nbsp;|-- debug.taskcount<br />
+|&nbsp; &nbsp;|-- notify_on_release<br />
+|&nbsp; &nbsp;|-- tasks<br />
+|&nbsp; &nbsp;`-- test<br />
+|&nbsp; &nbsp;&nbsp; &nbsp; |-- debug.cgroup_refcount<br />
+|&nbsp; &nbsp;&nbsp; &nbsp; |-- debug.current_css_set<br />
+|&nbsp; &nbsp;&nbsp; &nbsp; |-- debug.current_css_set_refcount<br />
+|&nbsp; &nbsp;&nbsp; &nbsp; |-- debug.releasable<br />
+|&nbsp; &nbsp;&nbsp; &nbsp; |-- debug.taskcount<br />
+|&nbsp; &nbsp;&nbsp; &nbsp; |-- notify_on_release<br />
+|&nbsp; &nbsp;&nbsp; &nbsp; `-- tasks<br />
+|-- notify_on_release<br />
+|-- release_agent<br />
+`-- tasks<br />
+ <br />
+2 directories, 22 files<br />
+接着运行如下指令:<br />
+[root@localhost cgroup]# rm -rf /var/eric_test <br />
+[root@localhost cgroup]# rmdir eric/test/<br />
+[root@localhost cgroup]# cat /var/eric_test <br />
+/root/main<br />
+/eric<br />
+如上所示.把eric下的唯一一个cgroup移除的时候.就发生了notity_on_release过程.<br />
+ <br />
+十:cgroup的proc节点<br />
+10.1:/proce/cgroups<br />
+在前面分析cgroup初始化的时候.在cgroup_init()中有下面代码片段:<br />
+int __init cgroup_init(void)<br />
+{<br />
+&nbsp; &nbsp; ．．．．．．<br />
+&nbsp; &nbsp; ．．．．．．<br />
+&nbsp; &nbsp; proc_create(&quot;cgroups&quot;, 0, NULL, &amp;proc_cgroupstats_operations)<br />
+&nbsp; &nbsp; ．．．．．．<br />
+&nbsp; &nbsp; ．．．．．．<br />
+}<br />
+也就是说.会在proc根目录下创建一个名为cgroups的文件.如下示:<br />
+[root@localhost cgroup]# ls /proc/cgroups&nbsp;&nbsp;<br />
+/proc/cgroups<br />
+接下来就来分析这个文件的操作.<br />
+该文件对应的操作集为<br />
+proc_cgroupstats_operations.定义如下:<br />
+static struct file_operations proc_cgroupstats_operations = {<br />
+&nbsp; &nbsp; .open = cgroupstats_open,<br />
+&nbsp; &nbsp; .read = seq_read,<br />
+&nbsp; &nbsp; .llseek = seq_lseek,<br />
+&nbsp; &nbsp; .release = single_release,<br />
+}<br />
+从上面看到,这个文件是只读的.<br />
+先来看open时的操作,对应接口为cgroupstats_open.代码如下:<br />
+static int cgroupstats_open(struct inode *inode, struct file *file)<br />
+{<br />
+&nbsp; &nbsp; return single_open(file, proc_cgroupstats_show, NULL);<br />
+}<br />
+Single_open()函数十分简单.它也是sequences file中提供的一个接口.有关sequences file部份我们在上面已经分析过了. 这里就不再详细分析了.它将seq_file的show操作指向了proc_cgroupstats_show.<br />
+我们在上面的proc_cgroupstats_operations结构中可看到,它提供的read操作为seq_read().它就是调用seq_file中的相关操作.在open的时候,已经将seq_file的show接口指向了proc_cgroupstats_show().代码如下:<br />
+static int proc_cgroupstats_show(struct seq_file *m, void *v)<br />
+{<br />
+&nbsp; &nbsp; int i;<br />
+ <br />
+&nbsp; &nbsp; seq_puts(m, &quot;#subsys_name\thierarchy\tnum_cgroups\tenabled\n&quot;);<br />
+&nbsp; &nbsp; mutex_lock(&amp;cgroup_mutex);<br />
+&nbsp; &nbsp; for (i = 0; i <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup_subsys *ss = subsys<i>;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;seq_printf(m, &quot;%s\t%lu\t%d\t%d\n&quot;,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;ss-&gt;name, ss-&gt;root-&gt;subsys_bits,<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;ss-&gt;root-&gt;number_of_cgroups, !ss-&gt;disabled);<br />
+&nbsp; &nbsp; }<br />
+&nbsp; &nbsp; mutex_unlock(&amp;cgroup_mutex);<br />
+&nbsp; &nbsp; return 0;<br />
+}<br />
+从代码中看到,它就是将系统中每subsys名称.所在hierarchy的位码. Hierarchy下面的cgroup数目和subsys的启用状态.<br />
+测试如下:<br />
+[root@localhost cgroup]# cat /proc/cgroups <br />
+#subsys_name&nbsp; &nbsp; hierarchy&nbsp; &nbsp;&nbsp; &nbsp; num_cgroups&nbsp; &nbsp;&nbsp;&nbsp;enabled<br />
+cpuset&nbsp;&nbsp;0&nbsp; &nbsp;&nbsp; &nbsp; 1&nbsp; &nbsp;&nbsp; &nbsp; 1<br />
+debug&nbsp; &nbsp;2&nbsp; &nbsp;&nbsp; &nbsp; 2&nbsp; &nbsp;&nbsp; &nbsp; 1<br />
+ns&nbsp; &nbsp;&nbsp; &nbsp;0&nbsp; &nbsp;&nbsp; &nbsp; 1&nbsp; &nbsp;&nbsp; &nbsp; 1<br />
+cpuacct 0&nbsp; &nbsp;&nbsp; &nbsp; 1&nbsp; &nbsp;&nbsp; &nbsp; 1<br />
+memory&nbsp;&nbsp;0&nbsp; &nbsp;&nbsp; &nbsp; 1&nbsp; &nbsp;&nbsp; &nbsp; 1<br />
+devices 0&nbsp; &nbsp;&nbsp; &nbsp; 1&nbsp; &nbsp;&nbsp; &nbsp; 1<br />
+freezer 0&nbsp; &nbsp;&nbsp; &nbsp; 1&nbsp; &nbsp;&nbsp; &nbsp; 1<br />
+从这里可以看到所有的subsys和hierarchy的情况.在上面显示的debug和其它的subsys不同.是因为用的是之前测试notify_on_release的环境.如下示:<br />
+[root@localhost cgroup]# tree ../cgroup/<br />
+../cgroup/<br />
+|-- debug.cgroup_refcount<br />
+|-- debug.current_css_set<br />
+|-- debug.current_css_set_refcount<br />
+|-- debug.releasable<br />
+|-- debug.taskcount<br />
+|-- eric<br />
+|&nbsp; &nbsp;|-- debug.cgroup_refcount<br />
+|&nbsp; &nbsp;|-- debug.current_css_set<br />
+|&nbsp; &nbsp;|-- debug.current_css_set_refcount<br />
+|&nbsp; &nbsp;|-- debug.releasable<br />
+|&nbsp; &nbsp;|-- debug.taskcount<br />
+|&nbsp; &nbsp;|-- notify_on_release<br />
+|&nbsp; &nbsp;`-- tasks<br />
+|-- notify_on_release<br />
+|-- release_agent<br />
+`-- tasks<br />
+ <br />
+1 directory, 15 files<br />
+ <br />
+10.2:proc下进程镜像中的cgroup<br />
+除了在proc顶层目录创建cgroup外.另外在每个进程镜像下都有一个cgroup的文件.如下示:<br />
+[root@localhost cgroup]# ls /proc/648/cgroup <br />
+/proc/648/cgroup<br />
+ <br />
+来看一下这个文件对应的操作,如下示:<br />
+static const struct pid_entry tid_base_stuff[] = {<br />
+&nbsp; &nbsp; ．．．．．．<br />
+&nbsp; &nbsp; ．．．．．．<br />
+#ifdef CONFIG_CGROUPS<br />
+&nbsp; &nbsp; REG(&quot;cgroup&quot;,&nbsp;&nbsp;S_IRUGO, cgroup),<br />
+#endif<br />
+．．．．．．<br />
+}<br />
+ <br />
+#define REG(NAME, MODE, OTYPE)&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;\<br />
+&nbsp; &nbsp; NOD(NAME, (S_IFREG|(MODE)), NULL,&nbsp; &nbsp;&nbsp; &nbsp; \<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&amp;proc_##OTYPE##_operations, {})<br />
+从上面可以看到．Cgroup对应的操作为&amp;proc_cgroup_operations<br />
+定义如下：<br />
+struct file_operations proc_cgroup_operations = {<br />
+&nbsp; &nbsp; .open&nbsp; &nbsp;&nbsp; &nbsp; = cgroup_open,<br />
+&nbsp; &nbsp; .read&nbsp; &nbsp;&nbsp; &nbsp; = seq_read,<br />
+&nbsp; &nbsp; .llseek&nbsp; &nbsp;&nbsp;&nbsp;= seq_lseek,<br />
+&nbsp; &nbsp; .release&nbsp; &nbsp; = single_release,<br />
+};<br />
+Open对应的操作为cgroup_open.定义如下：<br />
+static int cgroup_open(struct inode *inode, struct file *file)<br />
+{<br />
+&nbsp; &nbsp; struct pid *pid = PROC_I(inode)-&gt;pid;<br />
+&nbsp; &nbsp; return single_open(file, proc_cgroup_show, pid);<br />
+}<br />
+又见到single_open()了．如上面的分析一样，read操作的时候会转入到proc_cgroup_show()．代码如下：<br />
+static int proc_cgroup_show(struct seq_file *m, void *v)<br />
+{<br />
+&nbsp; &nbsp; struct pid *pid;<br />
+&nbsp; &nbsp; struct task_struct *tsk;<br />
+&nbsp; &nbsp; char *buf;<br />
+&nbsp; &nbsp; int retval;<br />
+&nbsp; &nbsp; struct cgroupfs_root *root;<br />
+ <br />
+&nbsp; &nbsp; retval = -ENOMEM;<br />
+&nbsp; &nbsp; buf = kmalloc(PAGE_SIZE, GFP_KERNEL);<br />
+&nbsp; &nbsp; if (!buf)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;goto out;<br />
+ <br />
+&nbsp; &nbsp; retval = -ESRCH;<br />
+&nbsp; &nbsp; pid = m-&gt;private;<br />
+&nbsp; &nbsp; tsk = get_pid_task(pid, PIDTYPE_PID);<br />
+&nbsp; &nbsp; if (!tsk)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;goto out_free;<br />
+ <br />
+&nbsp; &nbsp; retval = 0;<br />
+ <br />
+&nbsp; &nbsp; mutex_lock(&amp;cgroup_mutex);<br />
+ <br />
+&nbsp; &nbsp; /*遍历所有的cgroupfs_root*/<br />
+&nbsp; &nbsp; for_each_root(root) {<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup_subsys *ss;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;struct cgroup *cgrp;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int subsys_id;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;int count = 0;<br />
+ <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/* Skip this hierarchy if it has no active subsystems */<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*如果hierarchy中没有subsys.就继续下一个rootnode就是这样的情况*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (!root-&gt;actual_subsys_bits)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;continue;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*打印hierarchy中的subsys位图*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;seq_printf(m, &quot;%lu:&quot;, root-&gt;subsys_bits);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*打印hierarchy中的subsys名称*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;for_each_subsys(root, ss)<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;seq_printf(m, &quot;%s%s&quot;, count++ ? &quot;,&quot; : &quot;&quot;, ss-&gt;name);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;seq_putc(m, ':');<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;/*进程所在cgroup的path*/<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;get_first_subsys(&amp;root-&gt;top_cgroup, NULL, &amp;subsys_id);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;cgrp = task_cgroup(tsk, subsys_id);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;retval = cgroup_path(cgrp, buf, PAGE_SIZE);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;if (retval <br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;goto out_unlock;<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;seq_puts(m, buf);<br />
+&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;seq_putc(m, '\n');<br />
+&nbsp; &nbsp; }<br />
+ <br />
+out_unlock:<br />
+&nbsp; &nbsp; mutex_unlock(&amp;cgroup_mutex);<br />
+&nbsp; &nbsp; put_task_struct(tsk);<br />
+out_free:<br />
+&nbsp; &nbsp; kfree(buf);<br />
+out:<br />
+&nbsp; &nbsp; return retval;<br />
+}<br />
+它的核心操作在这个for循环中,它的操作在注释中已经详细的说明了．在这里不做详细分析．<br />
+我将虚拟机重启了　*^_^*,所以现在的环境不是我们之前的测试环境了<br />
+测试一下：<br />
+[root@localhost ~]# cat /proc/646/cgroup <br />
+[root@localhost ~]#<br />
+说明当前系统中还没有hierarchy．<br />
+接下来挂载上一个:<br />
+[root@localhost ~]# mkdir /dev/cgroup<br />
+[root@localhost ~]# mount -t cgroup cgroup -o debug /dev/cgroup/<br />
+[root@localhost ~]# cat /proc/6<br />
+6/&nbsp; &nbsp;609/ 646/ <br />
+[root@localhost ~]# cat /proc/646/cgroup <br />
+2:debug:/<br />
+[root@localhost ~]#<br />
+从上面可以看到．系统已经有一个hierarchy.且绑定的是debug subsys.当前进程是位于它的顶层.<br />
+继续测试：<br />
+[root@localhost ~]# mkdir /dev/cgroup/eric<br />
+[root@localhost ~]# echo 646 &gt; /dev/cgroup/eric/tasks <br />
+[root@localhost ~]# cat /proc/646/cgroup&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;<br />
+2:debug:/eric<br />
+[root@localhost ~]#<br />
+可以看到，当前进程是位于eric这个cgroup中．<br />
+ <br />
+十一：小结<br />
+在这一节里，用大篇幅详细的描述了整个cgroup的框架.cgroup框架并不复杂，只是其中的数据结构和大量的全局变量弄的头昏眼花．因此理顺这些数据结构和变量是阅读cgroup代码的关键.另外在cgroup中对于RCU和rw_mutex的使用也有值得推敲的地方.不过由于篇幅关系,就不再分析这一部份.在接下来专题里.以cgroup框架为基础来分析几个重要的subsys.<br />
+<br />
+<br />
+<b>本文来自ChinaUnix博客，如果查看原文请点：</b><a href="http://blog.chinaunix.net/u1/51562/showart_1736813.html" target="_blank">http://blog.chinaunix.net/u1/51562/showart_1736813.html</a> 
+</td>
+
+      </tr>
+
+
+      <tr>
+
+        <td height="20" align="right"> 　 <a href="http://linux.chinaunix.net/bbs/thread-1054425-1-1.html"  target="_blank">发表评论</a>
+
+  <a href="http://linux.chinaunix.net/bbs/thread-1054425-1-1.html"  target="_blank">查看评论</a>(共有<span class="STYLE1" id ="postcount2"></span>条评论)
+<a href="http://linux.chinaunix.net/bbs/forum-4-1.html" target="_blank">我要提问</a>
+</td>
+
+      </tr>
+      <tr>
+
+        <td>&nbsp;</td>
+
+      </tr>
+
+      
+
+    </table>
+
+
+</td>
+
+    <td width="8">&nbsp;</td>
+
+    <td width="245" valign="top" bgcolor="#FFF9EB">
+<center><br>
+<form action="/search2.php" method="GET">
+<input type="text" name="key" size="15"><input type=hidden name="id" value=0 ><input type="submit" value="搜索">
+</form>
+<br>
+</center>
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+
+      <tr>
+
+        <td height="27" background="/images/bg245.jpg" class="F13"><table width="100%"><tr><td class="F13">最新资讯</td><td align="right"><a href="/news" target="_blank">更多>></a>&nbsp;</td></tr></table></td>
+
+      </tr>
+
+      <tr>
+
+        <td valign="top" bgcolor="#FFFFFF" class="BLKtext" ><table width="97%" border="0" align="center" cellpadding="0" cellspacing="0">
+
+          <tr>
+
+            <td height="5"></td>
+
+          </tr>
+
+          <tr>
+
+            <td>· <a href='/news/2010/12/10/1175491.shtml' title='谷歌劝说诺基亚采用Android操作系统' target='_blank'>谷歌劝说诺基亚采用Android操作..</a><br />
+· <a href='/news/2010/12/10/1175493.shtml' title='Apache 基金会确认退出 JCP 执行委员会' target='_blank'>Apache 基金会确认退出 JCP 执..</a><br />
+· <a href='/news/2010/12/07/1175306.shtml' title='Chrome 10 新功能探秘：新增GPU混合加速功能' target='_blank'>Chrome 10 新功能探秘：新增GP..</a><br />
+· <a href='/news/2010/12/07/1175307.shtml' title='金山宣布开源其安全软件' target='_blank'>金山宣布开源其安全软件</a><br />
+· <a href='/news/2010/12/07/1175309.shtml' title='女黑客在开源会议上抱受骚扰' target='_blank'>女黑客在开源会议上抱受骚扰</a><br />
+· <a href='/news/2010/12/07/1175310.shtml' title='21款值得关注的Linux游戏' target='_blank'>21款值得关注的Linux游戏</a><br />
+· <a href='/news/2010/12/07/1175311.shtml' title='马化腾：腾讯半年后彻底转型，开放和分享' target='_blank'>马化腾：腾讯半年后彻底转型，..</a><br />
+· <a href='/news/2010/12/07/1175305.shtml' title='[多图] Chrome OS 预发布版本多图赏析' target='_blank'>[多图] Chrome OS 预发布版本多..</a><br />
+· <a href='/news/2010/12/01/1175001.shtml' title='Lubuntu 11.04 默认应用抢先一览' target='_blank'>Lubuntu 11.04 默认应用抢先一览</a><br />
+· <a href='/news/2010/12/01/1175002.shtml' title='Red Hat宣布收购云计算软件提供商Makara' target='_blank'>Red Hat宣布收购云计算软件提供..</a><br />
+</td>
+
+          </tr>
+
+          <tr>
+
+            <td height="5"></td>
+
+          </tr>
+
+        </table></td>
+
+      </tr>
+
+      <tr>
+
+        <td height="10" bgcolor="#FFFFFF"></td>
+
+      </tr>
+
+      <tr></table>
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+
+      <tr>
+
+        <td height="27" background="/images/bg245.jpg" class="F13"><table width="100%"><tr><td class="F13">论坛热点</td><td align="right"><a href="/bbs" target="_blank">更多>></a>&nbsp;</td></tr></table></td>
+
+      </tr>
+
+      <tr>
+
+        <td valign="top" bgcolor="#FFFFFF" class="BLKtext" ><table width="97%" border="0" align="center" cellpadding="0" cellspacing="0">
+
+          <tr>
+
+            <td height="5"></td>
+
+          </tr>
+
+          <tr>
+
+            <td>· <a href='http://bbs.chinaunix.net/thread-3687970-1-1.html' title='do_execve时候用户栈中参数的位置问题' target='_blank'>do_execve时候用户栈中参数的..</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687969-1-1.html' title='swapinfo -atm 问题' target='_blank'>swapinfo -atm 问题</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687968-1-1.html' title='Linux 的优点简述' target='_blank'>Linux 的优点简述</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687967-1-1.html' title='VM虚拟机上得Red Hat Linux上搭建的ftp服务器，windows登陆不进去，但一个局域网其他' target='_blank'>VM虚拟机上得Red Hat Linux上..</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687965-1-1.html' title='我看成了上海男人喜欢女人毛多还是毛少' target='_blank'>我看成了上海男人喜欢女人毛..</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687964-1-1.html' title='校车展览，看了你就知道' target='_blank'>校车展览，看了你就知道</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687963-1-1.html' title='在遇到他之前，唯一需要做的，就是让自己足够优秀。在遇到他之前，请把最好的年华留给' target='_blank'>在遇到他之前，唯一需要做的..</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687962-1-1.html' title='GRUB的疑问' target='_blank'>GRUB的疑问</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687961-1-1.html' title='从来没有人真正付足书价——所付的只是印刷费' target='_blank'>从来没有人真正付足书价——..</a><br />
+· <a href='http://bbs.chinaunix.net/thread-3687960-1-1.html' title='云存储 vs 网盘' target='_blank'>云存储 vs 网盘</a><br />
+</td>
+
+          </tr>
+
+          <tr>
+
+            <td height="5"></td>
+
+          </tr>
+
+        </table></td>
+
+      </tr>
+
+      <tr>
+
+        <td height="10" bgcolor="#FFFFFF"></td>
+
+      </tr>
+
+      <tr></table>
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+
+      <tr>
+
+        <td height="27" background="/images/bg245.jpg" class="F13"><table width="100%"><tr><td class="F13">文档更新</td><td align="right"><a href="/techdoc" target="_blank">更多>></a>&nbsp;</td></tr></table></td>
+
+      </tr>
+
+      <tr>
+
+        <td valign="top" bgcolor="#FFFFFF" class="BLKtext" ><table width="97%" border="0" align="center" cellpadding="0" cellspacing="0">
+
+          <tr>
+
+            <td height="5"></td>
+
+          </tr>
+
+          <tr>
+
+            <td>· <a href='/techdoc/develop/2012/03/16/3686893.shtml' title='orcale queue' target='_blank'>orcale queue</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686868.shtml' title='谁可以推荐几本经典的操作系统的书（英文版）' target='_blank'>谁可以推荐几本经典的操作系统的..</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686867.shtml' title='【北京】某物联网公司招云计算应用高级开发工程师' target='_blank'>【北京】某物联网公司招云计算应..</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686866.shtml' title='【北京】某物联网公司招云计算应用高级开发工程师' target='_blank'>【北京】某物联网公司招云计算应..</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686865.shtml' title='谁能推荐几本关于操作系统的书' target='_blank'>谁能推荐几本关于操作系统的书</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686864.shtml' title='如何添加网络接口eth1' target='_blank'>如何添加网络接口eth1</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686863.shtml' title='葡萄牙语入门教材的选取与经验分享' target='_blank'>葡萄牙语入门教材的选取与经验分享</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686862.shtml' title='葡萄牙语就业前景分析' target='_blank'>葡萄牙语就业前景分析</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686861.shtml' title='葡萄牙语学习经验交流' target='_blank'>葡萄牙语学习经验交流</a><br />
+· <a href='/techdoc/develop/2012/03/16/3686860.shtml' title='Щ' target='_blank'>Щ</a><br />
+</td>
+
+          </tr>
+
+   
+        </table></td>
+
+      </tr>
+
+
+      <tr></table>
+</td>
+
+  </tr>
+
+</table>
+<script src="/js/threadcount.php?tid=1054425"></script>
+<table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+
+  <tr>
+
+    <td>&nbsp;</td>
+
+  </tr>
+
+</table>
+
+<table width="950" border="0" align="center" cellpadding="0" cellspacing="0">
+
+  <tr>
+
+    <td height="2" bgcolor="#308CF6"></td>
+
+  </tr>
+
+  <tr>
+
+    <td height="30" align="center"><a href="http://www.chinaunix.net/about/index.shtml" target="_blank">关于我们</a> | <a href="http://www.chinaunix.net/about/connect.html" target="_blank">联系方式</a> | <a href="http://www.chinaunix.net/about/service.html" target="_blank">广告合作</a> | <a href="http://www.wintalent.cn:8031/wt5/sequelmedia/web/index" target="_blank">诚聘英才</a> | <a href="http://www.chinaunix.net/about/channel.html" target="_blank">网站地图</a> | <a href="http://www.chinaunix.net/about/friend.html" target="_blank">友情链接</a> | <a href="http://linux.chinaunix.net/bbs/register.php" target="_blank">免费注册</a></td>
+
+  </tr>
+
+  <tr>
+
+    <td height="2" bgcolor="#308CF6"></td>
+
+  </tr>
+
+  <tr>
+
+    <td align="center"><p>Copyright &copy; 2001-2009 ChinaUnix.net All Rights Reserved</p>
+
+        <p>感谢所有关心和支持过ChinaUnix的朋友们<br />
+	<p>
+ <a href="http://www.it168.com/images/icp.jpg" target="_blank">京ICP证:060528号</a></p></td>
+
+  </tr>
+
+</table>
+
+<!-- 统计 START -->
+<script src="http://stat.it168.com/pv.js" type="text/javascript"></script>
+<script>
+function sendPV(){
+    var pvTrack = new PvTrack();
+    pvTrack.type = 10; // 频道类别ID
+    pvTrack.channel = 22; // 频道ID
+   
+    pvTrack.pageType = 0;
+    pvTrack.track();
+}
+window.setTimeout("sendPV()", 0);
+</script>
+<script language="javascript" src="http://bbs.chinaunix.net/googlepv/pv.js" type="text/javascript"></script>
+<!-- 统计 .END -->
+<div style='display:none'>
+<script type="text/javascript"> 
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F0ee5e8cdc4d43389b3d1bfd76e83216b' type='text/javascript'%3E%3C/script%3E"));
+</script>
+</div>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-11982772-4");
+pageTracker._trackPageview();
+} catch(err) {}
+</script>
+<script type='text/javascript' src='http://168.it168.com/js/601.js'></script>
+
+
+
+</body>
+
+</html>

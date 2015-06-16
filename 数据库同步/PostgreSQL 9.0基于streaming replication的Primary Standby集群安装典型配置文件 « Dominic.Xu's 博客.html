@@ -1,0 +1,915 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN">
+
+<head profile="http://gmpg.org/xfn/11">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<title>PostgreSQL 9.0基于streaming replication的Primary/Standby集群安装典型配置文件 &laquo;  Dominic.Xu&#039;s 博客</title>
+	<link rel="stylesheet" href="http://xuplus.com/wp-content/themes/colorbold/style.css" type="text/css" media="screen" />
+
+	<!--[if lt IE 8]> 
+	<script src="http://ie7-js.googlecode.com/svn/version/2.1(beta4)/IE8.js"></script> 
+	<![endif]-->
+	<link rel="alternate" type="application/rss+xml" title="RSS 2.0" href="http://xuplus.com/feed" />
+	<link rel="alternate" type="text/xml" title="RSS .92" href="http://xuplus.com/feed/rss" />
+	<link rel="alternate" type="application/atom+xml" title="Atom 1.0" href="http://xuplus.com/feed/atom" />
+
+	<link rel="pingback" href="http://xuplus.com/xmlrpc.php" />
+			<link rel="alternate" type="application/rss+xml" title="Dominic.Xu&#039;s 博客 &raquo; PostgreSQL 9.0基于streaming replication的Primary/Standby集群安装典型配置文件 评论 Feed" href="http://xuplus.com/article/2011/03/a224.html/feed" />
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://xuplus.com/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://xuplus.com/wp-includes/wlwmanifest.xml" /> 
+<link rel='prev' title='给CodeIgniter 2.0.1中的PostgreSQL 数据库驱动打两个补丁' href='http://xuplus.com/article/2011/03/a223.html' />
+<link rel='next' title='用Postgresql作为BIND9 数据存储情况下TXT等包含空格记录的处理' href='http://xuplus.com/article/2011/07/a225.html' />
+<meta name="generator" content="WordPress 3.5.1" />
+<link rel='canonical' href='http://xuplus.com/article/2011/03/a224.html' />
+<link rel='shortlink' href='http://xuplus.com/?p=224' />
+	<style type="text/css">.recentcomments a{display:inline !important;padding:0 !important;margin:0 !important;}</style>
+
+</head>
+<body>
+<!-- begin mainWrapper -->
+<div id="mainWrapper">
+	<!-- begin wrapper -->
+	<div id="wrapper">
+	<!-- begin header -->
+	<div id="header">
+	<div id="site5top"></div>
+	<a href="http://xuplus.com/feed" title="RSS" class="rssTag">RSS Feeds</a>
+	<!-- logo -->
+		<div id="logo"><a href="http://xuplus.com/"><img src="/logo.png" alt="Dominic.xu的博客" /></a></div>
+		<!-- begin topmenu -->
+				<div id="topMenu">
+			<ul>
+				<li><a href="http://xuplus.com/">Home</a></li>
+				<li class="page_item page-item-5"><a href="http://xuplus.com/aboutme">关于</a></li>
+			</ul>
+		</div>
+		<!-- end topmenu -->
+		<!-- begin mainMenu -->
+					<div id="mainMenu">
+				<ul class="sf-menu">
+					<li class="cat-item cat-item-214"><a href="http://xuplus.com/article/category/apple" title="查看 Apple 下的所有文章">Apple</a>
+</li>
+	<li class="cat-item cat-item-8"><a href="http://xuplus.com/article/category/dotnet" title="查看 dotNet 下的所有文章">dotNet</a>
+</li>
+	<li class="cat-item cat-item-196"><a href="http://xuplus.com/article/category/it%e6%9c%8d%e5%8a%a1" title="查看 IT服务 下的所有文章">IT服务</a>
+</li>
+	<li class="cat-item cat-item-194"><a href="http://xuplus.com/article/category/java" title="查看 JAVA 下的所有文章">JAVA</a>
+</li>
+	<li class="cat-item cat-item-50"><a href="http://xuplus.com/article/category/linux" title="查看 linux 下的所有文章">linux</a>
+</li>
+	<li class="cat-item cat-item-192"><a href="http://xuplus.com/article/category/oracle" title="查看 Oracle 下的所有文章">Oracle</a>
+</li>
+	<li class="cat-item cat-item-6"><a href="http://xuplus.com/article/category/web" title="查看 Web应用 下的所有文章">Web应用</a>
+<ul class='children'>
+	<li class="cat-item cat-item-222"><a href="http://xuplus.com/article/category/web/drupal" title="查看 Drupal 下的所有文章">Drupal</a>
+</li>
+	<li class="cat-item cat-item-139"><a href="http://xuplus.com/article/category/web/php-web" title="查看 PHP 下的所有文章">PHP</a>
+</li>
+	<li class="cat-item cat-item-140"><a href="http://xuplus.com/article/category/web/xoops-web" title="查看 XOOPS 下的所有文章">XOOPS</a>
+</li>
+</ul>
+</li>
+	<li class="cat-item cat-item-9"><a href="http://xuplus.com/article/category/work" title="查看 工作 下的所有文章">工作</a>
+</li>
+	<li class="cat-item cat-item-5"><a href="http://xuplus.com/article/category/life" title="查看 生活叫吠 下的所有文章">生活叫吠</a>
+</li>
+	<li class="cat-item cat-item-203"><a href="http://xuplus.com/article/category/power" title="查看 电力相关 下的所有文章">电力相关</a>
+<ul class='children'>
+	<li class="cat-item cat-item-206"><a href="http://xuplus.com/article/category/power/smartgrid" title="查看 智能电网 下的所有文章">智能电网</a>
+</li>
+</ul>
+</li>
+	<li class="cat-item cat-item-163"><a href="http://xuplus.com/article/category/%e7%b3%bb%e7%bb%9f%e5%ba%94%e7%94%a8" title="查看 系统应用 下的所有文章">系统应用</a>
+</li>
+	<li class="cat-item cat-item-137"><a href="http://xuplus.com/article/category/webmanage" title="查看 网站管理 下的所有文章">网站管理</a>
+</li>
+	<li class="cat-item cat-item-138"><a href="http://xuplus.com/article/category/book" title="查看 读书 下的所有文章">读书</a>
+</li>
+	<li class="cat-item cat-item-10"><a href="http://xuplus.com/article/category/software" title="查看 软件应用 下的所有文章">软件应用</a>
+</li>
+				</ul>
+		</div>
+		<!-- end mainMenu -->
+	</div>
+	<!-- end header -->
+	<!-- begin content -->
+	<div id="content" class="clearfix">
+<!-- begin col left -->
+	<div id="colLeft">		
+				<!-- begin post -->
+		<div class="blogPost clearfix">
+			<div class="metaLeft">
+				<div class="month">三月</div>
+				<div class="day">26</div>
+				<div class="comments"><a href="http://xuplus.com/article/2011/03/a224.html#comments" title="《PostgreSQL 9.0基于streaming replication的Primary/Standby集群安装典型配置文件》上的评论">10</a></div>
+			</div>
+			<div class="postRight">
+				<div class="titBullet"></div>
+				<h1><a href="http://xuplus.com/article/2011/03/a224.html">PostgreSQL 9.0基于streaming replication的Primary/Standby集群安装典型配置文件</a></h1>
+				<div class="metaRight">
+				<img src="http://xuplus.com/wp-content/themes/colorbold/images/ico_user.png" alt="Author" /> Dominic&nbsp;&nbsp;&nbsp; <img src="http://xuplus.com/wp-content/themes/colorbold/images/ico_folder.png" alt="Category" /> <a href="http://xuplus.com/article/category/linux" title="查看 linux 中的全部文章" rel="category tag">linux</a>, <a href="http://xuplus.com/article/category/software" title="查看 软件应用 中的全部文章" rel="category tag">软件应用</a>	&nbsp;&nbsp;&nbsp; <img src="http://xuplus.com/wp-content/themes/colorbold/images/ico_tag.png" alt="Tags" />  <a href="http://xuplus.com/article/tag/postgresql" rel="tag">PostgreSQL</a>, <a href="http://xuplus.com/article/tag/primarystandby%e9%9b%86%e7%be%a4" rel="tag">Primary/Standby集群</a> </div>
+				<div class="postContent">
+				<p>最近给PostgreSQL搞伤了，Debian 5默认PostgreSQL是8.4，本身是不支持Primary/Standby集群的。在经历尝试Slony的超级复杂配置和pgpool无法按照步骤成功的痛苦经历情况下，将PostgreSQL升级到9.0，但是根据网上一些手册还是配置不成功，经过摸索终于成功配置了，并将配置文件公布出来供参考。</p>
+<p>安装指令如下，其中192.168.0.212作为Primary服务器，192.168.0.211作为Standby服务器</p>
+<h2>两台服务器共同执行部分：</h2>
+<ul>
+<li>
+<h3>修改apt源</h3>
+</li>
+</ul>
+<p>vim /etc/apt/sources.list</p>
+<p>在最后加入：</p>
+<p>deb http://backports.debian.org/debian-backports lenny-backports main</p>
+<p>deb http://backports.debian.org/debian-backports lenny-backports-sloppy main</p>
+<p>apt-update</p>
+<ul>
+<li>
+<h3>安装PostgreSQL数据库服务</h3>
+</li>
+</ul>
+<p>wget http://ftp.us.debian.org/debian/pool/main/o/ossp-uuid/libossp-uuid15_1.5.1-1.1+b1_i386.deb</p>
+<p>wget http://ftp.us.debian.org/debian/pool/main/o/ossp-uuid/libossp-uuid-dev_1.5.1-1.1+b1_i386.deb</p>
+<p>dpkg -i libossp-uuid*.deb</p>
+<p>apt-get install -t lenny-backports <a href="http://xuplus.com/article/tag/postgresql" class="st_tag internal_tag" rel="tag" title="标签 PostgreSQL 下的日志">postgresql</a>-common</p>
+<p>apt-get install -t lenny-backports-sloppy postgresql-9.0 postgresql-client-9.0 postgresql-contrib-9.0 postgresql-server-dev-9.0</p>
+<ul>
+<li>
+<h3>修改访问控制</h3>
+</li>
+</ul>
+<p>vim /etc/postgresql/9.0/main/pg_hba.conf</p>
+<p>最后加一行</p>
+<p>host all all 192.168.0.0/24 md5</p>
+<ul>
+<li>
+<h3>修改监听范围</h3>
+</li>
+</ul>
+<p>vim /etc/postgresql/9.0/main/postgresql.conf</p>
+<p>修改listen_addresses = &#8216;localhost&#8217;为listen_addresses = &#8216;*&#8217;，如果前面有#号则需要删除#号</p>
+<ul>
+<li>
+<h3>重新启动postgresql服务</h3>
+</li>
+</ul>
+<p>/etc/init.d/postgresql restart</p>
+<h2>212 Primary服务器配置</h2>
+<ul>
+<li>
+<h3>设置同步账号</h3>
+</li>
+</ul>
+<p>su – postgres</p>
+<p>psql</p>
+<p>create user repl superuser log in password &#8216;replpwd&#8217; ;</p>
+<ul>
+<li>
+<h3>修改访问控制</h3>
+</li>
+</ul>
+<p>vim /etc/postgresql/9.0/main/pg_hba.conf</p>
+<p>最后添加以下内容</p>
+<p>host replication repl 192.168.0.211/32 md5</p>
+<ul>
+<li>
+<h3>修改postgresql服务配置文件</h3>
+</li>
+</ul>
+<p>vim /etc/postgresql/9.0/main/postgresql.conf</p>
+<p>主要配置修改如下：</p>
+<p>wal_level = hot_standby</p>
+<p>archive_mode = on</p>
+<p>archive_command = &#8216;cp -i %p /var/lib/postgresql/9.0/archivedir/%f &lt;/dev/null&#8217;</p>
+<p>archive_timeout = 600</p>
+<p>max_wal_senders = 5</p>
+<p>wal_keep_segments = 32</p>
+<ul>
+<li>
+<h3>建立归档目录</h3>
+</li>
+</ul>
+<p>su – postgres</p>
+<p>mkdir /var/lib/postgresql/9.0/archivedir/</p>
+<ul>
+<li>
+<h3>重启服务</h3>
+</li>
+</ul>
+<p>/etc/init.d/postgresql stop</p>
+<p>/etc/init.d/postgresql start</p>
+<h2>211Standby服务器配置</h2>
+<ul>
+<li>
+<h3>修改postgresql服务配置文件</h3>
+</li>
+</ul>
+<p>vim /etc/postgresql/9.0/main/postgresql.conf</p>
+<p>主要配置修改如下：</p>
+<p>wal_level = hot_standby</p>
+<p>hot_standby = on</p>
+<p>vim /etc/postgresql/9.0/main/recovery.conf</p>
+<p>内容如下：</p>
+<p>restore_command = &#8216;cp /var/lib/postgresql/9.0/archivedir/%f %p&#8217; archive_cleanup_command = &#8216;pg_archivecleanup /var/lib/postgresql/9.0/archivedir %r&#8217;</p>
+<p>standby_mode = &#8216;on&#8217;</p>
+<p>primary_conninfo = &#8216;host=192.168.0.212 port=5432 user=repl password=replpwd&#8217;</p>
+<p>trigger_file = &#8216;/var/lib/postgresql/9.0/trigger_activestb&#8217;</p>
+<p>cp /etc/postgresql/9.0/main/recovery.conf /var/lib/postgresql/9.0/main/</p>
+<ul>
+<li>
+<h3>停止服务</h3>
+</li>
+</ul>
+<p>/etc/init.d/postgresql stop</p>
+<ul>
+<li>
+<h3>删除原数据目录下数据文件</h3>
+</li>
+</ul>
+<p>su – postgres</p>
+<p>cd /var/lib/postgresql/9.0/</p>
+<p>rm –R –f main</p>
+<p>mkdir main</p>
+<p>chmod –R 700 main</p>
+<h2>传送数据文件到StandBy并启动集群</h2>
+<ul>
+<li>
+<h3>从212服务器中传送文件（在212服务器执行）</h3>
+</li>
+</ul>
+<p>su – postgres</p>
+<p>psql -c &quot;SELECT pg_start_backup(&#8216;label&#8217;,true);&quot;</p>
+<p>rsync -avz /var/lib/postgresql/9.0/main/* postgres@192.168.0.211:/var/lib/postgresql/9.0/main/</p>
+<p>注意：这里rsync是没有办法执行的，需要先建立两个服务器之间关于postgres之间的ssh 密钥文件交换。</p>
+<ul>
+<li>
+<h3>211服务器删除pid文件（在211服务器执行）</h3>
+</li>
+</ul>
+<p>rm /var/lib/postgressql/9.0/main/postgresql.pid</p>
+<p>/etc/init.d/postgresql restart</p>
+<ul>
+<li>
+<h3>212服务器正式启动主从模式（在212服务器执行）</h3>
+</li>
+</ul>
+<p>su – postgres</p>
+<p>psql -c &quot;SELECT * from pg_stop_backup();&quot;</p>
+<p>exit</p>
+<p>/etc/init.d/postgresql restart</p>
+<h2>测试</h2>
+<p>在Primary服务器上建立一个数据库或者修改一个数据表，可以在StandBy数据库上看到同样的修改操作发生了。</p>
+<h2>配置参考文件</h2>
+<p>可直接使用的配置参考文件见：<iframe style="border-bottom: #dde5e9 1px solid; border-left: #dde5e9 1px solid; padding-bottom: 0px; background-color: #ffffff; margin: 3px; padding-left: 0px; width: 240px; padding-right: 0px; height: 26px; border-top: #dde5e9 1px solid; border-right: #dde5e9 1px solid; padding-top: 0px" marginheight="0" src="http://cid-2b707ffec38c35d2.skydrive.live.com/embedrow.aspx/Public/%e7%bd%91%e7%bb%9c%e5%85%b1%e4%ba%ab/pgsql^_cluster^_conf.rar" frameborder="0" marginwidth="0" scrolling="no"></iframe>。注意前缀分别代表在那台服务器上的配置文件。</p>
+ 
+				</div>
+		<!-- Social Sharing Icons -->
+		<div class="social clearfix"><g:plusone></g:plusone>
+		</div>
+		
+		<!-- end Social Sharing Icons -->
+		<div id="relatedPosts" class="metaRight_one clearfix" >
+		 
+		</div>
+			</div>
+		</div>
+		<!-- end post -->
+		
+		
+		
+        
+<!-- You can start editing here. -->
+
+	<h2 class="comments">已经有10个留言 </h2>
+
+	<ul class="commentlist clearfix">
+	   <li class="comment byuser comment-author-admin bypostauthor even thread-even depth-1" id="li-comment-2790">
+  	
+
+     <div id="comment-2790" >
+	 
+	 <div class="comment-metaLeft">
+			<img alt='' src='http://www.gravatar.com/avatar/e29048fdecd2421dfc3f503d3ac59faa?s=40&amp;d=wavatar&amp;r=G' class='avatar avatar-40 photo' height='40' width='40' />			</div>
+			<div class="commentRight">
+			<div class="commentBullet"></div>
+				 <span><strong>Dominic</strong> </span>2011 年 03 月 26 日 13:01 				
+				  <div class="text"><p>ssh 密钥交换方法<br />
+在Primary服务器上执行</p>
+<p>su &#8211; postgres<br />
+ssh-keygen -t rsa<br />
+ssh root@StandbyServerIP test -d \/var/lib/postgresql/.ssh/ \|\| mkdir \/var/lib/postgresql/.ssh/ \; cat \>\> \/var/lib/postgresql/.ssh/authorized_keys </var/lib/postgresql/.ssh//id_rsa.pub</p>
+ </div>
+				   			<div class="reply">
+					 				  </div>
+			</div>
+	 
+      
+     </div>
+</li>
+   <li class="comment odd alt thread-odd thread-alt depth-1" id="li-comment-2794">
+  	
+
+     <div id="comment-2794" >
+	 
+	 <div class="comment-metaLeft">
+			<img alt='' src='http://www.gravatar.com/avatar/3f115638ddbe076c5a6f23b244290a99?s=40&amp;d=wavatar&amp;r=G' class='avatar avatar-40 photo' height='40' width='40' />			</div>
+			<div class="commentRight">
+			<div class="commentBullet"></div>
+				 <span><strong><a href='http://cn.dnschina.com/' rel='external nofollow' class='url'>机柜插座</a></strong> </span>2011 年 04 月 15 日 10:15 				
+				  <div class="text"><p>最好分析的在深入点，针对第一条</p>
+ </div>
+				   			<div class="reply">
+					 				  </div>
+			</div>
+	 
+      
+     </div>
+</li>
+   <li class="comment even thread-even depth-1" id="li-comment-2795">
+  	
+
+     <div id="comment-2795" >
+	 
+	 <div class="comment-metaLeft">
+			<img alt='' src='http://www.gravatar.com/avatar/e8166b26682b40cdc34a7ad438b445c1?s=40&amp;d=wavatar&amp;r=G' class='avatar avatar-40 photo' height='40' width='40' />			</div>
+			<div class="commentRight">
+			<div class="commentBullet"></div>
+				 <span><strong><a href='http://www.cy22.com/' rel='external nofollow' class='url'>淘爱pinpai</a></strong> </span>2011 年 04 月 16 日 10:06 				
+				  <div class="text"><p>我也有很多博客，但是很多都没有坚持下来。有的时隔两年了才去写一篇。</p>
+ </div>
+				   			<div class="reply">
+					 				  </div>
+			</div>
+	 
+      
+     </div>
+</li>
+   <li class="comment odd alt thread-odd thread-alt depth-1" id="li-comment-2797">
+  	
+
+     <div id="comment-2797" >
+	 
+	 <div class="comment-metaLeft">
+			<img alt='' src='http://www.gravatar.com/avatar/3e37c343af1ad7e9a616a39e9914e588?s=40&amp;d=wavatar&amp;r=G' class='avatar avatar-40 photo' height='40' width='40' />			</div>
+			<div class="commentRight">
+			<div class="commentBullet"></div>
+				 <span><strong><a href='http://www.116396.com/' rel='external nofollow' class='url'>卡,卡</a></strong> </span>2011 年 05 月 06 日 16:44 				
+				  <div class="text"><p>好的东东总是叫人回味！</p>
+ </div>
+				   			<div class="reply">
+					 				  </div>
+			</div>
+	 
+      
+     </div>
+</li>
+   <li class="comment even thread-even depth-1" id="li-comment-2798">
+  	
+
+     <div id="comment-2798" >
+	 
+	 <div class="comment-metaLeft">
+			<img alt='' src='http://www.gravatar.com/avatar/598fa949fb97f92886046e425803a91f?s=40&amp;d=wavatar&amp;r=G' class='avatar avatar-40 photo' height='40' width='40' />			</div>
+			<div class="commentRight">
+			<div class="commentBullet"></div>
+				 <span><strong>bingb</strong> </span>2011 年 05 月 09 日 22:55 				
+				  <div class="text"><p>请问楼主:rsync -avz /var/lib/postgresql/9.0/main/* <a href="mailto:postgres@192.168.0.211">postgres@192.168.0.211</a>:/var/lib/postgresql/9.0/main/<br />
+只需要在做首次同步的时候执行一次吗?<br />
+如果只需要一次用scp命令不也就解决了吗?9.0的online recovery<br />
+不再需要同步了吧?</p>
+ </div>
+				   			<div class="reply">
+					 				  </div>
+			</div>
+	 
+      
+     </div>
+</li>
+   <li class="comment byuser comment-author-admin bypostauthor odd alt thread-odd thread-alt depth-1" id="li-comment-2799">
+  	
+
+     <div id="comment-2799" >
+	 
+	 <div class="comment-metaLeft">
+			<img alt='' src='http://www.gravatar.com/avatar/e29048fdecd2421dfc3f503d3ac59faa?s=40&amp;d=wavatar&amp;r=G' class='avatar avatar-40 photo' height='40' width='40' />			</div>
+			<div class="commentRight">
+			<div class="commentBullet"></div>
+				 <span><strong>Dominic</strong> </span>2011 年 05 月 10 日 8:26 				
+				  <div class="text"><p>仅需要执行一次。我用rsync不用scp的原因是rsync相当于mv。而且有scp没有的好处。如：速度、全部信息等等。而且两台服务器如果做群集，相当多的时候都需要同步文件。同步并不完全等于拷贝。</p>
+<p>谢谢支持！</p>
+ </div>
+				   			<div class="reply">
+					 				  </div>
+			</div>
+	 
+      
+     </div>
+</li>
+   <li class="comment byuser comment-author-admin bypostauthor even thread-even depth-1" id="li-comment-2800">
+  	
+
+     <div id="comment-2800" >
+	 
+	 <div class="comment-metaLeft">
+			<img alt='' src='http://www.gravatar.com/avatar/e29048fdecd2421dfc3f503d3ac59faa?s=40&amp;d=wavatar&amp;r=G' class='avatar avatar-40 photo' height='40' width='40' />			</div>
+			<div class="commentRight">
+			<div class="commentBullet"></div>
+				 <span><strong>Dominic</strong> </span>2011 年 05 月 10 日 8:30 				
+				  <div class="text"><p>另外，需要用cron定时清除/var/lib/postgresql/9.0/archivedir/ 目录下过期日志文件。</p>
+ </div>
+				   			<div class="reply">
+					 				  </div>
+			</div>
+	 
+      
+     </div>
+</li>
+   <li class="comment odd alt thread-odd thread-alt depth-1" id="li-comment-2801">
+  	
+
+     <div id="comment-2801" >
+	 
+	 <div class="comment-metaLeft">
+			<img alt='' src='http://www.gravatar.com/avatar/598fa949fb97f92886046e425803a91f?s=40&amp;d=wavatar&amp;r=G' class='avatar avatar-40 photo' height='40' width='40' />			</div>
+			<div class="commentRight">
+			<div class="commentBullet"></div>
+				 <span><strong>bingb</strong> </span>2011 年 05 月 14 日 13:55 				
+				  <div class="text"><p>恩,没用cron清除过期日志很快将down掉了,做hotstandby除了减少查询压力之外感觉也无大用处.如果能在debian 6和postgresql9实现HA和类似oracle RAC的双机模式就好了</p>
+ </div>
+				   			<div class="reply">
+					 				  </div>
+			</div>
+	 
+      
+     </div>
+</li>
+   <li class="comment even thread-even depth-1" id="li-comment-2802">
+  	
+
+     <div id="comment-2802" >
+	 
+	 <div class="comment-metaLeft">
+			<img alt='' src='http://www.gravatar.com/avatar/598fa949fb97f92886046e425803a91f?s=40&amp;d=wavatar&amp;r=G' class='avatar avatar-40 photo' height='40' width='40' />			</div>
+			<div class="commentRight">
+			<div class="commentBullet"></div>
+				 <span><strong>bingb</strong> </span>2011 年 05 月 14 日 13:57 				
+				  <div class="text"><p>对postgresql 9的squeeze backports版本的稳定性不是很了解,不知道有无相关信息.</p>
+ </div>
+				   			<div class="reply">
+					 				  </div>
+			</div>
+	 
+      
+     </div>
+</li>
+   <li class="comment odd alt thread-odd thread-alt depth-1" id="li-comment-3209">
+  	
+
+     <div id="comment-3209" >
+	 
+	 <div class="comment-metaLeft">
+			<img alt='' src='http://www.gravatar.com/avatar/79bc67250a5c467bfce925fa21386396?s=40&amp;d=wavatar&amp;r=G' class='avatar avatar-40 photo' height='40' width='40' />			</div>
+			<div class="commentRight">
+			<div class="commentBullet"></div>
+				 <span><strong>go</strong> </span>2013 年 03 月 21 日 10:06 				
+				  <div class="text"><p>你确定这个可以实现在Primary服务器上建立一个数据库或者修改一个数据表，可以在StandBy数据库上看到同样的修改操作发生了。<br />
+我安装你的步骤配置完成，没有出现错误，但是感觉像没有做任何操作一样，主库改变从库没有改变.</p>
+ </div>
+				   			<div class="reply">
+					 				  </div>
+			</div>
+	 
+      
+     </div>
+</li>
+	</ul>
+
+	<div class="navigation">
+		<div class="alignleft"></div>
+		<div class="alignright"></div>
+	</div>
+ 
+
+
+<div id="respond">
+
+<h2>要说点啥就在这吧</h2>
+
+<div class="cancel-comment-reply">
+	<small><a rel="nofollow" id="cancel-comment-reply-link" href="/article/2011/03/a224.html#respond" style="display:none;">点击这里取消回复。</a></small>
+</div>
+
+
+<form action="http://xuplus.com/wp-comments-post.php" method="post" id="commentform">
+
+
+<p><label for="author">昵称 (不填说不了话)</label>
+<input type="text" name="author" id="author" value="" size="22" tabindex="1" aria-required='true' />
+</p>
+
+<p><label for="email">信箱地址 (不会被公开，但是不填也说不了话)</label>
+<input type="text" name="email" id="email" value="" size="22" tabindex="2" aria-required='true' />
+</p>
+
+<p><label for="url">网址 (这个不填也成)</label>
+<input type="text" name="url" id="url" value="" size="22" tabindex="3" />
+</p>
+
+
+<!--<p><small><strong>XHTML:</strong> You can use these tags: <code>&lt;a href=&quot;&quot; title=&quot;&quot;&gt; &lt;abbr title=&quot;&quot;&gt; &lt;acronym title=&quot;&quot;&gt; &lt;b&gt; &lt;blockquote cite=&quot;&quot;&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=&quot;&quot;&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=&quot;&quot;&gt; &lt;strike&gt; &lt;strong&gt; </code></small></p>-->
+
+<p><label for="comment">评论内容</label>
+<textarea name="comment" id="comment" cols="100%" rows="10" tabindex="4"></textarea></p>
+
+<p><input name="submit" type="submit" id="submit" tabindex="5" value="发布 &raquo;" />
+<input type='hidden' name='comment_post_ID' value='224' id='comment_post_ID' />
+<input type='hidden' name='comment_parent' id='comment_parent' value='0' />
+</p>
+<p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="ac3f7ffd8e" /></p>
+</form>
+
+</div>
+
+					
+			</div>
+			<!-- end col left -->
+	
+<!-- begin col right -->
+		<div id="colRight" class="clearfix">
+			
+<!-- begin search box -->
+		<div id="searchBox" class="clearfix">
+			<form id="searchform" action="/" method="get">
+				<input id="s" type="text" name="s" value=""/>
+				<input id="searchsubmit" type="submit" value="SEARCH"/>
+			</form>
+		</div>
+		<!-- end search box -->
+		<!-- begin adsBox -->
+				<!-- end adsBox -->
+		
+		<!-- begin twitter box -->
+				<!-- end twitter box -->
+		
+		<h2>专题推荐</h2>		<ul>
+			<li class="page_item page-item-5"><a href="http://xuplus.com/aboutme">关于</a></li>
+		</ul>
+		<h2>标签</h2><div class="tagcloud"><a href='http://xuplus.com/article/tag/apache' class='tag-link-124' title='2 个话题' style='font-size: 10.4705882353pt;'>apache</a>
+<a href='http://xuplus.com/article/tag/article' class='tag-link-18' title='11 个话题' style='font-size: 18.7058823529pt;'>article</a>
+<a href='http://xuplus.com/article/tag/css' class='tag-link-101' title='2 个话题' style='font-size: 10.4705882353pt;'>CSS</a>
+<a href='http://xuplus.com/article/tag/dotnet' class='tag-link-8' title='1 个话题' style='font-size: 8pt;'>dotNet</a>
+<a href='http://xuplus.com/article/tag/fckeditor' class='tag-link-19' title='2 个话题' style='font-size: 10.4705882353pt;'>fckeditor</a>
+<a href='http://xuplus.com/article/tag/hack' class='tag-link-117' title='9 个话题' style='font-size: 17.6078431373pt;'>Hack</a>
+<a href='http://xuplus.com/article/tag/iec61850%e5%bc%80%e5%8f%91' class='tag-link-224' title='2 个话题' style='font-size: 10.4705882353pt;'>IEC61850开发</a>
+<a href='http://xuplus.com/article/tag/ios' class='tag-link-216' title='2 个话题' style='font-size: 10.4705882353pt;'>iOS</a>
+<a href='http://xuplus.com/article/tag/itouch' class='tag-link-215' title='3 个话题' style='font-size: 12.1176470588pt;'>iTouch</a>
+<a href='http://xuplus.com/article/tag/javascript' class='tag-link-24' title='1 个话题' style='font-size: 8pt;'>javascript</a>
+<a href='http://xuplus.com/article/tag/paypal' class='tag-link-225' title='2 个话题' style='font-size: 10.4705882353pt;'>PayPal</a>
+<a href='http://xuplus.com/article/tag/php' class='tag-link-11' title='5 个话题' style='font-size: 14.5882352941pt;'>PHP</a>
+<a href='http://xuplus.com/article/tag/postgresql' class='tag-link-243' title='3 个话题' style='font-size: 12.1176470588pt;'>PostgreSQL</a>
+<a href='http://xuplus.com/article/tag/ubuntu' class='tag-link-162' title='2 个话题' style='font-size: 10.4705882353pt;'>ubuntu</a>
+<a href='http://xuplus.com/article/tag/utf8' class='tag-link-153' title='1 个话题' style='font-size: 8pt;'>utf8</a>
+<a href='http://xuplus.com/article/tag/vmware' class='tag-link-184' title='4 个话题' style='font-size: 13.4901960784pt;'>VMware</a>
+<a href='http://xuplus.com/article/tag/vmware-tools' class='tag-link-185' title='2 个话题' style='font-size: 10.4705882353pt;'>VMware Tools</a>
+<a href='http://xuplus.com/article/tag/weblinks' class='tag-link-152' title='1 个话题' style='font-size: 8pt;'>weblinks</a>
+<a href='http://xuplus.com/article/tag/win2008' class='tag-link-149' title='1 个话题' style='font-size: 8pt;'>Win2008</a>
+<a href='http://xuplus.com/article/tag/windows-server-2008' class='tag-link-148' title='1 个话题' style='font-size: 8pt;'>Windows Server 2008</a>
+<a href='http://xuplus.com/article/tag/wordpress' class='tag-link-31' title='3 个话题' style='font-size: 12.1176470588pt;'>Wordpress</a>
+<a href='http://xuplus.com/article/tag/xajax' class='tag-link-106' title='2 个话题' style='font-size: 10.4705882353pt;'>xajax</a>
+<a href='http://xuplus.com/article/tag/xoops' class='tag-link-7' title='20 个话题' style='font-size: 22pt;'>XOOPS</a>
+<a href='http://xuplus.com/article/tag/%e4%b8%8a%e4%bc%a0' class='tag-link-20' title='3 个话题' style='font-size: 12.1176470588pt;'>上传</a>
+<a href='http://xuplus.com/article/tag/%e4%b8%aa%e4%ba%ba' class='tag-link-16' title='1 个话题' style='font-size: 8pt;'>个人</a>
+<a href='http://xuplus.com/article/tag/%e4%b8%ad%e6%96%87' class='tag-link-21' title='4 个话题' style='font-size: 13.4901960784pt;'>中文</a>
+<a href='http://xuplus.com/article/tag/%e5%85%b3%e9%94%ae%e8%af%8d' class='tag-link-94' title='2 个话题' style='font-size: 10.4705882353pt;'>关键词</a>
+<a href='http://xuplus.com/article/tag/%e5%88%86%e4%ba%ab' class='tag-link-233' title='2 个话题' style='font-size: 10.4705882353pt;'>分享</a>
+<a href='http://xuplus.com/article/tag/%e5%90%88%e8%82%a5' class='tag-link-23' title='2 个话题' style='font-size: 10.4705882353pt;'>合肥</a>
+<a href='http://xuplus.com/article/tag/%e5%9f%9f%e5%90%8d' class='tag-link-211' title='2 个话题' style='font-size: 10.4705882353pt;'>域名</a>
+<a href='http://xuplus.com/article/tag/%e5%ae%89%e5%85%a8' class='tag-link-161' title='2 个话题' style='font-size: 10.4705882353pt;'>安全</a>
+<a href='http://xuplus.com/article/tag/%e5%b7%a5%e4%bd%9c' class='tag-link-111' title='3 个话题' style='font-size: 12.1176470588pt;'>工作</a>
+<a href='http://xuplus.com/article/tag/%e6%8f%92%e4%bb%b6' class='tag-link-69' title='2 个话题' style='font-size: 10.4705882353pt;'>插件</a>
+<a href='http://xuplus.com/article/tag/%e6%96%87%e7%ab%a0%e7%ae%a1%e7%90%86' class='tag-link-26' title='1 个话题' style='font-size: 8pt;'>文章管理</a>
+<a href='http://xuplus.com/article/tag/%e6%97%b6%e5%8c%ba' class='tag-link-52' title='2 个话题' style='font-size: 10.4705882353pt;'>时区</a>
+<a href='http://xuplus.com/article/tag/smartgrid' class='tag-link-206' title='2 个话题' style='font-size: 10.4705882353pt;'>智能电网</a>
+<a href='http://xuplus.com/article/tag/%e6%9c%aa%e5%88%86%e7%b1%bb' class='tag-link-15' title='1 个话题' style='font-size: 8pt;'>未分类</a>
+<a href='http://xuplus.com/article/tag/%e6%a8%a1%e5%9d%97' class='tag-link-27' title='1 个话题' style='font-size: 8pt;'>模块</a>
+<a href='http://xuplus.com/article/tag/%e6%a8%a1%e7%bb%84' class='tag-link-116' title='3 个话题' style='font-size: 12.1176470588pt;'>模组</a>
+<a href='http://xuplus.com/article/tag/%e7%94%b5%e5%ad%90%e5%9c%b0%e5%9b%be' class='tag-link-22' title='1 个话题' style='font-size: 8pt;'>电子地图</a>
+<a href='http://xuplus.com/article/tag/%e7%95%8c%e9%9d%a2%e5%8f%8b%e5%a5%bd' class='tag-link-25' title='1 个话题' style='font-size: 8pt;'>界面友好</a>
+<a href='http://xuplus.com/article/tag/%e7%a6%85%e6%84%8f%e8%8a%b1%e5%9b%ad' class='tag-link-102' title='2 个话题' style='font-size: 10.4705882353pt;'>禅意花园</a>
+<a href='http://xuplus.com/article/tag/%e7%bd%91%e9%80%9f' class='tag-link-150' title='1 个话题' style='font-size: 8pt;'>网速</a>
+<a href='http://xuplus.com/article/tag/%e8%85%be%e8%ae%af' class='tag-link-98' title='2 个话题' style='font-size: 10.4705882353pt;'>腾讯</a>
+<a href='http://xuplus.com/article/tag/%e9%85%8d%e7%bd%ae%e7%ae%a1%e7%90%86' class='tag-link-188' title='2 个话题' style='font-size: 10.4705882353pt;'>配置管理</a></div>
+<h2>分类目录</h2>		<ul>
+	<li class="cat-item cat-item-214"><a href="http://xuplus.com/article/category/apple" title="查看 Apple 下的所有文章">Apple</a> (3)
+</li>
+	<li class="cat-item cat-item-8"><a href="http://xuplus.com/article/category/dotnet" title="查看 dotNet 下的所有文章">dotNet</a> (4)
+</li>
+	<li class="cat-item cat-item-196"><a href="http://xuplus.com/article/category/it%e6%9c%8d%e5%8a%a1" title="查看 IT服务 下的所有文章">IT服务</a> (3)
+</li>
+	<li class="cat-item cat-item-194"><a href="http://xuplus.com/article/category/java" title="查看 JAVA 下的所有文章">JAVA</a> (2)
+</li>
+	<li class="cat-item cat-item-50"><a href="http://xuplus.com/article/category/linux" title="查看 linux 下的所有文章">linux</a> (5)
+</li>
+	<li class="cat-item cat-item-192"><a href="http://xuplus.com/article/category/oracle" title="查看 Oracle 下的所有文章">Oracle</a> (1)
+</li>
+	<li class="cat-item cat-item-6"><a href="http://xuplus.com/article/category/web" title="查看 Web应用 下的所有文章">Web应用</a> (42)
+<ul class='children'>
+	<li class="cat-item cat-item-222"><a href="http://xuplus.com/article/category/web/drupal" title="查看 Drupal 下的所有文章">Drupal</a> (1)
+</li>
+	<li class="cat-item cat-item-139"><a href="http://xuplus.com/article/category/web/php-web" title="查看 PHP 下的所有文章">PHP</a> (5)
+</li>
+	<li class="cat-item cat-item-140"><a href="http://xuplus.com/article/category/web/xoops-web" title="查看 XOOPS 下的所有文章">XOOPS</a> (21)
+</li>
+</ul>
+</li>
+	<li class="cat-item cat-item-9"><a href="http://xuplus.com/article/category/work" title="查看 工作 下的所有文章">工作</a> (5)
+</li>
+	<li class="cat-item cat-item-5"><a href="http://xuplus.com/article/category/life" title="查看 生活叫吠 下的所有文章">生活叫吠</a> (29)
+</li>
+	<li class="cat-item cat-item-203"><a href="http://xuplus.com/article/category/power" title="查看 电力相关 下的所有文章">电力相关</a> (4)
+<ul class='children'>
+	<li class="cat-item cat-item-206"><a href="http://xuplus.com/article/category/power/smartgrid" title="查看 智能电网 下的所有文章">智能电网</a> (2)
+</li>
+</ul>
+</li>
+	<li class="cat-item cat-item-163"><a href="http://xuplus.com/article/category/%e7%b3%bb%e7%bb%9f%e5%ba%94%e7%94%a8" title="查看 系统应用 下的所有文章">系统应用</a> (3)
+</li>
+	<li class="cat-item cat-item-137"><a href="http://xuplus.com/article/category/webmanage" title="查看 网站管理 下的所有文章">网站管理</a> (7)
+</li>
+	<li class="cat-item cat-item-138"><a href="http://xuplus.com/article/category/book" title="查看 读书 下的所有文章">读书</a> (4)
+</li>
+	<li class="cat-item cat-item-10"><a href="http://xuplus.com/article/category/software" title="查看 软件应用 下的所有文章">软件应用</a> (24)
+</li>
+		</ul>
+<h2>新浪微博</h2>			<div class="textwidget"><iframe width="100%" height="550" class="share_self"  frameborder="0" scrolling="no" src="http://service.t.sina.com.cn/widget/WeiboShow.php?width=0&height=550&fansRow=2&ptype=1&speed=0&skin=3&isTitle=0&noborder=1&isWeibo=1&isFans=1&uid=1661487761&verifier=aa33ff64"></iframe></div>
+		<h2>存档</h2>		<select name="archive-dropdown" onchange='document.location.href=this.options[this.selectedIndex].value;'> <option value="">选择月份</option> 	<option value='http://xuplus.com/article/date/2012/03'> 2012 年三月 &nbsp;(1)</option>
+	<option value='http://xuplus.com/article/date/2011/08'> 2011 年八月 &nbsp;(1)</option>
+	<option value='http://xuplus.com/article/date/2011/07'> 2011 年七月 &nbsp;(1)</option>
+	<option value='http://xuplus.com/article/date/2011/03'> 2011 年三月 &nbsp;(2)</option>
+	<option value='http://xuplus.com/article/date/2011/02'> 2011 年二月 &nbsp;(1)</option>
+	<option value='http://xuplus.com/article/date/2011/01'> 2011 年一月 &nbsp;(5)</option>
+	<option value='http://xuplus.com/article/date/2010/12'> 2010 年十二月 &nbsp;(2)</option>
+	<option value='http://xuplus.com/article/date/2010/11'> 2010 年十一月 &nbsp;(6)</option>
+	<option value='http://xuplus.com/article/date/2010/10'> 2010 年十月 &nbsp;(4)</option>
+	<option value='http://xuplus.com/article/date/2010/07'> 2010 年七月 &nbsp;(3)</option>
+	<option value='http://xuplus.com/article/date/2010/05'> 2010 年五月 &nbsp;(1)</option>
+	<option value='http://xuplus.com/article/date/2010/04'> 2010 年四月 &nbsp;(1)</option>
+	<option value='http://xuplus.com/article/date/2009/12'> 2009 年十二月 &nbsp;(1)</option>
+	<option value='http://xuplus.com/article/date/2009/11'> 2009 年十一月 &nbsp;(3)</option>
+	<option value='http://xuplus.com/article/date/2009/10'> 2009 年十月 &nbsp;(4)</option>
+	<option value='http://xuplus.com/article/date/2009/08'> 2009 年八月 &nbsp;(1)</option>
+	<option value='http://xuplus.com/article/date/2009/06'> 2009 年六月 &nbsp;(2)</option>
+	<option value='http://xuplus.com/article/date/2009/01'> 2009 年一月 &nbsp;(2)</option>
+	<option value='http://xuplus.com/article/date/2008/12'> 2008 年十二月 &nbsp;(3)</option>
+	<option value='http://xuplus.com/article/date/2008/05'> 2008 年五月 &nbsp;(1)</option>
+	<option value='http://xuplus.com/article/date/2008/04'> 2008 年四月 &nbsp;(1)</option>
+	<option value='http://xuplus.com/article/date/2008/03'> 2008 年三月 &nbsp;(3)</option>
+	<option value='http://xuplus.com/article/date/2008/02'> 2008 年二月 &nbsp;(1)</option>
+	<option value='http://xuplus.com/article/date/2008/01'> 2008 年一月 &nbsp;(4)</option>
+	<option value='http://xuplus.com/article/date/2007/12'> 2007 年十二月 &nbsp;(9)</option>
+	<option value='http://xuplus.com/article/date/2007/09'> 2007 年九月 &nbsp;(5)</option>
+	<option value='http://xuplus.com/article/date/2007/08'> 2007 年八月 &nbsp;(8)</option>
+	<option value='http://xuplus.com/article/date/2007/07'> 2007 年七月 &nbsp;(14)</option>
+	<option value='http://xuplus.com/article/date/2007/06'> 2007 年六月 &nbsp;(10)</option>
+	<option value='http://xuplus.com/article/date/2007/05'> 2007 年五月 &nbsp;(6)</option>
+	<option value='http://xuplus.com/article/date/2007/04'> 2007 年四月 &nbsp;(16)</option>
+ </select>
+				<h2>近期文章</h2>		<ul>
+					<li>
+				<a href="http://xuplus.com/article/2012/03/a227.html" title="安装配置ttserver(Tokyo Cabinet,Tokyo Tyrant) ttserver.c:611错误解决办法">安装配置ttserver(Tokyo Cabinet,Tokyo Tyrant) ttserver.c:611错误解决办法</a>
+						</li>
+					<li>
+				<a href="http://xuplus.com/article/2011/08/a226.html" title="智能变电站中在线监测系统一次设备监测参量和IEC 61850模型">智能变电站中在线监测系统一次设备监测参量和IEC 61850模型</a>
+						</li>
+					<li>
+				<a href="http://xuplus.com/article/2011/07/a225.html" title="用Postgresql作为BIND9 数据存储情况下TXT等包含空格记录的处理">用Postgresql作为BIND9 数据存储情况下TXT等包含空格记录的处理</a>
+						</li>
+					<li>
+				<a href="http://xuplus.com/article/2011/03/a224.html" title="PostgreSQL 9.0基于streaming replication的Primary/Standby集群安装典型配置文件">PostgreSQL 9.0基于streaming replication的Primary/Standby集群安装典型配置文件</a>
+						</li>
+					<li>
+				<a href="http://xuplus.com/article/2011/03/a223.html" title="给CodeIgniter 2.0.1中的PostgreSQL 数据库驱动打两个补丁">给CodeIgniter 2.0.1中的PostgreSQL 数据库驱动打两个补丁</a>
+						</li>
+					<li>
+				<a href="http://xuplus.com/article/2011/02/a222.html" title="2011年兔年个人计划">2011年兔年个人计划</a>
+						</li>
+					<li>
+				<a href="http://xuplus.com/article/2011/01/a221.html" title="CentOS下redmine、apache、svn配置安装心得">CentOS下redmine、apache、svn配置安装心得</a>
+						</li>
+					<li>
+				<a href="http://xuplus.com/article/2011/01/a220.html" title="我修改的可正常使用的Live Writer SkyDrive插件">我修改的可正常使用的Live Writer SkyDrive插件</a>
+						</li>
+					<li>
+				<a href="http://xuplus.com/article/2011/01/a217.html" title="分享某公司负责IT运维的部门工作量统计文档和技术人员考核文档">分享某公司负责IT运维的部门工作量统计文档和技术人员考核文档</a>
+						</li>
+					<li>
+				<a href="http://xuplus.com/article/2011/01/a208.html" title="VMWare 中虚拟机报错&ldquo;eth0 设备的 MAC 地址与预想的不符，忽略。&rdquo;解决办法">VMWare 中虚拟机报错&ldquo;eth0 设备的 MAC 地址与预想的不符，忽略。&rdquo;解决办法</a>
+						</li>
+				</ul>
+		<h2>近期评论</h2><ul id="recentcomments"><li class="recentcomments">go 发表在《<a href="http://xuplus.com/article/2011/03/a224.html/comment-page-1#comment-3209">PostgreSQL 9.0基于streaming replication的Primary/Standby集群安装典型配置文件</a>》</li><li class="recentcomments">多谢 发表在《<a href="http://xuplus.com/article/2010/11/a187.html/comment-page-1#comment-3208">PayPal不使用人民币自动购汇设置方法</a>》</li><li class="recentcomments"><a href='http://www.blm168.com' rel='external nofollow' class='url'>丰禾棋牌</a> 发表在《<a href="http://xuplus.com/article/2007/07/a50.html/comment-page-1#comment-3205">配置Apache2启用deflate压缩加快传输</a>》</li><li class="recentcomments">xuexi 发表在《<a href="http://xuplus.com/article/2010/11/a161.html/comment-page-1#comment-3201">域名更换为xuplus.com</a>》</li><li class="recentcomments">大小以生活感谢 发表在《<a href="http://xuplus.com/article/2009/01/a122.html/comment-page-1#comment-3200">Excel 2007:双击Excel文件打不开提示找不到文件解决办法</a>》</li><li class="recentcomments">yabe 发表在《<a href="http://xuplus.com/article/2007/07/a51.html/comment-page-1#comment-3193">配置Apache2启用mod_expires模块给文件添加Expires头</a>》</li><li class="recentcomments">Dominic 发表在《<a href="http://xuplus.com/article/2007/07/a51.html/comment-page-1#comment-3192">配置Apache2启用mod_expires模块给文件添加Expires头</a>》</li><li class="recentcomments">yabe 发表在《<a href="http://xuplus.com/article/2007/07/a51.html/comment-page-1#comment-3191">配置Apache2启用mod_expires模块给文件添加Expires头</a>》</li><li class="recentcomments">Dominic 发表在《<a href="http://xuplus.com/article/2007/07/a51.html/comment-page-1#comment-3190">配置Apache2启用mod_expires模块给文件添加Expires头</a>》</li><li class="recentcomments">yabe 发表在《<a href="http://xuplus.com/article/2007/07/a51.html/comment-page-1#comment-3189">配置Apache2启用mod_expires模块给文件添加Expires头</a>》</li></ul><h2>友情链接</h2>
+	<ul class='xoxo blogroll'>
+<li><a href="http://www.bobxu.com" rel="friend" target="_blank">BobXu的博客</a></li>
+<li><a href="http://onecmdb.xuplus.com/" title="开源OneCMDB项目中文站" target="_blank">OneCMDB中文</a></li>
+<li><a href="http://www.52design.com" title="我爱设计网，设计人的家园网">我爱设计网</a></li>
+<li><a href="http://www.easyhot.com" title="关注信息技术,软件开发,项目管理,知识管理,企业管理,网站管理,教育技术发展">易知乐学网</a></li>
+
+	</ul>
+
+		
+	
+		</div>
+		<!-- end col right -->
+
+
+
+	</div>
+	<!-- end content -->
+	</div>
+	<!-- end wrapper -->
+	<!-- begin footer -->
+	    <div id="footer">
+        &copy; 2007-2010 <strong>Dominic.Xu's 博客</strong>， 版权所有。主题支持: Site 5: ColorBold 本站使用<a href="http://my.bloghost.cn/aff.php?aff=248" target="_blank">BlogHost</a>主机
+	<ul id="footerMenu">
+		<li><a href="http://xuplus.com/">首页</a></li>
+				<li class="page_item page-item-5"><a href="http://xuplus.com/aboutme">关于</a></li>
+	</ul>
+    </div>
+    <!-- end footer -->
+</div>
+<!-- end mainWrapper -->
+	<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jquery/jquery-1.4.2.min.js"></script>
+	<script>!window.jQuery && document.write('<script src="http://xuplus.com/wp-content/themes/colorbold/js/jquery-1.4.2.min.js"><\/script>')</script>
+	<!--
+	<script language="JavaScript" type="text/javascript" src="http://xuplus.com/wp-content/themes/colorbold/js/jquery.form.js"></script>
+    <script type="text/javascript" src="http://xuplus.com/wp-content/themes/colorbold/js/superfish.js"></script>
+	<script type='text/javascript' src="http://xuplus.com/wp-content/plugins/slimbox/javascript/jquery.slimbox.js?ver=2.03"></script>
+	-->
+	<script language="JavaScript" type="text/javascript" src="http://xuplus.com/wp-content/themes/colorbold/js/jquery.plugin.min.js"></script>
+
+	<!-- ajax contact form -->
+	 <script type="text/javascript">
+		 $(document).ready(function(){
+			  $('#contact').ajaxForm(function(data) {
+				 if (data==1){
+					 $('#success').fadeIn("slow");
+					 $('#bademail').fadeOut("slow");
+					 $('#badserver').fadeOut("slow");
+					 $('#contact').resetForm();
+					 }
+				 else if (data==2){
+						 $('#badserver').fadeIn("slow");
+					  }
+				 else if (data==3)
+					{
+					 $('#bademail').fadeIn("slow");
+					}
+					});
+				 });
+		</script>
+		<script type="text/javascript"> 
+			$(document).ready(function(){ 
+				$("ul.sf-menu").superfish({
+					autoArrows:  false,
+					delay:       200,                             // one second delay on mouseout 
+					animation:   {opacity:'show',height:'show'},  // fade-in and slide-down animation 
+					speed:       'fast',                          // faster animation speed 
+					autoArrows:  true,                           // disable generation of arrow mark-up 
+					dropShadows: true                            // disable drop shadows 			
+					}); 
+			});
+		</script>
+	<script type="text/javascript">
+	jQuery(document).ready(function($){	
+	    var select = $('a[href$=".bmp"],a[href$=".gif"],a[href$=".jpg"],a[href$=".jpeg"], a[href$=".png"],a[href$=".BMP"],a[href$=".GIF"],a[href$=".JPG"],a[href$=".JPEG"],a[href$=".PNG"]');
+		var options = {loop: true,counterText: "第{x}张/共{y}张"};
+		select.slimbox(options);
+	});
+	</script>
+
+        <!-- google analytics start -->
+        <script type="text/javascript">
+			  var _gaq = _gaq || [];
+			  _gaq.push(['_setAccount', 'UA-1654744-1']);
+			  _gaq.push(['_setDomainName', 'none']);
+			  _gaq.push(['_setAllowLinker', true]);
+			  _gaq.push(['_trackPageview']);
+			  (function() {
+			    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+			  })();
+				</script>
+        <!-- google analytics end -->
+		
+		<!-- google plusone buttion start -->
+		<script type="text/javascript" src="https://apis.google.com/js/plusone.js">
+		  {lang: 'zh-CN'}
+		</script>
+		<!-- google plusone buttion start -->
+		
+<a class="bshareDiv" target="_blank" href="http://www.bshare.cn/share">分享按钮</a><script language="javascript" type="text/javascript" src="http://www.bshare.cn/button.js#uuid=f05db880-b826-455a-b71d-5b57b68a41e4&amp;style=5&amp;fs=4&amp;bgcolor=Green"></script>
+<!-- jkb trace start-->
+<script type="text/javascript">
+var jkb_id = '5054';
+var jkb_url = 'http://xuplus.com/wp-content/themes/colorbold/images/logo.png';
+var jkb_style = '1';
+
+var jkb_data = [];
+var max = 3;
+if (jkb_style == '')
+{
+	jkb_style = '1';
+}
+
+var cookies = document.cookie;
+if (cookies.indexOf("_jkb_" + jkb_id + "=1") == -1)
+{
+	trace_init();
+}
+
+function trace_init()
+{
+	if(window.addEventListener)
+	{
+		window.addEventListener('load', function(){loader(0);}, false);
+	}
+	else
+	{
+		window.attachEvent('onload', function(){loader(0);});
+	}
+}
+
+function loader(times)
+{
+	if (times > max)
+	{
+		post();
+		return;
+	}
+	var img_url = jkb_url + "?cache=" + Math.floor(100000*Math.random());
+	var date = new Date();
+	var start = date.getTime();
+	var img = document.createElement("img");
+	img.style.display = 'none';
+	img.style.height = '0';
+	img.style.width = '0';
+	img.src = img_url;
+	img.onload = function()
+	{
+		if (jkb_data[times])
+			return;
+		date = new Date();
+		var end = date.getTime();
+		var diff = end - start;
+		jkb_data[times] = diff;
+		loader(times + 1);
+	};
+	document.body.appendChild(img);
+}
+function post()
+{
+	var d = [];
+	var s = 0;
+	var len = jkb_data.length;
+	for (i = 0; i < len; ++i)
+	{
+		var o = 0;
+		for (j = 0; j < len; ++j)
+		{
+			if (j != i)
+				o += jkb_data[j];
+		}
+		if (jkb_data[i] != 0 && jkb_data[i] < o * 2)
+		{
+			d.push(jkb_data[i]);
+			s += jkb_data[i];
+		}
+	}
+	if (d.length == 0)
+	{
+		return
+	}
+	var lt = s / d.length;
+
+	var img = document.createElement("img");
+	img.style.display = 'none';
+	img.style.height = '0';
+	img.style.width = '0';
+	img.src = 'http://stat.jiankongbao.com:81/loadtime.php?id=' + jkb_id + '&js=1&ref=' + encodeURIComponent(document.referrer) + '&loc=' + encodeURIComponent(window.location.href) + '&lt=' + lt;
+	document.body.appendChild(img);
+	var expire = new Date();
+	expire.setTime(expire.getTime() + 3600 * 1000);
+	document.cookie = "_jkb_" + jkb_id + "=1;expires=" + expire.toGMTString();
+}
+
+</script>
+<!-- jkb trace end -->
+
+</body>
+</html>
+
+
+<!-- Dynamic page generated in 0.389 seconds. -->
+<!-- Cached page generated by WP-Super-Cache on 2013-03-21 10:16:34 -->
+
+<!-- super cache -->

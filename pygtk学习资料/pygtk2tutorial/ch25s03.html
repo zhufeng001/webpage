@@ -1,0 +1,281 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>25.3. How to Separate Callback Methods From Signal Handlers</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-TipsForWritingPyGTKApplications.html" title="Chapter 25. Tips For Writing PyGTK Applications"><link rel="prev" href="ch25s02.html" title="25.2. Separate your data model from your interface"><link rel="next" href="ch-Contributing.html" title="Chapter 26. Contributing"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">25.3. How to Separate Callback Methods From Signal Handlers</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch25s02.html">Prev</a> </td><th width="60%" align="center">Chapter 25. Tips For Writing PyGTK Applications</th><td width="20%" align="right"> <a accesskey="n" href="ch-Contributing.html">Next</a></td></tr></table><hr></div><div class="sect1" title="25.3. How to Separate Callback Methods From Signal Handlers"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idp9613272"></a>25.3. How to Separate Callback Methods From Signal Handlers</h2></div></div></div><div class="sect2" title="25.3.1. Overview"><div class="titlepage"><div><div><h3 class="title"><a name="idp9613688"></a>25.3.1. Overview</h3></div></div></div><p>
+      You do not have to store all of your callback methods in one main
+      program file.  You can separate them into classes of their own, in
+      separate files. This way your main program can derive the methods from
+      those classes using inheritance. You end up having all the original
+      functionality with the added benifits of easier maintenance, code
+      reusability, and smaller file sizes, which means less of a burden for
+      text editors.
+    </p></div><div class="sect2" title="25.3.2. Inheritance"><div class="titlepage"><div><div><h3 class="title"><a name="idp6619048"></a>25.3.2. Inheritance</h3></div></div></div><p>
+      Inheritance is a way to reuse code. A class can inherit all the
+      functionality of other classes, and the nice thing about inheritance
+      is that we can use it to divide a huge program into logical groups of
+      smaller, more maintainable pieces.
+    </p><p>
+      Now lets spend a second on terminology. A derived class, some call
+      this a subclass or a child class, is a class that derives some of its
+      functionality from other classes.
+
+      A base class, some call it a superclass or a parent class, is what the
+      derived class inherits from.
+    </p><p>
+      Below is a short example to help you become familiar with
+      inheritance. You can try this out in the python interpreter to gain
+      some first hand experience.
+    </p><p>
+      Create two base classes:
+    </p><pre class="programlisting">
+class base1:
+   base1_attribute = 1
+   def base1_method(self):
+     return "hello from base class 1"
+
+class base2:
+   base2_attribute = 2
+   def base2_method(self):
+     return "hello from base class 2"
+    </pre><p>
+      Then create a derived class that inherits from these two base classes:
+    </p><pre class="programlisting">
+class derived(base1, base2):  #a class derived from two base classes
+   var3 = 3                     
+    </pre><p>
+      Now the derived class has all the functionality of the base classes. 
+    </p><pre class="programlisting">
+x = derived()        # creates an instance of the derived class
+x.base1_attribute    # 1
+x.base2_attribute    # 2
+x.var3               # 3
+x.base1_method()     # hello from base class 1
+x.base2_method()     # hello from base class 2
+    </pre><p>
+      The object called x has the ability to access the variables and
+      methods of the base classes because it has inherited their
+      functionality.  Now lets apply this concept of inheritance to a PyGTK
+      application.
+    </p></div><div class="sect2" title="25.3.3. Inheritance Applied To PyGTK"><div class="titlepage"><div><div><h3 class="title"><a name="idp3528360"></a>25.3.3. Inheritance Applied To PyGTK</h3></div></div></div><p>
+      Create a file called gui.py, then copy this code into it.
+    </p><pre class="programlisting">
+#A file called: gui.py
+
+import pygtk                                                  
+import gtk                                                   
+
+# Create a class definition called gui                                    
+class gui:
+  #                                                     
+  #          CALLBACK METHODS
+  #------------------------------------                                                                                                
+  def open(self, widget):                              
+    print "opens stuff"                                       
+  def save(self, widget):                              
+    print "save stuff"                                        
+  def undo(self, widget):                              
+    print "undo stuff"                                       
+  def destroy(self, widget):
+    gtk.main_quit()
+         
+                                                        
+  def __init__(self): 
+    #
+    #        GUI CONSTRUCTION CODE
+    #-----------------------------------------------
+    self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+    self.window.show()                                                              
+    self.vbox1 = gtk.VBox(False, 25)
+    self.window.add(self.vbox1)
+    open_button = gtk.Button(label="Open Stuff")
+    open_button.set_use_stock(True)
+    self.vbox1.pack_start(open_button, False, False, 0)
+    open_button.show() 
+    save_button = gtk.Button(label="Save Stuff")
+    self.vbox1.pack_start(save_button, False, False, 0)
+    save_button.show()
+    undo_button = gtk.Button(label="Undo")
+    self.vbox1.pack_start(undo_button, False, False, 0)
+    undo_button.show()
+    self.vbox1.show()
+    #
+    #        SIGNAL HANDLERS
+    #------------------------------------------------                                                        
+    open_button.connect("clicked", self.open)          
+    save_button.connect("clicked", self.save)           
+    undo_button.connect("clicked", self.undo) 
+    self.window.connect("destroy", self.destroy)          
+                                                              
+  def main(self):                                             
+   gtk.main()                                                 
+                                                              
+if __name__ == "__main__":                                    
+ gui_instance = gui()       # create a gui object             
+ gui_instance.main()        # call the main method         
+    </pre><p>
+      If your run this program you will find it is just a simple window with
+      some buttons. As the program is organized right now, all of the code
+      is in one single file.  But in a moment, you will find out how to
+      break that program up into multiple files.  The idea is to take those
+      four callback methods out of the gui class and put them into classes
+      of their own, in separate files. Now if you had hundreds of callback
+      methods you would try and group them in some logical way, for example,
+      you might put all of your methods that deal with input/output into the
+      same class, and you would make other classes for other groups of
+      methods as well.
+    </p><p>
+      The first thing we have to do is make some classes for the methods in
+      the gui.py file. Create three new text files, and name them io.py,
+      undo.py, and destroy.py, and put these files in the same directory as
+      the gui.py file.  Copy the code below into the io.py file.
+    </p><pre class="programlisting">
+class io:                                                       
+  def open(self, widget):                                  
+    print "opens stuff"                                          
+                                      
+  def save(self, widget):                                  
+    print "save stuff"                                           
+    </pre><p>
+      These are the two callback methods, open and save, from the gui.py
+      program.  Copy the next block of code into the undo.py file.
+    </p><pre class="programlisting">
+class undo:                                                      
+  def undo(self, widget):                                  
+    print "undo stuff" 
+    </pre><p> 
+      This is the undo_method from gui.py.  And finally, copy the code below
+      into destroy.py.
+    </p><pre class="programlisting">
+import gtk
+
+class destroy:
+  def destroy(self, widget):
+    gtk.main_quit()                                                            
+    </pre><p>
+      Now all the methods are separated into classes of their own.
+    </p><div><img src="images/important.gif"></div><div class="important" title="Important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Important</h3><p>
+        In your future programs you will want to import things like gtk,
+        pango, os ect...  into your derived class(the one with all of your
+        gui initialization code), but also, remember to import any modules
+        or classes you need into your base classes too. Sometimes you might
+        create an instance of a gtk widget in a base class method, in that
+        case import gtk.
+      </p><p>
+        This is just an example of a base class where you would be required
+        to import gtk.
+      </p><pre class="programlisting">
+  import gtk                                                        
+                                                                           
+  class Font_io                                                     
+    def Font_Chooser(self,widget):                                  
+      self.fontchooser = gtk.FontSelectionDialog("Choose Font")                                  
+      self.fontchooser.show()    
+      </pre><p>
+        Notice it defines a gtk widget, a font selection dialog. You would
+        normally import gtk in your main class(the derived class) and
+        everything would be ok. But the second you take this Font_Chooser
+        method out of your main class and put it into a class of its own,
+        and then try to inherit from it, you would find you get an error.
+        In this case, you would not even see any error until you were
+        running the program.  But when you try to use the Font_Chooser, you
+        would find that gtk is not defined, even though you have imported it
+        in your derived class. So just remember that when you create base
+        classes, you need to add their proper imports too.
+      </p></div><p>
+      With your three classes in three separate py files, you now need to
+      change the code in the gui.py file in three ways.
+    </p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>Import the classes you have created.</p></li><li class="listitem"><p>Change your class definition.</p></li><li class="listitem"><p>Delete your callback methods.</p></li></ol></div><p>
+      The updated code below shows how to do this.
+    </p><pre class="programlisting">
+#A file called:  gui.py
+#(updated version)
+#(with multiple inheritance)
+
+import pygtk                                                  
+import gtk  
+                       
+from io import file_io                       #                                
+from undo import undo                        # 1. Import Your Classes
+from destroy import destroy                  #
+
+# Create a class definition called gui                                    
+class gui(io, undo, destroy):                # 2. Changed Class Definition
+                                             # 3. Deleted Callbacks
+  def __init__(self): 
+    #
+    #        GUI CONSTRUCTION CODE
+    #-----------------------------------------------
+    self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+    self.window.show()
+    self.vbox1 = gtk.VBox(False, 25)
+    self.window.add(self.vbox1)
+    open_button = gtk.Button(label="Open Stuff")
+    open_button.set_use_stock(True)
+    self.vbox1.pack_start(open_button, False, False, 0)
+    open_button.show() 
+    save_button = gtk.Button(label="Save Stuff")
+    self.vbox1.pack_start(save_button, False, False, 0)
+    save_button.show()
+    undo_button = gtk.Button(label="Undo")
+    self.vbox1.pack_start(undo_button, False, False, 0)
+    undo_button.show()
+    self.vbox1.show()
+    #
+    #        SIGNAL HANDLERS
+    #------------------------------------------------
+    open_button.connect("clicked", self.open_method)          
+    save_button.connect("clicked", self.save_method)           
+    undo_button.connect("clicked", self.undo_method) 
+    self.window.connect("destroy", self.destroy)          
+                                                              
+  def main(self):                                             
+   gtk.main()                                                 
+                                                              
+if __name__ == "__main__":                                    
+ gui_instance = gui()       # create a gui object             
+ gui_instance.main()        # call the main method
+    </pre><p>
+      These three lines are new:
+    </p><pre class="programlisting">
+       from io import io                                   
+       from undo import undo                                          
+       from destroy import destroy     
+    </pre><p>
+      The import statements are of the form:
+    </p><pre class="programlisting">
+       from [filename of your class file] import [class name]
+    </pre><p>
+      Here is the class definition change:
+    </p><pre class="programlisting">
+       class gui(io, undo, destroy):
+    </pre><p>
+      The names of the base classes go between the parenthesis in the class
+      definition.  Now the gui class has become a derived class, and is able
+      to use all the attributes and methods defined in its base
+      classes. Also, the gui class is inheriting from multiple classes(two
+      or more), this is known as multiple inheritance.
+    </p><p>
+      Now change the gui.py file to the updated version and run the program
+      again.  You will notice it works exactly the same, except now all the
+      callback methods are in separate classes, being inherited by the gui
+      class.
+    </p><p>
+      There is just one other matter of interest to take note of.  As long
+      as your gui.py program and your base class files are all in the same
+      directory, everything will work just fine. But if you want to create
+      another directory inside there called classes, in which to organize
+      your files of base classes, then you will need to add two more lines
+      of code with the rest of your import statements in gui.py, like this:
+    </p><pre class="programlisting">
+        import sys
+        sys.path.append("classes")
+    </pre><p>
+      where classes is the name of the directory you store your classes
+      in. This lets Python know where to look for your classes.  Try it
+      out. Just make a directory called classes in the directory where you
+      have the gui.py program. Then put your three base class files into
+      this classes directory.  Now add the two lines of code show above to
+      the top of the gui.py file.  And thats it!
+    </p><p>
+      One final note for those that use py2exe for compiling python
+      programs. Put your base classes in your Python directory, then py2exe
+      will included them in the compiled version of your program just like
+      any other Python module.
+    </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch25s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-TipsForWritingPyGTKApplications.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch-Contributing.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">25.2. Separate your data model from your interface </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 26. Contributing</td></tr></table></div></body></html>

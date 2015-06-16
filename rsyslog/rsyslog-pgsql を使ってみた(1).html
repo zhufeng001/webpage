@@ -1,0 +1,588 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:og="http://ogp.me/ns#">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=euc-jp">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<title>rsyslog-pgsql を使ってみた(1) - aaabbb_200904の日記</title>
+<link rel="start" href="/" title="aaabbb_200904の日記">
+<link rel="help" href="/help" title="ヘルプ">
+<link rel="prev" href="/aaabbb_200904/20090625/1245941363" title="[Linux][ストレージ][冗長化][RH...">
+<link rel="next" href="/aaabbb_200904/20090707/1246975621" title="[Linux][ストレージ][nagios][Po...">
+
+<link rel="stylesheet" href="http://d.st-hatena.com/statics/css/base.css?5d7f38e4a6d82f044c81959ae4de5445d7f238cd" type="text/css" media="all">
+
+<link rel="stylesheet" href="http://d.st-hatena.com/statics/theme/cafe-green/cafe-green.css?53c9842c76448d90e4791baf5948f45060ef0d6d" type="text/css" media="all">
+
+
+<link rel="alternate" type="application/rss+xml" title="RSS" href="http://d.hatena.ne.jp/aaabbb_200904/rss">
+<link rel="alternate" type="application/rss+xml" title="RSS 2.0" href="http://d.hatena.ne.jp/aaabbb_200904/rss2">
+
+<link rel="meta" type="application/rdf+xml" title="FOAF" href="http://d.hatena.ne.jp/aaabbb_200904/foaf" />
+<link rel="search" type="application/opensearchdescription+xml" href="http://d.hatena.ne.jp/aaabbb_200904/opensearch/diary.xml" title="aaabbb_200904の日記内日記検索" />
+<link rel="search" type="application/opensearchdescription+xml" href="http://d.hatena.ne.jp/aaabbb_200904/opensearch/archive.xml" title="aaabbb_200904の日記内一覧検索" />
+
+
+
+<link rel="shortcut icon" href="http://d.hatena.ne.jp/images/wh_favicon.ico">
+
+
+
+
+<style type="text/css">
+<!-- 
+
+-->
+</style>
+
+
+<script type="text/javascript">if(/[\x3c\x3e\x22]/.test(location.hash))location.hash=location.hash.replace(/[\x3c\x3e\x22]/g,'');if(/[\x3c\x3e]/.test(document.referrer))location.href=location.href;</script>
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="rsyslog-pgsql を使ってみた(1) - aaabbb_200904の日記">
+<meta property="og:url" content="http://d.hatena.ne.jp/aaabbb_200904/20090628/1246153295">
+<meta property="og:description" content="以前Nagiosでプロセス数監視を行った際、合わせてログ監視が行えるかを調べていたのだが、Nagiosには、chec..">
+<meta property="og:site_name" content="はてなダイアリー">
+
+
+<!--
+<rdf:RDF
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:foaf="http://xmlns.com/foaf/0.1/">
+<rdf:Description rdf:about="http://d.hatena.ne.jp/aaabbb_200904/20090628/1246153295">
+   <foaf:maker rdf:parseType="Resource">
+     <foaf:holdsAccount>
+       <foaf:OnlineAccount foaf:accountName="aaabbb_200904">
+         <foaf:accountServiceHomepage rdf:resource="http://www.hatena.ne.jp/" />
+       </foaf:OnlineAccount>
+     </foaf:holdsAccount>
+   </foaf:maker>
+</rdf:Description>
+</rdf:RDF>
+-->
+
+<link rel="alternate" media="handheld" type="text/html" href="http://d.hatena.ne.jp/aaabbb_200904/mobile?date=20090628&section=1246153295" />
+<!--
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:dc="http://purl.org/dc/elements/1.1/"
+         xmlns:trackback="http://madskills.com/public/xml/rss/module/trackback/">
+<rdf:Description
+  rdf:about="http://d.hatena.ne.jp/aaabbb_200904/20090628/1246153295"
+  trackback:ping="http://d.hatena.ne.jp/aaabbb_200904/20090628/1246153295"
+  dc:title="[Linux][ストレージ][nagios][PostgreSQL]rsyslog-pgsql を使ってみた(1)"
+  dc:identifier="http://d.hatena.ne.jp/aaabbb_200904/20090628/1246153295" />
+</rdf:RDF>
+-->
+
+
+
+<link rel="canonical" href="http://d.hatena.ne.jp/aaabbb_200904/20090628/1246153295">
+
+
+
+
+<script type="text/javascript" src="http://s.hatena.ne.jp/js/HatenaStar.js"></script>
+<script type="text/javascript">
+Hatena.Star.SiteConfig = {
+  entryNodes: {
+    'div.section': {
+      uri: 'h3 a',
+      title: 'h3',
+      container: 'h3'
+    }
+  }
+};
+Hatena.Author  = new Hatena.User('aaabbb_200904');
+Hatena.DiaryName  = new Hatena.User('aaabbb_200904');
+
+</script>
+
+
+
+
+
+<script type="text/javascript" src="http://d.st-hatena.com/statics/js/adcolor.js?1f3986da8bc6daf90dbd32832cab7c880b9a65ed"></script>
+
+
+<script type="text/javascript" src="http://d.st-hatena.com/statics/js/quick_pager.js?73e8efd3adc8709460b4c8ff9af5a3d4c97eba4e"></script>
+<script type="text/javascript" src="http://d.st-hatena.com/statics/js/diary_utils.js?adec0f610f5ae48699282e70ca53eac3b657feda"></script>
+<script type="text/javascript" src="http://d.st-hatena.com/statics/js/max_width_fotolife.js?2d5c0a4915fdb8930122a506dbf154b9db674a3b"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" src="http://d.st-hatena.com/statics/js/jquery-1.4.2.min.js?1c983e39f64600478e5a829cf7a7a61f68527715"></script>
+<script type="text/javascript">
+  jQuery.noConflict()(function($){
+    var j$ = jQuery;
+  });
+</script>
+
+
+
+
+</head>
+<body>
+
+<table border="0" width="100%" cellspacing="0" cellpadding="0" id="banner">
+<tr>
+<td bgcolor="#FFFFFF" nowrap>
+<a href="http://www.hatena.ne.jp/"><img border="0" src="http://d.hatena.ne.jp/images/hatena_wh.gif" width="104" height="40" alt="Hatena::"></a><a href="http://d.hatena.ne.jp/"><img border="0" src="http://d.hatena.ne.jp/images/diarywh.gif" width="60" height="40" alt="ブログ(Diary)"></a></td>
+<td valign="bottom" align="left" bgcolor="#FFFFFF" width="60%" nowrap><form method="GET" action="/search" style="margin: 0;"><font color="#FFFFFF" size="2">&nbsp;&nbsp;<input type="text" name="word" value="" size="18" style="font-size: 8pt">&nbsp;<input type="hidden" name="name" value="aaabbb_200904"><input type="image" name="diary" alt="日記" src="http://d.hatena.ne.jp/images/search_diarywh.gif" align="top" style="width:34px;height:20px;border:0px">&nbsp;<input type="image" name="submit" alt="検索" src="http://d.hatena.ne.jp/images/searchwh.gif" align="top" style="width:34px;height:20px;border:0px"><br><img border="0" src="http://d.hatena.ne.jp/images/dot.gif" width="1" height="3" alt=""></font></form></td>
+<td align="right" bgcolor="#FFFFFF"><a href="http://www.hatena.ne.jp/"><img border="0" src="http://d.hatena.ne.jp/images/hatenawh.gif" width="82" height="40" alt="はてな"></a></td>
+</tr>
+<tr>
+<td width="100%" bgcolor="#999999" colspan="3"><img border="0" src="http://d.hatena.ne.jp/images/dot.gif" width="1" height="1" alt=""></td>
+</tr>
+<tr>
+<td width="100%" bgColor="#ffffff" colspan="3">
+<div align="center">
+<center>
+<table cellSpacing="0" cellPadding="2" width="100%" border="0">
+<tbody>
+<tr>
+<td bgcolor="#FFFFFF" width="50%" nowrap><font color="#999999" size="2">&nbsp;ようこそゲストさん&nbsp;</font></td>
+<td bgcolor="#FFFFFF" nowrap align="center"><a href="http://d.hatena.ne.jp/aaabbb_200904/" style="text-decoration:none; font-weight:100;"><font size="2" color="#999999">ブログトップ</font></a></td>
+<td bgcolor="#FFFFFF" nowrap align="center"><a href="http://d.hatena.ne.jp/aaabbb_200904/archive" style="text-decoration:none; font-weight:100;"><font size="2" color="#999999">記事一覧</font></a></td>
+<td bgcolor="#FFFFFF" nowrap align="center"><a href="https://www.hatena.ne.jp/login?backurl=http%3A%2F%2Fd.hatena.ne.jp%2Faaabbb_200904%2F20090628%2F1246153295&add_timestamp=1" style="text-decoration:none; font-weight:100;"><font size="2" color="#999999">ログイン</font></a></td><td bgcolor="#FFFFFF" nowrap align="center"><a href="https://www.hatena.ne.jp/register?location=http://d.hatena.ne.jp/" style="text-decoration:none; font-weight:100;"><font size="2" color="#999999">無料ブログ開設</font></a></td>
+
+
+</tr>
+</tbody>
+</table>
+</center>
+</div>
+</td>
+</tr>
+<tr>
+<td width="100%" bgcolor="#999999" colspan="3"><img border="0" src="http://d.hatena.ne.jp/images/dot.gif" width="1" height="1" alt=""></td>
+</tr>
+</table>
+
+
+
+<h1><a href="http://d.hatena.ne.jp/aaabbb_200904/">aaabbb_200904の日記</a></h1>
+<div class="hatena-body">
+<div class="main">
+<div class="ad">
+<script type="text/javascript"><!--
+google_ad_client = "pub-4438296558807254";
+google_alternate_ad_url = "http://d.hatena.ne.jp/altad?mode=468x60&color_border=ffffff&color_ads=ffffff";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_channel ="5901068518";
+google_color_link = "0000FF";
+google_color_url = "008000";
+google_color_border = "5279E7";
+google_color_bg = "FFFFFF";
+google_color_text = "000000";
+//--></script>
+<script type="text/javascript"><!--
+(function(){
+  if( !Ten ) return;
+  var sel = ['google_color_border','google_color_bg','google_color_link','google_color_url','google_color_text'];
+  var l = sel.length;
+  for( var i=0; i<l; i++ ){
+    var prop = Ten.Style.getGlobalStyle('.'+sel[i],'color');
+    if( prop ){
+      var color = Ten.Color.parseFromString(prop);
+      if( color )
+         window[sel[i]] = color.asHexString().slice(1);
+    }
+  }
+}
+)();
+//--></script>
+
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="calendar" id="pager-top">
+  <a rel="prev" href="/aaabbb_200904/20090625/1245941363" class="prev">&lt;[Linux][ストレージ][冗長化][RH...</a>&nbsp;<span class="delimiter">|</span>&nbsp;<a rel="next" href="/aaabbb_200904/20090707/1246975621" class="next">[Linux][ストレージ][nagios][Po...&gt;</a><span id="edit-in-place-add"></span>
+</div>
+<div id="days">
+
+<div class="day">
+<h2><a href="http://d.hatena.ne.jp/aaabbb_200904/20090628" rel="nofollow"><span class="date">2009-06-28</span></a></h2>
+
+<div class="body">
+
+<!-- google_ad_section_start -->
+
+		<div class="section">
+			<h3 class="title"><a href="/aaabbb_200904/20090628/1246153295" name="1246153295">rsyslog-pgsql を使ってみた(1)</a></h3>
+			<p class="sectionheader"><span class="sectioncategory"><a href="/aaabbb_200904/searchdiary?word=%2A%5BLinux%5D" class="sectioncategory">Linux</a>, <a href="/aaabbb_200904/searchdiary?word=%2A%5B%A5%B9%A5%C8%A5%EC%A1%BC%A5%B8%5D" class="sectioncategory">ストレージ</a>, <a href="/aaabbb_200904/searchdiary?word=%2A%5Bnagios%5D" class="sectioncategory">nagios</a>, <a href="/aaabbb_200904/searchdiary?word=%2A%5BPostgreSQL%5D" class="sectioncategory">PostgreSQL</a></span> |  <span class="timestamp">10:41</span></p>
+			<p>以前<a class="keyword" href="http://d.hatena.ne.jp/keyword/Nagios">Nagios</a>で<a class="keyword" href="http://d.hatena.ne.jp/keyword/%A5%D7%A5%ED%A5%BB%A5%B9">プロセス</a>数監視を行った際、合わせてログ監視が行えるかを調べていたのだが、<a class="keyword" href="http://d.hatena.ne.jp/keyword/Nagios">Nagios</a>には、check_logs という<a class="keyword" href="http://d.hatena.ne.jp/keyword/%A5%D7%A5%E9%A5%B0%A5%A4%A5%F3">プラグイン</a>も付属しており、<a class="keyword" href="http://d.hatena.ne.jp/keyword/%A5%A8%A5%E9%A1%BC%A5%ED%A5%B0">エラーログ</a>などが出力されているかどうかを確認することが出来ることがわかった。ただ、check_logs 内では以前のチェックからの差分を取り出してログを確認するのだが、<a class="keyword" href="http://d.hatena.ne.jp/keyword/OS">OS</a>付属の<a class="keyword" href="http://d.hatena.ne.jp/keyword/diff">diff</a> コマンドを使っており、パフォーマンス面から問題がありそうに見えた。。</p>
+			<br>
+
+			<p>このため、 rsyslog-pgsql を使って、ログを直接<a class="keyword" href="http://d.hatena.ne.jp/keyword/PostgreSQL">PostgreSQL</a>に投げ込み、かつ、時刻の部分に<a class="keyword" href="http://d.hatena.ne.jp/keyword/%A5%A4%A5%F3%A5%C7%A5%C3%A5%AF%A5%B9">インデックス</a>を貼っておくことで、パフォーマンスアップを目指せるかどうかを確認することにした。</p>
+			<p>rsyslog-pgsql の設定は以下のリンクに従った。</p>
+			<p><a href="http://www.rsyslog.com/module-Static_Docs-view-f-rsyslog_mysql.html.phtml" target="_blank">http://www.rsyslog.com/module-Static_Docs-view-f-rsyslog_mysql.html.phtml</a></p>
+			<p>設定は<a class="keyword" href="http://d.hatena.ne.jp/keyword/Fedora">Fedora</a> 11 で実施したのだが、基本的には</p>
+<pre>
+<a class="keyword" href="http://d.hatena.ne.jp/keyword/yum">yum</a> install rsyslog-pgsql
+</pre>
+			<p>を実施した後、postgresユーザーで<a class="keyword" href="http://d.hatena.ne.jp/keyword/RPM">RPM</a>に付属の create.<a class="keyword" href="http://d.hatena.ne.jp/keyword/sql">sql</a> を実行し、rsyslog.conf 内に、</p>
+<pre>
+$ModLoad ompgsql.so  
+ *.* :ompgsql:127.0.0.1,<a class="keyword" href="http://d.hatena.ne.jp/keyword/Syslog">Syslog</a>,postgres,<a class="keyword" href="http://d.hatena.ne.jp/keyword/aaa">aaa</a>
+</pre>
+			<p>などの設定を付け加えることになる。</p>
+			<p>この方法で、<a class="keyword" href="http://d.hatena.ne.jp/keyword/PostgreSQL">PostgreSQL</a>の<a class="keyword" href="http://d.hatena.ne.jp/keyword/Syslog">Syslog</a> <a class="keyword" href="http://d.hatena.ne.jp/keyword/DB">DB</a>に<a class="keyword" href="http://d.hatena.ne.jp/keyword/Syslog">Syslog</a> の内容が反映されていることを確認した。 </p>
+			<p>※ 後に、postgres ユーザーの使用を止め、</p>
+<pre>
+ *.* :ompgsql:127.0.0.1,<a class="keyword" href="http://d.hatena.ne.jp/keyword/Syslog">Syslog</a>,rsyslogusr1,<a class="keyword" href="http://d.hatena.ne.jp/keyword/aaa">aaa</a>
+</pre>
+			<p>とした。</p>
+		</div>
+<div id="google_afc_user" class="section">
+  <script type="text/javascript"><!--
+     hatena_dfp_tag       = '/4374287/diary_user';
+     hatena_dfp_size      = [300, 250];
+     hatena_dfp_target_id = 'google_afc_user';
+  --></script>
+  <script type="text/javascript" src="http://ad.hatena.ne.jp/js/hatena_dfp-compiled.js"></script>
+</div>
+
+<!-- google_ad_section_end -->
+
+</div>
+
+
+
+  <div class="comment">
+    <div class="caption">
+      <a name="c" href="/aaabbb_200904/comment?date=20090628&section=1246153295#c">コメントを書く</a>
+      
+    </div>
+
+    
+
+
+    
+  </div>
+
+
+
+
+
+
+  
+  <div class="refererlist">
+    <div class="caption">
+      <a name="tb">トラックバック</a> - http://d.hatena.ne.jp/aaabbb_200904/20090628/1246153295
+    </div>
+    
+      
+      <ul>
+        
+          <li>
+            <a href="http://d.hatena.ne.jp/aaabbb_200904/20090920/1253458317" title=" PostgreSQL CE 8 Silver: 取得しました 最近PostgreSQL を集中的に触っていたのだが、無事に資格試験を通過することが出来ました。本番では、意外に捻った問題が多く、苦戦したのだが、まあまあ満足のいく点数で通過できたので、よしとしよう。 PostgreSQLを習得しようと思" rel="nofollow">aaabbb_200904の日記 - PostgreSQL CE 8 Silver: 取得しました</a></li>
+        
+      </ul>
+    
+  </div>
+  
+  
+
+
+
+
+
+    <div class="refererlist">
+      <div class="caption">リンク元</div>
+      <ul>
+          <li>48 <a href="http://www.google.co.jp/search?hl=ja&amp;client=firefox-a&amp;rls=org.mozilla%3Aja%3Aofficial&amp;hs=7Go&amp;q=linux+root+%E3%83%AD%E3%82%B0%E3%82%A4%E3%83%B3+fedora11&amp;btnG=%E6%A4%9C%E7%B4%A2&amp;lr=lang_ja" rel="nofollow">http://www.google.co.jp/search?hl=ja&amp;client=firefox-a&amp;rls=org.mozilla:ja:official&amp;hs=7Go&amp;q=linux+root+ログイン+fedora11&amp;btnG=検索&amp;lr=lang_ja</a></li>
+          <li>30 <a href="http://www.google.co.jp/search?sourceid=navclient&amp;hl=ja&amp;ie=UTF-8&amp;rlz=1T4GGIH_jaJP219JP220&amp;q=disk+io+centos" rel="nofollow">http://www.google.co.jp/search?sourceid=navclient&amp;hl=ja&amp;ie=UTF-8&amp;rlz=1T4GGIH_jaJP219JP220&amp;q=disk+io+centos</a></li>
+          <li>17 <a href="http://www.google.co.jp/search?hl=ja&amp;lr=lang_ja&amp;client=firefox-a&amp;rls=org.mozilla:ja:official&amp;hs=gBl&amp;q=alfresco+%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB&amp;revid=774673156&amp;ei=0BVISrj-FI6GkQWk74TwCQ&amp;sa=X&amp;oi=revisions_inline&amp;resnum=1&amp;ct=broad-revi" rel="nofollow">http://www.google.co.jp/search?hl=ja&amp;lr=lang_ja&amp;client=firefox-a&amp;rls=org.mozilla:ja:official&amp;hs=gBl&amp;q=alfresco+インストール&amp;revid=774673156&amp;ei=0BVISrj-FI6GkQWk74TwCQ&amp;sa=X&amp;oi=revisions_inline&amp;resnum=1&amp;ct=broad-revi</a></li>
+          <li>6 <a href="http://www.google.co.jp/search?source=ig&amp;hl=ja&amp;rlz=1G1GGLQ_JAJP318&amp;q=%22windows7%22+%E6%AF%94%E8%BC%83&amp;meta=lr%3D&amp;aq=f&amp;oq=" rel="nofollow">http://www.google.co.jp/search?source=ig&amp;hl=ja&amp;rlz=1G1GGLQ_JAJP318&amp;q=&quot;windows7&quot;+比較&amp;meta=lr=&amp;aq=f&amp;oq=</a></li>
+          <li>6 <a href="http://www.google.com/search?ie=UTF-8&amp;q=%E3%83%97%E3%83%AD%E3%82%BB%E3%82%B9+%E5%AE%9A%E6%9C%9F%E7%9A%84+%E7%9B%A3%E8%A6%96&amp;btnG=Google+%E6%A4%9C%E7%B4%A2&amp;as_qdr=y15" rel="nofollow">http://www.google.com/search?ie=UTF-8&amp;q=プロセス+定期的+監視&amp;btnG=Google+検索&amp;as_qdr=y15</a></li>
+          <li>5 <a href="http://www.google.co.jp/search?q=alfresco+%E3%82%A4%E3%83%B3%E3%83%87%E3%83%83%E3%82%AF%E3%82%B9&amp;hl=ja&amp;lr=&amp;start=10&amp;sa=N" rel="nofollow">http://www.google.co.jp/search?q=alfresco+インデックス&amp;hl=ja&amp;lr=&amp;start=10&amp;sa=N</a></li>
+          <li>5 <a href="http://www.google.co.jp/search?q=ganglia&amp;lr=lang_ja&amp;ie=utf-8&amp;oe=utf-8&amp;aq=t&amp;rls=org.mozilla:ja-JP-mac:official&amp;client=firefox-a" rel="nofollow">http://www.google.co.jp/search?q=ganglia&amp;lr=lang_ja&amp;ie=utf-8&amp;oe=utf-8&amp;aq=t&amp;rls=org.mozilla:ja-JP-mac:official&amp;client=firefox-a</a></li>
+          <li>4 <a href="http://k.hatena.ne.jp/keywordblog/iSCSI" rel="nofollow">http://k.hatena.ne.jp/keywordblog/iSCSI</a></li>
+          <li>4 <a href="http://search.yahoo.co.jp/search?p=Alfresco+%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB&amp;ei=UTF-8&amp;fr=slv1-tbtop&amp;x=wrt&amp;meta=fl%3D3" rel="nofollow">http://search.yahoo.co.jp/search?p=Alfresco+インストール&amp;ei=UTF-8&amp;fr=slv1-tbtop&amp;x=wrt&amp;meta=fl=3</a></li>
+          <li>4 <a href="http://www.google.co.jp/search?hl=ja&amp;client=firefox&amp;rls=org.mozilla%3Aja%3Aofficial&amp;hs=EOT&amp;q=OpenFiler+drbd&amp;btnG=%E6%A4%9C%E7%B4%A2&amp;lr=lang_ja" rel="nofollow">http://www.google.co.jp/search?hl=ja&amp;client=firefox&amp;rls=org.mozilla:ja:official&amp;hs=EOT&amp;q=OpenFiler+drbd&amp;btnG=検索&amp;lr=lang_ja</a></li>
+      </ul>
+      
+    </div>
+
+
+
+
+</div>
+
+
+
+</div>
+<div class="calendar" id="pager-bottom">
+  <a rel="prev" href="/aaabbb_200904/20090625/1245941363" class="prev">&lt;[Linux][ストレージ][冗長化][RH...</a>&nbsp;<span class="delimiter">|</span>&nbsp;<a rel="next" href="/aaabbb_200904/20090707/1246975621" class="next">[Linux][ストレージ][nagios][Po...&gt;</a>
+</div>
+</div>
+<div class="sidebar">
+        <div class="hatena-module hatena-module-rss">
+                <div class="hatena-moduletitle"><a href="http://twitter.com/aaabbb_200909">twitter</a></div>
+                <div class="hatena-modulebody">
+                        <ul class="hatena-rss">
+                                <li><a href="http://twitter.com/aaabbb_200909/statuses/255681259244752896" title="aaabbb_200909: RT @mktredwell: &#12495;&#12452;&#12450;&#12497;&#12540;&#12496;&#12452;&#12470;&#12540;&#21033;&#29992;&#12398;&#27604;&#29575;&#65306; VMware&#12364;74.0&#65285;&#12289;Linux KVM&#12364;23.3&#65285;&#12289;Microsoft Hyper-V&#12364;19.6&#65285; &amp;gt; &#12458;&#12540;&#12503;&#12531;&#12477;&#12540;&#12473;&#12539;&#12463;&#12521;&#12454;&#12489;&#12539;&#12503;&#12521;&#12483;&#12488;&#12501;&#12457;&#12540;&#12512;&#12398;&#21033;&#29992;&#20225;&#26989;&#12399;&#12414;&#12384;&#23569;&#25968;&#27966; - CIO Online  ...">aaabbb_200909: RT @mktredwell: &#12495;&#12452;&#12450;&#12497;&#12540;&#12496;&#12452;&#12470;&#12540;&#21033;&#29992;&#12398;&#27604;&#29575;&#65306; VMware&#12364;74.0&#65285;&#12289;Linux KVM&#12364;23.3&#65285;&#12289;Microsoft Hyper-V&#12364;19.6&#65285; &amp;gt; &#12458;&#12540;&#12503;&#12531;&#12477;&#12540;&#12473;&#12539;&#12463;&#12521;&#12454;&#12489;&#12539;&#12503;&#12521;&#12483;&#12488;&#12501;&#12457;&#12540;&#12512;&#12398;&#21033;&#29992;&#20225;&#26989;&#12399;&#12414;&#12384;&#23569;&#25968;&#27966; - CIO Online  ...</a></li>
+                                <li><a href="http://twitter.com/aaabbb_200909/statuses/255681139619008514" title="aaabbb_200909: RT @namidame_bot: &#38263;&#32769;&#12300;&#12371;&#12371;&#12395;&#19968;&#26412;&#12398;&#30690;&#12364;&#12354;&#12427;&#12290;&#19968;&#26412;&#12391;&#12399;&#31777;&#21336;&#12395;&#25240;&#12428;&#12390;&#12375;&#12414;&#12358;&#12394;&#12301;&#23376;&#20379;&#12300;&#19977;&#26412;&#12394;&#12425;&#25240;&#12428;&#12394;&#12356;&#12387;&#12390;&#35328;&#12358;&#12435;&#12391;&#12375;&#12423;&#12301;&#38263;&#32769;&#12300;&#22826;&#12373;&#12364;&#30064;&#12394;&#12427;&#19977;&#26412;&#12398;&#30690;&#12434;&#21516;&#26178;&#12395;&#26354;&#12370;&#12427;&#12392;&#12289;&#26368;&#12418;&#22826;&#12356;&#30690;&#12395;&#24540;&#21147;&#12364;&#38598;&#20013;&#12375;&#12390;&#30772;&#26029;&#12289;&#36899;&#37782;&#30340;&#12395;&#20108;&#26412;&#30446;&#12289;&#19977;&#26412;&#30446;&#12418;&#25240;&#12428;&#12427;&#12290;&#33021;&#21147;&#24046;&#12398;&#12354;&#12427;&#20154;&#38291;&#12434;&#28961;&#29702;&#12395;&#26463;&#12397;&#12383; ...">aaabbb_200909: RT @namidame_bot: &#38263;&#32769;&#12300;&#12371;&#12371;&#12395;&#19968;&#26412;&#12398;&#30690;&#12364;&#12354;&#12427;&#12290;&#19968;&#26412;&#12391;&#12399;&#31777;&#21336;&#12395;&#25240;&#12428;&#12390;&#12375;&#12414;&#12358;&#12394;&#12301;&#23376;&#20379;&#12300;&#19977;&#26412;&#12394;&#12425;&#25240;&#12428;&#12394;&#12356;&#12387;&#12390;&#35328;&#12358;&#12435;&#12391;&#12375;&#12423;&#12301;&#38263;&#32769;&#12300;&#22826;&#12373;&#12364;&#30064;&#12394;&#12427;&#19977;&#26412;&#12398;&#30690;&#12434;&#21516;&#26178;&#12395;&#26354;&#12370;&#12427;&#12392;&#12289;&#26368;&#12418;&#22826;&#12356;&#30690;&#12395;&#24540;&#21147;&#12364;&#38598;&#20013;&#12375;&#12390;&#30772;&#26029;&#12289;&#36899;&#37782;&#30340;&#12395;&#20108;&#26412;&#30446;&#12289;&#19977;&#26412;&#30446;&#12418;&#25240;&#12428;&#12427;&#12290;&#33021;&#21147;&#24046;&#12398;&#12354;&#12427;&#20154;&#38291;&#12434;&#28961;&#29702;&#12395;&#26463;&#12397;&#12383; ...</a></li>
+                                <li><a href="http://twitter.com/aaabbb_200909/statuses/255681039983333377" title="aaabbb_200909: RT @kfujieda: &#12488;&#12488;&#12525;&#12392;&#28779;&#22402;&#12427;&#12398;&#22675;&#12364;&#21516;&#26178;&#19978;&#26144;&#12384;&#12387;&#12383;&#12398;&#12399;&#24847;&#22806;&#12392;&#30693;&#12425;&#12428;&#12390;&#12394;&#12356;&#12435;&#12384;&#12394;&#12290;&#12488;&#12488;&#12525;&#8594;&#28779;&#22402;&#12427;&#12398;&#22675;&#12384;&#12387;&#12383;&#12363;&#12425;&#12289;&#12488;&#12488;&#12525;&#12434;&#35211;&#12395;&#26469;&#12383;&#35242;&#23376;&#36899;&#12428;&#12364;&#12488;&#12488;&#12525;&#12398;&#12354;&#12392;&#12395;&#28779;&#22402;&#12427;&#12398;&#22675;&#12434;&#35211;&#12427;&#12392;&#12356;&#12358;&#24808;&#21127;&#12364;&#36215;&#12365;&#12383;&#12290;&#27875;&#12365;&#23849;&#12428;&#12390;&#24109;&#12434;&#31435;&#12390;&#12394;&#12356;&#27597;&#35242;&#12356;&#12383;&#12426;&#12375;&#12390;&#12289;&#25991;&#23383;&#36890;&#12426;&#12398;&#24808;&#21127;&#12384;&#12387;&#12383;&#12424;&#12290;">aaabbb_200909: RT @kfujieda: &#12488;&#12488;&#12525;&#12392;&#28779;&#22402;&#12427;&#12398;&#22675;&#12364;&#21516;&#26178;&#19978;&#26144;&#12384;&#12387;&#12383;&#12398;&#12399;&#24847;&#22806;&#12392;&#30693;&#12425;&#12428;&#12390;&#12394;&#12356;&#12435;&#12384;&#12394;&#12290;&#12488;&#12488;&#12525;&#8594;&#28779;&#22402;&#12427;&#12398;&#22675;&#12384;&#12387;&#12383;&#12363;&#12425;&#12289;&#12488;&#12488;&#12525;&#12434;&#35211;&#12395;&#26469;&#12383;&#35242;&#23376;&#36899;&#12428;&#12364;&#12488;&#12488;&#12525;&#12398;&#12354;&#12392;&#12395;&#28779;&#22402;&#12427;&#12398;&#22675;&#12434;&#35211;&#12427;&#12392;&#12356;&#12358;&#24808;&#21127;&#12364;&#36215;&#12365;&#12383;&#12290;&#27875;&#12365;&#23849;&#12428;&#12390;&#24109;&#12434;&#31435;&#12390;&#12394;&#12356;&#27597;&#35242;&#12356;&#12383;&#12426;&#12375;&#12390;&#12289;&#25991;&#23383;&#36890;&#12426;&#12398;&#24808;&#21127;&#12384;&#12387;&#12383;&#12424;&#12290;</a></li>
+                                <li><a href="http://twitter.com/aaabbb_200909/statuses/255680550680023041" title="aaabbb_200909: RT @inuro: &#12300;&#24681;&#24107;&#12395;&#20250;&#12387;&#12383;&#12425;&#12414;&#12378;&#20253;&#12360;&#12383;&#12356;&#12302;&#12371;&#12398;&#21069;&#28193;&#12375;&#12383;&#35542;&#25991;&#12398;&#21407;&#31295;&#12395;&#26089;&#12367;&#30446;&#12434;&#36890;&#12375;&#12390;&#12367;&#12384;&#12373;&#12356;&#12303;&#12301;&#21561;&#12356;&#12383;&#12290; / &#8220;&#65308;&#23665;&#20013;&#27663;&#12494;&#12540;&#12505;&#12523;&#36062;&#65310;&#12300;&#21629;&#25937;&#12358;&#12383;&#12417;&#21069;&#12408;&#12301;&#24859;&#24351;&#23376;&#12289;&#20919;&#38745;&#12395;&#21916;&#12403; &#65288;&#27598;&#26085;&#26032;&#32862;&#65289; - Yahoo!&#12491;&#12517;&#12540;&#12473;&#8221; http://t.co/9EXHW8zi">aaabbb_200909: RT @inuro: &#12300;&#24681;&#24107;&#12395;&#20250;&#12387;&#12383;&#12425;&#12414;&#12378;&#20253;&#12360;&#12383;&#12356;&#12302;&#12371;&#12398;&#21069;&#28193;&#12375;&#12383;&#35542;&#25991;&#12398;&#21407;&#31295;&#12395;&#26089;&#12367;&#30446;&#12434;&#36890;&#12375;&#12390;&#12367;&#12384;&#12373;&#12356;&#12303;&#12301;&#21561;&#12356;&#12383;&#12290; / &#8220;&#65308;&#23665;&#20013;&#27663;&#12494;&#12540;&#12505;&#12523;&#36062;&#65310;&#12300;&#21629;&#25937;&#12358;&#12383;&#12417;&#21069;&#12408;&#12301;&#24859;&#24351;&#23376;&#12289;&#20919;&#38745;&#12395;&#21916;&#12403; &#65288;&#27598;&#26085;&#26032;&#32862;&#65289; - Yahoo!&#12491;&#12517;&#12540;&#12473;&#8221; http://t.co/9EXHW8zi</a></li>
+                                <li><a href="http://twitter.com/aaabbb_200909/statuses/254365439713476608" title="aaabbb_200909: RT @wwww_wwww_wwww: &#12300;&#34903;&#20013;&#12391;&#32937;&#12364;&#12406;&#12388;&#12363;&#12387;&#12383;&#12392;&#12365;&#12289;&#12393;&#12428;&#12367;&#12425;&#12356;&#12398;&#30906;&#29575;&#12391;&#35613;&#12427;&#12363;&#12301;&#12392;&#12356;&#12358;&#23455;&#39443;&#12434;&#19990;&#30028;&#21508;&#22269;&#12391;&#12420;&#12387;&#12383;&#12392;&#12371;&#12429;&#12289;&#23455;&#39443;&#32773;&#12364;&#12431;&#12374;&#12392;&#12406;&#12388;&#12363;&#12429;&#12358;&#12392;&#12375;&#12390;&#12418;&#26085;&#26412;&#20154;&#12399;&#20932;&#12414;&#12376;&#12356;&#22238;&#36991;&#33021;&#21147;&#12434;&#35211;&#12379;&#12383;&#12383;&#12417;&#12289;&#12300;&#12472;&#12515;&#12497;&#12491;&#12540;&#12474;&#12399;&#20840;&#21729;&#12491;&#12531;&#12472;&#12515;&#12301;&#12392;&#12356;&#12358;&#32080;&#35542;&#12395;&#36948;&#12375;&#12383;">aaabbb_200909: RT @wwww_wwww_wwww: &#12300;&#34903;&#20013;&#12391;&#32937;&#12364;&#12406;&#12388;&#12363;&#12387;&#12383;&#12392;&#12365;&#12289;&#12393;&#12428;&#12367;&#12425;&#12356;&#12398;&#30906;&#29575;&#12391;&#35613;&#12427;&#12363;&#12301;&#12392;&#12356;&#12358;&#23455;&#39443;&#12434;&#19990;&#30028;&#21508;&#22269;&#12391;&#12420;&#12387;&#12383;&#12392;&#12371;&#12429;&#12289;&#23455;&#39443;&#32773;&#12364;&#12431;&#12374;&#12392;&#12406;&#12388;&#12363;&#12429;&#12358;&#12392;&#12375;&#12390;&#12418;&#26085;&#26412;&#20154;&#12399;&#20932;&#12414;&#12376;&#12356;&#22238;&#36991;&#33021;&#21147;&#12434;&#35211;&#12379;&#12383;&#12383;&#12417;&#12289;&#12300;&#12472;&#12515;&#12497;&#12491;&#12540;&#12474;&#12399;&#20840;&#21729;&#12491;&#12531;&#12472;&#12515;&#12301;&#12392;&#12356;&#12358;&#32080;&#35542;&#12395;&#36948;&#12375;&#12383;</a></li>
+                        </ul>
+                </div>
+        </div>
+
+
+	<div class="hatena-module hatena-module-calendar2">
+<div class="hatena-moduletitle">カレンダー</div>
+<div class="hatena-modulebody">
+<table class="calendar" summary="calendar">
+<tr>
+<td class="calendar-prev-month" colspan="2"><a href="/aaabbb_200904/200905" title="200905" rel="nofollow">&lt;&lt;</a></td>
+<td class="calendar-current-month" colspan="3"><a href="/aaabbb_200904/archive/200906" rel="nofollow">2009/06</a></td>
+<td class="calendar-next-month" colspan="2"><a href="/aaabbb_200904/200907" title="200907" rel="nofollow">&gt;&gt;</a></td>
+</tr>
+<tr>
+<td class="calendar-sunday">日</td>
+<td class="calendar-weekday">月</td>
+<td class="calendar-weekday">火</td>
+<td class="calendar-weekday">水</td>
+<td class="calendar-weekday">木</td>
+<td class="calendar-weekday">金</td>
+<td class="calendar-saturday">土</td>
+</tr>
+	<tr>
+		<td class="calendar-day"></td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090601" title="1">1</a></td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090602" title="2">2</a></td>
+		<td class="calendar-day">3</td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090604" title="4">4</a></td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090605" title="5">5</a></td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090606" title="6">6</a></td>
+	</tr>
+	<tr>
+		<td class="calendar-day">7</td>
+		<td class="calendar-day">8</td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090609" title="9">9</a></td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090610" title="10">10</a></td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090611" title="11">11</a></td>
+		<td class="calendar-day">12</td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090613" title="13">13</a></td>
+	</tr>
+	<tr>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090614" title="14">14</a></td>
+		<td class="calendar-day">15</td>
+		<td class="calendar-day">16</td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090617" title="17">17</a></td>
+		<td class="calendar-day">18</td>
+		<td class="calendar-day">19</td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090620" title="20">20</a></td>
+	</tr>
+	<tr>
+		<td class="calendar-day">21</td>
+		<td class="calendar-day">22</td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090623" title="23">23</a></td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090624" title="24">24</a></td>
+		<td class="calendar-day"><a href="/aaabbb_200904/20090625" title="25">25</a></td>
+		<td class="calendar-day">26</td>
+		<td class="calendar-day">27</td>
+	</tr>
+	<tr>
+		<td class="calendar-day day-selected"><a href="/aaabbb_200904/20090628" title="28">28</a></td>
+		<td class="calendar-day">29</td>
+		<td class="calendar-day">30</td>
+		<td class="calendar-day"></td>
+		<td class="calendar-day"></td>
+		<td class="calendar-day"></td>
+		<td class="calendar-day"></td>
+	</tr>
+</table>
+	</div>
+</div>
+
+	<div class="hatena-module hatena-module-section">
+<div class="hatena-moduletitle"><a href="/aaabbb_200904/archive">最新タイトル</a></div>
+<div class="hatena-modulebody">
+<ul class="hatena-section">
+<li><a href="http://d.hatena.ne.jp/aaabbb_200904/20120825/1345908313">[Linux]rsync+Gitで設定ファイルの差分管理</a></li>
+<li><a href="http://d.hatena.ne.jp/aaabbb_200904/20120502/1335966780">[Linux]覚えたい開発ツール群</a></li>
+<li><a href="http://d.hatena.ne.jp/aaabbb_200904/20120317/1332001428">[Linux][ganglia]perlでgmetricを使う場合の注意点</a></li>
+<li><a href="http://d.hatena.ne.jp/aaabbb_200904/20110901/1314895701">[Linux][Windows][ganglia]Ganglia3.2とgweb2を試してみた</a></li>
+<li><a href="http://d.hatena.ne.jp/aaabbb_200904/20110618/1308400576">[Linux]エンタープライズで使えそうなオープンソースまとめ(2011年度6月)</a></li>
+<li><a href="http://d.hatena.ne.jp/aaabbb_200904/20110616/1308240060">[Linux][仮想化][Windows]Fedora15 KVM上のWindowsにデバイスドライバを導入するには</a></li>
+<li><a href="http://d.hatena.ne.jp/aaabbb_200904/20110616/1308239205">[Windows][FreeIPA][Linux]pGina-2.Xを使ってみた</a></li>
+<li><a href="http://d.hatena.ne.jp/aaabbb_200904/20110616/1308238286">[Windows]npackdを使ってみた</a></li>
+<li><a href="http://d.hatena.ne.jp/aaabbb_200904/20110216/1297869281">[Linux][Python]OpenofficeのPythonマクロでimpressの情報を取得するには</a></li>
+<li><a href="http://d.hatena.ne.jp/aaabbb_200904/20110212/1297519086">[Linux][Python]OpenofficeのPythonマクロを使ってみた</a></li>
+</ul>
+</div>
+</div>
+
+	<div class="hatena-module hatena-module-profile">
+  <div class="hatena-moduletitle">プロフィール</div>
+  <div class="hatena-modulebody">
+    <div class="hatena-profile">
+      <p class="hatena-profile-id"><a href="/aaabbb_200904/about">aaabbb_200904</a></p>
+      <p class="hatena-profile-body">linuxについて色々試して結果を書くブログ</p>
+    </div>
+  </div>
+</div>
+
+	<div class="hatena-module hatena-module-sectioncategory">
+<div class="hatena-moduletitle">カテゴリー</div>
+<div class="hatena-modulebody">
+<ul class="hatena-sectioncategory">
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BLinux%5D">Linux</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BWindows%5D">Windows</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BFreeIPA%5D">FreeIPA</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BLVS%5D">LVS</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5Bpuppet%5D">puppet</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5B%B2%BE%C1%DB%B2%BD%5D">仮想化</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5Bganglia%5D">ganglia</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BAlfresco%5D">Alfresco</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5B%A5%D8%A5%EB%A5%D7%A5%C7%A5%B9%A5%AF%5D">ヘルプデスク</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BZimbra%5D">Zimbra</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5B%A5%B9%A5%C8%A5%EC%A1%BC%A5%B8%5D">ストレージ</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5B%BE%E9%C4%B9%B2%BD%5D">冗長化</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BRHCS%5D">RHCS</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5Bnagios%5D">nagios</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BJBoss%5D">JBoss</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BPostgreSQL%5D">PostgreSQL</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BFunc%5D">Func</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BPython%5D">Python</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BCondor%5D">Condor</a></li>
+<li><a href="/aaabbb_200904/searchdiary?word=%2A%5BVyatta%5D">Vyatta</a></li>
+</ul>
+</div>
+</div>
+
+	<div class="hatena-module hatena-module-keywordcloud">
+
+<div class="hatena-moduletitle"><a href="/aaabbb_200904/keywordcloud">最近言及したキーワード</a></div>
+
+<div class="hatena-modulebody">
+<ul class="keywordcloud">
+
+<li><a href="/aaabbb_200904/searchdiary?word=0%B7%CF" class="keywordcloud0">0系</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%5Blinux%5D" class="keywordcloud10">[linux]</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=access" class="keywordcloud0">access</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=cygwin" class="keywordcloud0">cygwin</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=diff" class="keywordcloud0">diff</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=drupal" class="keywordcloud0">drupal</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=git" class="keywordcloud2">git</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=orz" class="keywordcloud2">orz</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%A5%A4%A5%F3%A5%B9%A5%C8%A1%BC%A5%EB" class="keywordcloud5">インストール</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%A5%AF%A5%E9%A5%B9%A5%BF" class="keywordcloud2">クラスタ</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%A5%B5%A1%BC%A5%D0%A1%BC" class="keywordcloud7">サーバー</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%A5%B9%A5%AF%A5%EA%A5%D7%A5%C8" class="keywordcloud2">スクリプト</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%A5%C7%A5%D5%A5%A9%A5%EB%A5%C8" class="keywordcloud2">デフォルト</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%A5%CD%A5%C3%A5%C8%A5%EF%A1%BC%A5%AF" class="keywordcloud2">ネットワーク</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%A5%CE%A1%BC%A5%C9" class="keywordcloud2">ノード</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%A5%D0%A5%C3%A5%AF%A5%A2%A5%C3%A5%D7" class="keywordcloud2">バックアップ</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%A5%D3%A5%EB%A5%C9" class="keywordcloud2">ビルド</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%A5%D7%A5%ED%A5%B0%A5%E9%A5%E0" class="keywordcloud2">プログラム</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%A5%EC%A5%DD%A5%B8%A5%C8%A5%EA" class="keywordcloud2">レポジトリ</a></li>
+
+<li><a href="/aaabbb_200904/searchdiary?word=%A5%ED%A5%B8%A5%C3%A5%AF" class="keywordcloud5">ロジック</a></li>
+
+</ul>
+</div>
+</div>
+
+
+
+</div>
+</div>
+
+
+
+
+
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  var days = document.getElementById('days');
+  if (days && days.innerHTML.indexOf("今週のお題") != -1) {
+    _gaq.push(['_setCustomVar', 2, 'campaign', 'odai', 3]);
+  }
+
+  if (days && /\u6d77\u5916\u30c9\u30e9\u30de\u300e\u30e9\u30a4\u30fb\u30c8\u30a5\u30fb\u30df\u30fc \u5618\u306e\u77ac\u9593\u300f\u89b3\u305f\u3044\uff01|\u300e\u30e9\u30a4\u30fb\u30c8\u30a5\u30fb\u30df\u30fc \u5618\u306e\u77ac\u9593\u300f\u7b2c1\u8a71\u306e\u611f\u60f3\u3092\u6559\u3048\u3066\u304f\u3060\u3055\u3044|\u4eca\u3060\u304b\u3089\u8a00\u3048\u308b\u300c\u5618\u3092\u3064\u3044\u3066\u3057\u307e\u3063\u305f\u30a8\u30d4\u30bd\u30fc\u30c9\u300d\u3092\u6559\u3048\u3066\u304f\u3060\u3055\u3044|\u3060\u307e\u3055\u308c\u305f\u3051\u3069\u3001\u8a31\u305b\u3066\u3057\u307e\u3063\u305f\u5618\u3092\u6559\u3048\u3066\u304f\u3060\u3055\u3044/.test(days.innerHTML)) {
+    _gaq.push(['_setCustomVar', 2, 'campaign', 'lietome', 3]);
+  }
+
+  if (days && /Visa\u30d7\u30ea\u30da\u30a4\u30c9\u300cV\u30d7\u30ea\u30ab\u300d\u8a66\u3057\u305f\u3044\uff01|Visa\u30d7\u30ea\u30da\u30a4\u30c9\u300cV\u30d7\u30ea\u30ab\u300d\u3001\u81ea\u5206\u306a\u3089\u3053\u3046\u4f7f\u3046\uff01|V\u30d7\u30ea\u30ab\u304c1\u4e07\u5186\u5206\u3042\u3063\u305f\u3089\u3001\u30cd\u30c3\u30c8\u3067\u4f55\u3092\u8cb7\u3044\u307e\u3059\u304b\uff1f/.test(days.innerHTML)) {
+    _gaq.push(['_setCustomVar', 2, 'campaign', 'vpreca', 3]);
+  }
+
+  if (days && /\u30a2\u30a4\u30c7\u30e0 \u30a8\u30f3\u30b8\u30cb\u30a2\u30ad\u30e3\u30ea\u30a2Hacks\u5171\u6709\u30d7\u30ed\u30b8\u30a7\u30af\u30c8|\u30a8\u30f3\u30b8\u30cb\u30a2\u3068\u3057\u3066\u306e\u3001\u3068\u3063\u3066\u304a\u304d\u306e\u30ad\u30e3\u30ea\u30a2Hacks\u3092\u6559\u3048\u3066\u304f\u3060\u3055\u3044|\u3042\u306a\u305f\u304c\u30a8\u30f3\u30b8\u30cb\u30a2\u8ee2\u8077\u30b5\u30a4\u30c8\u3092\u4f5c\u308b\u306a\u3089\u3001\u3069\u3093\u306a\u30b5\u30a4\u30c8\u306b\u3057\u307e\u3059\u304b\uff1f|5\u5e74\u5f8c\u306e\u300c\u30a8\u30f3\u30b8\u30cb\u30a2\u306e\u50cd\u304d\u65b9\u300d\u306f\u3001\u3069\u3046\u5909\u308f\u3063\u3066\u3044\u3066\u307b\u3057\u3044\u3067\u3059\u304b\uff1f/.test(days.innerHTML)) {
+    _gaq.push(['_setCustomVar', 2, 'campaign', 'aidemcareer', 3]);
+  }
+
+  _gaq.push(
+  ['_setAccount', 'UA-441387-31'],
+  ['_setCustomVar', 1, 'afc_type', 'inactive', 3],
+  ['_setCustomVar', 3, 'theme', 'cafe-green', 3],
+  ['_setCustomVar', 4, 'usertype', 'guest', 1],
+  ['_trackPageview'],
+  ['b._setAccount', 'UA-7855606-1'],
+  ['b._setDomainName', '.hatena.ne.jp'],
+  ['b._trackPageview']
+  
+  );
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- CG:1,CH:0,ICG:26,ICH:8,T: -->
+</body>
+</html>

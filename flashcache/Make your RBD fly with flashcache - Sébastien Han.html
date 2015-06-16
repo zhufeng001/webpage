@@ -1,0 +1,1121 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+<meta charset="utf-8">
+<title>Make your RBD fly with flashcache - Sébastien Han</title>
+<meta name="author" content="Sébastien Han">
+<meta name="description" content="In this article, I will introduce the Block device cacher concept and the different solutions available. I will also (because it&#8217;s the title &hellip;">
+ 
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script type="text/javascript">
+//<![CDATA[
+window.__CF=window.__CF||{};window.__CF.AJS={"ga_key":{"ua":"UA-15998503-2","ga_bs":"2"}};
+//]]>
+</script>
+<script type="text/javascript">
+//<![CDATA[
+try{if (!window.CloudFlare) { var CloudFlare=[{verbose:0,p:0,byc:0,owlid:"cf",mirage:{responsive:0,lazy:0},oracle:0,paths:{cloudflare:"/cdn-cgi/nexp/abv=1065777907/"},atok:"5573fc51c64dbc2be5483767842e2393",zone:"sebastien-han.fr",rocket:"a",apps:{"ga_key":{"ua":"UA-15998503-2","ga_bs":"2"}}}];document.write('<script type="text/javascript" src="//ajax.cloudflare.com/cdn-cgi/nexp/abv=2562784428/cloudflare.min.js"><'+'\/script>')}}catch(e){};
+//]]>
+</script>
+<link rel="canonical" href="http://sebastien-han.fr/blog/2012/11/15/make-your-rbd-fly-with-flashcache">
+<link href="/favicon.png" rel="icon">
+<link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+<script data-rocketsrc="/javascripts/modernizr-2.0.js" type="text/rocketscript"></script>
+<script data-rocketsrc="/javascripts/ender.js" type="text/rocketscript"></script>
+<script data-rocketsrc="/javascripts/octopress.js" type="text/rocketscript"></script>
+<link href="/atom.xml" rel="alternate" title="Sébastien Han" type="application/atom+xml">
+ 
+ 
+<link href='http://fonts.googleapis.com/css?family=Asap:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+<script type="text/rocketscript">/* CloudFlare analytics upgrade */
+</script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-15998503-2']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+
+(function(b){(function(a){"__CF"in b&&"DJS"in b.__CF?b.__CF.DJS.push(a):"addEventListener"in b?b.addEventListener("load",a,!1):b.attachEvent("onload",a)})(function(){"FB"in b&&"Event"in FB&&"subscribe"in FB.Event&&(FB.Event.subscribe("edge.create",function(a){_gaq.push(["_trackSocial","facebook","like",a])}),FB.Event.subscribe("edge.remove",function(a){_gaq.push(["_trackSocial","facebook","unlike",a])}),FB.Event.subscribe("message.send",function(a){_gaq.push(["_trackSocial","facebook","send",a])}));"twttr"in b&&"events"in twttr&&"bind"in twttr.events&&twttr.events.bind("tweet",function(a){if(a){var b;if(a.target&&a.target.nodeName=="IFRAME")a:{if(a=a.target.src){a=a.split("#")[0].match(/[^?=&]+=([^&]*)?/g);b=0;for(var c;c=a[b];++b)if(c.indexOf("url")===0){b=unescape(c.split("=")[1]);break a}}b=void 0}_gaq.push(["_trackSocial","twitter","tweet",b])}})})})(window);
+/* ]]> */
+</script>
+</head>
+<body class="no-sidebar">
+<header role="banner"><hgroup>
+<h1><a href="/"><span class="font_cloud">C </span>Sébastien Han</a></h1>
+ 
+<h2>Stacker! Cepher! What's next?</h2>
+</hgroup>
+</header>
+<nav role="navigation"><ul class="subscription" data-subscription="rss">
+<li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+</ul>
+<form action="http://google.com/search" method="get">
+<fieldset role="search">
+<input type="hidden" name="q" value="site:sebastien-han.fr"/>
+<input class="search" type="text" name="q" results="0" placeholder="Search"/>
+</fieldset>
+</form>
+<ul class="main-navigation">
+<li><a href="/blog/">Blog</a></li>
+<li><a href="/blog/openstack-reminder/">Openstack reminder</a></li>
+<li><a href="/blog/ceph-reminder/">Ceph reminder</a></li>
+<li><a href="/blog/sys-vrak/">Sys vrak</a></li>
+<li><a href="/blog/archives/">Archives</a></li>
+</ul>
+</nav>
+<div id="main">
+<div id="content">
+<div>
+<article class="hentry" role="article">
+<header>
+<h1 class="entry-title">Make Your RBD Fly With Flashcache</h1>
+<p class="meta">
+<time datetime="2012-11-15T13:26:00+01:00" pubdate data-updated="true">Nov 15<span>th</span>, 2012</time>
+| <a href="#disqus_thread">Comments</a>
+</p>
+</header>
+<div class="entry-content"><p><img class="center" src="http://sebastien-han.fr/images/rbd-flashcache.jpg" title="Make your RBD fly with bcache"></p>
+<p>In this article, I will introduce the Block device cacher concept and the different solutions available. I will also (because it&#8217;s the title of the article) explain how to increase the performance of an RBD device with the help of flashcache in a Ceph cluster.</p>
+ 
+<h1>I. Solutions available</h1>
+<h2>I.1. Flashcache</h2>
+<p>Flashcache is a block cache for Linux, built as a kernel module, using the Device Mapper. Flashcache supports writeback, writethrough and writearound caching modes.</p>
+<p>Pros:</p>
+<ul>
+<li>Running in production at Facebook and I assume at some other places</li>
+<li>Built upon the device mapper</li>
+</ul>
+<p>Cons:</p>
+<ul>
+<li>Developement rate, there are around 20 commit for the last 52 weeks. I put this in the pros section, but this could also mean that Flashcache is fairly stable and simply needs to be maintain, not actively.</li>
+<li>You can&#8217;t attach more than one disk&#8230; Well the trick is to isolated with partitions. Basically segment your SSD with N partition where each partitions are dedicated to a device.</li>
+</ul>
+<p><span class="text_quote">K </span> Useful links:</p>
+<ul>
+<li><a href="https://github.com/facebook/flashcache/">Official website and download</a></li>
+<li><a href="https://github.com/facebook/flashcache/blob/master/doc/flashcache-doc.txt">Official documentation</a></li>
+<li><a href="https://github.com/facebook/flashcache/blob/master/doc/flashcache-sa-guide.txt">System administration guide</a></li>
+</ul>
+<h2>I.2. dm-cache</h2>
+<p>Dm-cache is a generic block-level disk cache for storage networking. It is built upon the Linux device-mapper, a generic block device virtualization infrastructure. It can be transparently plugged into a client of any storage system, including SAN, iSCSI and AoE, and supports dynamic customization for policy-guided optimizations.</p>
+<p>Pros:</p>
+<ul>
+<li>Running in production at <a href="http://www.cloudvps.com/">CloudVPS</a> and provides scalable virtual machine storage</li>
+<li>Built upon the device mapper</li>
+</ul>
+<p>Cons:</p>
+<ul>
+<li>Only supports writethrough cache mode</li>
+<li>Same conclusion as Flashcache, there are around 35 commits over the past 52 weeks&#8230;</li>
+</ul>
+<p><span class="text_quote">K </span> Useful links:</p>
+<ul>
+<li><a href="http://visa.cs.fiu.edu/tiki/dm-cache">Official website</a></li>
+<li><a href="https://github.com/mingzhao/dm-cache">Download</a></li>
+</ul>
+<h2>I.3. bcache</h2>
+<p>Bcache is a Linux kernel block layer cache. It allows one or more fast disk drives such as flash-based solid state drives (SSDs) to act as a cache for one or more slower hard disk drives.</p>
+<p>Pros:</p>
+<ul>
+<li>Looks well featured</li>
+<li>A single cache device can be used to cache an arbitrary number of backing devices</li>
+<li>Claims to have a good mechanism to prevent data loss in writeback mode</li>
+<li>Good algorithm that flushes data on the underneath block device in case of the cache device dies</li>
+</ul>
+<p>For more see, the features list on the official website.</p>
+<p>Cons:</p>
+<ul>
+<li>Compile your own kernel&#8230;</li>
+<li>Not built upon the device mapper</li>
+<li>Commit rate pretty low as well</li>
+</ul>
+<br/>
+<p><span class="text_quote">K </span> Useful links:</p>
+<ul>
+<li><a href="http://bcache.evilpiepirate.org/">Official website</a></li>
+<li><a href="http://evilpiepirate.org/git/linux-bcache.git/tree/Documentation/bcache.txt">System administration guide</a></li>
+</ul>
+<br/>
+<blockquote><p>At the end, bcache remains the most featured but as far I&#8217;m concerned I don&#8217;t want to run custom compiled kernel in production. Dm-cache looks nice as well but the patch only works with 3.0 kernel. Then flashcache remains and seems to be a good candidate since it workds on Kernel 3.X.</p></blockquote>
+<br/>
+<h1>II. Begin with flashcache</h1>
+<h2>II.1. Installation</h2>
+<p>Even if the documentation specified 2.6.X kernel (tested kernel), it seems that flashcache is compatible with recent kernels. Below the kernels I tested:</p>
+<ul>
+<li>3.2.0-23-generic</li>
+<li>3.5.0-10-generic</li>
+</ul>
+<p>You will notice that it&#8217;s really easy to install flashcache. As usual, start by cloning the repository and eventually compile flashcache:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo git clone https://github.com/facebook/flashcache.git
+</span><span class='line'>...
+</span><span class='line'>...
+</span><span class='line'>
+</span><span class='line'><span class="nv">$ </span><span class="nb">cd </span>flashcache/
+</span><span class='line'>
+</span><span class='line'>~/flashcache <span class="nv">$ </span>sudo make
+</span><span class='line'>...
+</span><span class='line'>...
+</span><span class='line'>
+</span><span class='line'>~/flashcache <span class="nv">$ </span>sudo make install
+</span><span class='line'>...
+</span><span class='line'>...
+</span></code></pre></td></tr></table></div></figure>
+<p>Load the kernel module:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo modprobe flashcache
+</span><span class='line'><span class="nv">$ </span>dmesg | tail
+</span><span class='line'>...
+</span><span class='line'>...
+</span><span class='line'><span class="o">[</span>5576975.209769<span class="o">]</span> flashcache: flashcache-2.0 initialized
+</span></code></pre></td></tr></table></div></figure>
+<h2>II.2. Your first flashcache device</h2>
+<h3>II.2.1. RBD preparations</h3>
+<p>Simply create a pool called flashcache and then an image inside it:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>rados mkpool flashcache
+</span><span class='line'><span class="nv">$ </span>rbd -p flashcache create --size 10000 <span class="nb">fc</span>
+</span></code></pre></td></tr></table></div></figure>
+<p>Map this image on your host machine and put a filesystem on it:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>rbd -p flashcache map <span class="nb">fc</span>
+</span><span class='line'><span class="nv">$ </span>rbd showmapped
+</span><span class='line'>id  pool         image   snap    device
+</span><span class='line'>2   flashcache   <span class="nb">fc</span>      -       /dev/rbd0
+</span><span class='line'>
+</span><span class='line'><span class="nv">$ </span>sudo mkfs.ext4 /dev/rbd0
+</span><span class='line'>...
+</span><span class='line'>...
+</span><span class='line'>
+</span><span class='line'><span class="nv">$ </span>sudo mount /dev/rbd0 /mnt
+</span><span class='line'><span class="nv">$ </span>touch /mnt/lol
+</span><span class='line'><span class="nv">$ </span>sudo umount /mnt
+</span></code></pre></td></tr></table></div></figure>
+<p>Your RBD device is now ready to use.</p>
+<h3>II.2.1. Flashcache device</h3>
+<p>Let&#8217;s assume for the sake of simplicity that our SSD is detected as <code>/dev/sdb</code> and that a partition has been created. Don&#8217;t forget you must partition it according to the number of RBD device you want to cache (if you want so).</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo flashcache_create -p back -s 15G -b 4k rbd_fc /dev/sdb1 /dev/rbd/flashcache/fc
+</span><span class='line'>cachedev rbd_fc, ssd_devname /dev/sdb1, disk_devname /dev/rbd/flashcache/fc cache mode WRITE_BACK
+</span><span class='line'>block_size 8, md_block_size 8, cache_size 0
+</span><span class='line'>Flashcache metadata will use 763MB of your 15917MB main memory
+</span></code></pre></td></tr></table></div></figure>
+<p>Options explained:</p>
+<ul>
+<li><code>-p</code>: operate in writeback mode, which means that we cache both write and read requests</li>
+<li><code>-s</code>: set the size of the cache, it should be the same as the size of your partition</li>
+<li><code>-b</code>: set the block size to 4K</li>
+<li><code>rbd_fc</code>: name of your flashcache device</li>
+</ul>
+<p>The device has been created in <code>/dev/mapper/</code>.</p>
+<p>Replacement policy is either FIFO or LRU within a cache set. The default is FIFO but policy can be switched at any point at run time via a sysctl (see the configuration and tuning section). As far I&#8217;m concerned I prefer to use LRU (Last Recently Used) list, which I found it more efficient on my environment (web applications). This can be modified on fly like so:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo sysctl -w dev.flashcache.rbd_fc.reclaim_policy<span class="o">=</span>1
+</span></code></pre></td></tr></table></div></figure>
+<p>Now you can start to use it:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo mount /dev/mapper/rbd_fc /mnt
+</span><span class='line'><span class="nv">$ </span>ls /mnt/
+</span><span class='line'>lol
+</span></code></pre></td></tr></table></div></figure>
+<p>TADA ! :D</p>
+<br/>
+<p><span class="text_quote">R </span> <strong>Note: flashcache puts a &#8217;<em>lock</em>&#8217; on the underneath block device, so basically it&#8217;s not possible to use our RBD device while flashcache is operating.</strong></p>
+<br/>
+<h3>II.2.2. Quick admin guide</h3>
+<h4>II.2.2.1. Stop the flashcache device</h4>
+<p>Here is how to stop the flashcache device:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo dmsetup remove rbd_fc
+</span></code></pre></td></tr></table></div></figure>
+<p>This will sync all the dirty blocks on our RBD device.</p>
+<h4>II.2.2.2. Destroy the flashcache device</h4>
+<p>Completely destroy the flashcache device and his content with it.</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo flashcache_destroy /dev/sdb1
+</span><span class='line'>flashcache_destroy: Destroying Flashcache found on /dev/loop0. Any data will be lost !!
+</span></code></pre></td></tr></table></div></figure>
+<h4>II.2.2.3. Load the flashcache device</h4>
+<p>Load the flashcache device:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo flashcache_load /dev/sdb1 rbd_fc
+</span></code></pre></td></tr></table></div></figure>
+<h4>II.2.2.4. Check the device status</h4>
+<p>Some useful info:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ls /proc/flashcache/loop0+bencha/
+</span><span class='line'>flashcache_errors  flashcache_iosize_hist  flashcache_pidlists  flashcache_stats
+</span><span class='line'>
+</span><span class='line'><span class="nv">$ </span>sudo cat /proc/flashcache/loop0+bencha/flashcache_stats
+</span><span class='line'><span class="nv">reads</span><span class="o">=</span>173 <span class="nv">writes</span><span class="o">=</span>6
+</span><span class='line'><span class="nv">read_hits</span><span class="o">=</span>84 <span class="nv">read_hit_percent</span><span class="o">=</span>48 <span class="nv">write_hits</span><span class="o">=</span>3 <span class="nv">write_hit_percent</span><span class="o">=</span>50 <span class="nv">replacement</span><span class="o">=</span>0 <span class="nv">write_replacement</span><span class="o">=</span>0 <span class="nv">write_invalidates</span><span class="o">=</span>0 <span class="nv">read_invalidates</span><span class="o">=</span>1 <span class="nv">pending_enqueues</span><span class="o">=</span>0 <span class="nv">pending_inval</span><span class="o">=</span>0 <span class="nv">no_room</span><span class="o">=</span>0 <span class="nv">disk_reads</span><span class="o">=</span>89 <span class="nv">disk_writes</span><span class="o">=</span>3 <span class="nv">ssd_reads</span><span class="o">=</span>84 <span class="nv">ssd_writes</span><span class="o">=</span>94 <span class="nv">uncached_reads</span><span class="o">=</span>1 <span class="nv">uncached_writes</span><span class="o">=</span>0 <span class="nv">uncached_IO_requeue</span><span class="o">=</span>0 <span class="nv">uncached_sequential_reads</span><span class="o">=</span>0 <span class="nv">uncached_sequential_writes</span><span class="o">=</span>0 <span class="nv">pid_adds</span><span class="o">=</span>0 <span class="nv">pid_dels</span><span class="o">=</span>0 <span class="nv">pid_drops</span><span class="o">=</span>0 <span class="nv">pid_expiry</span><span class="o">=</span>0
+</span></code></pre></td></tr></table></div></figure>
+<h2>II.3. Don&#8217;t have any SSD? Wanna play with flashcache?</h2>
+<p>If you only want to evaluate how it works, you don&#8217;t really need to buy disk (SSD or whatever). For this we basically need a block device, we are going to use loop device for that. The loop device will act as a block device for flashcache. Of course that <strong>won&#8217;t</strong> bring any performance, it&#8217;s just for testing purpose.</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>dd <span class="k">if</span><span class="o">=</span>/dev/zero <span class="nv">of</span><span class="o">=</span><span class="nb">fc </span><span class="nv">bs</span><span class="o">=</span>2G <span class="nv">count</span><span class="o">=</span>1
+</span><span class='line'>0+1 records in
+</span><span class='line'>0+1 records out
+</span><span class='line'>2147479552 bytes <span class="o">(</span>2.1 GB<span class="o">)</span> copied, 4.23224 s, 507 MB/s
+</span></code></pre></td></tr></table></div></figure>
+<p>Check for a free loop device and then attach your nearly created file to it.</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>losetup -f
+</span><span class='line'>/dev/loop0
+</span><span class='line'>
+</span><span class='line'><span class="nv">$ </span>losetup /dev/loop0 <span class="nb">fc</span>
+</span><span class='line'><span class="nv">$ </span>losetup /dev/loop0
+</span><span class='line'>/dev/loop0: <span class="o">[</span>fc00<span class="o">]</span>:668385 <span class="o">(</span>/root/fc<span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+<p>There is no use to put a filesystem on it, since we use the one from the RBD device.</p>
+<p><span class="text_quote">R </span> Note: using partitions with loop device is a little bit tricky. Create one or more partitions is not a problem, but putting a filesystem and mounting it is. We have to play with offset.</p>
+<br/>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo flashcache_create -p back -s 512m -b 4k loop_rbd_bencha /dev/loop0 /dev/rbd/bench/bencha
+</span><span class='line'>cachedev loop_rbd_bencha, ssd_devname /dev/loop0, disk_devname /dev/rbd/bench/bencha cache mode WRITE_BACK
+</span><span class='line'>block_size 8, md_block_size 8, cache_size 1048576
+</span><span class='line'>Flashcache metadata will use 2MB of your 15917MB main memory
+</span></code></pre></td></tr></table></div></figure>
+<p>Check your device status:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo dmsetup ls
+</span><span class='line'>...
+</span><span class='line'>loop_rbd_bencha <span class="o">(</span>252, 5<span class="o">)</span>
+</span><span class='line'>...
+</span><span class='line'>
+</span><span class='line'><span class="nv">$ </span>sudo dmsetup status loop_rbd_bencha
+</span><span class='line'>0 20480000 flashcache stats:
+</span><span class='line'>    reads<span class="o">(</span>262<span class="o">)</span>, writes<span class="o">(</span>18<span class="o">)</span>
+</span><span class='line'>    <span class="nb">read </span>hits<span class="o">(</span>254<span class="o">)</span>, <span class="nb">read </span>hit percent<span class="o">(</span>96<span class="o">)</span>
+</span><span class='line'>    write hits<span class="o">(</span>12<span class="o">)</span> write hit percent<span class="o">(</span>66<span class="o">)</span>
+</span><span class='line'>    dirty write hits<span class="o">(</span>5<span class="o">)</span> dirty write hit percent<span class="o">(</span>27<span class="o">)</span>
+</span><span class='line'>    replacement<span class="o">(</span>0<span class="o">)</span>, write replacement<span class="o">(</span>0<span class="o">)</span>
+</span><span class='line'>    write invalidates<span class="o">(</span>0<span class="o">)</span>, <span class="nb">read </span>invalidates<span class="o">(</span>2<span class="o">)</span>
+</span><span class='line'>    pending enqueues<span class="o">(</span>1<span class="o">)</span>, pending inval<span class="o">(</span>1<span class="o">)</span>
+</span><span class='line'>    metadata dirties<span class="o">(</span>13<span class="o">)</span>, metadata cleans<span class="o">(</span>1<span class="o">)</span>
+</span><span class='line'>    metadata batch<span class="o">(</span>5<span class="o">)</span> metadata ssd writes<span class="o">(</span>9<span class="o">)</span>
+</span><span class='line'>    cleanings<span class="o">(</span>1<span class="o">)</span> fallow cleanings<span class="o">(</span>0<span class="o">)</span>
+</span><span class='line'>    no room<span class="o">(</span>0<span class="o">)</span> front merge<span class="o">(</span>0<span class="o">)</span> back merge<span class="o">(</span>0<span class="o">)</span>
+</span><span class='line'>    disk reads<span class="o">(</span>8<span class="o">)</span>, disk writes<span class="o">(</span>1<span class="o">)</span> ssd reads<span class="o">(</span>255<span class="o">)</span> ssd writes<span class="o">(</span>33<span class="o">)</span>
+</span><span class='line'>    uncached reads<span class="o">(</span>2<span class="o">)</span>, uncached writes<span class="o">(</span>0<span class="o">)</span>, uncached IO requeue<span class="o">(</span>0<span class="o">)</span>
+</span><span class='line'>    disk <span class="nb">read </span>errors<span class="o">(</span>0<span class="o">)</span>, disk write errors<span class="o">(</span>0<span class="o">)</span> ssd <span class="nb">read </span>errors<span class="o">(</span>0<span class="o">)</span> ssd write errors<span class="o">(</span>0<span class="o">)</span>
+</span><span class='line'>    uncached sequential reads<span class="o">(</span>0<span class="o">)</span>, uncached sequential writes<span class="o">(</span>0<span class="o">)</span>
+</span><span class='line'>    pid_adds<span class="o">(</span>0<span class="o">)</span>, pid_dels<span class="o">(</span>0<span class="o">)</span>, pid_drops<span class="o">(</span>0<span class="o">)</span> pid_expiry<span class="o">(</span>0<span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+<p>Look at the device table:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo dmsetup table loop_rbd_bencha
+</span><span class='line'>0 20480000 flashcache conf:
+</span><span class='line'>    ssd dev <span class="o">(</span>/dev/loop0<span class="o">)</span>, disk dev <span class="o">(</span>/dev/rbd/bench/bencha<span class="o">)</span> cache mode<span class="o">(</span>WRITE_BACK<span class="o">)</span>
+</span><span class='line'>    capacity<span class="o">(</span>508M<span class="o">)</span>, associativity<span class="o">(</span>512<span class="o">)</span>, data block size<span class="o">(</span>4K<span class="o">)</span> metadata block size<span class="o">(</span>4096b<span class="o">)</span>
+</span><span class='line'>    skip sequential thresh<span class="o">(</span>0K<span class="o">)</span>
+</span><span class='line'>    total blocks<span class="o">(</span>130048<span class="o">)</span>, cached blocks<span class="o">(</span>93<span class="o">)</span>, cache percent<span class="o">(</span>0<span class="o">)</span>
+</span><span class='line'>    dirty blocks<span class="o">(</span>12<span class="o">)</span>, dirty percent<span class="o">(</span>0<span class="o">)</span>
+</span><span class='line'>    nr_queued<span class="o">(</span>0<span class="o">)</span>
+</span><span class='line'>Size Hist: 1024:5 4096:22496
+</span></code></pre></td></tr></table></div></figure>
+<h1>III. Benchmarks</h1>
+<p>For heavy and intensive benchmarks I used fio with the following configuration file:</p>
+<pre><code>[global]
+bs=4k
+ioengine=libaio
+iodepth=4
+size=10g
+direct=1
+runtime=60
+directory=/srv/fc/1/fio
+filename=rbd.test.file
+
+[seq-read]
+rw=read
+stonewall
+
+[rand-read]
+rw=randread
+stonewall
+
+[seq-write]
+rw=write
+stonewall
+
+[rand-write]
+rw=randwrite
+stonewall
+</code></pre>
+<h2>III.1. Raw perf for the SSD</h2>
+<p>First I evaluated the raw performance of my SSD (an OCZ Vertex 4 256GB):</p>
+<h3>III.1.1. Basic DD</h3>
+<p>Huge block size test:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span><span class="k">for </span>i in <span class="sb">`</span>seq 4<span class="sb">`</span>; <span class="k">do </span>dd <span class="k">if</span><span class="o">=</span>/dev/zero <span class="nv">of</span><span class="o">=</span>/mnt/bench<span class="nv">$i</span> <span class="nv">bs</span><span class="o">=</span>1G <span class="nv">count</span><span class="o">=</span>1 <span class="nv">oflag</span><span class="o">=</span>direct ; <span class="k">done</span>
+</span><span class='line'>...
+</span><span class='line'>1073741824 bytes <span class="o">(</span>1.1 GB<span class="o">)</span> copied, 5.16781 s, 208 MB/s
+</span><span class='line'>...
+</span><span class='line'>1073741824 bytes <span class="o">(</span>1.1 GB<span class="o">)</span> copied, 5.16797 s, 208 MB/s
+</span><span class='line'>...
+</span><span class='line'>1073741824 bytes <span class="o">(</span>1.1 GB<span class="o">)</span> copied, 5.16724 s, 208 MB/s
+</span><span class='line'>...
+</span><span class='line'>1073741824 bytes <span class="o">(</span>1.1 GB<span class="o">)</span> copied, 5.17117 s, 208 MB/s
+</span></code></pre></td></tr></table></div></figure>
+<h3>III.1.2. FIO</h3>
+<p>fio bench:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo fio fio.fio
+</span><span class='line'>seq-read: <span class="o">(</span><span class="nv">g</span><span class="o">=</span>0<span class="o">)</span>: <span class="nv">rw</span><span class="o">=</span><span class="nb">read</span>, <span class="nv">bs</span><span class="o">=</span>4K-4K/4K-4K, <span class="nv">ioengine</span><span class="o">=</span>libaio, <span class="nv">iodepth</span><span class="o">=</span>4
+</span><span class='line'>rand-read: <span class="o">(</span><span class="nv">g</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">rw</span><span class="o">=</span>randread, <span class="nv">bs</span><span class="o">=</span>4K-4K/4K-4K, <span class="nv">ioengine</span><span class="o">=</span>libaio, <span class="nv">iodepth</span><span class="o">=</span>4
+</span><span class='line'>seq-write: <span class="o">(</span><span class="nv">g</span><span class="o">=</span>2<span class="o">)</span>: <span class="nv">rw</span><span class="o">=</span>write, <span class="nv">bs</span><span class="o">=</span>4K-4K/4K-4K, <span class="nv">ioengine</span><span class="o">=</span>libaio, <span class="nv">iodepth</span><span class="o">=</span>4
+</span><span class='line'>rand-write: <span class="o">(</span><span class="nv">g</span><span class="o">=</span>3<span class="o">)</span>: <span class="nv">rw</span><span class="o">=</span>randwrite, <span class="nv">bs</span><span class="o">=</span>4K-4K/4K-4K, <span class="nv">ioengine</span><span class="o">=</span>libaio, <span class="nv">iodepth</span><span class="o">=</span>4
+</span><span class='line'>fio 1.59
+</span><span class='line'>Starting 4 processes
+</span><span class='line'>seq-read: Laying out IO file<span class="o">(</span>s<span class="o">)</span> <span class="o">(</span>1 file<span class="o">(</span>s<span class="o">)</span> / 10240MB<span class="o">)</span>
+</span><span class='line'>Jobs: 1 <span class="o">(</span><span class="nv">f</span><span class="o">=</span>1<span class="o">)</span>: <span class="o">[</span>___w<span class="o">]</span> <span class="o">[</span>62.3% <span class="k">done</span><span class="o">]</span> <span class="o">[</span>0K/52649K /s<span class="o">]</span> <span class="o">[</span>0 /12.9K iops<span class="o">]</span> <span class="o">[</span>eta 02m:26s<span class="o">]</span>
+</span><span class='line'>seq-read: <span class="o">(</span><span class="nv">groupid</span><span class="o">=</span>0, <span class="nb">jobs</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">err</span><span class="o">=</span> 0: <span class="nv">pid</span><span class="o">=</span>15066
+</span><span class='line'>  <span class="nb">read</span> : <span class="nv">io</span><span class="o">=</span>1813.1MB, <span class="nv">bw</span><span class="o">=</span>30957KB/s, <span class="nv">iops</span><span class="o">=</span>7739 , <span class="nv">runt</span><span class="o">=</span> 60001msec
+</span><span class='line'>    slat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>3 , <span class="nv">max</span><span class="o">=</span>309 , <span class="nv">avg</span><span class="o">=</span> 5.40, <span class="nv">stdev</span><span class="o">=</span> 2.01
+</span><span class='line'>    clat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>64 , <span class="nv">max</span><span class="o">=</span>13157 , <span class="nv">avg</span><span class="o">=</span>509.75, <span class="nv">stdev</span><span class="o">=</span>249.89
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>123 , <span class="nv">max</span><span class="o">=</span>13167 , <span class="nv">avg</span><span class="o">=</span>515.41, <span class="nv">stdev</span><span class="o">=</span>249.88
+</span><span class='line'>    bw <span class="o">(</span>KB/s<span class="o">)</span> : <span class="nv">min</span><span class="o">=</span>30112, <span class="nv">max</span><span class="o">=</span>32136, <span class="nv">per</span><span class="o">=</span>100.01%, <span class="nv">avg</span><span class="o">=</span>30959.39, <span class="nv">stdev</span><span class="o">=</span>526.70
+</span><span class='line'>  cpu          : <span class="nv">usr</span><span class="o">=</span>10.70%, <span class="nv">sys</span><span class="o">=</span>26.82%, <span class="nv">ctx</span><span class="o">=</span>346538, <span class="nv">majf</span><span class="o">=</span>0, <span class="nv">minf</span><span class="o">=</span>25
+</span><span class='line'>  IO depths    : <span class="nv">1</span><span class="o">=</span>0.1%, <span class="nv">2</span><span class="o">=</span>0.1%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     submit    : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     <span class="nb">complete</span>  : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     issued r/w/d: <span class="nv">total</span><span class="o">=</span>464361/0/0, <span class="nv">short</span><span class="o">=</span>0/0/0
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">100</span><span class="o">=</span>0.01%, <span class="nv">250</span><span class="o">=</span>0.04%, <span class="nv">500</span><span class="o">=</span>23.38%, <span class="nv">750</span><span class="o">=</span>76.40%, <span class="nv">1000</span><span class="o">=</span>0.08%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2</span><span class="o">=</span>0.04%, <span class="nv">4</span><span class="o">=</span>0.01%, <span class="nv">10</span><span class="o">=</span>0.02%, <span class="nv">20</span><span class="o">=</span>0.04%
+</span><span class='line'>rand-read: <span class="o">(</span><span class="nv">groupid</span><span class="o">=</span>1, <span class="nb">jobs</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">err</span><span class="o">=</span> 0: <span class="nv">pid</span><span class="o">=</span>15156
+</span><span class='line'>  <span class="nb">read</span> : <span class="nv">io</span><span class="o">=</span>1302.3MB, <span class="nv">bw</span><span class="o">=</span>22225KB/s, <span class="nv">iops</span><span class="o">=</span>5556 , <span class="nv">runt</span><span class="o">=</span> 60001msec
+</span><span class='line'>    slat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>5 , <span class="nv">max</span><span class="o">=</span>4106 , <span class="nv">avg</span><span class="o">=</span> 5.99, <span class="nv">stdev</span><span class="o">=</span> 7.16
+</span><span class='line'>    clat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>135 , <span class="nv">max</span><span class="o">=</span>14036 , <span class="nv">avg</span><span class="o">=</span>711.87, <span class="nv">stdev</span><span class="o">=</span>174.32
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>203 , <span class="nv">max</span><span class="o">=</span>14044 , <span class="nv">avg</span><span class="o">=</span>718.15, <span class="nv">stdev</span><span class="o">=</span>174.43
+</span><span class='line'>    bw <span class="o">(</span>KB/s<span class="o">)</span> : <span class="nv">min</span><span class="o">=</span>21504, <span class="nv">max</span><span class="o">=</span>22360, <span class="nv">per</span><span class="o">=</span>100.03%, <span class="nv">avg</span><span class="o">=</span>22229.85, <span class="nv">stdev</span><span class="o">=</span>244.73
+</span><span class='line'>  cpu          : <span class="nv">usr</span><span class="o">=</span>9.69%, <span class="nv">sys</span><span class="o">=</span>25.41%, <span class="nv">ctx</span><span class="o">=</span>333353, <span class="nv">majf</span><span class="o">=</span>0, <span class="nv">minf</span><span class="o">=</span>24
+</span><span class='line'>  IO depths    : <span class="nv">1</span><span class="o">=</span>0.1%, <span class="nv">2</span><span class="o">=</span>0.1%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     submit    : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     <span class="nb">complete</span>  : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     issued r/w/d: <span class="nv">total</span><span class="o">=</span>333375/0/0, <span class="nv">short</span><span class="o">=</span>0/0/0
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">250</span><span class="o">=</span>0.01%, <span class="nv">500</span><span class="o">=</span>0.01%, <span class="nv">750</span><span class="o">=</span>99.48%, <span class="nv">1000</span><span class="o">=</span>0.35%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2</span><span class="o">=</span>0.12%, <span class="nv">4</span><span class="o">=</span>0.01%, <span class="nv">10</span><span class="o">=</span>0.01%, <span class="nv">20</span><span class="o">=</span>0.02%
+</span><span class='line'>seq-write: <span class="o">(</span><span class="nv">groupid</span><span class="o">=</span>2, <span class="nb">jobs</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">err</span><span class="o">=</span> 0: <span class="nv">pid</span><span class="o">=</span>15205
+</span><span class='line'>  write: <span class="nv">io</span><span class="o">=</span>3781.7MB, <span class="nv">bw</span><span class="o">=</span>64538KB/s, <span class="nv">iops</span><span class="o">=</span>16134 , <span class="nv">runt</span><span class="o">=</span> 60001msec
+</span><span class='line'>    slat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>4 , <span class="nv">max</span><span class="o">=</span>307 , <span class="nv">avg</span><span class="o">=</span>19.62, <span class="nv">stdev</span><span class="o">=</span>24.84
+</span><span class='line'>    clat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>41 , <span class="nv">max</span><span class="o">=</span>3581 , <span class="nv">avg</span><span class="o">=</span>226.19, <span class="nv">stdev</span><span class="o">=</span>25.91
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>115 , <span class="nv">max</span><span class="o">=</span>3644 , <span class="nv">avg</span><span class="o">=</span>246.26, <span class="nv">stdev</span><span class="o">=</span> 9.98
+</span><span class='line'>    bw <span class="o">(</span>KB/s<span class="o">)</span> : <span class="nv">min</span><span class="o">=</span>63784, <span class="nv">max</span><span class="o">=</span>64640, <span class="nv">per</span><span class="o">=</span>100.01%, <span class="nv">avg</span><span class="o">=</span>64546.89, <span class="nv">stdev</span><span class="o">=</span>91.80
+</span><span class='line'>  cpu          : <span class="nv">usr</span><span class="o">=</span>14.76%, <span class="nv">sys</span><span class="o">=</span>67.90%, <span class="nv">ctx</span><span class="o">=</span>487593, <span class="nv">majf</span><span class="o">=</span>0, <span class="nv">minf</span><span class="o">=</span>19
+</span><span class='line'>  IO depths    : <span class="nv">1</span><span class="o">=</span>0.1%, <span class="nv">2</span><span class="o">=</span>0.1%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     submit    : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     <span class="nb">complete</span>  : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     issued r/w/d: <span class="nv">total</span><span class="o">=</span>0/968092/0, <span class="nv">short</span><span class="o">=</span>0/0/0
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">50</span><span class="o">=</span>0.01%, <span class="nv">100</span><span class="o">=</span>0.01%, <span class="nv">250</span><span class="o">=</span>99.20%, <span class="nv">500</span><span class="o">=</span>0.79%, <span class="nv">750</span><span class="o">=</span>0.01%
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">1000</span><span class="o">=</span>0.01%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">4</span><span class="o">=</span>0.01%
+</span><span class='line'>rand-write: <span class="o">(</span><span class="nv">groupid</span><span class="o">=</span>3, <span class="nb">jobs</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">err</span><span class="o">=</span> 0: <span class="nv">pid</span><span class="o">=</span>15261
+</span><span class='line'>  write: <span class="nv">io</span><span class="o">=</span>3010.4MB, <span class="nv">bw</span><span class="o">=</span>51370KB/s, <span class="nv">iops</span><span class="o">=</span>12842 , <span class="nv">runt</span><span class="o">=</span> 60001msec
+</span><span class='line'>    slat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>5 , <span class="nv">max</span><span class="o">=</span>286 , <span class="nv">avg</span><span class="o">=</span> 6.44, <span class="nv">stdev</span><span class="o">=</span> 3.92
+</span><span class='line'>    clat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>80 , <span class="nv">max</span><span class="o">=</span>3989 , <span class="nv">avg</span><span class="o">=</span>302.90, <span class="nv">stdev</span><span class="o">=</span>10.61
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>110 , <span class="nv">max</span><span class="o">=</span>3995 , <span class="nv">avg</span><span class="o">=</span>309.63, <span class="nv">stdev</span><span class="o">=</span> 9.59
+</span><span class='line'>    bw <span class="o">(</span>KB/s<span class="o">)</span> : <span class="nv">min</span><span class="o">=</span>50968, <span class="nv">max</span><span class="o">=</span>51424, <span class="nv">per</span><span class="o">=</span>100.01%, <span class="nv">avg</span><span class="o">=</span>51373.98, <span class="nv">stdev</span><span class="o">=</span>53.84
+</span><span class='line'>  cpu          : <span class="nv">usr</span><span class="o">=</span>26.88%, <span class="nv">sys</span><span class="o">=</span>55.97%, <span class="nv">ctx</span><span class="o">=</span>764736, <span class="nv">majf</span><span class="o">=</span>0, <span class="nv">minf</span><span class="o">=</span>17
+</span><span class='line'>  IO depths    : <span class="nv">1</span><span class="o">=</span>0.1%, <span class="nv">2</span><span class="o">=</span>0.1%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     submit    : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     <span class="nb">complete</span>  : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     issued r/w/d: <span class="nv">total</span><span class="o">=</span>0/770561/0, <span class="nv">short</span><span class="o">=</span>0/0/0
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">100</span><span class="o">=</span>0.01%, <span class="nv">250</span><span class="o">=</span>0.42%, <span class="nv">500</span><span class="o">=</span>99.56%, <span class="nv">750</span><span class="o">=</span>0.01%, <span class="nv">1000</span><span class="o">=</span>0.01%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">4</span><span class="o">=</span>0.01%
+</span><span class='line'>
+</span><span class='line'>Run status group 0 <span class="o">(</span>all <span class="nb">jobs</span><span class="o">)</span>:
+</span><span class='line'>   READ: <span class="nv">io</span><span class="o">=</span>1813.1MB, <span class="nv">aggrb</span><span class="o">=</span>30956KB/s, <span class="nv">minb</span><span class="o">=</span>31699KB/s, <span class="nv">maxb</span><span class="o">=</span>31699KB/s, <span class="nv">mint</span><span class="o">=</span>60001msec, <span class="nv">maxt</span><span class="o">=</span>60001msec
+</span><span class='line'>
+</span><span class='line'>Run status group 1 <span class="o">(</span>all <span class="nb">jobs</span><span class="o">)</span>:
+</span><span class='line'>   READ: <span class="nv">io</span><span class="o">=</span>1302.3MB, <span class="nv">aggrb</span><span class="o">=</span>22224KB/s, <span class="nv">minb</span><span class="o">=</span>22758KB/s, <span class="nv">maxb</span><span class="o">=</span>22758KB/s, <span class="nv">mint</span><span class="o">=</span>60001msec, <span class="nv">maxt</span><span class="o">=</span>60001msec
+</span><span class='line'>
+</span><span class='line'>Run status group 2 <span class="o">(</span>all <span class="nb">jobs</span><span class="o">)</span>:
+</span><span class='line'>  WRITE: <span class="nv">io</span><span class="o">=</span>3781.7MB, <span class="nv">aggrb</span><span class="o">=</span>64538KB/s, <span class="nv">minb</span><span class="o">=</span>66087KB/s, <span class="nv">maxb</span><span class="o">=</span>66087KB/s, <span class="nv">mint</span><span class="o">=</span>60001msec, <span class="nv">maxt</span><span class="o">=</span>60001msec
+</span><span class='line'>
+</span><span class='line'>Run status group 3 <span class="o">(</span>all <span class="nb">jobs</span><span class="o">)</span>:
+</span><span class='line'>  WRITE: <span class="nv">io</span><span class="o">=</span>3010.4MB, <span class="nv">aggrb</span><span class="o">=</span>51369KB/s, <span class="nv">minb</span><span class="o">=</span>52602KB/s, <span class="nv">maxb</span><span class="o">=</span>52602KB/s, <span class="nv">mint</span><span class="o">=</span>60001msec, <span class="nv">maxt</span><span class="o">=</span>60001msec
+</span><span class='line'>
+</span><span class='line'>Disk stats <span class="o">(</span><span class="nb">read</span>/write<span class="o">)</span>:
+</span><span class='line'>  sda: <span class="nv">ios</span><span class="o">=</span>680863/1499424, <span class="nv">merge</span><span class="o">=</span>150851/239238, <span class="nv">ticks</span><span class="o">=</span>374184/322620, <span class="nv">in_queue</span><span class="o">=</span>695868, <span class="nv">util</span><span class="o">=</span>99.69%
+</span></code></pre></td></tr></table></div></figure>
+<h2>III.2. Raw perf for the rbd device</h2>
+<p>Then evaluate the raw performance of the RBD device.</p>
+<h3>III.2.1 Basic DD</h3>
+<p>Huge block size test:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span><span class="k">for </span>i in <span class="sb">`</span>seq 4<span class="sb">`</span>; <span class="k">do </span>dd <span class="k">if</span><span class="o">=</span>/dev/zero <span class="nv">of</span><span class="o">=</span>/srv/bench<span class="nv">$i</span> <span class="nv">bs</span><span class="o">=</span>1G <span class="nv">count</span><span class="o">=</span>1 <span class="nv">oflag</span><span class="o">=</span>direct ; <span class="k">done</span>
+</span><span class='line'>...
+</span><span class='line'>1073741824 bytes <span class="o">(</span>1.1 GB<span class="o">)</span> copied, 11.8548 s, 90.6 MB/s
+</span><span class='line'>...
+</span><span class='line'>1073741824 bytes <span class="o">(</span>1.1 GB<span class="o">)</span> copied, 22.4599 s, 47.8 MB/s
+</span><span class='line'>...
+</span><span class='line'>1073741824 bytes <span class="o">(</span>1.1 GB<span class="o">)</span> copied, 24.1439 s, 44.5 MB/s
+</span><span class='line'>...
+</span><span class='line'>1073741824 bytes <span class="o">(</span>1.1 GB<span class="o">)</span> copied, 11.2355 s, 95.6 MB/s
+</span><span class='line'>...
+</span></code></pre></td></tr></table></div></figure>
+<h3>III.2.2. Fio</h3>
+<p>Fio bench:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo fio fio.fio
+</span><span class='line'>seq-read: <span class="o">(</span><span class="nv">g</span><span class="o">=</span>0<span class="o">)</span>: <span class="nv">rw</span><span class="o">=</span><span class="nb">read</span>, <span class="nv">bs</span><span class="o">=</span>4K-4K/4K-4K, <span class="nv">ioengine</span><span class="o">=</span>libaio, <span class="nv">iodepth</span><span class="o">=</span>4
+</span><span class='line'>rand-read: <span class="o">(</span><span class="nv">g</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">rw</span><span class="o">=</span>randread, <span class="nv">bs</span><span class="o">=</span>4K-4K/4K-4K, <span class="nv">ioengine</span><span class="o">=</span>libaio, <span class="nv">iodepth</span><span class="o">=</span>4
+</span><span class='line'>seq-write: <span class="o">(</span><span class="nv">g</span><span class="o">=</span>2<span class="o">)</span>: <span class="nv">rw</span><span class="o">=</span>write, <span class="nv">bs</span><span class="o">=</span>4K-4K/4K-4K, <span class="nv">ioengine</span><span class="o">=</span>libaio, <span class="nv">iodepth</span><span class="o">=</span>4
+</span><span class='line'>rand-write: <span class="o">(</span><span class="nv">g</span><span class="o">=</span>3<span class="o">)</span>: <span class="nv">rw</span><span class="o">=</span>randwrite, <span class="nv">bs</span><span class="o">=</span>4K-4K/4K-4K, <span class="nv">ioengine</span><span class="o">=</span>libaio, <span class="nv">iodepth</span><span class="o">=</span>4
+</span><span class='line'>fio 1.59
+</span><span class='line'>Starting 4 processes
+</span><span class='line'>seq-read: Laying out IO file<span class="o">(</span>s<span class="o">)</span> <span class="o">(</span>1 file<span class="o">(</span>s<span class="o">)</span> / 10240MB<span class="o">)</span>
+</span><span class='line'>Jobs: 1 <span class="o">(</span><span class="nv">f</span><span class="o">=</span>1<span class="o">)</span>: <span class="o">[</span>___w<span class="o">]</span> <span class="o">[</span>57.3% <span class="k">done</span><span class="o">]</span> <span class="o">[</span>0K/479K /s<span class="o">]</span> <span class="o">[</span>0 /117  iops<span class="o">]</span> <span class="o">[</span>eta 03m:01s<span class="o">]</span>
+</span><span class='line'>seq-read: <span class="o">(</span><span class="nv">groupid</span><span class="o">=</span>0, <span class="nb">jobs</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">err</span><span class="o">=</span> 0: <span class="nv">pid</span><span class="o">=</span>10458
+</span><span class='line'>  <span class="nb">read</span> : <span class="nv">io</span><span class="o">=</span>507920KB, <span class="nv">bw</span><span class="o">=</span>8435.2KB/s, <span class="nv">iops</span><span class="o">=</span>2108 , <span class="nv">runt</span><span class="o">=</span> 60215msec
+</span><span class='line'>    slat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>11 , <span class="nv">max</span><span class="o">=</span>4007 , <span class="nv">avg</span><span class="o">=</span>18.80, <span class="nv">stdev</span><span class="o">=</span>16.36
+</span><span class='line'>    clat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>402 , <span class="nv">max</span><span class="o">=</span>1119.1K, <span class="nv">avg</span><span class="o">=</span>1876.02, <span class="nv">stdev</span><span class="o">=</span>18752.27
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>429 , <span class="nv">max</span><span class="o">=</span>1119.1K, <span class="nv">avg</span><span class="o">=</span>1895.17, <span class="nv">stdev</span><span class="o">=</span>18752.25
+</span><span class='line'>    bw <span class="o">(</span>KB/s<span class="o">)</span> : <span class="nv">min</span><span class="o">=</span>  322, <span class="nv">max</span><span class="o">=</span>20232, <span class="nv">per</span><span class="o">=</span>109.89%, <span class="nv">avg</span><span class="o">=</span>9269.30, <span class="nv">stdev</span><span class="o">=</span>5450.79
+</span><span class='line'>  cpu          : <span class="nv">usr</span><span class="o">=</span>0.58%, <span class="nv">sys</span><span class="o">=</span>4.27%, <span class="nv">ctx</span><span class="o">=</span>173831, <span class="nv">majf</span><span class="o">=</span>0, <span class="nv">minf</span><span class="o">=</span>25
+</span><span class='line'>  IO depths    : <span class="nv">1</span><span class="o">=</span>0.1%, <span class="nv">2</span><span class="o">=</span>0.1%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     submit    : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     <span class="nb">complete</span>  : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     issued r/w/d: <span class="nv">total</span><span class="o">=</span>126980/0/0, <span class="nv">short</span><span class="o">=</span>0/0/0
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">500</span><span class="o">=</span>0.17%, <span class="nv">750</span><span class="o">=</span>40.14%, <span class="nv">1000</span><span class="o">=</span>51.65%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2</span><span class="o">=</span>5.58%, <span class="nv">4</span><span class="o">=</span>0.38%, <span class="nv">10</span><span class="o">=</span>0.79%, <span class="nv">20</span><span class="o">=</span>0.30%, <span class="nv">50</span><span class="o">=</span>0.54%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">100</span><span class="o">=</span>0.19%, <span class="nv">250</span><span class="o">=</span>0.17%, <span class="nv">500</span><span class="o">=</span>0.04%, <span class="nv">750</span><span class="o">=</span>0.01%, <span class="nv">1000</span><span class="o">=</span>0.01%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2000</span><span class="o">=</span>0.01%
+</span><span class='line'>rand-read: <span class="o">(</span><span class="nv">groupid</span><span class="o">=</span>1, <span class="nb">jobs</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">err</span><span class="o">=</span> 0: <span class="nv">pid</span><span class="o">=</span>10547
+</span><span class='line'>  <span class="nb">read</span> : <span class="nv">io</span><span class="o">=</span>58812KB, <span class="nv">bw</span><span class="o">=</span>979.40KB/s, <span class="nv">iops</span><span class="o">=</span>244 , <span class="nv">runt</span><span class="o">=</span> 60050msec
+</span><span class='line'>    slat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>12 , <span class="nv">max</span><span class="o">=</span>79 , <span class="nv">avg</span><span class="o">=</span>17.09, <span class="nv">stdev</span><span class="o">=</span> 2.84
+</span><span class='line'>    clat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>402 , <span class="nv">max</span><span class="o">=</span>1161.8K, <span class="nv">avg</span><span class="o">=</span>16313.91, <span class="nv">stdev</span><span class="o">=</span>28908.64
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>422 , <span class="nv">max</span><span class="o">=</span>1161.9K, <span class="nv">avg</span><span class="o">=</span>16331.35, <span class="nv">stdev</span><span class="o">=</span>28908.67
+</span><span class='line'>    bw <span class="o">(</span>KB/s<span class="o">)</span> : <span class="nv">min</span><span class="o">=</span>   28, <span class="nv">max</span><span class="o">=</span> 1620, <span class="nv">per</span><span class="o">=</span>101.02%, <span class="nv">avg</span><span class="o">=</span>989.02, <span class="nv">stdev</span><span class="o">=</span>273.24
+</span><span class='line'>  cpu          : <span class="nv">usr</span><span class="o">=</span>0.07%, <span class="nv">sys</span><span class="o">=</span>0.55%, <span class="nv">ctx</span><span class="o">=</span>14463, <span class="nv">majf</span><span class="o">=</span>0, <span class="nv">minf</span><span class="o">=</span>24
+</span><span class='line'>  IO depths    : <span class="nv">1</span><span class="o">=</span>0.1%, <span class="nv">2</span><span class="o">=</span>0.1%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     submit    : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     <span class="nb">complete</span>  : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     issued r/w/d: <span class="nv">total</span><span class="o">=</span>14703/0/0, <span class="nv">short</span><span class="o">=</span>0/0/0
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">500</span><span class="o">=</span>9.03%, <span class="nv">750</span><span class="o">=</span>11.68%, <span class="nv">1000</span><span class="o">=</span>1.43%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2</span><span class="o">=</span>1.49%, <span class="nv">4</span><span class="o">=</span>5.74%, <span class="nv">10</span><span class="o">=</span>25.61%, <span class="nv">20</span><span class="o">=</span>17.68%, <span class="nv">50</span><span class="o">=</span>22.74%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">100</span><span class="o">=</span>3.57%, <span class="nv">250</span><span class="o">=</span>0.79%, <span class="nv">500</span><span class="o">=</span>0.21%, <span class="nv">1000</span><span class="o">=</span>0.02%, <span class="nv">2000</span><span class="o">=</span>0.01%
+</span><span class='line'>seq-write: <span class="o">(</span><span class="nv">groupid</span><span class="o">=</span>2, <span class="nb">jobs</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">err</span><span class="o">=</span> 0: <span class="nv">pid</span><span class="o">=</span>10596
+</span><span class='line'>  write: <span class="nv">io</span><span class="o">=</span>31316KB, <span class="nv">bw</span><span class="o">=</span>521296 B/s, <span class="nv">iops</span><span class="o">=</span>127 , <span class="nv">runt</span><span class="o">=</span> 61515msec
+</span><span class='line'>    slat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>12 , <span class="nv">max</span><span class="o">=</span>74452 , <span class="nv">avg</span><span class="o">=</span>49.11, <span class="nv">stdev</span><span class="o">=</span>1086.28
+</span><span class='line'>    clat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>842 , <span class="nv">max</span><span class="o">=</span>3559.1K, <span class="nv">avg</span><span class="o">=</span>31377.77, <span class="nv">stdev</span><span class="o">=</span>165947.39
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>859 , <span class="nv">max</span><span class="o">=</span>3559.1K, <span class="nv">avg</span><span class="o">=</span>31427.24, <span class="nv">stdev</span><span class="o">=</span>165951.18
+</span><span class='line'>    bw <span class="o">(</span>KB/s<span class="o">)</span> : <span class="nv">min</span><span class="o">=</span>    2, <span class="nv">max</span><span class="o">=</span> 5077, <span class="nv">per</span><span class="o">=</span>139.94%, <span class="nv">avg</span><span class="o">=</span>712.27, <span class="nv">stdev</span><span class="o">=</span>1035.72
+</span><span class='line'>  cpu          : <span class="nv">usr</span><span class="o">=</span>0.10%, <span class="nv">sys</span><span class="o">=</span>0.23%, <span class="nv">ctx</span><span class="o">=</span>6056, <span class="nv">majf</span><span class="o">=</span>0, <span class="nv">minf</span><span class="o">=</span>19
+</span><span class='line'>  IO depths    : <span class="nv">1</span><span class="o">=</span>0.1%, <span class="nv">2</span><span class="o">=</span>0.1%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     submit    : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     <span class="nb">complete</span>  : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     issued r/w/d: <span class="nv">total</span><span class="o">=</span>0/7829/0, <span class="nv">short</span><span class="o">=</span>0/0/0
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">1000</span><span class="o">=</span>2.08%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2</span><span class="o">=</span>30.32%, <span class="nv">4</span><span class="o">=</span>0.88%, <span class="nv">10</span><span class="o">=</span>1.32%, <span class="nv">20</span><span class="o">=</span>29.37%, <span class="nv">50</span><span class="o">=</span>28.24%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">100</span><span class="o">=</span>5.33%, <span class="nv">250</span><span class="o">=</span>1.70%, <span class="nv">500</span><span class="o">=</span>0.19%, <span class="nv">750</span><span class="o">=</span>0.06%, <span class="nv">1000</span><span class="o">=</span>0.05%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2000</span><span class="o">=</span>0.15%, &gt;<span class="o">=</span><span class="nv">2000</span><span class="o">=</span>0.31%
+</span><span class='line'>rand-write: <span class="o">(</span><span class="nv">groupid</span><span class="o">=</span>3, <span class="nb">jobs</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">err</span><span class="o">=</span> 0: <span class="nv">pid</span><span class="o">=</span>10685
+</span><span class='line'>  write: <span class="nv">io</span><span class="o">=</span>26764KB, <span class="nv">bw</span><span class="o">=</span>456665 B/s, <span class="nv">iops</span><span class="o">=</span>111 , <span class="nv">runt</span><span class="o">=</span> 60014msec
+</span><span class='line'>    slat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>13 , <span class="nv">max</span><span class="o">=</span>67229 , <span class="nv">avg</span><span class="o">=</span>52.79, <span class="nv">stdev</span><span class="o">=</span>1199.67
+</span><span class='line'>    clat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>860 , <span class="nv">max</span><span class="o">=</span>4532.7K, <span class="nv">avg</span><span class="o">=</span>35819.66, <span class="nv">stdev</span><span class="o">=</span>178991.45
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>879 , <span class="nv">max</span><span class="o">=</span>4532.7K, <span class="nv">avg</span><span class="o">=</span>35872.82, <span class="nv">stdev</span><span class="o">=</span>178995.79
+</span><span class='line'>    bw <span class="o">(</span>KB/s<span class="o">)</span> : <span class="nv">min</span><span class="o">=</span>    1, <span class="nv">max</span><span class="o">=</span> 8214, <span class="nv">per</span><span class="o">=</span>134.70%, <span class="nv">avg</span><span class="o">=</span>599.43, <span class="nv">stdev</span><span class="o">=</span>1258.28
+</span><span class='line'>  cpu          : <span class="nv">usr</span><span class="o">=</span>0.05%, <span class="nv">sys</span><span class="o">=</span>0.27%, <span class="nv">ctx</span><span class="o">=</span>6024, <span class="nv">majf</span><span class="o">=</span>0, <span class="nv">minf</span><span class="o">=</span>17
+</span><span class='line'>  IO depths    : <span class="nv">1</span><span class="o">=</span>0.1%, <span class="nv">2</span><span class="o">=</span>0.1%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     submit    : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     <span class="nb">complete</span>  : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     issued r/w/d: <span class="nv">total</span><span class="o">=</span>0/6691/0, <span class="nv">short</span><span class="o">=</span>0/0/0
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">1000</span><span class="o">=</span>1.45%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2</span><span class="o">=</span>44.10%, <span class="nv">4</span><span class="o">=</span>2.26%, <span class="nv">10</span><span class="o">=</span>4.69%, <span class="nv">20</span><span class="o">=</span>12.72%, <span class="nv">50</span><span class="o">=</span>23.29%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">100</span><span class="o">=</span>7.95%, <span class="nv">250</span><span class="o">=</span>1.85%, <span class="nv">500</span><span class="o">=</span>0.63%, <span class="nv">750</span><span class="o">=</span>0.27%, <span class="nv">1000</span><span class="o">=</span>0.27%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2000</span><span class="o">=</span>0.28%, &gt;<span class="o">=</span><span class="nv">2000</span><span class="o">=</span>0.24%
+</span><span class='line'>
+</span><span class='line'>Run status group 0 <span class="o">(</span>all <span class="nb">jobs</span><span class="o">)</span>:
+</span><span class='line'>   READ: <span class="nv">io</span><span class="o">=</span>507920KB, <span class="nv">aggrb</span><span class="o">=</span>8435KB/s, <span class="nv">minb</span><span class="o">=</span>8637KB/s, <span class="nv">maxb</span><span class="o">=</span>8637KB/s, <span class="nv">mint</span><span class="o">=</span>60215msec, <span class="nv">maxt</span><span class="o">=</span>60215msec
+</span><span class='line'>
+</span><span class='line'>Run status group 1 <span class="o">(</span>all <span class="nb">jobs</span><span class="o">)</span>:
+</span><span class='line'>   READ: <span class="nv">io</span><span class="o">=</span>58812KB, <span class="nv">aggrb</span><span class="o">=</span>979KB/s, <span class="nv">minb</span><span class="o">=</span>1002KB/s, <span class="nv">maxb</span><span class="o">=</span>1002KB/s, <span class="nv">mint</span><span class="o">=</span>60050msec, <span class="nv">maxt</span><span class="o">=</span>60050msec
+</span><span class='line'>
+</span><span class='line'>Run status group 2 <span class="o">(</span>all <span class="nb">jobs</span><span class="o">)</span>:
+</span><span class='line'>  WRITE: <span class="nv">io</span><span class="o">=</span>31316KB, <span class="nv">aggrb</span><span class="o">=</span>509KB/s, <span class="nv">minb</span><span class="o">=</span>521KB/s, <span class="nv">maxb</span><span class="o">=</span>521KB/s, <span class="nv">mint</span><span class="o">=</span>61515msec, <span class="nv">maxt</span><span class="o">=</span>61515msec
+</span><span class='line'>
+</span><span class='line'>Run status group 3 <span class="o">(</span>all <span class="nb">jobs</span><span class="o">)</span>:
+</span><span class='line'>  WRITE: <span class="nv">io</span><span class="o">=</span>26764KB, <span class="nv">aggrb</span><span class="o">=</span>445KB/s, <span class="nv">minb</span><span class="o">=</span>456KB/s, <span class="nv">maxb</span><span class="o">=</span>456KB/s, <span class="nv">mint</span><span class="o">=</span>60014msec, <span class="nv">maxt</span><span class="o">=</span>60014msec
+</span><span class='line'>
+</span><span class='line'>Disk stats <span class="o">(</span><span class="nb">read</span>/write<span class="o">)</span>:
+</span><span class='line'>  rbd4: <span class="nv">ios</span><span class="o">=</span>141683/14534, <span class="nv">merge</span><span class="o">=</span>0/100, <span class="nv">ticks</span><span class="o">=</span>479184/497888, <span class="nv">in_queue</span><span class="o">=</span>977012, <span class="nv">util</span><span class="o">=</span>99.71%
+</span></code></pre></td></tr></table></div></figure>
+<h2>III.3. Flashcache performance</h2>
+<h3>III.3.1. Basic DD</h3>
+<p>Huge block size test:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span><span class="k">for </span>i in <span class="sb">`</span>seq 4<span class="sb">`</span>; <span class="k">do </span>dd <span class="k">if</span><span class="o">=</span>/dev/zero <span class="nv">of</span><span class="o">=</span>/srv/bench-flash<span class="nv">$i</span> <span class="nv">bs</span><span class="o">=</span>1G <span class="nv">count</span><span class="o">=</span>1 <span class="nv">oflag</span><span class="o">=</span>direct ; <span class="k">done</span>
+</span><span class='line'>...
+</span><span class='line'>1073741824 bytes <span class="o">(</span>1.1 GB<span class="o">)</span> copied, 5.97447 s, 180 MB/s
+</span><span class='line'>...
+</span><span class='line'>1073741824 bytes <span class="o">(</span>1.1 GB<span class="o">)</span> copied, 6.10323 s, 176 MB/s
+</span><span class='line'>...
+</span><span class='line'>1073741824 bytes <span class="o">(</span>1.1 GB<span class="o">)</span> copied, 6.05537 s, 177 MB/s
+</span><span class='line'>...
+</span><span class='line'>1073741824 bytes <span class="o">(</span>1.1 GB<span class="o">)</span> copied, 6.13435 s, 175 MB/s
+</span></code></pre></td></tr></table></div></figure>
+<h3>III.3.2. Fio</h3>
+<p>Fio benchs:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo fio fio.fio
+</span><span class='line'>seq-read: <span class="o">(</span><span class="nv">g</span><span class="o">=</span>0<span class="o">)</span>: <span class="nv">rw</span><span class="o">=</span><span class="nb">read</span>, <span class="nv">bs</span><span class="o">=</span>4K-4K/4K-4K, <span class="nv">ioengine</span><span class="o">=</span>libaio, <span class="nv">iodepth</span><span class="o">=</span>4
+</span><span class='line'>rand-read: <span class="o">(</span><span class="nv">g</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">rw</span><span class="o">=</span>randread, <span class="nv">bs</span><span class="o">=</span>4K-4K/4K-4K, <span class="nv">ioengine</span><span class="o">=</span>libaio, <span class="nv">iodepth</span><span class="o">=</span>4
+</span><span class='line'>seq-write: <span class="o">(</span><span class="nv">g</span><span class="o">=</span>2<span class="o">)</span>: <span class="nv">rw</span><span class="o">=</span>write, <span class="nv">bs</span><span class="o">=</span>4K-4K/4K-4K, <span class="nv">ioengine</span><span class="o">=</span>libaio, <span class="nv">iodepth</span><span class="o">=</span>4
+</span><span class='line'>rand-write: <span class="o">(</span><span class="nv">g</span><span class="o">=</span>3<span class="o">)</span>: <span class="nv">rw</span><span class="o">=</span>randwrite, <span class="nv">bs</span><span class="o">=</span>4K-4K/4K-4K, <span class="nv">ioengine</span><span class="o">=</span>libaio, <span class="nv">iodepth</span><span class="o">=</span>4
+</span><span class='line'>fio 1.59
+</span><span class='line'>Starting 4 processes
+</span><span class='line'>seq-read: Laying out IO file<span class="o">(</span>s<span class="o">)</span> <span class="o">(</span>1 file<span class="o">(</span>s<span class="o">)</span> / 10240MB<span class="o">)</span>
+</span><span class='line'>Jobs: 1 <span class="o">(</span><span class="nv">f</span><span class="o">=</span>1<span class="o">)</span>: <span class="o">[</span>___w<span class="o">]</span> <span class="o">[</span>57.2% <span class="k">done</span><span class="o">]</span> <span class="o">[</span>0K/30488K /s<span class="o">]</span> <span class="o">[</span>0 /7443  iops<span class="o">]</span> <span class="o">[</span>eta 03m:00s<span class="o">]</span>
+</span><span class='line'>seq-read: <span class="o">(</span><span class="nv">groupid</span><span class="o">=</span>0, <span class="nb">jobs</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">err</span><span class="o">=</span> 0: <span class="nv">pid</span><span class="o">=</span>7887
+</span><span class='line'>  <span class="nb">read</span> : <span class="nv">io</span><span class="o">=</span>1855.6MB, <span class="nv">bw</span><span class="o">=</span>31668KB/s, <span class="nv">iops</span><span class="o">=</span>7916 , <span class="nv">runt</span><span class="o">=</span> 60001msec
+</span><span class='line'>    slat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>5 , <span class="nv">max</span><span class="o">=</span>403 , <span class="nv">avg</span><span class="o">=</span> 7.92, <span class="nv">stdev</span><span class="o">=</span> 1.35
+</span><span class='line'>    clat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>74 , <span class="nv">max</span><span class="o">=</span>4352 , <span class="nv">avg</span><span class="o">=</span>495.63, <span class="nv">stdev</span><span class="o">=</span>18.93
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>145 , <span class="nv">max</span><span class="o">=</span>4358 , <span class="nv">avg</span><span class="o">=</span>503.83, <span class="nv">stdev</span><span class="o">=</span>18.83
+</span><span class='line'>    bw <span class="o">(</span>KB/s<span class="o">)</span> : <span class="nv">min</span><span class="o">=</span>30952, <span class="nv">max</span><span class="o">=</span>34560, <span class="nv">per</span><span class="o">=</span>100.01%, <span class="nv">avg</span><span class="o">=</span>31669.58, <span class="nv">stdev</span><span class="o">=</span>666.51
+</span><span class='line'>  cpu          : <span class="nv">usr</span><span class="o">=</span>9.41%, <span class="nv">sys</span><span class="o">=</span>29.98%, <span class="nv">ctx</span><span class="o">=</span>356142, <span class="nv">majf</span><span class="o">=</span>0, <span class="nv">minf</span><span class="o">=</span>25
+</span><span class='line'>  IO depths    : <span class="nv">1</span><span class="o">=</span>0.1%, <span class="nv">2</span><span class="o">=</span>0.1%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     submit    : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     <span class="nb">complete</span>  : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     issued r/w/d: <span class="nv">total</span><span class="o">=</span>475027/0/0, <span class="nv">short</span><span class="o">=</span>0/0/0
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">100</span><span class="o">=</span>0.01%, <span class="nv">250</span><span class="o">=</span>0.01%, <span class="nv">500</span><span class="o">=</span>50.08%, <span class="nv">750</span><span class="o">=</span>49.90%, <span class="nv">1000</span><span class="o">=</span>0.01%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2</span><span class="o">=</span>0.01%, <span class="nv">10</span><span class="o">=</span>0.01%
+</span><span class='line'>rand-read: <span class="o">(</span><span class="nv">groupid</span><span class="o">=</span>1, <span class="nb">jobs</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">err</span><span class="o">=</span> 0: <span class="nv">pid</span><span class="o">=</span>7976
+</span><span class='line'>  <span class="nb">read</span> : <span class="nv">io</span><span class="o">=</span>1316.7MB, <span class="nv">bw</span><span class="o">=</span>22470KB/s, <span class="nv">iops</span><span class="o">=</span>5617 , <span class="nv">runt</span><span class="o">=</span> 60001msec
+</span><span class='line'>    slat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>7 , <span class="nv">max</span><span class="o">=</span>133 , <span class="nv">avg</span><span class="o">=</span> 9.83, <span class="nv">stdev</span><span class="o">=</span> 1.10
+</span><span class='line'>    clat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>134 , <span class="nv">max</span><span class="o">=</span>4528 , <span class="nv">avg</span><span class="o">=</span>700.15, <span class="nv">stdev</span><span class="o">=</span>23.88
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>201 , <span class="nv">max</span><span class="o">=</span>4539 , <span class="nv">avg</span><span class="o">=</span>710.29, <span class="nv">stdev</span><span class="o">=</span>23.82
+</span><span class='line'>    bw <span class="o">(</span>KB/s<span class="o">)</span> : <span class="nv">min</span><span class="o">=</span>22104, <span class="nv">max</span><span class="o">=</span>22712, <span class="nv">per</span><span class="o">=</span>100.02%, <span class="nv">avg</span><span class="o">=</span>22474.15, <span class="nv">stdev</span><span class="o">=</span>129.39
+</span><span class='line'>  cpu          : <span class="nv">usr</span><span class="o">=</span>8.61%, <span class="nv">sys</span><span class="o">=</span>27.86%, <span class="nv">ctx</span><span class="o">=</span>337054, <span class="nv">majf</span><span class="o">=</span>0, <span class="nv">minf</span><span class="o">=</span>24
+</span><span class='line'>  IO depths    : <span class="nv">1</span><span class="o">=</span>0.1%, <span class="nv">2</span><span class="o">=</span>0.1%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     submit    : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     <span class="nb">complete</span>  : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     issued r/w/d: <span class="nv">total</span><span class="o">=</span>337051/0/0, <span class="nv">short</span><span class="o">=</span>0/0/0
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">250</span><span class="o">=</span>0.01%, <span class="nv">500</span><span class="o">=</span>0.01%, <span class="nv">750</span><span class="o">=</span>99.91%, <span class="nv">1000</span><span class="o">=</span>0.06%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2</span><span class="o">=</span>0.01%, <span class="nv">4</span><span class="o">=</span>0.01%, <span class="nv">10</span><span class="o">=</span>0.01%
+</span><span class='line'>seq-write: <span class="o">(</span><span class="nv">groupid</span><span class="o">=</span>2, <span class="nb">jobs</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">err</span><span class="o">=</span> 0: <span class="nv">pid</span><span class="o">=</span>8025
+</span><span class='line'>  write: <span class="nv">io</span><span class="o">=</span>2130.2MB, <span class="nv">bw</span><span class="o">=</span>36355KB/s, <span class="nv">iops</span><span class="o">=</span>9088 , <span class="nv">runt</span><span class="o">=</span> 60001msec
+</span><span class='line'>    slat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>5 , <span class="nv">max</span><span class="o">=</span>5546 , <span class="nv">avg</span><span class="o">=</span>27.27, <span class="nv">stdev</span><span class="o">=</span>86.85
+</span><span class='line'>    clat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>30 , <span class="nv">max</span><span class="o">=</span>176235 , <span class="nv">avg</span><span class="o">=</span>406.65, <span class="nv">stdev</span><span class="o">=</span>1410.29
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>92 , <span class="nv">max</span><span class="o">=</span>176240 , <span class="nv">avg</span><span class="o">=</span>434.66, <span class="nv">stdev</span><span class="o">=</span>1422.74
+</span><span class='line'>    bw <span class="o">(</span>KB/s<span class="o">)</span> : <span class="nv">min</span><span class="o">=</span>18504, <span class="nv">max</span><span class="o">=</span>61264, <span class="nv">per</span><span class="o">=</span>100.07%, <span class="nv">avg</span><span class="o">=</span>36379.68, <span class="nv">stdev</span><span class="o">=</span>13467.95
+</span><span class='line'>  cpu          : <span class="nv">usr</span><span class="o">=</span>3.65%, <span class="nv">sys</span><span class="o">=</span>42.12%, <span class="nv">ctx</span><span class="o">=</span>418186, <span class="nv">majf</span><span class="o">=</span>0, <span class="nv">minf</span><span class="o">=</span>19
+</span><span class='line'>  IO depths    : <span class="nv">1</span><span class="o">=</span>0.1%, <span class="nv">2</span><span class="o">=</span>0.1%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     submit    : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     <span class="nb">complete</span>  : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     issued r/w/d: <span class="nv">total</span><span class="o">=</span>0/545329/0, <span class="nv">short</span><span class="o">=</span>0/0/0
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">50</span><span class="o">=</span>0.07%, <span class="nv">100</span><span class="o">=</span>0.13%, <span class="nv">250</span><span class="o">=</span>70.70%, <span class="nv">500</span><span class="o">=</span>22.93%, <span class="nv">750</span><span class="o">=</span>3.28%
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">1000</span><span class="o">=</span>0.21%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2</span><span class="o">=</span>0.43%, <span class="nv">4</span><span class="o">=</span>1.28%, <span class="nv">10</span><span class="o">=</span>0.75%, <span class="nv">20</span><span class="o">=</span>0.06%, <span class="nv">50</span><span class="o">=</span>0.16%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">100</span><span class="o">=</span>0.01%, <span class="nv">250</span><span class="o">=</span>0.01%
+</span><span class='line'>rand-write: <span class="o">(</span><span class="nv">groupid</span><span class="o">=</span>3, <span class="nb">jobs</span><span class="o">=</span>1<span class="o">)</span>: <span class="nv">err</span><span class="o">=</span> 0: <span class="nv">pid</span><span class="o">=</span>8115
+</span><span class='line'>  write: <span class="nv">io</span><span class="o">=</span>1810.6MB, <span class="nv">bw</span><span class="o">=</span>30899KB/s, <span class="nv">iops</span><span class="o">=</span>7724 , <span class="nv">runt</span><span class="o">=</span> 60001msec
+</span><span class='line'>    slat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>7 , <span class="nv">max</span><span class="o">=</span>5066 , <span class="nv">avg</span><span class="o">=</span>34.85, <span class="nv">stdev</span><span class="o">=</span>110.77
+</span><span class='line'>    clat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>1 , <span class="nv">max</span><span class="o">=</span>4608.3K, <span class="nv">avg</span><span class="o">=</span>478.94, <span class="nv">stdev</span><span class="o">=</span>11796.80
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">min</span><span class="o">=</span>88 , <span class="nv">max</span><span class="o">=</span>4608.3K, <span class="nv">avg</span><span class="o">=</span>515.53, <span class="nv">stdev</span><span class="o">=</span>11799.37
+</span><span class='line'>    bw <span class="o">(</span>KB/s<span class="o">)</span> : <span class="nv">min</span><span class="o">=</span>  978, <span class="nv">max</span><span class="o">=</span>46568, <span class="nv">per</span><span class="o">=</span>102.88%, <span class="nv">avg</span><span class="o">=</span>31787.85, <span class="nv">stdev</span><span class="o">=</span>6676.48
+</span><span class='line'>  cpu          : <span class="nv">usr</span><span class="o">=</span>3.43%, <span class="nv">sys</span><span class="o">=</span>42.55%, <span class="nv">ctx</span><span class="o">=</span>582845, <span class="nv">majf</span><span class="o">=</span>0, <span class="nv">minf</span><span class="o">=</span>17
+</span><span class='line'>  IO depths    : <span class="nv">1</span><span class="o">=</span>0.1%, <span class="nv">2</span><span class="o">=</span>0.1%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     submit    : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     <span class="nb">complete</span>  : <span class="nv">0</span><span class="o">=</span>0.0%, <span class="nv">4</span><span class="o">=</span>100.0%, <span class="nv">8</span><span class="o">=</span>0.0%, <span class="nv">16</span><span class="o">=</span>0.0%, <span class="nv">32</span><span class="o">=</span>0.0%, <span class="nv">64</span><span class="o">=</span>0.0%, &gt;<span class="o">=</span><span class="nv">64</span><span class="o">=</span>0.0%
+</span><span class='line'>     issued r/w/d: <span class="nv">total</span><span class="o">=</span>0/463488/0, <span class="nv">short</span><span class="o">=</span>0/0/0
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">2</span><span class="o">=</span>0.01%, <span class="nv">4</span><span class="o">=</span>0.01%, <span class="nv">10</span><span class="o">=</span>0.01%, <span class="nv">20</span><span class="o">=</span>0.03%, <span class="nv">50</span><span class="o">=</span>2.30%
+</span><span class='line'>     lat <span class="o">(</span>usec<span class="o">)</span>: <span class="nv">100</span><span class="o">=</span>0.37%, <span class="nv">250</span><span class="o">=</span>31.70%, <span class="nv">500</span><span class="o">=</span>44.91%, <span class="nv">750</span><span class="o">=</span>17.31%, <span class="nv">1000</span><span class="o">=</span>0.76%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2</span><span class="o">=</span>0.79%, <span class="nv">4</span><span class="o">=</span>0.62%, <span class="nv">10</span><span class="o">=</span>0.95%, <span class="nv">20</span><span class="o">=</span>0.24%, <span class="nv">50</span><span class="o">=</span>0.01%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">100</span><span class="o">=</span>0.01%, <span class="nv">250</span><span class="o">=</span>0.01%, <span class="nv">500</span><span class="o">=</span>0.01%, <span class="nv">750</span><span class="o">=</span>0.01%, <span class="nv">1000</span><span class="o">=</span>0.01%
+</span><span class='line'>     lat <span class="o">(</span>msec<span class="o">)</span>: <span class="nv">2000</span><span class="o">=</span>0.01%, &gt;<span class="o">=</span><span class="nv">2000</span><span class="o">=</span>0.01%
+</span><span class='line'>
+</span><span class='line'>Run status group 0 <span class="o">(</span>all <span class="nb">jobs</span><span class="o">)</span>:
+</span><span class='line'>   READ: <span class="nv">io</span><span class="o">=</span>1855.6MB, <span class="nv">aggrb</span><span class="o">=</span>31667KB/s, <span class="nv">minb</span><span class="o">=</span>32427KB/s, <span class="nv">maxb</span><span class="o">=</span>32427KB/s, <span class="nv">mint</span><span class="o">=</span>60001msec, <span class="nv">maxt</span><span class="o">=</span>60001msec
+</span><span class='line'>
+</span><span class='line'>Run status group 1 <span class="o">(</span>all <span class="nb">jobs</span><span class="o">)</span>:
+</span><span class='line'>   READ: <span class="nv">io</span><span class="o">=</span>1316.7MB, <span class="nv">aggrb</span><span class="o">=</span>22469KB/s, <span class="nv">minb</span><span class="o">=</span>23008KB/s, <span class="nv">maxb</span><span class="o">=</span>23008KB/s, <span class="nv">mint</span><span class="o">=</span>60001msec, <span class="nv">maxt</span><span class="o">=</span>60001msec
+</span><span class='line'>
+</span><span class='line'>Run status group 2 <span class="o">(</span>all <span class="nb">jobs</span><span class="o">)</span>:
+</span><span class='line'>  WRITE: <span class="nv">io</span><span class="o">=</span>2130.2MB, <span class="nv">aggrb</span><span class="o">=</span>36354KB/s, <span class="nv">minb</span><span class="o">=</span>37227KB/s, <span class="nv">maxb</span><span class="o">=</span>37227KB/s, <span class="nv">mint</span><span class="o">=</span>60001msec, <span class="nv">maxt</span><span class="o">=</span>60001msec
+</span><span class='line'>
+</span><span class='line'>Run status group 3 <span class="o">(</span>all <span class="nb">jobs</span><span class="o">)</span>:
+</span><span class='line'>  WRITE: <span class="nv">io</span><span class="o">=</span>1810.6MB, <span class="nv">aggrb</span><span class="o">=</span>30898KB/s, <span class="nv">minb</span><span class="o">=</span>31640KB/s, <span class="nv">maxb</span><span class="o">=</span>31640KB/s, <span class="nv">mint</span><span class="o">=</span>60001msec, <span class="nv">maxt</span><span class="o">=</span>60001msec
+</span><span class='line'>
+</span><span class='line'>Disk stats <span class="o">(</span><span class="nb">read</span>/write<span class="o">)</span>:
+</span><span class='line'>  dm-5: <span class="nv">ios</span><span class="o">=</span>812078/1007851, <span class="nv">merge</span><span class="o">=</span>0/0, <span class="nv">ticks</span><span class="o">=</span>428556/406440, <span class="nv">in_queue</span><span class="o">=</span>835256, <span class="nv">util</span><span class="o">=</span>99.63%, <span class="nv">aggrios</span><span class="o">=</span>355059/564178, <span class="nv">aggrmerge</span><span class="o">=</span>552135/538669, <span class="nv">aggrticks</span><span class="o">=</span>214602/280808, <span class="nv">aggrin_queue</span><span class="o">=</span>494798, <span class="nv">aggrutil</span><span class="o">=</span>95.95%
+</span><span class='line'>    rbd1: <span class="nv">ios</span><span class="o">=</span>0/17922, <span class="nv">merge</span><span class="o">=</span>0/985483, <span class="nv">ticks</span><span class="o">=</span>0/287612, <span class="nv">in_queue</span><span class="o">=</span>287628, <span class="nv">util</span><span class="o">=</span>42.57%
+</span><span class='line'>    sda: <span class="nv">ios</span><span class="o">=</span>710118/1110434, <span class="nv">merge</span><span class="o">=</span>1104271/91856, <span class="nv">ticks</span><span class="o">=</span>429204/274004, <span class="nv">in_queue</span><span class="o">=</span>701968, <span class="nv">util</span><span class="o">=</span>95.95%
+</span></code></pre></td></tr></table></div></figure>
+<h2>III.4. Chart results</h2>
+<p>A little sum up in a more readable format:</p>
+<p><img class="center" src="http://sebastien-han.fr/images/flashcache-rbd-results.jpg" title="Flashcache RBD results"></p>
+<p>Random benchmarks found on bcache IRC:</p>
+<p><a href="http://www.bildercache.de/anzeige.html?dateiname=20121109-004052-845.png">Unknown benchmarks</a></p>
+<br/>
+<h1>IV. High availability corner</h1>
+<p>Here I&#8217;m about to introduce the integration of Flashcache on the HA stack with Pacemaker.</p>
+<p><span class="text_quote">R </span> Note: if you use writeback mode you <strong>must</strong> use DRBD to replicate the blocks of your Flashcache device, to ensure consistency on the block level. With <code>Writethrough</code> and <code>Writearound</code> it&#8217;s not necessary because every write requests go to the underneath block device directly. I won&#8217;t detail the DRBD setup since you can find it on several articles in my website, <em>use the research button ;-)</em>.</p>
+<br/>
+<p>All the prerequisites about RBD and Paceamker can be found on my <a href="http://www.sebastien-han.fr/blog/2012/07/06/nfs-over-rbd/">previous article</a>. For the flashcache RA, it has been installed during the git clone. I would like to thank you Florian Haas from <a href="hastexo.com">Hastexo</a> for this resource agent.</p>
+<p>First configure the rbd primitive:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo crm configure primitive p_rbd ocf:ceph:rbd.in <span class="se">\</span>
+</span><span class='line'>        params <span class="nv">user</span><span class="o">=</span><span class="s2">&quot;admin&quot;</span> <span class="nv">pool</span><span class="o">=</span><span class="s2">&quot;rbd&quot;</span> <span class="nv">name</span><span class="o">=</span><span class="s2">&quot;share1&quot;</span> <span class="nv">cephconf</span><span class="o">=</span><span class="s2">&quot;/etc/ceph/ceph.conf&quot;</span> <span class="se">\</span>
+</span><span class='line'>        op monitor <span class="nv">interval</span><span class="o">=</span><span class="s2">&quot;10s&quot;</span> <span class="nv">timeout</span><span class="o">=</span><span class="s2">&quot;20s&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+<p>And Flashcache:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo crm configure primitive p_flashcache ocf:flashcache:flashcache <span class="se">\</span>
+</span><span class='line'>        params <span class="nv">cache_device</span><span class="o">=</span><span class="s2">&quot;/dev/sdb1&quot;</span> <span class="nv">device</span><span class="o">=</span><span class="s2">&quot;/dev/rbd/flashcache/fc&quot;</span> <span class="nv">name</span><span class="o">=</span><span class="s2">&quot;rbd_fc&quot;</span> <span class="se">\</span>
+</span><span class='line'>        op monitor <span class="nv">interval</span><span class="o">=</span><span class="s2">&quot;10s&quot;</span> <span class="nv">timeout</span><span class="o">=</span><span class="s2">&quot;20s&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+<p>Then the Filesystem:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo crm configure primitive p_fs ocf:heartbeat:Filesystem <span class="se">\</span>
+</span><span class='line'>        params <span class="nv">directory</span><span class="o">=</span><span class="s2">&quot;/mnt/&quot;</span> <span class="nv">fstype</span><span class="o">=</span><span class="s2">&quot;xfs&quot;</span> <span class="nv">device</span><span class="o">=</span><span class="s2">&quot;/dev/rbd/flashcache/fc&quot;</span> <span class="nv">fast_stop</span><span class="o">=</span><span class="s2">&quot;no&quot;</span> <span class="se">\</span>
+</span><span class='line'>        op monitor <span class="nv">interval</span><span class="o">=</span><span class="s2">&quot;20s&quot;</span> <span class="nv">timeout</span><span class="o">=</span><span class="s2">&quot;40s&quot;</span> <span class="se">\</span>
+</span><span class='line'>        op start <span class="nv">interval</span><span class="o">=</span><span class="s2">&quot;0&quot;</span> <span class="nv">timeout</span><span class="o">=</span><span class="s2">&quot;60s&quot;</span> <span class="se">\</span>
+</span><span class='line'>        op stop <span class="nv">interval</span><span class="o">=</span><span class="s2">&quot;0&quot;</span> <span class="nv">timeout</span><span class="o">=</span><span class="s2">&quot;60s&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+<p>Eventually create a group for all these resources:</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo crm configure group g_disk p_rbd p_flashcache p_fs
+</span></code></pre></td></tr></table></div></figure>
+<p>You should see something like this:</p>
+<pre><code>============
+Last updated: Thu Nov 15 01:10:54 2012
+Last change: Thu Nov 15 01:06:16 2012 via cibadmin on ha-01
+Stack: openais
+Current DC: ha-01 - partition with quorum
+Version: 1.1.6-9971ebba4494012a93c03b40a2c58ec0eb60f50c
+2 Nodes configured, 2 expected votes
+3 Resources configured.
+============
+
+Online: [ ha-01 ha-02 ]
+
+ Resource Group: g_disk
+     p_rbd      (ocf::ceph:rbd.in):     Started ha-01
+     p_flashcache       (ocf::flashcache:flashcache):   Started ha-01
+     p_fs       (ocf::heartbeat:Filesystem):    Started ha-01
+</code></pre>
+<p>Here we used the writethrough mode for our flashcache device, so we don&#8217;t need to replicate the content of our flashcache device.</p>
+<br/>
+<blockquote><p>I truly believe in the potential of bcache, I will probably consider it when the implementation will be in the device mapper (and easier, no funcky Kernel compilation) and why not part of the kernel mainline (it&#8217;s not for today&#8230;). For the moment, I think Flashcache is a really good solution that can suit most of our needs. As always feel free to comment, critic and ask questions on the comment section below ;-)</p></blockquote>
+</div>
+<footer>
+<p class="meta">
+<span class="byline author vcard">Posted by <span class="fn">Sébastien Han</span></span>
+<time datetime="2012-11-15T13:26:00+01:00" pubdate data-updated="true">Nov 15<span>th</span>, 2012</time>
+<span class="categories">
+<a class='category' href='/blog/categories/ceph/'>Ceph</a>, <a class='category' href='/blog/categories/pacemaker/'>Pacemaker</a>
+</span>
+</p>
+<div class="sharing">
+<a href="http://twitter.com/share" class="twitter-share-button" data-url="http://sebastien-han.fr/blog/2012/11/15/make-your-rbd-fly-with-flashcache/" data-via="sebastien_han" data-counturl="http://sebastien-han.fr/blog/2012/11/15/make-your-rbd-fly-with-flashcache/">Tweet</a>
+</div>
+<p class="meta">
+<a class="basic-alignment left" href="/blog/2012/11/09/tip-openstack-retrieve-usage-statictic/" title="Previous Post: Tip: OpenStack Retrieve usage statictics">&laquo; Tip: OpenStack Retrieve usage statictics</a>
+<a class="basic-alignment right" href="/blog/2012/11/26/last-friday-failover-and-stonith-were-evil-dot-dot-dot/" title="Next Post: Last friday failover and Stonith were evil...">Last friday failover and Stonith were evil... &raquo;</a>
+</p>
+</footer>
+</article>
+<section>
+<h1>Comments</h1>
+<div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+</section>
+</div>
+</div>
+</div>
+<footer role="contentinfo"><p>
+Copyright &copy; 2013 - Sébastien Han -
+<span class="credit">Proudly powered by <a href="http://octopress.org">Octopress</a> - Hosted on <a href="https://aws.amazon.com/en/s3/">Amazon S3</a> - Speedup and protected by <a href="https://www.cloudflare.com/" target="_blank">CloudFlare</a></span>
+</p>
+</footer>
+<script type="text/rocketscript">
+      var disqus_shortname = 'sebastienhan';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://sebastien-han.fr/blog/2012/11/15/make-your-rbd-fly-with-flashcache/';
+        var disqus_url = 'http://sebastien-han.fr/blog/2012/11/15/make-your-rbd-fly-with-flashcache/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+<script type="text/rocketscript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+</body>
+</html>

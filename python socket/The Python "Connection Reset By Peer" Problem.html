@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<script src="../../CommonLib.js" type="text/javascript"></script>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="author" content="EAFC9730-3E6A-4047-8E3C-59FC7537F4C2" />
+<meta name="description" content="Software Architecture - mostly ranting about the daily grind of being a software architect." />
+<meta name="keywords" content="Software Architect Python Programming" />
+<link rel="stylesheet" href="../../Styles/Blueberry/FlexibleTwoColumn.css" type="text/css" />
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml" />
+<script type="text/javascript"> getHaloscanJavascript(); </script>
+<title>The Python "Connection Reset By Peer" Problem</title>
+</head>
+
+<body>
+<div id="container"><!-- container wraps everything -->
+	<div id="header"><!-- header containing banner & subnavigation starts -->
+		<div id="banner"><!-- start banner -->
+			
+			<ul id="navigation"><!--Create the navigation menu-->
+				<li> <script type="text/javascript"> getBlogName(); </script>  > <script type="text/javascript"> getCategoryName("C8F8EF85-51B2-41AB-9977-725AC7506A4D"); </script> ></li>
+			</ul>
+		</div><!-- End banner-->
+	</div>	<!-- End header-->
+	<div id="content"><!-- wraps the blogentries + sidebars -->	
+		
+		
+		<div id="secondarySidebar" class="sidebar"> <!-- left column starts -->
+			
+		</div> <!-- left column stops -->
+		 
+
+ 
+		<div id="primarySidebar" class="sidebar"><!-- right column starts -->
+			<script type="text/javascript"> getPrimarySidebarItemsForEntryPage("../../"); </script>
+		</div><!-- right column ends -->
+		 
+
+ 
+<div id="blogentries"><!-- blogentries area starts -->
+	<div class="blog">
+		
+		<div class="entry">
+			<h2 class="entrydate">Friday - October 31, 2008</h2>
+			<h3 class="entrytitle">  The Python "Connection Reset By Peer" Problem</h3> <br />
+			<p>We've got a fairly complex application that fits the "broker" pattern.  It offers web services and it consumes web services.  It does some complex calculations of it's own and it's got a pretty complex database.</p><p>One thing I like to have is a "ready for deployment" test suite that exercises pretty much everything.  This is several layers of testing</p><ul><li>Django Unit Tests</li><li>Python Unit Tests (for non-Django components)</li><li>Integration Tests (built on unittest.TestCase, but somewhat more complex)</li></ul><p>It takes several minutes to run through the test sequence.</p><p><span class="Apple-style-span" style="font-weight: bold;">REST Integration Tests</span></p><p>Some of our tests are pretty big REST tests.  We launch the Django "testserver" version of the server (with a known set of fixtures) and use a REST client to execute sequences of transactions.  </p><p>Sometimes we would get a urllib2 IOError which contained a socket.error (10054 on Windows, 104 in Linux).  Sometimes.</p><p>The text was "Connection Reset by Peer".  First, it was intermittent.  Second, we had bigger fish to fry.</p><p>This week, it became the long pole in the tent, and I dug into it.  Part of the reason is the count-down to deployment, and the resulting turnover to sysadmins.  But another part of the reason was that we have very stable software (finally) and we're starting to expand the unit tests to cover more obscure edge cases.</p><p><span class="Apple-style-span" style="font-weight: bold;">Consistently Intermittent</span></p><p>The most maddening thing about Connection Reset by Peer is the pattern of getting it.  And not getting it.</p><p>For a while, it appeared randomly.  Then we stopped getting it in development.  Problem fixed, right?</p><p>On VMWare, however, it was -- mostly -- reproducible.  On Windows, it never happened.  And yes, they're both Python 2.5.2.</p><p><span class="Apple-style-span" style="font-weight: bold;">Which Side?</span></p><p>We're debugging REST transactions.  Since we see it solidly under VMWare, let's dig in.  Which side?  From the logs, it  becomes clear that it's on the client side.  The Django server looks to be rock-solid.  When Django's WSGI server logs the status code and size of the response, this is followed immediately by flush and close.  No opportunity for something bad to happen to the socket.</p><p>So we're focused at our client, based on <span class="Apple-style-span" style="font-family: courier;">urllib2</span>.  Sometimes we get it the error, sometimes we don't.  When we get it, however, it's in exactly the same point in the test sequence.   And under VMWare, we're getting it consistently enough that we can work with it.</p><p>Interestingly, as we move code around, the "Connection Reset By Peer" moves around.  When it occurs, it occurs in a consistent location in the test sequence.  </p><p>I've upgraded our client to retry the transaction.  Generally, a half-dozen retries (or fewer) and the transaction completes normally.</p><p><span class="Apple-style-span" style="font-weight: bold;">The Global Interpreter Lock</span></p><p>At this point, I'm convinced I've found something in Python itself.  Since we're running client, server, and MySQL database all under VMWare, I think we're looking at some small bug within <span class="Apple-style-span" style="font-family: courier;">urllib2</span>.  I think it's threading.</p><p>I read up on the GIL.  The article by Aahz in PyZine, <a href="http://www.pyzine.com/Issue001/Section_Articles/article_ThreadingGlobalInterpreter.html" target="_blank">Threading the Global Interpreter Lock</a> has some notes on the way that <span class="Apple-style-span" style="font-family: courier;">time.sleep()</span> changes thread scheduling.</p><p>When I changed the positions of <span class="Apple-style-span" style="font-family: courier;">time.sleep()</span> calls in our client library or unittest sequence, the "Connection Reset by Peer" error moved, also.  It looks like we're suffering from some kind of interlock that's interfering with the client side of the socket.</p><p>The GIL is switched every 100 Python byte-code instructions.  That leads to very consistent behavior.  That's why it can be the same test in the test sequence or not at all.</p><p>So, now what?</p><p><span class="Apple-style-span" style="font-weight: bold;">Does It Matter?</span></p><p>Actually, I think it doesn't matter.  The all-on-one box testing is contrived.  With the retry loop, we can get to 100% success, it just takes a passel of retries.  For now, the log of connection reset retries is a side-light.  As we move toward scalability testing across multiple, independent boxes, we'll see if the problem persists.  </p> <br />
+			<div class="entrybyline"> Posted: Friday - October 31, 2008 at 08:42 PM <br /> <a href="../../index.html"><script type="text/javascript"> getBlogName(); </script> </a> &nbsp; <a href="../index.html"><script type="text/javascript"> getCategoryName("C8F8EF85-51B2-41AB-9977-725AC7506A4D"); </script></a> &nbsp; <script type="text/javascript"> getPreviousEntryLink("E20081031204203"); </script> &nbsp; <script type="text/javascript"> getNextEntryLink("E20081031204203"); </script> &nbsp; <script type="text/javascript"> getCommentsCode("421A0EBF-AC87-482B-9F4D-69BC72510A02"); </script> </div> <br />
+			Author: <a href="&#109;&#097;&#105;&#108;&#116;&#111;&#058;&#115;&#095;&#108;&#111;&#116;&#116;&#064;&#109;&#097;&#099;&#046;&#099;&#111;&#109;"> Steven Lott </a> <br />
+Technorati Tags: <a href="http://www.technorati.com/tag/Python" rel="tag">Python</a> <a href="http://www.technorati.com/tag/Libraries" rel="tag">Libraries</a>  <br />
+Technorati Cosmos: <img src="../../Shared/technorati.png" alt="Technorati Cosmos"/> <script type="text/javascript"> getTechnoratiCosmos(''); </script> <br />
+Technorati Watchlist: <img src="../../Shared/technorati.png" alt="Technorati Watchlist"/> <script type="text/javascript"> getTechnoratiWatchlist(''); </script> <br />
+Add this entry to: <script type="text/javascript"> getDeliciousURL('', 'The Python "Connection Reset By Peer" Problem', '../../'); </script> &nbsp; <script type="text/javascript"> getDiggURL('', 'The Python "Connection Reset By Peer" Problem', '../../'); </script> &nbsp; <script type="text/javascript"> getFurlURL('', 'The Python "Connection Reset By Peer" Problem', '../../'); </script> &nbsp; <script type="text/javascript"> getRedditURL('', 'The Python "Connection Reset By Peer" Problem', '../../'); </script> &nbsp; <script type="text/javascript"> getYahooMyWebURL('', 'The Python "Connection Reset By Peer" Problem', '../../'); </script>
+		</div>
+		
+	</div>
+</div><!--  blogentries area stops -->
+
+		
+	</div><!-- main blog content stops -->
+	<div id="footer"><!-- start footer -->
+		&#169; <script type="text/javascript"> getCopyright(); </script> 
+	</div><!-- end footer -->
+</div><!-- end container which wraps everything-->
+
+</body>
+
+</html>

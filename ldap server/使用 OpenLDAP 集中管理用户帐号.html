@@ -1,0 +1,1785 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+
+  <html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<title>使用 OpenLDAP 集中管理用户帐号</title>
+<meta http-equiv="PICS-Label" content='(PICS-1.1 "http://www.icra.org/ratingsv02.html" l gen true r (cz 1 lz 1 nz 1 oz 1 vz 1) "http://www.rsac.org/ratingsv01.html" l gen true r (n 0 s 0 v 0 l 0) "http://www.classify.org/safesurf/" l gen true r (SS~~000 1))'/>
+<link rel="schema.DC" href="http://purl.org/DC/elements/1.0/"/>
+<link rel="SHORTCUT ICON" href="http://www.ibm.com/favicon.ico"/>
+  <meta name="Owner" content="dw@cn.ibm.com"/>
+  <meta name="DC.Language" scheme="rfc1766" content="zh-CN"/>
+  <meta name="IBM.Country" content="CN"/>
+<meta name="Security" content="Public"/>
+<meta name="IBM.SpecialPurpose" content="SP001"/>
+<meta name="IBM.PageAttributes" content="sid=1003,1004"/>
+<meta name="Source" content="v16 Template Generator"/>
+<meta name="Robots" content="index,follow"/>
+<meta name="Abstract" content="使用轻量级目录访问协议（LDAP）构建集中的身份验证系统可以减少管理成本，增强安全性，避免数据复制的问题，并提高数据的一致性。随着 Linux 的不断成熟，已经出现了很多工具用来简化用户帐号信息到 LDAP 目录的迁移。还开发了一些工具用来在客户机和目录服务器之间启用加密通信配置，并通过复制提供容错性。本文将向您展示如何配置服务器和客户机在 Red Hat Linux 上使用 OpenLDAP。"/>
+<meta name="Description" content="使用轻量级目录访问协议（LDAP）构建集中的身份验证系统可以减少管理成本，增强安全性，避免数据复制的问题，并提高数据的一致性。随着 Linux 的不断成熟，已经出现了很多工具用来简化用户帐号信息到 LDAP 目录的迁移。还开发了一些工具用来在客户机和目录服务器之间启用加密通信配置，并通过复制提供容错性。本文将向您展示如何配置服务器和客户机在 Red Hat Linux 上使用 OpenLDAP。"/>
+<meta name="Keywords" content="michael j o'reilly, ldap, openldap, lightweight directory access protocol, account, manage, users, groups, authenticate, server, client, 轻量级目录访问协议, 帐号, 管理, 用户, 组, 身份验证, 服务器, 客户机, tttlca, tttosca, dddauca"/>
+<meta name="DC.Date" scheme="iso8601" content="2006-06-26"/>
+<meta name="DC.Type" scheme="IBM_ContentClassTaxonomy" content="CT316"/>
+<meta name="DC.Subject" scheme="IBM_SubjectTaxonomy" content="SWGC0"/>
+<meta scheme="IBM_WTMCategory" name="IBM.WTMCategory" content="SOFDCLNXCN" />
+<meta name="DC.Rights" content="© Copyright IBM Corporation 2006"/>
+<meta name="IBM.Effective" scheme="W3CDTF" content="2006-06-26"/>
+<meta name="title" content="使用 OpenLDAP 集中管理用户帐号"/>
+
+<!-- HEADER_SCRIPTS_AND_CSS_INCLUDE -->
+<link href="//dw1.s81c.com/common/v16/css/all.css" media="all" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/screen.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/screen-uas.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/cn/zh/screen-fonts.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/handheld.css" media="handheld" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/print.css" media="print" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/common/v16/css/overlay.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+
+<!-- dW-specific CSS -->
+<link href="//dw1.s81c.com/developerworks/css/dw-screen.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="/developerworks/css/dw-local-site.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/dw-screen-comments-ratings-signin.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/js/jquery/cluetip98/jquery.cluetip.css" media="screen,projection" rel="stylesheet"  title="www" type="text/css" />
+
+<!-- JPP: LOCAL URL FOR TESTING V16 DEFIANT MASTHEAD/FOOTER -->
+<link href="//dw1.s81c.com/developerworks/css/dw-mf/dw-mf2013-03.css" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/dw-mf/dw-mf-cn.css" rel="stylesheet" title="www" type="text/css"/>
+<script src="//dw1.s81c.com/common/js/ibmcommon.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/common/js/dynamicnav.js" type="text/javascript">//</script>
+<script language="JavaScript" src="//dw1.s81c.com/developerworks/js/urltactic.js" type="text/javascript"></script>
+<!-- Rating_START -->
+<script language="JavaScript" type="text/javascript">
+  // <![CDATA[
+
+ dwr = {};
+  dwr.clickhere = '点击评分';
+  dwr.starIntro = ''; 
+  dwr.stars = '星';
+  dwr.star = '星'; 
+  dwr.avgRatingOf = '平均分';
+  dwr.youRated = '您的评分是';
+  dwr.avgRating = '平均分';
+  dwr.basedOnVote = '共 {1} 个评分'; // {1} to be substitue by code
+  dwr.basedOnVotes = '共 {1} 个评分';
+  dwr.leftParen = '（'; 
+  dwr.rightParen = ' ）'; 
+  dwr.space = ' '; 
+  dwr.yourRating = '您的评分';
+dwr.avgRating2 = '总共 {1} 评分的平均分';
+dwr.avgRating3 = '平均分{1} 星';
+dwr.rateThisArticle = '为本文评分';
+dwr.votes = '{1}个评分';
+dwr.vote = '{1}个评分';
+dwr.submitErr = '错误：提交失败，请重试。';
+dwr.noRatingErr = '错误：请选择一个评分并重新提交。';
+dwr.submit = '提交';
+// ]]>
+</script>
+
+<!-- Rating_START -->
+<script language="JavaScript" src="//dw1.s81c.com/developerworks/js/artrating/showrating.js" type="text/javascript"></script>
+<style type="text/css">
+  .metavalue {
+  display: none;
+  }
+</style>
+<!-- Rating_END --><!-- RESERVED_HEADER_INCLUDE -->
+<script language="javascript" src="//dw1.s81c.com/developerworks/js/ajax1.js" type="text/javascript"></script>
+<script language="javascript" src="//dw1.s81c.com/developerworks/js/search_counter-maverick.js" type="text/javascript"></script>
+<script language="javascript" src="//dw1.s81c.com/developerworks/js/request_referer_capture-maverick.js" type="text/javascript"></script>
+<script language="JavaScript" type="text/javascript">
+ <!--
+ setDefaultQuery('defaultHere');
+ //-->
+</script>
+<script language="JavaScript" type="text/javascript">
+ <!--
+ function openNewWindow(url,tar,arg){window.open(url,tar,arg);}
+ //-->
+</script>
+  <!-- Include file support -->
+  <script language="JavaScript" type="text/javascript">
+    (function($) {
+    jQuery.extend({
+    getInc: function(u,d){
+    if(u==null)return;
+    jQuery.ajax({
+    type: "GET",
+    url: u,
+    dataType: "text",
+    success: function(t) {
+    jQuery(d).html(t);
+    ibmCommon.initShowHide(jQuery(d).children()[0]);	
+    },
+    async: true
+    });
+    }
+    });
+    })(jQuery);
+  </script>
+</head>
+
+<body id="ibm-com">
+<div id="ibm-top" class="ibm-landing-page">
+
+<!-- MASTHEAD_BEGIN -->
+<!-- MASTHEAD_BEGIN -->
+<div class="ibm-access"><a href="#ibm-content">跳转到主要内容</a></div>
+<div id="ibm-masthead-dw">
+  
+    <!-- TOP ROW -->    
+    <div id="dw-masthead-top-row">
+    	<ul id="ibm-mast-options-dw" class="cn">
+    		<li id="dw-mast-top-0"> 	
+    			<a class="dw-mf-noscript" href="#" title="登录（或注册）需启用 JavaScript">登录 (或注册)</a>
+    		</li>
+    		<li id="dw-mast-top-1" class="dw-mast-top-1-cn">
+    			<a href="#SELECTLANG">中文</a><img class="dw-preload" src="//dw1.s81c.com/developerworks/i/mf/arrow-down-active.gif" width="8" height="7" alt="" />
+    		</li>
+    		<li id="dw-mast-top-2" class="dw-mf-hide">
+    			<a href="#"><img src="/developerworks/mydeveloperworks/profiles/photo.do?userid=[uid]" alt="PHOTO" class="dw-mast-profimg" width="20" height="20"/> [userid]</a>
+    		</li>
+    		<li id="dw-mast-top-3">
+    			<a href="#"><img src="//dw1.s81c.com/developerworks/i/mf/ibm-smlogo.gif" width="44" height="16" alt="IBM®" /></a>
+    		</li>
+    	</ul>
+	</div>
+    
+    <!-- TOP ROW SLIDER -->
+    <div id="ibm-my-menu-dw">    
+        <div class="ibm-ribbon-pane-dw">
+            <div class="ibm-ribbon-section-dw">
+                <!-- Sign-in -->
+                <div class="dw-mast-columns">                
+					<div class="dw-mast-col-1-1">
+						<div id="dw-mast-sso">
+							<!--<div id="dw-mast-sso-reg">
+								<p class="dw-mast-sso-reg-cn">如果您还没有注册到 IBM 注册系统，我们为给您带来的不便表示道歉，并请您马上注册。 							
+									<a href="#" onclick="(function () {window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh&amp;d='+encodeURIComponent(location.href);})();">现在注册</a>。</p>
+							</div>-->
+							<div id="signin_error_mf" class="dw-mf-hide"></div>
+							<div id="dw-mast-sso-form">
+								<form id="sForm_mf" action="" method="post" name="sForm_name_mf" onsubmit="return false;">
+									<div id="dw-mast-sso-id" class="dw-mast-sso-id-cn">
+										<label for="ibmid_mf">IBM ID：</label>
+										<input id="ibmid_mf" type="text" value="" name="ibmid_name_mf" maxlength="100" onkeypress="handleEP(event,this.form,'mf');"/>
+									</div>
+									<div id="dw-mast-sso-pw" class="dw-mast-sso-pw-cn">
+										<label for="pw_mf">密码：</label>
+										<input id="pw_mf" type="password" value="" name="pw_name_mf" maxlength="100" onkeypress="handleEP(event,this.form,'mf');"/>
+									</div>
+									<div id="dw-mast-sso-target" class="dw-mast-sso-target-cn">
+										<p class="dw-mf-perm-box">
+											<input id="perm_mf" type="checkbox" name="perm_name_mf"/><label for="perm_mf"> 保持登录。</label>
+										</p>
+									</div>
+									<div id="dw-mast-sso-terms">
+										<p class="dw-mast-sso-terms-cn">单击提交则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+									<div>
+										<input class="dw-mf-submit-btn-cn" name="ibm_submit_name_mf" value="提交" onclick="signin('mf');return false;" type="submit" />
+									</div>
+								</form>
+							</div>
+							<div id="dw-mast-sso-update">
+								<div id="dw-mast-sso-update-id">
+									<ul>
+										<li><a class="ibm-forward-link" href="#" onclick="(function () {window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.href);})();">需要一个 IBM ID？</a></li>
+										
+									<li><a class="ibm-forward-link" href="/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a></li>
+									</ul>
+								</div>
+								<div id="dw-mast-sso-update-pw">
+								<ul class="dw-mf-pwupdate">
+									<li><a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Dzh_CN%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a></li>
+									<li><a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></li>
+								</ul>
+									</div>
+							</div>
+							<div id="dw-mast-sso-text">
+			<!-- lk v17 updated text -->				    
+			<p>这是您第一次登陆到 developerWorks，已经自动为您创建了您的概要文件。 <strong>选择您概要文件中可以公开的信息的信息（如姓名、国家/地区，以及公司），这些信息同时也会与您所发布的内容相关联。 </strong>您可以随时更新您的 IBM 账号。</p>
+							<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+							</div>
+							<div class="dw-mast-close">
+								<ul>
+									<li><div class="dw-mast-close-sign-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+								</ul>
+							</div>	
+						</div>
+						
+						<div id="dw-mast-dname" class="dw-mf-hide">
+							<p>当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+							<div id="signin_dname_error_mf" class="dw-mf-hide"></div>
+							<div id="dw-mast-dname-form">
+								<form id="dForm_mf" action="" method="post" name="dForm_name_mf" onsubmit="return false;">
+									<div id="dw-mast-dname-mf">
+										<label for="dname_mf">昵称：</label>
+										<input id="dname_mf" name="dname_name_mf" maxlength="31" size="25" value="" type="text" onkeypress="handleEP(event,this.form,'mf');" />
+									</div>
+									<div id="dw-mast-dname-terms">
+										<p class="dw-mast-dname-terms-cn">单击<strong>提交</strong>则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+									<div>
+										<input class="dw-mf-submit-btn-cn" name="dname_submit_name_mf" value="提交" onclick="signin('mf');return false;" type="submit" />
+									</div>
+								</form>								
+							</div>
+							<div id="dw-mast-dname-secure">
+								<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+							</div>
+							<div class="dw-mast-close">
+								<ul>
+									<li><div class="dw-mast-close-sign-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+								</ul>
+							</div>	
+						</div>
+	
+						<div id="dw-mast-auth" class="dw-mf-hide">
+							<div>
+
+								<h2>My developerWorks:</h2>
+<!-- lk v17 updated links and text -->							    
+               		<ul>
+							<li><a id="dw-mast-top-0-0" href="//www.ibm.com/developerworks/community/homepage?lang=zh">我的首页</a></li>						    
+							<li><a
+							    href="//www.ibm.com/developerworks/community/profiles/html/myProfileView.do?lang=zh">我的概要信息</a></li>
+							<li><a
+							    href="//www.ibm.com/developerworks/community/groups/service/html/mycommunities?lang=zh">我的社区</a></li>
+			                 <li><a href="/developerworks/community/news/?lang=zh">设置</a></li>
+										    
+						</ul>      
+							</div>
+							<div id="dw-mast-notify" class="dw-mf-hide">
+								<h2>我的通知：</h2>
+								<ul>
+									<li><a id="new_notify" href="/developerworks/mydeveloperworks/homepage?lang=zh">{[num_notify] 个新通知}([num_notify] 个新通知)</a></li>
+									<li><a id="new_invite" href="/developerworks/mydeveloperworks/profiles/html/wc.do?action=in&requireAuth=true&widgetId=friends&lang=[lang]">{[num_invite] 个网络请求}([num_invite] 个网络请求)</a></li>  
+								</ul>
+							</div>
+							<div class="dw-mast-more">
+								<ul class="ibm-link-list">
+									<li><a class="dw-more-link" href="#" onclick="signOut(); return false;"><strong>退出</strong></a></li>
+								</ul>
+							</div>
+							<div class="dw-mast-close">
+								<ul>
+									<li><div class="dw-mast-close-sign"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+								</ul>
+							</div>		
+						</div>
+						
+					</div>
+                	
+                </div>
+                <!-- Site selector --> 
+				<div class="dw-mast-columns">
+					<div class="dw-mast-col-2-1">
+						<h2>选择语言：</h2>
+						<ul>
+							<li><a id="dw-mast-top-1-0" href="http://www.ibm.com/developerworks/">English</a></li>
+							<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+							<li><a href="http://www.ibm.com/developerworks/jp/">日本語</a></li>
+						    <li><a href="http://www.ibm.com/developerworks/ru/">Русский</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-col-2-2">
+						<ul>
+							<li><a href="http://www.ibm.com/developerworks/br/">Português (Brasil)</a></li>
+							<li><a href="http://www.ibm.com/developerworks/ssa/">Español</a></li>
+							<li><a href="http://www.ibm.com/developerworks/vn/">Việt</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-close">
+						<ul>
+							<li><div class="dw-mast-close-lang"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+						</ul>
+                    </div>
+                </div>
+                <div class="dw-mast-columns"><!-- Authenticated --></div>
+                <!-- IBM -->
+				<div class="dw-mast-columns">
+					<div class="dw-mast-col-2-1">
+						<ul>
+							<li><a id="dw-mast-top-3-0" href="http://www.ibm.com/cn/zh/">IBM 主页</a></li>
+							<li><a href="http://www.ibm.com/solutions/cn/zh/">解决方案</a></li>
+							<li><a href="http://www.ibm.com/software/cn/">软件</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-col-2-2 dw-mast-ibm">
+						<ul>
+							<li><a href="http://www.ibm.com/support/cn/zh/">支持门户</a></li>
+							<li><a href="http://www.ibm.com/support/documentation/cn/zh/">产品文档</a></li>
+							<li><a href="http://www.ibm.com/redbooks/">Redbooks（英文）</a></li>
+						</ul>
+					</div>
+					<div class="dw-mast-close">
+						<ul>
+							<li><div class="dw-mast-close-ibm-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+						</ul>
+                    </div> 
+				</div>
+			</div>
+        </div>
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div id="ibm-universal-nav-dw">
+        <ul id="ibm-unav-links-dw">
+        	<li id="ibm-unav-home-dwlogo">
+        		<a href="http://www.ibm.com/developerworks/cn/"><img src="//dw1.s81c.com/developerworks/i/mf/dw-wordmark.gif" width="218" height="32" alt="developerWorks®" /></a>
+        	</li>
+        </ul>
+    	<ul id="ibm-menu-links-dw" class="ibm-menu-links-dw-cn">
+    		
+    		<li id="dw-mast-nav-0"><a href="http://www.ibm.com/developerworks/cn/topics">技术主题</a></li>
+    		<li id="dw-mast-nav-1"><a
+    			href="http://www.ibm.com/developerworks/cn/downloads/">软件下载</a></li>
+    		<li id="dw-mast-nav-2"><a
+    			href="https://www.ibm.com/developerworks/community/?lang=zh">社区</a></li>
+    		<li id="dw-mast-nav-3"><a href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></li>
+    	</ul>   
+    	<form id="ibm-search-form" action="//www.ibm.com/search/csass/search/" method="get" name="form1">
+    		<input type="hidden" name="sn" value="dw" />
+    		<input type="hidden" name="lang" value="zh" />
+    		<input type="hidden" name="cc" value="CN" />
+    		<input type="hidden" name="en" value="utf" />
+    		<input type="hidden" name="hpp" value="20" />
+    		<input type="hidden" name="dws" value="cndw" />
+    		<input type="hidden" name="lo" value="zh" />
+    		<p>
+    			<label for="q"><img alt="查询:" height="1" width="1" src="//dw1.s81c.com/i/c.gif" /></label>
+    			<input type="text" value="搜索 developerWorks" name="q" maxlength="100" id="q"/>
+    			<input type="submit" id="ibm-search" class="ibm-btn-search ibm-btn-search-cn" name="Search" value="搜索" />
+    		</p>
+    	</form>
+    </div>
+    
+    <!-- BOTTOM ROW SLIDER -->
+    <div id="ibm-common-menu-dw">
+        <div class="ibm-ribbon-pane-dw">
+            <div class="ibm-ribbon-section-dw">
+				<!-- Technical topics category -->
+  
+            	<div class="dw-mast-columns">
+            	<div class="dw-mast-col-5-1">
+            		<h2><a id="dw-mast-nav-0-0" href="http://www.ibm.com/developerworks/cn/topics/">技术主题</a></h2>
+            		
+            		<ul>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/agile/">Agile
+            			    transformation</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/aix/">AIX and UNIX</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/bigdata/">Big data</a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/cloud/">Cloud computing</a></li>
+            		
+            			
+            		</ul>     
+            	</div>
+            	<div class="dw-mast-col-5-2">
+            		
+            		<ul>
+						<li><a href="http://www.ibm.com/developerworks/cn/ibmi/">IBM i</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/data/">Information management</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/java/">Java technology</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/linux/">Linux</a></li>
+            			
+           			
+            		</ul>
+            	</div>
+            	<div class="dw-mast-col-5-3">
+            		
+            		<ul>
+						<li><a href="http://www.ibm.com/developerworks/cn/lotus/">Lotus</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/mobile/">Mobile development</a></li>
+						<li><a href="http://www.ibm.com/developerworks/cn/opensource/">Open source</a></li>
+            		    <li><a href="http://www.ibm.com/developerworks/cn/rational/">Rational</a></li>
+            			<!--<li><a href="http://www.ibm.com/developerworks/cn/webservices/">SOA and web services</a></li>-->
+						
+            			</ul>
+            		
+            	</div>
+            	<div class="dw-mast-col-5-4">
+            		<ul>
+					<li><a href="http://www.ibm.com/developerworks/cn/social/">Social Business</a></li> 
+             		<li><a href="http://www.ibm.com/developerworks/cn/web/">Web development</a></li>  
+					<li><a href="http://www.ibm.com/developerworks/cn/websphere/">WebSphere</a></li> 
+           		<!--	<li><a href="http://www.ibm.com/developerworks/cn/xml/">XML</a></li>-->
+            		</ul>        
+            	</div>
+            	<div class="dw-mast-col-5-5">
+            		<ul>
+            			<li><a href="http://www.ibm.com/developerworks/cn/library/"><strong>文档库</strong></a></li>
+            			<li><a href="http://www.ibm.com/developerworks/cn/products/"><strong>产品 A - Z</strong></a></li>				    
+            		</ul>        
+            	</div>
+            	<div class="dw-mast-close">
+            		<ul>
+            			<li><div class="dw-mast-close-tech-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            		</ul>
+            	</div>
+            </div>
+            	<!-- Evaluation software category -->
+            	<div class="dw-mast-columns">
+            		<div class="dw-mast-col-2-1">
+            			<h2><a id="dw-mast-nav-1-0" href="http://www.ibm.com/developerworks/cn/downloads">软件下载</a></h2>
+            			<ul>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#data">Information management</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#lotus">Lotus</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#rational">Rational</a></li>
+            			</ul>            
+            		</div>
+            		<div class="dw-mast-col-2-2">
+            			<ul>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#tivoli">Tivoli</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/downloads/#websphere">WebSphere</a></li>
+            				
+            			</ul>            
+            		</div>
+            		<div class="dw-mast-close">
+            			<ul>
+            				<li><div class="dw-mast-close-eval-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            			</ul>
+            		</div>
+            	</div>
+            	<!-- Community category -->
+                <!-- lk v17 removed links, updated urls -->
+            	<div class="dw-mast-columns">
+            		<div class="dw-mast-col-2-1">
+            			<h2><a id="dw-mast-nav-2-0" href="https://www.ibm.com/developerworks/community/?lang=zh">社区</a></h2>
+            			<ul>
+            				<li><a href="https://www.ibm.com/developerworks/community/homepage/?lang=zh">我的首页</a></li>
+            				<li><a href="https://www.ibm.com/developerworks/community/profiles/?lang=zh">概要信息</a></li>
+            				<li><a href="https://www.ibm.com/developerworks/community/groups/?lang=zh">群组</a></li>
+							<li><a href="https://www.ibm.com/developerworks/community/blogs/?lang=zh">博客</a></li>
+             			</ul>     
+            		</div>
+            		<div class="dw-mast-col-2-2">
+            			<ul>
+                    
+				    <li><a href="https://www.ibm.com/developerworks/community/forums/?lang=zh">论坛</a></li>
+					<li><a href="https://www.ibm.com/developerworks/community/wikis/?lang=zh">Wiki</a></li>
+					<li><a href="https://www.ibm.com/developerworks/community/activities/?lang=zh">活动</a></li>
+            			</ul>
+            		</div>
+            		<div class="dw-mast-close">
+            			<ul>
+            				<li><div class="dw-mast-close-comm-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            			</ul>
+            		</div>
+            	</div>
+            	<!-- Events category -->
+            	<div class="dw-mast-columns">
+            		<div class="dw-mast-col-1-1">
+            			<h2><a id="dw-mast-nav-3-0" href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></h2>
+            			<ul>
+            				<li><a href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/cn/swi/">多媒体课堂</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/find/webcasts/">网络广播（英文）</a></li>
+            				<li><a href="http://www.ibm.com/developerworks/find/events/">查找活动（技术讲座，网络广播，会议等）（英文）</a></li> 
+            			</ul>            
+            		</div>
+            		<div class="dw-mast-close">
+            			<ul>
+            				<li><div class="dw-mast-close-event-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10" border="0"/></a></div></li>
+            			</ul>
+            		</div>
+            	</div>
+            </div>
+        </div>
+    </div>
+	
+</div>
+<div id="fdiv" class="ibm-access"></div>
+<!-- MASTHEAD_END --><!-- MASTHEAD_END -->
+
+<div id="ibm-pcon">
+
+<!-- CONTENT_BEGIN -->
+<div id="ibm-content">
+
+<!-- Navigation_Trail_BEGIN -->
+<!-- &nbsp; -->
+      <div id="ibm-content-head"><ul id="ibm-navigation-trail"><li class="ibm-first"><a href="http://www.ibm.com/developerworks/cn/">developerWorks 中国</a></li><li><a href="http://www.ibm.com/developerworks/cn/linux/">Linux</a></li><li><a href="http://www.ibm.com/developerworks/cn/views/linux/libraryview.jsp">文档库</a></li></ul></div>
+<!-- Navigation_Trail_END -->
+
+<!-- dW_Summary Area_START -->
+<div id="dw-summary-article">
+
+<div class="dw-content-head">
+<h1>使用 OpenLDAP 集中管理用户帐号</h1><p><em>Red Hat 上的 OpenLDAP 提供了安全、可靠的帐号管理</em></p>
+</div>
+
+<div class="ibm-container-body ibm-two-column">
+
+<div class="ibm-column ibm-first">
+<div class="author"><a class="dwauthor" rel="#authortip1" href="#author1">Mike O'Reilly</a> (<a href="mailto:mikeor@us.ibm.com?subject=使用 OpenLDAP 集中管理用户帐号">mikeor@us.ibm.com</a>), 系统支持工程师, IBM</div><div id="authortip1" class="dwauthor-onload-state ibm-no-print"><div class="position"><img src="http://www.ibm.com/developerworks/i/p-moreilly.jpg" width="64" height="80" alt="Mike O'Reilly"/></div>Mike O'Reilly 是 IBM Linux 和 VMware ESX 产品支持小组的一员，他为 Linux 产品提供支持已经有 5 年的时间了。另外，他支持 VMware 超过两年的时间，支持 UNIX 超过 10 年的时间。</div>
+<p></p>
+  <p><strong>简介：</strong>&nbsp;使用轻量级目录访问协议（LDAP）构建集中的身份验证系统可以减少管理成本，增强安全性，避免数据复制的问题，并提高数据的一致性。随着 Linux&#174; 的不断成熟，已经出现了很多工具用来简化用户帐号信息到 LDAP 目录的迁移。还开发了一些工具用来在客户机和目录服务器之间启用加密通信配置，并通过复制提供容错性。本文将向您展示如何配置服务器和客户机在 Red Hat Linux 上使用 OpenLDAP。</p>
+
+ 
+</div>
+
+<div class="ibm-column ibm-second">
+
+<p class="leading"><b>发布日期：</b>&nbsp;2006 年 6 月 26 日
+  
+<br /><b>级别：</b>&nbsp;中级
+    
+
+<br /><strong>访问情况 ：</strong>&nbsp;34251 次浏览
+  <br /><strong>评论：</strong>&nbsp;<span id="nCmts"><img alt="" src="//dw1.s81c.com/developerworks/i/circle-preloader.gif" height="12" width="50" /><img alt="" src="//dw1.s81c.com/i/c.gif" height="14" width="1" /></span>
+  <!-- Rating_Area_Begin -->
+  <div id="art-rating-summary"></div>
+  <!-- Rating_Area_End -->
+  <br />
+</p>
+</div>
+
+</div>
+</div>
+<!-- dW_Summary_Area_END -->
+
+<!-- CONTENT_BODY -->
+<div id="ibm-content-body">
+
+<!-- MAIN_COLUMN_BEGIN -->
+<div id="ibm-content-main">
+
+<!-- Related_Searches_Area_And_Overlays_Begin -->
+
+<!-- MAIN_COLUMN_CONTAINER_BEGIN -->
+<div class="ibm-container">
+
+<!-- MAIN_COLUMN_CONTENT_BEGIN -->
+<p><a name="N10049"><span class="atitle">简介</span></a></p>
+
+<p>Linux 发行版中提供的 OpenLDAP 软件按照一个客户机/服务器模型实现了轻量级目录访问协议（LDAP）。LDAP 的设计目的是提供一种有效的方法来查找和管理信息。OpenLDAP 软件和包提供了创建目录信息树（一个主要进行读操作的数据库）的工具。本文向您展示如何存储用户的帐号信息，并修改身份验证服务来使用 LDAP 获取所需要的信息。内部细节并不重要，因为这些工具可以将数据库的内容以文本格式（LDAP 数据交换格式，LDIF）呈现在您的面前。</p>
+
+<p>LDAP 信息被组织成属性和值的组合，称为 <em>条目（entry）</em>。条目可能会具有必须的属性或可选属性。一个条目的属性必须要遵循 /etc/openldap/schema/ 模式文件中定义的规则。规则包含在条目的 <em>objectclass</em> 属性中。看一下下面的关系，我们可以看出 <code>posixAccount</code> objectclass 中包含了密码文件条目的信息（<code>posixAccount userPassword</code> 是文件条目的 base64 编码）。</p>
+
+
+<br /><a name="figure1"><b>图 1. LDAP 目录条目和 Linux 密码文件之间的关系</b></a><br />
+<img alt="LDAP 目录条目和 Linux 密码文件之间的关系" height="174" src="figure1.jpg" width="572"/>
+<br />
+
+<p>文件 /etc/openldap/schema/nis.schema 为 posixAccount 对象类中的条目定义了所有的属性和 objectclass。例如，下面是对 <code>uidNumber</code> 属性的描述：</p>
+
+
+<pre>
+attributetype ( 1.3.6.1.1.1.1.0 NAME 'uidNumber'
+   DESC 'An integer uniquely identifying a user in an administrative domain'
+   EQUALITY integerMatch
+   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE )
+</pre>
+
+<p>所有的属性类型都已经定义了，它们被收集到 <code>posixAccount</code> objectclass 中。例如：</p>
+
+
+<pre>
+objectclass ( 1.3.6.1.1.1.2.0 NAME 'posixAccount' SUP top AUXILIARY
+   DESC 'Abstraction of an account with POSIX attributes'
+   MUST ( cn $ uid $ uidNumber $ gidNumber $ homeDirectory )
+   MAY ( userPassword $ loginShell $ gecos $ description ) )
+</pre>
+
+<p><code>ldapuser</code> 条目具有一个识别名属性 <code>dn</code>，它用作用户名，并与 <code>userPassword</code> 一起用来在 LDAP 目录中记录信息，或与 LDAP 目录绑定在一起使用。</p>
+
+<p>LDAP 为作为容器使用的特殊条目提供了将这些条目组织成树结构的功能。在这个例子中，我们将使用一个容器 <code>People</code> 保存用户帐号信息，使用另外一个容器 <code>Groups</code> 保存组帐号信息。所生成的目录信息树如图 2 所示。</p>
+
+
+<br /><a name="figure2"><b>图 2. 用户帐号信息使用的目录信息树</b></a><br />
+<img alt="用户帐号信息使用的目录信息树" height="191" src="figure2.gif" width="572"/>
+<br />
+
+<p>让我们来看一下如何配置 OpenLDAP 服务器，如何将信息从系统文件迁移到 LDAP 目录中，如何配置 OpenLDAP 客户机通过 LDAP 对用户进行身份验证。在使用一个集中的身份验证数据库时，应该通过使用复制技术采用第二个 LDAP 服务器提供高可用性，这样在主服务器出现问题时，就可以使用第二个 LDAP 服务器响应客户机的请求。由于诸如密码之类的身份验证数据会通过网络进行传输，因此希望使用 TSL 协议建立加密通信连接。</p>
+
+<p>我们的 OpenLDAP 服务器和客户机都是虚拟机，上面运行的是 Red Hat Enterprise Linux AS release 4（Nahant Update 1）。在我们的例子中使用了 <a href="#table1">表 1</a> 所列出的系统。如果想模仿这些例子，请使用适合您自己的设置。</p>
+
+<br /><a name="table1"><b>表 1. 系统网络信息</b></a><br />
+      <table border="0" cellpadding="0" cellspacing="0" class="ibm-data-table" summary="System network information" width="100%"><tr><th>角色</th><th>主机名</th><th>IP 地址</th></tr><tr><td class="tb-row">OpenLDAP 主服务器</td><td>dhcp64-233.ibm.com</td><td>9.47.64.233</td></tr><tr><td class="tb-row">OpenLDAP 从服务器</td><td>dhcp64-253.ibm.com</td><td>9.47.64.253</td></tr><tr><td class="tb-row">OpenLDAP 客户机</td><td>dhcp64-251.ibm.com</td><td>9.47.64.251</td></tr></table>
+      <br />
+
+<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="configserver"><span class="atitle">配置 LDAP 服务器</span></a></p>
+
+
+<p>我们使用 Red Hat Enterprise Linux release 4 Update 1 上的包来构建服务器：</p>
+
+<ul>
+<li><strong>openldap-2.2.13-2</strong>：包含 OpenLDAP 配置文件、库和文档</li>
+<li><strong>openldap-servers-2.2.13-2</strong>：包含 slapd 和 slurpd 服务器、迁移脚本和相关文件</li>
+<li><strong>openldap-clients-2.2.13-2</strong>：包含客户机程序，用来访问和修改 OpenLDAP 目录</li>
+</ul>
+
+<p>OpenLDAP 包在服务器上安装了很多程序：</p>
+
+<ul>
+<li>守护进程：
+<ul>
+<li><strong>slapd</strong>：主 LDAP 服务器</li>
+<li><strong>slurpd</strong>：负责与复制 LDAP 服务器保持同步的服务器</li>
+</ul>
+</li>
+<li>对网络上的目录进行操作的客户机程序。下面这两个程序是一对儿：
+<ul>
+<li><strong>ldapadd</strong>：打开一个到 LDAP 服务器的连接，绑定、修改或增加条目</li>
+<li><strong>ldapsearch</strong>：打开一个到 LDAP 服务器的连接，绑定并使用指定的参数进行搜索</li>
+</ul>
+</li>
+<li>对本地系统上的数据库进行操作的几个程序：
+<ul>
+<li><strong>slapadd</strong>：将以 LDAP 目录交换格式（LDIF）指定的条目添加到 LDAP 数据库中</li>
+<li><strong>slapcat</strong>：打开 LDAP 数据库，并将对应的条目输出为 LDIF 格式</li>
+</ul>
+</li>
+</ul>
+
+<p>OpenLDAP 的主要服务器配置文件是 /etc/openldap/slapd.conf。本例所使用的完整 slapd.conf 文件如 <a href="#listing18">清单 18</a> 所示。slapd.conf 文件中包括一系列全局配置选项，它们作为一个整体应用到 slapd 上面，后面是包含数据库特有信息的数据库后端定义。如果一行内容是以空格开始的，就认为它是上一行的延续。空行和以 “#” 字符开头的注释行都会被忽略。</p>
+
+<p>如果您正把本文当作练习来做，那就可以按照下面指定的方式进行修改，从而启动 LDAP 服务器。一旦确认服务器正常工作之后，就可以添加复制功能，然后再添加安全性支持。首先是全局配置信息段的设置。其中每个选项的值都是我们想要的。</p>
+
+<p>正如上面介绍的一样，信息被组织成属性和值的组合，称为条目。条目属性必须遵循的规则是使用 <code>objectclass</code> 专用属性进行组织的，这可以在 /etc/openldap/schema/ 模式文件中找到。对于身份验证来说，需要使用在 nis.schema 中定义的 <code>posixAccount</code> 和 <code>shadowAccount</code> objectclasses：</p>
+
+<p><code>
+include         /etc/openldap/schema/nis.schema
+</code></p>
+
+<p><code>loglevel</code> 行设置的是日志选项。可以将其设置为这样的级别：调试语句和操作统计信息都会被记录到 /var/log/slapd.log 中。日志级别是累加的：296 = 256 日志连接/操作/结果 + 32 搜索过滤器处理 + 8 连接管理：</p>
+
+<p><code>
+loglevel        296
+</code></p>
+
+<p>日志信息会被记录到 syslogd LOG_LOCAL4 机制中。还需要将下面的内容添加到 /etc/syslog.conf 中，并让 syslogd 重新读取自己的配置文件：</p>
+
+<p><code>
+local4.debug   /var/log/slapd.log
+</code></p>
+
+<p>access 行定义了谁可以访问目录中的内容。我们希望用户可以修改自己的密码，并更新自己的 shadow 信息来反映密码的变化。希望身份验证程序能够检索用户的密码。还希望用户能够读取所有其他条目。注意密码条目是不可读的，shadow 属性的惟一用处就是管理密码的过期问题。</p>
+
+
+<pre>
+access to attrs=shadowLastChange,userPassword
+      by self write
+      by * auth
+
+access to *
+      by * read
+</pre>
+
+<p>接下来，在 database 部分，要定义下面的内容。</p>
+
+<p>使用新的 bdb 后端数据库：</p>
+
+<p><code>
+database        bdb
+</code></p>
+
+<p>指定后端数据库需要响应的查询的 DN 前缀。为了确保惟一性，根前缀应该从自己的网络域名构建出来。在本例的情况中，它是 .dc=svc,dc=beaverton,dc=ibm,dc=com.，但是在下面的例子中我们对其进行了简化：</p>
+
+<p><code>
+suffix              "dc=ibm,dc=com"
+</code></p>
+
+<p>指定管理 DN，它不用于访问控制或限制数据库的操作。也不需要在目录中为这个 DN 指定一个条目。为具有 rootpw 密码的管理员使用 DN 可以跳过 ACL 规则中的所有访问控制：</p>
+
+<p><code>
+rootdn           "cn=Manager,dc=ibm,dc=com"<br />
+rootpw           {MD5}ijFYNcSNctBYg
+</code></p>
+
+<p>这就是我们现在想要设置的选项。稍后将返回 slapd.conf 文件来配置复制，然后在配置安全性。</p>
+
+<p>现在，我们希望将数据添加到目录中，并确认可以访问这些信息。要实现这种功能，需要配置服务器来使用 ldap 客户机工具，例如 ldapadd 和 ldapsearch。ldap 客户机工具的配置文件是 /etc/openldap/ldap.conf。我们使用的这个文件的完整列表如本文末尾的 <a href="#listing19">清单 19</a> 所示。要在 ldap 服务器上运行这些工具，只需要将该行修改成下面的内容：</p>
+
+<p><code>
+BASE dc=ibm,dc=com
+</code></p>
+
+<p>设置启动脚本在级别 2、3 和 5 时启动 LDAP：</p>
+
+<br /><a name="listing1"><b>清单 1. 设置启动运行级别</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># chkconfig --levels 235 ldap on</strong>
+</pre></td></tr></table><br />
+
+<p>从命令行中启动服务：</p>
+
+<br /><a name="listing2"><b>清单 2. 启动服务</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># service ldap start</strong>
+Starting slapd:                               [  OK  ]
+</pre></td></tr></table><br />
+
+<p>OpenLDAP 守护进程 slapd 应该已经运行了：</p>
+
+<br /><a name="listing3"><b>清单 3. 检查服务正在运行</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># ps -ef | grep slap</strong>
+ldap   13521  1  0 Oct24 ?     00:00:00 /usr/sbin/slapd -u ldap -h ldap:/// ldaps:///
+</pre></td></tr></table><br />
+
+<p><code>ldapsearch -x</code> 命令应该可以成功完成，但不会返回任何数据。</p>
+
+<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="N101E8"><span class="atitle">迁移密码和 shadow 信息</span></a></p>
+
+<p>Red Hat 所提供的 openldap-servers 包包含 PADL Software Pty Ltd. 公司的 MigrationTools 工具。我们将使用这些工具将数据从 Linux 系统文件（例如 /etc/group 和 /etc/password）转换成 LDAP LDIF 格式，这是数据库信息的一种文本格式的表示。这种格式是行界定、冒号分隔的属性-值对。</p>
+
+<p>有一组 Perl 脚本被安装到 /usr/share/openldap/migration/ 中执行迁移。这些 Perl 脚本的配置信息包含在 migrate_common.ph 文件的开头。对于我们的目的来说，只需要修改命名前缀的变量来使用条目的识别名就足够了，如下所示：</p>
+
+<p><code>
+$DEFAULT_BASE = "dc=ibm,dc=com"
+</code></p>
+
+<p>在进行这些修改之后，请运行脚本 migrate_base.pl，它会创建根项，并为 Hosts、Networks、Group 和 People 等创建低一级的组织单元：</p>
+
+<br /><a name="listing4"><b>清单 4. 运行 migrate_base.pl</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># migrate_base.pl &gt; base.ldif</strong>
+</pre></td></tr></table><br />
+
+<p>编辑 base.ldif，删除除下面之外的所有条目：</p>
+
+<br /><a name="listing5"><b>清单 5. base.ldif 条目</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># cat base.ldif</strong>
+dn: dc=ibm,dc=com
+dc: ibm
+objectClass: top
+objectClass: domain
+
+dn: ou=People,dc=ibm,dc=com
+ou: People
+objectClass: top
+objectClass: organizationalUnit
+
+dn: ou=Group,dc=ibm,dc=com
+ou: Group
+objectClass: top
+objectClass: organizationalUnit
+</pre></td></tr></table><br />
+
+<p>在 LDAP 服务器上，使用 OpenLDAP 客户机工具 ldapadd 将以下条目插入到数据库中。简单身份验证必须要使用 <code>-x</code> 选项指定。在 slapd.conf 中定义的 <code>rootdn</code> 身份验证识别名是 “cn=Manager,dc=ibm,dc=com”。对于简单身份验证来说，必须使用密码。选项 <code>-W</code> 强制提示输入密码。这个密码就是在 slapd.conf 文件中指定的 <code>rootpw</code> 参数的值。包含这些条目的 LDIF 文件是使用 <code>-f</code> 选项指定的：</p>
+
+<br /><a name="listing6"><b>清单 6. 使用 ldapadd 插入条目</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># ldapadd -x -D "cn=Manager,dc=ibm,dc=com" -W -f base.ldif</strong>
+</pre></td></tr></table><br />
+
+<p>接下来，从 /etc/group 中迁移 ldapuser 组：</p>
+
+<br /><a name="listing7"><b>清单 7. 迁移 ldapuser 组</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># grep ldapuser /etc/group &gt; group.in
+# ./migrate_group.pl group.in &gt; group.ldif
+
+#  cat group.ldif</strong>
+dn: cn=ldapuser,ou=Group,dc=ibm,dc=com
+objectClass: posixGroup
+objectClass: top
+cn: ldapuser
+userPassword: {crypt}x
+gidNumber: 500
+
+<strong># ldapadd -x -D "cn=Manager,dc=ibm,dc=com" -W -f group.ldif</strong>
+</pre></td></tr></table><br />
+
+<p>最后，从 /etc/passwd 和 /etc/shadow 中迁移 ldapuser 的信息：</p>
+
+<br /><a name="listing8"><b>清单 8. 迁移 ldapuser 信息</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># grep ldapuser /etc/passwd &gt; passwd.in
+# ./migrate_passwd.pl passwd.in &gt; passwd.ldif
+
+# cat passwd.ldif</strong>
+dn: uid=ldapuser,ou=People,dc=ibm,dc=com
+uid: ldapuser
+cn: ldapuser
+objectClass: account
+objectClass: posixAccount
+objectClass: top
+objectClass: shadowAccount
+userPassword: {crypt$1$TeOlOcMc$cpQaa0WpLSFRC1HIHW5bt1
+shadowLastChange: 13048
+shadowMax: 99999
+shadowWarning: 7
+loginShell: /bin/bash
+uidNumber: 500
+gidNumber: 500
+homeDirectory: /home/ldapuser
+gecos: ldapuser
+
+<strong># ldapadd -x -D "cn=Manager,dc=ibm,dc=com" -W -f passwd.ldif</strong>
+</pre></td></tr></table><br />
+
+<p>现在检查已经添加到数据库中的信息。清单 9 给出了全部输出结果：</p>
+
+<br /><a name="listing9"><b>清单 9. 以 LDIF 格式填充的 OpenLDAP 数据库</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># ldapsearch -x</strong>
+
+# extended LDIF
+#
+# LDAPv3
+# base &lt;&gt; with scope sub
+# filter: (objectclass=*)
+# requesting: ALL
+#
+
+# ibm.com
+dn: dc=ibm,dc=com
+dc: ibm
+objectClass: top
+objectClass: domain
+
+# People, ibm.com
+dn: ou=People,dc=ibm,dc=com
+ou: People
+objectClass: top
+objectClass: organizationalUnit
+
+# Group, ibm.com
+dn: ou=Group,dc=ibm,dc=com
+ou: Group
+objectClass: top
+objectClass: organizationalUnit
+
+# ldapuser, Group, ibm.com
+dn: cn=ldapuser,ou=Group,dc=ibm,dc=com
+objectClass: posixGroup
+objectClass: top
+cn: ldapuser
+gidNumber: 500
+
+# ldapuser, People, ibm.com
+dn: uid=ldapuser,ou=People,dc=ibm,dc=com
+uid: ldapuser
+cn: ldapuser
+objectClass: account
+objectClass: posixAccount
+objectClass: top
+objectClass: shadowAccount
+shadowMax: 99999
+shadowWarning: 7
+loginShell: /bin/bash
+uidNumber: 500
+gidNumber: 500
+homeDirectory: /home/ldapuser
+gecos: test2
+
+# search result
+search: 2
+result: 0 Success
+
+# numResponses: 6
+# numEntries: 5
+</pre></td></tr></table><br />
+
+<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="N10274"><span class="atitle">配置 LDAP 客户机</span></a></p>
+
+<p>用来设置客户机的 Red Hat Enterprise Linux release 4 Update 1 包包括：</p>
+
+<ul>
+<li><strong>nss_ldap-226-6</strong>：包括两个 LDAP 访问客户机：nss_ldap 和 pam_ldap
+<ul>
+<li><strong>nss_ldap</strong> 是一组 C 库扩展，它允许 LDAP 目录服务器用作一个用户和组信息的主源</li>
+<li><strong>pam_ldap</strong> 是一个 Linux-PAM 模块，它支持身份验证功能</li>
+</ul>
+</li>
+</ul>
+
+<p>LDAP 身份验证要想正确地工作，需要配置两个服务：系统命名服务和身份验证服务。</p>
+
+<p>系统命名服务（NSS）需要配置为使用 LDAP 来解析诸如用户和组帐号之类的资源。例如，在运行命令 <code>ls -l</code> 时，如果某个文件 inode 给出文件的所有者是 “user 501”，那么命名服务就需要将 “uid 501” 解析成用户名，并在 <code>ls</code> 命令输出结果中输出。通常来说，这是通过查找 /etc/passwd 文件中的所有用户帐号实现的。由于用户现在都存储在 LDAP 目录中，因此系统需要配置成同时对 passwd 文件和 LDAP 目录中的帐号进行解析。这种功能是通过 /usr/lib/libnss_ldap.so 库提供的。</p>
+
+<p>身份验证服务是实际向 LDAP 验证用户身份的服务。可插入身份验证模块（PAM）提供了本地 Linux 身份验证服务。下面我们将配置 PAM 先对本地的 /etc/passwd 文件检查用户帐号，然后再对 LDAP 服务器进行检查。PAM LDAP 模块可以用来将身份验证重定向到 LDAP 目录上。/lib/security/pam_ldap.so PAM 模块提供了 LDAP 身份验证功能。</p>
+
+<p>身份验证本身是由 PAM 程序执行的，它从身份验证候选机制中获取用户名，将其绑定到 OpenLDAP 服务器上，检索与这个 uid 条目（用户名条目）相关的 DN；从身份验证候选机制中获取密码，然后使用这个 DN 和密码试图将其绑定到 OpenLDAP 服务器上。如果绑定成功，PAM 会报告说这个用户已经成功通过了 pam_ldap.so 提供的身份验证测试。根据 PAM 的配置不同，在用户看到命令行提示符之前可能会执行其他测试。</p>
+
+<p>我们可以采用两种方法来配置 LDAP 客户机。一种快速而简单的方法是运行 /usr/sbin/authconfig，并在两个屏幕中输入信息。另外一种方法是通过编辑客户机 LDAP 配置文件 /etc/ldap.conf，然后修改 /etc/nsswitch.conf、/etc/sysconfig/authconfig 和 /etc/pam.d/system-auth。首先让我们来看一下如何运行 authconfig。</p>
+
+<p>如图 3 所示进行选择，然后点击 <strong>Next</strong>。</p>
+
+
+<br /><a name="figure3"><b>图 3. 执行 authconfig 命令的第一个页面</b></a><br />
+<img alt="执行 authconfig 命令的第一个页面" height="398" src="figure3.jpg" width="572"/>
+<br />
+
+<p>在如图 4 所示的第二个屏幕中输入对应的信息，然后点击 <strong>OK</strong>。</p>
+
+
+<br /><a name="figure4"><b>图 4. 执行 authconfig 命令的第二个页面</b></a><br />
+<img alt="执行 authconfig 命令的第二个页面" height="398" src="figure4.jpg" width="572"/>
+<br />
+
+<p>要手工配置 OpenLDAP 客户机，请遵循下面的步骤。</p>
+
+<p>用来跟踪特定身份验证机制是否已经启用的文件是 /etc/sysconfig/。我们可以希望以下条目的值都是 “yes”：</p>
+
+<p><code>
+USELDAP=yes<br />
+USELDAPAUTH=yes<br />
+USEMD5=yes<br />
+USESHADOW=yes<br />
+USELOCAUTHORIZE=yes
+</code></p>
+
+<p>PAM 和 NSS 模块使用的基本配置文件是 /etc/ldap.conf。host 选项指定 LDAP 服务器，base 选项指定这个目录使用的 DN，最初我们希望关闭加密功能：</p>
+
+<p><code>
+host dhcp64-233.ibm.com<br />
+base dc=ibm,dc=com<br />
+ssl off
+</code></p>
+
+<p>要让 NSS 服务使用 OpenLDAP 服务器，需要将 “ldap” 添加到 /etc/nsswitch.conf 文件的 passwd、shadow 和 group 行中，如下所示： </p>
+
+<p><code>
+passwd:     files ldap<br />
+shadow:     files ldap<br />
+group:      files ldap
+</code></p>
+
+<p>要让 PAM 身份验证服务使用 OpenLDAP 服务器，请将 pam_ldap 行加入到 /etc/pam.d/system-auth 中，位置在对应的标准 pam_unix.so 条目之后。尽管其他设置也可以实现相同的结果，但是我使用下面的文件设置：</p>
+
+<p><code>
+auth        required      /lib/security/$ISA/pam_env.so<br />
+auth        sufficient    /lib/security/$ISA/pam_unix.so likeauth nullok<br />
+auth        sufficient    /lib/security/$ISA/pam_ldap.so use_first_pass<br />
+auth        required      /lib/security/$ISA/pam_deny.so<br />
+<br />
+account     required      /lib/security/$ISA/pam_unix.so broken_shadow<br />
+account     sufficient    /lib/security/$ISA/pam_localuser.so<br />
+account     sufficient    /lib/security/$ISA/pam_succeed_if.so uid %lt; 100 quiet<br />
+account     [default=bad success=ok user_unknown=ignore] /lib/security/$ISA/pam_ldap.so<br />
+account     required      /lib/security/$ISA/pam_permit.so<br />
+<br />
+password    requisite     /lib/security/$ISA/pam_cracklib.so retry=3<br />
+password    sufficient    /lib/security/$ISA/pam_unix.so nullok use_authtok md5 shadow<br />
+password    sufficient    /lib/security/$ISA/pam_ldap.so use_authtok<br />
+password    required      /lib/security/$ISA/pam_deny.so<br />
+<br />
+session     required      /lib/security/$ISA/pam_limits.so<br />
+session     required      /lib/security/$ISA/pam_unix.so<br />
+session     optional      /lib/security/$ISA/pam_ldap.so
+</code></p>
+
+<p>现在，用户帐号信息可以从客户机系统中删除并从 LDAP 目录中进行获取了。当用户试图登录客户机系统时，PAM 身份验证服务就会从用户那里获取用户名，在我们的例子中是 <code>ldapuser</code>。PAM 会从 LDAP 服务器中检索识别名（DN）条目 <code>.dn: uid=ldapuser, ou=People, dc=ibm, dc=com.</code>。PAM 然后会从用户那里获取密码。然后 PAM 试图使用这个 DN 和密码与 LDAP 服务器进行绑定。DN 和密码都以正文文本的格式发送给 LDAP 服务器。在对密码进行散列操作之后，如果服务器可以让用户登录，就会向 PAM 报告说已经成功进行了绑定。成功绑定可以完全满足 PAM 对 pam_ldap 模块汇报成功的标准，如果所有其他 PAM 标准都已经满足了，那么就允许用户登录到系统中。</p>
+
+<p>当 LDAP 服务器对身份验证进行处理时，需要解决另外两个问题才能满足提供可靠安全的身份验证的目标。现在，任何客户机系统不能成功地与 LDAP 服务器进行通信都会阻止用户登录客户机系统。在下一节中我们将看到如何消除这种单点故障，这将显示客户机如何从备份服务器上访问 LDAP 目录。由于用户密码是在网络上以正文文本格式传输的，因此这并不能满足安全身份验证的需求。<a href="#configtls">配置 TLS 安全性</a> 将解决这个问题。</p>
+
+<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="N1033D"><span class="atitle">配置复制</span></a></p>
+
+
+<p>为了防止出现客户机由于 LDAP 服务器的问题而不能登录的情况，我们需要采用复制技术来实现可靠性目标。复制是通过 OpenLDAP 复制进程 slurpd 提供的，它会周期性地唤醒，并检查主服务器上的日志文件，从而确定是否有任何更新。这些更新然后会传播到从服务器上。读请求可以由任何一个服务器进行解析，而更新请求则只能由主服务器进行解析。客户机需要负责在推荐地址上重试更新操作。</p>
+
+<p>要配置复制，需要停止 OpenLDAP 服务器的 slapd 守护进程：</p>
+
+<br /><a name="listing10"><b>清单 10. 停止服务</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># service ldap stop</strong>
+</pre></td></tr></table><br />
+
+<p>将以下内容添加到服务器的 /etc/openldap/slapd.conf 文件中，从而启用对新从服务器的复制。<code>replogfile</code> 行的内容指定类 LDIF 变化应该写入的文件。<code>replica</code> 原语定义了变化应该传播到的主机：</p>
+
+
+<pre>
+#Replicas of this database
+replogfile /var/lib/ldap/replog
+replica host=dhcp64-253.ibm.com:389
+        binddn="cn=Manager,dc=ibm,dc=com"
+        credentials=secret
+        bindmethod=simple
+</pre>
+
+<p>在运行从 OpenLDAP 服务器的系统上，请遵循 <a href="#configserver">配置 LDAP 服务器</a> 一节给出的步骤。然后通过将信息导出到一个 ldif 文件中并将其添加到从服务器数据库上，从而将数据库从主服务器拷贝到复制服务器上。</p>
+
+<p>在主服务器上：</p>
+
+<br /><a name="listing11"><b>清单 11. 将数据导出到 LDIF 文件中</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># ldapsearch -x &gt; database.ldif</strong>
+</pre></td></tr></table><br />
+
+<p>在复制服务器上：</p>
+
+<br /><a name="listing12"><b>清单 12. 将数据添加到从服务器数据库中</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># ldapadd -x -D "cn=Manager,dc=ibm,dc=com" -W -f database.ldif</strong>
+</pre></td></tr></table><br />
+
+<p>将以下内容添加到复制服务器的 /etc/openldap/slapd.conf 文件中。<code>updatedn</code> 指定了在更新从目录时主 slurpd 守护进程使用的 DN。<code>updateref</code> 指定的是主目录服务器。当一个 LDAP 客户机请求从服务器进行更新时，从服务器就将客户机重定向到这个主服务器上。</p>
+
+<p><code>
+updatedn  "cn=Manager,dc=ibm,dc=com"<br />
+updateref ldap://dhcp64-233.ibm.com:389/
+</code></p>
+
+<p>启动复制 OpenLDAP 服务器，当它运行之后，再启动主 OpenLDAP 服务器。在主服务器上，slapd 和 slurpd 都会启动。</p>
+
+<p>现在，可以让 OpenLDAP 客户机除了主服务器之外还可以使用复制服务器，这可以通过运行 authconfig 并将复制主机名添加到第二个屏幕中的 Server 行中实现，也可以通过在 /etc/ldap.conf 中修改 host 实现：</p>
+
+<p><code>
+host dhcp64-253.ibm.com dhcp64-233.ibm.com
+</code></p>
+
+<p>为了确认复制可以正常工作，需要研究一下在更新 <code>gecos</code> 属性时到底发生了什么。复制日志使用了与 LDIF 类似的格式。在读取 replogfile 之后，slurpd 会将这个条目拷贝到自己的重做日志中。实际的变化都以 LDIF 格式保存在主 LDAP 服务器上 /var/lib/ldap/replica/ 中的 slurpd.replog 文件中。</p>
+
+<p>使用文件 user_mod 中的变化，客户机程序 ldapmodify 应用这些变化：</p>
+
+<br /><a name="listing13"><b>清单 13. 应用 user_mod 的变化</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># cat user_mod</strong>
+dn: uid=ldapuser,ou=People,dc=ibm,dc=com
+changetype: modify
+replace: gecos
+gecos: test2
+
+<strong># tail -f /var/lib/ldap/replog &amp;
+
+# ldapmodify -x -r -f /home/ldapuser/user_mod -D'cn=Manager,dc=ibm,dc=com' -W</strong>
+Enter LDAP Password:
+modifying entry "uid=ldapuser,ou=People,dc=ibm,dc=com"
+
+replica: dhcp64-253.ibm.com:389
+time: 1130111686
+dn: uid=ldapuser,ou=People,dc=ibm,dc=com
+changetype: modify
+replace: gecos
+gecos: test2
+-
+replace: entryCSN
+entryCSN: 20051023235446Z#000001#00#000000
+-
+replace: modifiersName
+modifiersName: cn=Manager,dc=ibm,dc=com
+-
+replace: modifyTimestamp
+modifyTimestamp: 20051023235446Z
+-
+</pre></td></tr></table><br />
+
+<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="configtls"><span class="atitle">配置 TLS 安全性</span></a></p>
+
+<p>LDAP 是以明文的格式通过网络来发送所有信息的，包括密码。我们将采用 TLS 所提供的加密机制（SSL 的后继者）来解决这个问题。在传输层，数据使用 TLS 协议进行加密和封装，然后通过网络进行传输。用来配置加密的工具都是由 OpenSSL 包提供的。</p>
+
+
+<p>虽然加密是一个复杂的主题，但是要使用 OpenSSL 包，我们依然需要简要介绍一下 TLS 是如何工作的。数据块使用一个对称密钥算法进行加密，它使用一个密钥来实现对数据的加密和解密。我们还有一个问题：如何防止出现以正文文本格式将密钥从 LDAP 服务器发送到 LDAP 客户机上的情况。我们使用公钥算法来解决这个问题，其中客户机可以使用一个自由获取的公钥对自己的密钥进行加密，而只有服务器才可以对这个密钥进行解密。</p>
+
+<p>公钥是作为证书的一部分来创建和分发的，其中包含了一些支持信息，例如 ID、过期日期、提供这个证书的 LDAP 服务器的完整域名（FQDN）。在 LDAP 客户机使用证书进行加密之前，它会验证自己正在与之进行交谈的服务器拥有这个证书，这是通过加密一个挑战并验证服务器可以对其进行解密实现的。</p>
+
+<p>要验证发行这个证书的服务器是一个已经批准过的 LDAP 服务器，客户机被配置为只接受本地证书机构（CA）所签署的证书。它使用 CA 所生成的证书中的公钥，这个公钥保存到客户机中以验证这个 LDAP 所产生的证书是有效的。</p>
+
+<p>在这个例子中，我们将自己的 LDAP 服务器设置为证书机构，并创建一个自签署的证书供 LDAP 客户机和服务器在加密信息中使用。</p>
+
+<p>用来构建 TLS 服务器的 Red Hat Enterprise Linux release 4 Update 1 包是：</p>
+
+<ul>
+<li><strong>openssl-0.9.7a-43.1</strong>：包括一个证书管理工具和提供各种加密算法和协议的共享库</li>
+</ul>
+
+<p>要构建证书机构的工作环境并生成自己的自签署证书，需要运行 /usr/share/ssl/misc/CA shell 脚本，这是一个对 <code>openssl</code> 命令的封装程序。私密性增强邮件（PEM）是一种用来对数据进行加密和编码的格式：</p>
+
+<br /><a name="listing14"><b>清单 14. 运行 CA shell 脚本</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># cd /usr/share/ssl/misc
+# ./CA -newca</strong>
+CA certificate filename (or enter to create)
+
+Making CA certificate ...
+Generating a 1024 bit RSA private key
+.........++++++
+......++++++
+writing new private key to './demoCA/private/./cakey.pem'
+Enter PEM pass phrase:
+Verifying - Enter PEM pass phrase:
+Enter PEM pass phrase:
+Verifying - Enter PEM pass phrase:
+-----
+You are about to be asked to enter information that will be incorporated into
+your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [GB]:<strong>US</strong>
+State or Province Name (full name) [Berkshire]:<strong>Oregon</strong>
+Locality Name (eg, city) [Newbury]:<strong>Beaverton</strong>
+Organization Name (eg, company) [My Company Ltd]:<strong>IBM</strong>
+Organizational Unit Name (eg, section) []:<strong>its</strong>
+Common Name (eg, your name or your server's hostname) []:<strong>dhcp64-233.ibm.com</strong>
+Email Address []:<strong>root@dhcp64-233.ibm.com</strong>
+</pre></td></tr></table><br />
+
+<p>接下来，要生成由证书机构进行签署的服务器证书。其余的步骤只会对主 LDAP 服务器执行一次，此时指定的是 <code>CN=dhcp64-233.ibm.com</code>；然后对从服务器执行一次，此时指定的是 <code>CN=dhcp64-253.ibm.com</code>。还要使用 <code>nodes</code> 选项，这样就不用在每次启动 OpenLDAP 服务器守护进程 slapd 时都需要输入密码了。签署后的公钥被嵌入到证书请求 slapd-req.pem 中，与之匹配的私钥嵌入在 slapd-key.pem 中：</p>
+
+<br /><a name="listing15"><b>清单 15. 生成服务器证书</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># openssl req -new -nodes -subj
+   '/CN=dhcp64-233.ibm.com/O=IBM/C=US/ST=Oregon/L=Beaverton'
+   -keyout slapd-key.pem -out slapd-req.pem -days 365</strong>
+Generating a 1024 bit RSA private key
+...............++++++
+.....................................++++++
+writing new private key to 'slapd-key.pem'
+-----
+</pre></td></tr></table><br />
+
+<p>使用在第一个步骤中创建的 CA 证书对这个证书进行签署：</p>
+
+<br /><a name="listing16"><b>清单 16. 对证书进行签署</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># openssl ca -out slapd-cert.pem -infiles slapd-req.pem</strong>
+Using configuration from /usr/share/ssl/openssl.cnf
+Enter pass phrase for ./demoCA/private/cakey.pem:
+Check that the request matches the signature
+Signature ok
+Certificate Details:
+        Serial Number: 1 (0x1)
+        Validity
+            Not Before: Oct 25 02:50:05 2005 GMT
+            Not After : Oct 25 02:50:05 2006 GMT
+        Subject:
+            countryName               = US
+            stateOrProvinceName       = Oregon
+            organizationName          = IBM
+            commonName                = dhcp64-233.ibm.com
+        X509v3 extensions:
+            X509v3 Basic Constraints:
+            CA:FALSE
+            Netscape Comment:
+            OpenSSL Generated Certificate
+            X509v3 Subject Key Identifier:
+            11:A2:FB:59:42:A4:B3:26:73:1D:6D:F5:4D:2F:80:F0:FA:10:38:F5
+            X509v3 Authority Key Identifier:
+            keyid:F7:6A:25:F5:76:BE:20:E7:8D:0F:51:EF:D8:86:7B:AF:2C:74:2F:80
+            DirName:/C=US/ST=Oregon/L=Beaverton/O=IBM/OU=its/CN=dhcp64-233.ibm.com
+/emailAddress=root@dhcp64-233.ibm.com
+            serial:00
+
+Certificate is to be certified until Oct 25 02:50:05 2006 GMT (365 days)
+Sign the certificate? [y/n]:<strong>y</strong>
+
+1 out of 1 certificate requests certified, commit? [y/n]<strong>y</strong>
+Write out database with 1 new entries
+Data Base Updated
+</pre></td></tr></table><br />
+
+<p>下一个步骤将所有需要的证书拷贝到 slapd 可以找到的地方。另外，还要对每个文件强制采用正确的权限：</p>
+
+<br /><a name="listing17"><b>清单 17. 拷贝证书并强制设置权限</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+<strong># cp -p slapd-key.pem /etc/openldap/slapdkey.pem
+# cp -p slapd-cert.pem /etc/openldap/slapdcert.pem
+# chown ldap:ldap /etc/openldap/slapdcert.pem
+# chmod 644 /etc/openldap/slapdcert.pem
+# chown ldap:ldap /etc/openldap/slapdkey.pem
+# chmod 400 /etc/openldap/slapdkey.pem
+
+# mkdir /etc/openldap/cacerts/
+# cp /usr/share/ssl/misc/demoCA/cacert.pem /etc/openldap/cacerts/cacert.pem
+# chown ldap:ldap /etc/openldap/cacerts cacert.pem
+# chmod 644 /etc/openldap/cacerts cacert.pem</strong>
+</pre></td></tr></table><br />
+
+<p>在 OpenLDAP 服务器上，将以下内容添加到 /etc/openldap/slapd.conf 文件的 <code>global</code> 段下面。<code>TLSCertificateFile</code> 和 <code>TLSCertificateKeyFile</code> 指定了证书文件和私钥文件的路径。<code>TLSCipherSuite</code> 指定了一个 OpenSSL 密码的列表，slapd 在与 TLS 协商建立连接时可以从中按照降序顺序依次选择。<code>HIGH</code> 的意思是 “所有密钥的长度都大于 128 位”；<code>MEDIUM</code> 表示 “所有密钥的长度都等于 128 位”；<code>+SSLv2</code> 表示 “不管密钥强度如何，所有密码都是以 SSL 协议版本 2 的形式指定的”。</p>
+
+<p><code>
+TLSCipherSuite  HIGH:MEDIUM:+SSLv2<br />
+TLSCACertificateFile    /etc/openldap/cacerts/cacert.pem<br />
+TLSCertificateFile      /etc/openldap/slapdcert.pem<br />
+TLSCertificateKeyFile   /etc/openldap/slapdkey.pem
+</code></p>
+
+<p>将以下内容添加到 LDAP 服务器的第二个配置文件 /etc/openldap/ldap.conf 中：</p>
+
+<p><code>
+TLS_CACERTDIR /etc/openldap/cacerts<br />
+TLS_REQCERT allow
+</code></p>
+
+<p>
+为了允许从 OpenLDAP 客户机上使用安全连接，需要将以下内容添加到 /etc/openldap/ldap.conf 文件中：</p>
+
+<p><code>
+ssl start_tls<br />
+tls_checkpeer yes<br />
+tls_cacertfile /etc/openldap/cacerts/cacert.pem
+</code></p>
+
+<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><p><a name="N1048F"><span class="atitle">结束语</span></a></p>
+
+<p>按照本文给出的提示，我们现在已经使用轻量级目录访问协议（LDAP）构建了一个集中的身份验证系统。我们最初是通过配置 LDAP 服务器来响应对 “dc=ibm,dc=com” 的基本请求开始入手的。我们使用了一组 Perl 脚本来将用户帐号信息迁移到 LDAP 目录中。我们对 Linux 用户帐号服务、PAM 和 NSS 服务进行了修改，从而可以从 LDAP 服务器中检索用户信息。还设置了一个 LDAP 服务器副本作为备用服务器来响应客户机的请求。然后，使用 TLS 协议在 LDAP 客户机和服务器之间对通信进行安全加密。恭喜！</p>
+
+<p>为了参考方便，下面给出了本文中使用的配置文件的完整清单。</p>
+
+<br /><a name="listing18"><b>清单 18. 本文例子中使用的服务器 /etc/openldap/slapd.conf 文件</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+#
+# See slapd.conf (5) for details on configuration options.
+#
+include         /etc/openldap/schema/core.schema
+include         /etc/openldap/schema/cosine.schema
+include         /etc/openldap/schema/inetorgperson.schema
+include         /etc/openldap/schema/nis.schema
+
+loglevel        256
+pidfile         /var/run/slapd.pid
+argsfile        /var/run/slapd.args
+
+# The next three lines allow use of TLS for encrypting connections.
+TLSCipherSuite  HIGH:MEDIUM:+SSLv2
+TLSCACertificateFile    /etc/openldap/cacerts/cacert.pem
+TLSCertificateFile      /etc/openldap/slapdcert.pem
+TLSCertificateKeyFile   /etc/openldap/slapdkey.pem
+
+# access control policy:
+# Restrict password access to change by owner and authentication.
+# Allow read access by everyone to all other attributes.
+
+access to attrs=shadowLastChange,userPassword
+   by self write
+   by * auth
+
+access to *
+   by * read
+
+#######################################################################
+# database definition
+#######################################################################
+
+database        bdb
+suffix          "dc=ibm,dc=com"
+
+rootdn          "cn=Manager,dc=ibm,dc=com"
+rootpw          {MD5}ijFYNcSNctBYg
+
+directory       /var/lib/ldap
+
+# Indices to maintain for this database
+index objectClass                       eq,pres
+index ou,cn,mail,surname,givenname      eq,pres,sub
+index uidNumber,gidNumber,loginShell    eq,pres
+index uid,memberUid                     eq,pres,sub
+index nisMapName,nisMapEntry            eq,pres,sub
+
+#Replicas of this database
+replica host=dhcp64-253.ibm.com:389
+        binddn="cn=Manager,dc=ibm,dc=com"
+        credentials=secret
+        bindmethod=simple
+replogfile /var/lib/ldap/replog
+</pre></td></tr></table><br />
+
+<br /><a name="listing19"><b>清单 19. 本文例子中使用的服务器 /etc/openldap/ldap.conf 文件</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+#
+# LDAP Defaults
+#
+
+# See ldap.conf(5) for details
+
+HOST 127.0.0.1
+BASE dc=ibm,dc=com
+
+TLS_CACERTDIR /etc/openldap/cacerts
+TLS_REQCERT allow
+</pre></td></tr></table><br />
+
+<br /><a name="listing20"><b>清单 20. 本文例子中使用的客户机 /etc/ldap.conf 文件</b></a><br /><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="code-outline"><pre class="displaycode">
+
+a
+# @(#)$Id: ldap.conf,v 1.34 2004/09/16 23:32:02 lukeh Exp $
+#
+# This is the configuration file for the LDAP nameservice
+# switch library and the LDAP PAM module.
+#
+# PADL Software
+# http://www.padl.com
+#
+
+# Your LDAP server.
+# Multiple hosts may be specified, each separated by a
+# space.
+
+host dhcp64-233.ibm.com dhcp64-233.ibm.com
+
+# The distinguished name of the search base.
+
+base dc=ibm,dc=com
+
+# OpenLDAP SSL mechanism, start_tls mechanism uses the normal LDAP port 389
+ssl start_tls
+
+#Require and verify server certificate
+tls_checkpeer yes
+
+# CA certificates for server certificate verification
+tls_cacertfile /etc/openldap/cacerts/cacert.pem
+
+pam_password md5
+</pre></td></tr></table><br />
+
+<!-- CMA ID: 141702 --> <!-- Site ID: 10 --> <!-- XSLT stylesheet used to transform this file:  dw-article-6.0-beta.xsl -->
+<br />
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p><p><b>学习</b></p><ul><li>您可以参阅本文在 developerWorks 全球站点上的 <a href="http://www.ibm.com/developerworks/linux/library/l-openldap/?S_TACT=105AGX52&amp;S_CMP=cn-a-l" target="_blank">英文原文</a> 。<br /><br /></li><li>
+<a href="http://www.openldap.org/">OpenLDAP 主页</a> 是 OpenLDAP 项目的主页。其中包含了有关如何配置 OpenLDAP 的丰富信息，以及将来的路线图和版本信息。请确保阅读 <a href="http://www.openldap.org/doc/admin23/">OpenLDAP Software 2.3 Administrator's Guide</a>。
+<br /><br /></li><li>
+在 <a href="http://www.openssl.org/">OpenSSL Project</a> 中，可以找到有关 SSL 和 TLS 的信息。
+<br /><br /></li><li>
+在 <a href="http://www.linux.com/howtos/LDAP-HOWTO/index.shtml">LDAP Linux HOWTO</a> 中，我们可以找到有关在 Linux 机器上安装、配置、运行和维护 LDAP（Lightweight Directory Access Protocol）服务器的详细信息。请在 <a href="http://www.linux.com/howtos/LDAP-Implementation-HOWTO/index.shtml">LDAP Implementation HOWTO</a> 中阅读使用 pam_ldap 和 nss_ldap 进行 LDAP 身份验证的讨论。
+<br /><br /></li><li>
+<a href="http://www.padl.com/">PADL 主页</a> 提供了 Perl 迁移脚本 nss_ldap 和 pam_ldap 以及很多其他有用的 LDAP 工具。
+<br /><br /></li><li>
+在 <a href="http://www.ibm.com/developerworks/cn/linux/">developerWorks Linux 专区</a> 中可以找到为 Linux 开发人员准备的更多资源。
+<br /><br /></li><li>
+随时关注 <a href="http://www.ibm.com/developerworks/offers/techbriefings/?S_TACT=105AGX52&amp;S_CMP=cn-a-l">developerWorks 技术活动和网络广播</a>。
+<br /><br /></li></ul><p><b>获得产品和技术</b></p><ul><li>
+
+在您的下一个开发项目中采用 <a href="http://www.ibm.com/developerworks/downloads/?S_TACT=105AGX52&amp;S_CMP=cn-a-l">IBM 试用版软件</a>，这可以从 developerWorks 上直接下载。
+<br /><br /></li></ul><p><b>讨论</b></p><ul><li>
+<a href="http://www.openldap.org/lists/">OpenLDAP 邮件列表</a> 是讨论 OpenLDAP 的主要论坛。
+<br /><br /></li><li>
+通过参与 <a href="http://www.ibm.com/developerworks/blogs/?S_TACT=105AGX52&amp;S_CMP=cn-a-l">developerWorks blogs</a> 加入  developerWorks 社区。
+<br /><br /></li></ul>
+<p><a name="author"><span class="atitle">关于作者</span></a></p><div class="ibm-container ibm-portrait-module ibm-alternate-two"><div class="ibm-container-body"><img src="http://www.ibm.com/developerworks/i/p-moreilly.jpg" class="dw-author-img" width="64" height="80" alt="Mike O'Reilly"/><p><a name="author1"> </a>Mike O'Reilly 是 IBM Linux 和 VMware ESX 产品支持小组的一员，他为 Linux 产品提供支持已经有 5 年的时间了。另外，他支持 VMware 超过两年的时间，支持 UNIX 超过 10 年的时间。</p></div></div>
+<!-- MAIN_COLUMN_CONTENT_END -->
+  <!-- OVERLAYS_START -->
+  <!-- Report_Abuse_Start -->
+  <div class="ibm-common-overlay ibm-no-print" id="reportabuseoverlay">
+    <div class="ibm-head"><p><a class="ibm-common-overlay-close" href="#">关闭 [x]</a></p></div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <a class="ibm-access" name="reportabuseoverlay">关于报告滥用的帮助</a>   
+        <div class="ibm-title"><h1>报告滥用</h1></div>
+        <div class="ibm-container ibm-alternate">
+          <p><strong>谢谢!</strong>  此内容已经标识给管理员注意。</p>
+          <div class="ibm-overlay-rule"><hr /></div>
+          <div class="ibm-buttons-row">
+            <input type="button" onclick="ibmCommon.Overlays.hide('reportabuseoverlay');return false;" class="ibm-btn-cancel-sec dw-btn-cancel-sec" name="ibm-cancel" value="关闭" />
+          </div>
+        </div>
+      </div> 
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Report_Abuse_Error_Start -->
+  <div class="ibm-common-overlay ibm-no-print" id="reportabuseoverlayerror">
+    <div class="ibm-head"><p><a class="ibm-common-overlay-close" href="#">关闭 [x]</a></p></div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <a class="ibm-access" name="reportabuseoverlayerror">关于报告滥用的帮助</a>   
+        <div class="ibm-title"><h1>报告滥用</h1></div>
+        <div class="ibm-container ibm-alternate">
+          <p class="ibm-ind-error"><strong>报告滥用提交失败。  请稍后重试。</strong></p>
+          <div class="ibm-overlay-rule"><hr /></div>
+          <div class="ibm-buttons-row">
+            <input type="button" onclick="ibmCommon.Overlays.hide('reportabuseoverlayerror');return false;" class="ibm-btn-cancel-sec dw-btn-cancel-sec" name="ibm-cancel" value="关闭" />
+          </div>
+        </div>
+      </div> 
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Sign in OVERLAY STARTS HERE --> 
+  <div class="ibm-common-overlay" id="signin_overlay">
+    <div class="ibm-head">
+      <p><a class="ibm-common-overlay-close" href="#" onclick="clearForm();">关闭 [x]</a></p>
+    </div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <div class="ibm-title ibm-subtitle">
+          <h1>developerWorks：登录</h1>
+          <div id="ibm-overlay-error-signin" class="no-display"></div>
+        </div>
+        
+        <div class="ibm-container ibm-alternate ibm-buttons-last">
+          <div class="ibm-container-body">
+
+            <form class="ibm-column-form" id="sFormId" action="" method="post" name="sForm" onsubmit="return false;">
+              <p><label for="ibmid">IBM ID：</label><span><input name="ibm-id" id="ibmid" size="25" value="" class="required" type="text" onkeypress="handleEP(event,this.form);" />
+                <br /><a class="ibm-forward-link" href="#" onclick="(function () {window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.href);})();">需要一个 IBM ID？</a>
+                <br /><a class="ibm-forward-link" href="/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a></span>   
+              </p> 
+              <p><label for="password">密码：</label><span><input name="password" id="password" size="25" value="" class="required" type="password" onkeypress="handleEP(event,this.form);" /><br />
+                <a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Dzh_CN%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a><br />
+                <a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></span></p> 
+
+              <p class="dw-perm-box">
+                <span><input id="perm" type="checkbox" name="perm_name"/><label for="perm"> 保持登录。</label></span>
+              </p>
+
+              <p>单击提交则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">使用条款</a></p>
+              <div class="ibm-buttons-row">
+                <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+                  <input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="clearForm();ibmCommon.Overlays.hide('signin_overlay');return false;"/></p>
+              </div>
+            </form>
+            <div class="ibm-overlay-rule"><hr /></div>
+            <p>当您初次登录到 developerWorks 时，将会为您创建一份概要信息。<strong>您在 developerWorks 概要信息中选择公开的信息将公开显示给其他人，但您可以随时修改这些信息的显示状态。</strong>您的姓名（除非选择隐藏）和昵称将和您在 developerWorks 发布的内容一同显示。</p>
+            <div class="dw-overlay-legal"><p>所有提交的信息确保安全。</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Sign in OVERLAY ENDS HERE --> 
+  
+  
+  <!-- Display name OVERLAY STARTS HERE --> 
+  <div class="ibm-common-overlay" id="displayname_overlay">
+    <div class="ibm-head">
+      <p><a class="ibm-common-overlay-close" href="#" onclick="clearForm();">关闭 [x]</a></p>
+    </div>
+    <div class="ibm-body">
+      <div class="ibm-main">
+        <div class="ibm-title ibm-subtitle">
+          <h1>请选择您的昵称：</h1>
+          <div id="ibm-overlay-error-dname" class="no-display"></div>
+        </div>
+        <div class="ibm-container ibm-alternate ibm-buttons-last">
+          <div class="ibm-container-body">
+            <p class="ibm-overlay-intro">当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+            <form id="dFormId" method="post" action="" name="dForm" onsubmit="return false;" class="ibm-column-form">
+              <p><label for="displayname">昵称：</label><span><input name="displayname" id="displayname" size="25" value="" type="text" onkeypress="handleEP(event,this.form);" /></span><span class="ibm-form-note">（长度在 3 至 31 个字符之间）</span>
+              </p>
+              
+              <div class="ibm-overlay-rule"><hr />
+              </div>
+              <p>单击<strong>提交</strong>则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/mydeveloperworks/terms?lang=zh">使用条款</a>.</p>
+              <div class="ibm-buttons-row">
+                <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+                  <input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="clearForm();ibmCommon.Overlays.hide('displayname_overlay');return false;" /></p>
+              </div>
+            </form>
+            <div class="ibm-overlay-rule"><hr /></div>
+            <div class="dw-overlay-legal"><p>所有提交的信息确保安全。</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ibm-footer"></div>
+  </div>
+  <!-- Display name OVERLAY ENDS HERE -->
+  <!-- OVERLAYS_END -->
+  <!-- RATINGS START -->
+  <p class="ibm-no-print"><span class="atitle"><a name="iratings">为本文评分</a></span></p>
+  <input id="art-rating" name="ratinga" type="hidden" value="0"/><div id="art-rating-module"></div>
+  <script language="JavaScript" type="text/javascript">
+    // <![CDATA[
+   // widget div id and article id as args
+   window.artRating.init('art-rating-module','art-rating-summary');
+// ]]>
+  </script>
+  <!-- RATINGS END --> 
+  
+  <!-- INLINE_COMMENTS_START -->
+  <p class="ibm-no-print"><span class="atitle"><a name="icomments">评论</a></span></p>
+    <script language="JavaScript" type="text/javascript">
+      // <![CDATA[
+dwc = {};
+dwc.cmts = '条评论';
+dwc.signInPreText = '请';
+dwc.signIn = '登录';
+dwc.or = '或';
+dwc.register = '注册';
+dwc.signInPostText = '';
+dwc.leaveCmt = '后发表评论。';
+dwc.view = '查看';
+dwc.totalCmts = '共有评论';
+dwc.postYourCmt = '添加您的评论';
+dwc.show = '显示：';
+dwc.recentCmts = '最新评论';
+dwc.allCmts = '所有评论';
+dwc.tooLongCmt = '您的评论超过了 1000 字符限制';
+dwc.numCharsLeft = '剩余 <span id="charCount">{1}</span> 字符';
+dwc.reportAbuse = '报告滥用';
+dwc.notifyMsg = '有新评论时提醒我';
+dwc.htmlWarning = '注意：评论中不支持 HTML 语法'; 
+dwc.cmt = '评论：';
+dwc.addCmts = '添加评论';
+dwc.addCmt = '添加评论';
+dwc.doNotErase = '--在下方添加评论--'; 
+dwc.viewOrAddCmts = '查看或添加评论';
+dwc.reportInapprCont = '举报不良信息';
+dwc.reportInapprContLink = 'http://www.ibm.com/developerworks/forums/forum.jspa?forumID=1834';
+dwc.postingCmt = '正在发布评论……';
+dwc.noCmt = '快来添加第一条评论';
+dwc.netwkErr = '在检索评论时出错，请稍后刷新。';
+dwc.addACmt = '添加评论';
+dwc.instructCmt = '标有星号（<span class="ibm-required">*</span>）的是必填项目。';
+dwc.btnPost = '发布';
+dwc.btnPostAnon = '匿名发布';
+dwc.btnClrCmt = '清除评论';
+dwc.btnCancel = '取消';
+dwc.showRecent = '显示最新的 {1} 条评论'; // {1} is the count to be substituted
+dwc.showNext = '显示后 {1} 条评论'; // {1} is the count to be substituted
+dwc.showAllCmts = '显示所有评论';
+dwc.enterCmt = '请输入评论内容。';
+dwc.loginErr = '暂时无法验证您的登录状态，请稍后再试。';
+dwc.postErr = '暂时无法发布您的评论，请稍后再试。';
+dwc.postBy = '由 <strong>{1}</strong>  于 {2} '; // {1} is the author to be substituted; {2} is the date
+dwc.siteId = 10;
+dwc.lang = 'zh_CN';
+dwc.viperLang = 'zh';
+// ]]>
+    </script>
+    <div id="threadShow"></div>
+  <!-- INLINE_COMMENTS_END -->
+  
+
+  <p class="ibm-ind-link ibm-back-to-top"><a class="ibm-anchor-up-link" href="#ibm-pcon">回页首</a></p>
+
+<!-- Overlays -->
+<!-- lk - pull in overlays from ww when required on cn -->
+  </div>
+<!-- MAIN_COLUMN_CONTAINER_END -->
+
+<!-- Rating_Meta_BEGIN -->
+<!--Rating_Meta_BEGIN--><div class="metavalue">static.content.url=http://www.ibm.com/developerworks/js/artrating/</div><div class="metavalue">SITE_ID=10</div><div class="metavalue">Zone=Linux, Open source, AIX and UNIX</div><div class="metavalue">ArticleID=141702</div><div class="metavalue">ArticleTitle=使用 OpenLDAP 集中管理用户帐号</div><div class="metavalue">publish-date=06262006</div><div class="metavalue">author1-email=mikeor@us.ibm.com</div><div class="metavalue">author1-email-cc=</div><script language="javascript" type="text/javascript">document.write('<div class="metavalue">url='+location.href.replace(/</g, '%3C')+'</div>');</script><!--Rating_Meta_END-->
+<!-- Rating_Meta_END -->
+
+</div>
+<!-- MAIN_COLUMN_END-->
+
+<!-- RIGHT_COLUMN_BEGIN -->
+<div id="ibm-content-sidebar">
+
+<!-- RIGHT_COLUMN_CONTENT_BEGIN --> 
+<div class="ibm-container"><h2>内容</h2><div class="ibm-container-body"><img alt="" height="1" width="1" src="//www.ibm.com/i/c.gif"/><ul class="ibm-bullet-list"><li><a class="ibm-feature-link" href="#N10049">简介</a></li><li><a class="ibm-feature-link" href="#configserver">配置 LDAP 服务器</a></li><li><a class="ibm-feature-link" href="#N101E8">迁移密码和 shadow 信息</a></li><li><a class="ibm-feature-link" href="#N10274">配置 LDAP 客户机</a></li><li><a class="ibm-feature-link" href="#N1033D">配置复制</a></li><li><a class="ibm-feature-link" href="#configtls">配置 TLS 安全性</a></li><li><a class="ibm-feature-link" href="#N1048F">结束语</a></li><li><a class="ibm-feature-link" href="#resources">参考资料 </a></li><li><a class="ibm-feature-link" href="#author">关于作者</a></li><li><a class="ibm-feature-link" href="#icomments">建议</a></li></ul></div></div>
+
+ 
+
+
+<!-- Dig_Deeper -->
+
+<!-- High_Visibility_Offer -->
+
+<!-- Special_Offers -->
+
+<!-- RIGHT_COLUMN_CONTENT_END -->
+
+</div>
+<!-- RIGHT_COLUMN_END -->
+
+<!-- CONTENT_BODY_END -->
+</div>
+
+</div>
+<!-- CONTENT_END -->
+
+ <!-- END_IBM-PCON -->
+</div>
+
+<!-- FOOTER_BEGIN -->
+<div id="ibm-footer">
+<!-- IBM footer container; disabled -->
+</div>
+
+<div id="ibm-page-tools-dw">
+	<div id="dw-footer-top-row">
+		<ul id="dw-foot-options">
+			<li id="dw-print"><a class="ibm-print-link" href="#">打印此页面</a></li>
+		</ul>
+		<ul id="ibm-foot-options-dw">
+			<li id="dw-foot-0" class="dw-foot-0-cn"><a href="#">分享此页面</a></li>
+			<li id="dw-foot-1" class="dw-foot-1-cn"><a href="#">关注 developerWorks</a></li>
+		</ul>
+	</div>       
+	
+	
+	<!-- TOP ROW SLIDER -->
+    <div id="dw-page-tools-menu">    
+        <div class="ibm-ribbon-pane-dw">
+            <div class="ibm-ribbon-section-dw">
+				<!-- Share this page -->			
+                <div class="dw-footer-columns">
+                    <div class="dw-footer-col-4-1">
+                    	<h2>分享此页面：</h2>                            
+						<ul class="ibm-link-list">
+						  <!--<li><a id="dw-foot-0-0" class="dwcn-sina-link"
+						        href="#"
+						        onClick="javascript:location.href='http://hits.sinajs.cn/A1/weiboshare.html?&amp;appkey=&amp;title='+escape(document.title)+'&amp;url='+escape(location.href)'+'&amp;pic=&ralateUid&amp;language=zh_cn;
+						        ">新浪微博</a></li> -->
+						   <li><a id="dw-foot-0-0" class="dwcn-sina-link"
+						        href="#"
+						        onClick="javascript:location.href='http://service.weibo.com/share/share.php?title='+encodeURIComponent(document.title)+'&amp;url='+escape(location.href)+'&amp;language=zh_cn'
+						        ; ">新浪微博</a></li> 
+						   <li><a class="dwcn-renren-link"
+						        href="#" onClick="javascript:location.href='http://share.renren.com/share/buttonshare?title='+encodeURIComponent(document.title)+'&amp;link='+escape(location.href);
+						        ">人人网</a></li> 
+						    <li><a class="dwcn-tencent-link"
+						        href="#" onClick="javascript:location.href='http://v.t.qq.com/share/share.php?title='+encodeURIComponent(document.title)+'&amp;url='+escape(location.href);
+						        ">腾讯微博</a></li> 
+						   				
+						</ul>
+                    </div>
+                    <div class="dw-footer-col-4-2">
+						<ul class="ibm-link-list">
+						    <li><a class="dwcn-sohu-link"
+						        href="#"
+						        onClick="javascript:location.href='http://t.sohu.com/third/post.jsp?title='+encodeURIComponent(document.title)+'&amp;link='+escape(location.href);
+						        ">搜狐微博</a></li>
+						    
+						    <li><a class="dwcn-netease-link"
+						        href="#"
+						        onClick="javascript:location.href='http://t.163.com/article/user/checkLogin.do?info='+encodeURIComponent(document.title)+ '' +escape(location.href);
+						        ">网易微博</a></li>
+						    <li><a class="ibm-facebook-link" href="#">Facebook</a></li>
+						</ul>
+                </div>
+                    <div class="dw-footer-col-4-3">
+						<ul class="ibm-link-list">
+						 <li><a class="ibm-linkedin-link" href="#">LinkedIn</a></li>   
+						 <li><a class="ibm-twitter-link" href="#">Twitter</a></li>   
+						 <li><a class="ibm-delicious-link" href="#">Delicious</a></li>
+						
+						</ul>
+                    </div>
+                   <div class="dw-footer-col-4-4">
+						<ul class="ibm-link-list">
+						 <li><a class="ibm-digg-link" href="#">Digg</a></li>   
+						 <li><a class="ibm-email-link" href="#">发送此页面</a></li>
+						</ul>
+                    </div>
+                    <div class="dw-footer-close">
+						<ul>
+							<li><div class="dw-footer-close-share"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10"/></a></div></li>
+						</ul>
+                    </div>
+                </div>
+                  <!-- Follow developerWorks -->
+                <div class="dw-footer-columns">
+                    <div class="dw-footer-col-1-1 dw-footer-col-1-1-cn">
+                    	<h2>关注 developerWorks 中国网站：</h2>
+						<ul class="ibm-link-list">
+							<!--<li><a id="dw-foot-1-0" class="ibm-twitter-link" href="http://www.twitter.com/dwchina">Twitter</a></li>-->
+						    <li><a id="dw-foot-1-0" class="dwcn-sina-link"
+						        href="http://weibo.com/ibmdw/">新浪微博</a></li>
+						</ul>
+                    </div>
+                    <div class="dw-footer-close">
+						<ul>
+							<li><div class="dw-footer-close-follow-cn"><a href="#"><img src="//dw1.s81c.com/i/c.gif" alt="关闭 [x]" width="20" height="10"/></a></div></li>
+						</ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="ibm-footer-module-dw">
+	<div class="dw-footer-columns">
+		<div class="dw-footer-col-6-1">
+			<ul>
+				<!--<li><a href="http://www.ibm.com/developerworks/aboutdw/">About</a></li>-->
+				<li><a href="https://www.ibm.com/developerworks/secure/feedback.jsp?domain=dwchina">帮助</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/author/">联系编辑</a></li>
+				<li><a href="https://www.ibm.com/developerworks/secure/myideas2.jsp?domain=dwchina&start=true">提交内容</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/sitemap/">网站导航</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-2">
+			<ul>
+				<li><a href="http://www.ibm.com/developerworks/cn/rss/">订阅源</a></li>
+				<li><a href="http://www.ibm.com/vrm/newsletter/10104?S_TACT=105AGX52&S_CMP=dwcntop">在线浏览每周时事通讯</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-3">
+			<ul>
+				<li><a href="https://www.ibm.com/developerworks/community/report?lang=zh">报告滥用</a></li>
+				<li><a href="https://www.ibm.com/developerworks/community/terms?lang=zh">使用条款</a></li>
+				<li><a href="http://www.ibm.com/privacy/cn/zh/">隐私条约</a></li>
+				<li><a href="http://www.ibm.com/ibm/accessibility/cn/">浏览辅助</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-4-cn">
+			<ul>
+<!-- lk v17 updated link -->			    
+				<li><a href="http://www.ibm.com/developerworks/cn/academic/">IBM 教育学院教育培养计划</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/gep/">IBM 创业企业全球扶持计划</a></li>
+				<li><a href="http://www.ibm.com/partnerworld/isv/">ISV 资源 (英语)</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-6-5">
+		</div>
+		<div class="dw-footer-col-6-6">
+		</div>
+	</div>
+	<!-- Language selector no-script -->
+	<noscript>
+	<div id="dw-footer-selectlang">
+		<h2><a name="SELECTLANG">选择语言：</a></h2>
+		<ul>
+			<li><a href="http://www.ibm.com/developerworks/">English</a></li>
+			<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+			<li><a href="http://www.ibm.com/developerworks/jp/">日本語</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ru/">Русский</a></li>
+			<li><a href="http://www.ibm.com/developerworks/br/">Português (Brasil)</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ssa/">Español</a></li>
+			<li><a href="http://www.ibm.com/developerworks/vn/">Việt</a></li>
+		</ul>
+	</div>
+	</noscript>
+</div><!-- FOOTER_END -->
+
+ <!-- END_IBM-TOP -->
+</div>
+ 
+ <!-- SCRIPTS_INCLUDE_BEGIN -->
+<!-- JQuery start -->
+<script type="text/javascript" language="JavaScript" src="//dw1.s81c.com/developerworks/js/jquery/cluetip98/jquery.hoverIntent.minified.js"></script>
+<script type="text/javascript" language="JavaScript" src="//dw1.s81c.com/developerworks/js/jquery/cluetip98/jquery.cluetip.js"></script>
+<!-- xM Masthead/Footer -->
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/jquery.tools.min.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/jquery.jscroll.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/dw_v16.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/flash-detect.js" type="text/javascript">//</script>
+<script src="//dw1.s81c.com/developerworks/js/dw-mf/dwsi.js" type="text/javascript">//</script>
+<script type="text/javascript" language="JavaScript" src="/developerworks/js/dw-mf/showcomments.js">//</script>
+<script language="JavaScript" type="text/javascript">
+	// <![CDATA[
+ jQuery('threadShow').showComments('95%',5,'nCmts','icomments');
+// ]]>
+</script>
+<script type="text/javascript" language="JavaScript">
+	jQuery.noConflict();     
+	// Put all your code in your document ready area
+	jQuery(document).ready(function(jQuery) {
+	// Do jQuery stuff using jQuery 
+	jQuery('a.dwauthor').cluetip({
+	local: true,
+	showTitle: false,
+	positionBy: 'bottomTop',
+	sticky: true,	
+	mouseOutClose: true,
+	closeText: '<img src="//dw1.s81c.com/developerworks/js/jquery/cluetip98/i/x.gif" alt="Close" />',
+	arrows: false,
+	dropShadow: true,
+	cluetipClass: 'dwbasic'
+	});   	
+	
+	rBHash = {};
+	rBHash['viperLang'] = 'zh';
+	rBHash['urlLang'] = 'cn';
+
+	// si
+	initSI();
+	});
+</script>
+<!-- JQuery end -->
+<!-- Overlay js -->
+<script language="JavaScript" src="//dw1.s81c.com/common/js/overlay.js" type="text/javascript"></script><!-- BEGIN: Use this section to set page specific variables for the Unica Page Tag -->
+<script language="JavaScript">var NTPT_PGEXTRA="ibmSkillLevel=3&ibmAdoptPhase=667&ibmRole=710&ibmCmaId=141702&ibmContentAreas=linux,opensource,aix";</script>
+<!--END --><!-- SCRIPTS_INCLUDE_END -->
+
+<div id="ibm-metrics">
+<script src="//dw1.s81c.com/common/stats/stats.js" type="text/javascript">//</script>
+</div>
+
+</body>
+</html>

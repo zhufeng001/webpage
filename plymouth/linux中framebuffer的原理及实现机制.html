@@ -1,0 +1,754 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>linux中Framebuffer的原理及实现机制 - ce123的技术博客 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="linux中Framebuffer的原理及实现机制*一、FrameBuffer的原理*&#160; &#160; &#160; &#160; &#160;FrameBuffer 是出现在 2.2.xx 内核当中的一种驱动程序接口。&#160; &#160; &#160; &#160; &#160;Linux是工作在保护模式下，所以用户态进程是无法象DOS那样使用显卡BIOS里提供的中断调用来实现直接写屏，Linux抽象出 FrameBuffer这 个设备来供用户态进程实现直接写屏。Framebu" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/light_blue/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/ce123/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="/ce123">ce123的技术博客</a></h1>
+            <h2>专注于嵌入式软件开发</h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="/ce123?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="/ce123?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="/ce123/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "ce123";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/ce123";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8899926" target="_blank">
+<font color=red>有奖征集活动系列——【HTML5游戏编程之旅】 
+   </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2013-05-21/2815371" target="_blank"><font color=blue>专访许雪松：深入理解嵌入式开发
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://events.csdn.net/wy/APC/invite.html
+"target="_blank">
+<font color=red>探究云计算数据中心节能增效之道
+
+
+ </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8900468 "target="_blank">
+<font color=red>CSDN博客第一期云计算最佳博主评选
+ </font></a>
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8853291"target="_blank">
+<font color=blue>CSDN博客第二期最佳移动开发博主评选
+ </font></a>
+
+
+
+
+</div>
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Repost"></span>
+    <h3>
+        <span class="link_title"><a href="/ce123/article/details/6705582">
+        linux中Framebuffer的原理及实现机制
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/ce123/article/category/849226">linux</a> 
+        </span>
+    <span class="link_postdate">2011-08-21 09:24</span>
+    <span class="link_view" title="阅读次数">1743人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('linux中Framebuffer的原理及实现机制','6705582');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(6705582,2);return false;" title="举报">举报</a></span>
+    
+</div>
+<div class="tag2box"><a href='http://blog.csdn.net/tag/details.html?tag=linux' target=_blank>linux</a><a href='http://blog.csdn.net/tag/details.html?tag=struct' target=_blank>struct</a><a href='http://blog.csdn.net/tag/details.html?tag=buffer' target=_blank>buffer</a><a href='http://blog.csdn.net/tag/details.html?tag=parameters' target=_blank>parameters</a><a href='http://blog.csdn.net/tag/details.html?tag=file' target=_blank>file</a><a href='http://blog.csdn.net/tag/details.html?tag=%e7%a1%ac%e4%bb%b6%e9%a9%b1%e5%8a%a8' target=_blank>硬件驱动</a></div>
+
+
+    
+<div id="article_content" class="article_content">
+<span style="color:rgb(68,68,68); font-family:Verdana,Arial,Helvetica,sans-serif; font-size:14px; line-height:25px"></span><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif"></p><h1 style="text-align:center"><span style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Courier,Monospaced"><span style="font-family:Courier; padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif"><span style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif"><span style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif"><span style="font-size:24px">linux中Framebuffer的原理及实现机制</span></span></span></span></span></h1><h2><span style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Courier,Monospaced"><span style="font-family:Courier; padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif"><span style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif"><span style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif; background-color:rgb(255,255,255)"><span style="font-size:18px">*一、FrameBuffer的原理*</span></span></span></span></span></h2><span style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Courier,Monospaced"><span style="font-family:Courier; padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;FrameBuffer 是出现在 2.2.xx 内核当中的一种驱动程序接口。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Linux是工作在保护模式下，所以用户态进程是无法象DOS那样使用显卡BIOS里提供的中断调用来实现直接写屏，Linux抽象出 FrameBuffer这 个设备来供用户态进程实现直接写屏。Framebuffer机制模仿显卡的功能，将显卡硬件结构抽象掉，可以通过Framebuffer的读写直接对显存进行操 作。用户可以将Framebuffer看成是显示内存的一个映像，将其映射到进程地址空间之后，就可以直接进行读写操作，而写操作可以立即反应在屏幕上。 这种操 作是抽象的，统一的。用户不必关心物理显存的位置、换页机制等等具体细节。这些都是由Framebuffer设备驱动来完成的。<span id="more-254" style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif"></span><br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />&nbsp; &nbsp; &nbsp; &nbsp; 但Framebuffer本身不具备任何运算数据的能力,就只好比是一个暂时存放水的水池.CPU将运算后的结果放到这个水池，水池再将结果流到显示器. 中间不会对数据做处理. 应用程序也可以直接读写这个水池的内容.在这种机制下，尽管Framebuffer需要真正的显卡驱动的支持，但所有显示任务都有CPU完成,因此CPU 负担很重.<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />framebuffer的设备文件一般是 /dev/fb0、/dev/fb1 等等。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />可以用命令: #dd if=/dev/zero of=/dev/fb 清空屏幕.<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />如果显示模式是 1024×768-8 位色，用命令：$ dd if=/dev/zero of=/dev/fb0 bs=1024 count=768 清空屏幕；<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />用命令: #dd if=/dev/fb of=fbfile 可以将fb中的内容保存下来；<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />可以重新写回屏幕: #dd if=fbfile of=/dev/fb；<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />在使用Framebuffer时，Linux是将显卡置于图形模式下的．</span></span><p></p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif">在应用程序中，一般通过将 FrameBuffer 设备映射到进程地址空间的方式使用，比如下面的程序就打开 /dev/fb0 设备，并通过mmap 系统调用进行地址映射，随后用 memset 将屏幕清空（这里假设显示模式是 1024×768-8 位色模式，线性内存模式）：<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" /></p><pre name="code" class="plain">int fb;
+unsigned char* fb_mem;
+fb = open (“/dev/fb0″, O_RDWR);
+fb_mem = mmap (NULL, 1024*768, PROT_READ|PROT_WRITE,MAP_SHARED,fb,0);
+memset (fb_mem, 0, 1024*768 );</pre><p></p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif">FrameBuffer 设备还提供了若干ioctl命令，通过这些命令，可以获得显示设备的一些固定信息（比如显示内存大小）、与显示模式相关的可变信息（比如分辨率、象素结构、每扫描线的字节宽度），以及伪彩 色模式下的调色板信息等等。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />通过 FrameBuffer设备，还可以获得当前内核所支持的加速显示卡的类型（通过固定信息得到），这种类型通常是和特定显示芯片相关的。比如目前最新的内核（2.4.9）中，就包含有 对S3、Matrox、nVidia、3Dfx 等等流行显示芯片的加速支持。在获得了加速芯片类型之后，应用程序就可以将 PCI设备的内存I/O（memio）映射到进程的地址空间。这些memio<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />一般是用来控制显示卡的寄存器，通过对这些寄存器的操作，应用程序就可以控制特定显卡的加速功能。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />PCI设备可以将自己的控制寄存器映射到物理内存空间，而后，对这些控制寄存器的访问，给变成了对物理内存的访问。因此，这些寄存器又被称 为”memio”。一旦被映 射到物理内存，Linux的普通进程就可以通过 mmap 将这些内存 I/O 映射到进程地址空间，这样就可以直接访问这些寄存器了。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />当然，因为不同的显示芯片具有不同的加速能力，对memio的使用和定义也各自不同，这时，就需要针对加速芯片的不同类型来编写实现不同的加速功能。比如 大多数芯片都提供了对矩形填充的硬件加速支持，但不同的芯片实现方 式不同，这时，就需要针对不同的芯片类型编写不同的用来完成填充矩形的函数。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />FrameBuffer 只是一个提供显示内存和显示芯片寄存器从物理内存映射到进程地址空间中的设备。所以，对于应用程序而言，如果希望在FrameBuffer 之上进行图形编程，还需要自己动手完成其他许多工作。</p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif"></p><h2><span style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif"><span style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif"><span style="font-size:18px">*二、FrameBuffer在Linux中的实现和机制*</span></span></span></h2>Framebuffer对应的源文件在linux/drivers/video/目录下。总的抽象设备文件为fbcon.c，在这个目录下还有与各种显卡驱动相关的源文件。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />(一)、分析Framebuffer设备驱动<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />需要特别提出的是在INTEL平台上，老式的VESA1.2卡，如CGA/EGA卡，是不能支持Framebuffer的，因为Framebuffer要 求显卡支持线性帧缓冲，即CPU可以访问显缓冲中的每一位， 但是VESA1.2 卡只能允许CPU一次访问64K的地址空间。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />FrameBuffer设备驱动基于如下两个文件：<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />1) linux/include/linux/fb.h<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />2) linux/drivers/video/fbmem.c 下面分析这两个文件。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />1、fb.h<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />几乎主要的结构都是在这个中文件定义的。这些结构包括：<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" /><h3>1）fb_var_screeninfo</h3>这个结构描述了显示卡的特性：<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" /><pre name="code" class="plain">struct fb_var_screeninfo
+{
+__u32 xres; /* visible resolution */
+__u32 yres;
+__u32 xres_virtual; /* virtual resolution */
+__u32 yres_virtual;
+__u32 xoffset; /* offset from virtual to visible resolution */
+__u32 yoffset;
+__u32 bits_per_pixel; /* guess what */
+__u32 grayscale; /* != 0 Gray levels instead of colors */
+struct fb_bitfield red; /* bitfield in fb mem if true color, */
+struct fb_bitfield green; /* else only length is significant */
+struct fb_bitfield blue;
+struct fb_bitfield transp; /* transparency */
+__u32 nonstd; /* != 0 Non standard pixel format */
+__u32 activate; /* see FB_ACTIVATE_* */
+__u32 height; /* height of picture in mm */
+__u32 width; /* width of picture in mm */
+__u32 accel_flags; /* acceleration flags (hints) */
+/* Timing: All values in pixclocks, except pixclock (of course) */
+__u32 pixclock; /* pixel clock in ps (pico seconds) */
+__u32 left_margin; /* time from sync to picture */
+__u32 right_margin; /* time from picture to sync */
+__u32 upper_margin; /* time from sync to picture */
+__u32 lower_margin;
+__u32 hsync_len; /* length of horizontal sync */
+__u32 vsync_len; /* length of vertical sync */
+__u32 sync; /* see FB_SYNC_* */
+__u32 vmode; /* see FB_VMODE_* */
+__u32 reserved[6]; /* Reserved for future compatibility */
+};</pre><p></p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif"></p><h3>2) fb_fix_screeninfon</h3>这个结构在显卡被设定模式后创建，它描述显示卡的属性，并且系统运行时不能被修改；比如FrameBuffer内存的起始地址。它依赖于被设定的模式，当一个模 式被设定后，内存信息由显示卡硬件给出，内存的位置等信息就不可以修改。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" /><pre name="code" class="plain">struct fb_fix_screeninfo {
+char id[16]; /* identification string eg “TT Builtin” */
+unsigned long smem_start; /* Start of frame buffer mem */
+/* (physical address) */
+__u32 smem_len; /* Length of frame buffer mem */
+__u32 type; /* see FB_TYPE_* */
+__u32 type_aux; /* Interleave for interleaved Planes */
+__u32 visual; /* see FB_VISUAL_* */
+__u16 xpanstep; /* zero if no hardware panning */
+__u16 ypanstep; /* zero if no hardware panning */
+__u16 ywrapstep; /* zero if no hardware ywrap */
+__u32 line_length; /* length of a line in bytes */
+unsigned long mmio_start; /* Start of Memory Mapped I/O */
+/* (physical address) */
+__u32 mmio_len; /* Length of Memory Mapped I/O */
+__u32 accel; /* Type of acceleration available */
+__u16 reserved[3]; /* Reserved for future compatibility */
+};</pre><p></p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif"></p><h3>3) fb_cmap</h3>描述设备无关的颜色映射信息。可以通过FBIOGETCMAP 和 FBIOPUTCMAP 对应的ioctl操作设定或获取颜色映射信息.<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" /><pre name="code" class="plain">struct fb_cmap {
+__u32 start; /* First entry */
+__u32 len; /* Number of entries */
+__u16 *red; /* Red values */
+__u16 *green;
+__u16 *blue;
+__u16 *transp; /* transparency, can be NULL */
+};</pre><br /><p></p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif"></p><h3>4) fb_info</h3>定义当显卡的当前状态；fb_info结构仅在内核中可见，在这个结构中有一个fb_ops指针， 指向驱动设备工作所需的函数集。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" /><pre name="code" class="plain">struct fb_info {
+char modename[40]; /* default video mode */
+kdev_t node;
+int flags;
+int open; /* Has this been open already ? */
+#define FBINFO_FLAG_MODULE 1 /* Low-level driver is a module */
+struct fb_var_screeninfo var; /* Current var */
+struct fb_fix_screeninfo fix; /* Current fix */
+struct fb_monspecs monspecs; /* Current Monitor specs */
+struct fb_cmap cmap; /* Current cmap */
+struct fb_ops *fbops;
+char *screen_base; /* Virtual address */
+struct display *disp; /* initial display variable */
+struct vc_data *display_fg; /* Console visible on this display */
+char fontname[40]; /* default font name */
+devfs_handle_t devfs_handle; /* Devfs handle for new name */
+devfs_handle_t devfs_lhandle; /* Devfs handle for compat. symlink */
+int (*changevar)(int); /* tell console var has changed */
+int (*switch_con)(int, struct fb_info*);
+/* tell fb to switch consoles */
+int (*updatevar)(int, struct fb_info*);
+/* tell fb to update the vars */
+void (*blank)(int, struct fb_info*); /* tell fb to (un)blank the screen */
+/* arg = 0: unblank */
+/* arg &gt; 0: VESA level (arg-1) */
+void *pseudo_palette; /* Fake palette of 16 colors and
+the cursor’s color for non
+palette mode */
+/* From here on everything is device dependent */
+void *par;
+};</pre><br /><p></p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif"></p><h3>5) struct fb_ops</h3>用户应用可以使用ioctl()系统调用来操作设备，这个结构就是用一支持ioctl()的这些操作的。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" /><pre name="code" class="plain">struct fb_ops {
+/* open/release and usage marking */
+struct module *owner;
+int (*fb_open)(struct fb_info *info, int user);
+int (*fb_release)(struct fb_info *info, int user);
+/* get non settable parameters */
+int (*fb_get_fix)(struct fb_fix_screeninfo *fix, int con,
+struct fb_info *info);
+/* get settable parameters */
+int (*fb_get_var)(struct fb_var_screeninfo *var, int con,
+struct fb_info *info);
+/* set settable parameters */
+int (*fb_set_var)(struct fb_var_screeninfo *var, int con,
+struct fb_info *info);
+/* get colormap */
+int (*fb_get_cmap)(struct fb_cmap *cmap, int kspc, int con,
+struct fb_info *info);
+/* set colormap */
+int (*fb_set_cmap)(struct fb_cmap *cmap, int kspc, int con,
+struct fb_info *info);
+/* pan display (optional) */
+int (*fb_pan_display)(struct fb_var_screeninfo *var, int con,
+struct fb_info *info);
+/* perform fb specific ioctl (optional) */
+int (*fb_ioctl)(struct inode *inode, struct file *file, unsigned int cmd,
+unsigned long arg, int con, struct fb_info *info);
+/* perform fb specific mmap */
+int (*fb_mmap)(struct fb_info *info, struct file *file, struct
+vm_area_struct *vma);
+/* switch to/from raster image mode */
+int (*fb_rasterimg)(struct fb_info *info, int start);
+};</pre><br /><p></p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif"></p><h3>6) structure map</h3><pre name="code" class="plain">struct fb_info_gen | struct fb_info | fb_var_screeninfo
+| | fb_fix_screeninfo
+| | fb_cmap
+| | modename[40]
+| | fb_ops —|—&gt;ops on var
+| | … | fb_open
+| | | fb_release
+| | | fb_ioctl
+| | | fb_mmap
+| struct fbgen_hwswitch -|-&gt; detect
+| | encode_fix
+| | encode_var
+| | decode_fix
+| | decode_var
+| | get_var
+| | set_var
+| | getcolreg
+| | setcolreg
+| | pan_display
+| | blank
+| | set_disp</pre><br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />[编排有点困难，第一行的第一条竖线和下面的第一列竖线对齐，第一行的第二条竖线和下面的第二列竖线对齐就可以了]<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />这个结构 fbgen_hwswitch抽象了硬件的操作.虽然它不是必需的，但有时候很有用.<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />2、 fbmem.c<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />fbmem.c 处于Framebuffer设备驱动技术的中心位置.它为上层应用程序提供系统调用也为下一层的特定硬件驱动提供接口；那些底层硬件驱动需要用到这儿的接口来向 系统内核注册它们自己.<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />fbmem.c 为所有支持FrameBuffer的设备驱动提供了通用的接口，避免重复工作.<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />1) 全局变量<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" /><pre name="code" class="plain">struct fb_info *registered_fb[FB_MAX];
+int num_registered_fb;</pre>这两变量记录了所有fb_info 结构的实例，fb_info 结构描述显卡的当前状态，所有设备对应的fb_info结构都保存在这个数组中，当一个FrameBuffer设备驱动向系统注册自己时，其对应的 fb_info结构就会添加到这个结构中，同时num_registered_fb 为自动加1.<p></p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif"></p><pre name="code" class="plain">static struct {
+const char *name;
+int (*init)(void);
+int (*setup)(void);
+} fb_drivers[] __initdata= { ….};</pre><br /><p></p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif">如果FrameBuffer设备被静态链接到内核，其对应的入口就会添加到这个表中；如果是动态加载的，即使用insmod/rmmod,就不需要关心这个表。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" /></p><pre name="code" class="plain">static struct file_operations fb_ops ={
+owner: THIS_MODULE,
+read: fb_read,
+write: fb_write,
+ioctl: fb_ioctl,
+mmap: fb_mmap,
+open: fb_open,
+release: fb_release
+};</pre><br /><p></p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif">这是一个提供给应用程序的接口.<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />2）fbmem.c 实现了如下函数.<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" /></p><pre name="code" class="plain">register_framebuffer(struct fb_info *fb_info);
+unregister_framebuffer(struct fb_info *fb_info);</pre><br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />这两个是提供给下层FrameBuffer设备驱动的接口，设备驱动通过这两函数向系统注册或注销自己。几乎底层设备驱动所要做的所有事情就是填充fb_inf o结构然后向系统注册或注销它。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />（二）一个LCD显示芯片的驱动实例<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />以Skeleton LCD控制器驱动为例，在LINUX中存有一个/fb/skeleton.c的skeleton的Framebuffer驱动程序，很简单，仅仅是填充了 fb_info结构，并且注册/注销自己。设备驱动是向用户程序提供系统调用接口，所以我们需要实现底层硬件操作并且定义file_operations 结构来向系统提供系统调用接口，从而实现更有效的LCD控制器驱动程序。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />1）在系统内存中分配显存<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />在fbmem.c文件中可以看到,file_operations结构中的open()和release()操作不需底层支持，但read()、 write()和 mmap()操作需要函数fb_get_fix()的支持.因此需要重新实现函数fb_get_fix()。另外还需要在系统内存中分配显存空间，大多数 的LCD控制器都没有自己的显存空间，被分配的地址空间的起 始地址与长度将会被填充到fb_fix_screeninfo结构的smem_start 和smem_len 的两个变量中.被分配的空间必须是物理连续的。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />2）实现 fb_ops 中的函数<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />用户应用程序通过ioctl()系统调用操作硬件，fb_ops 中的函数就用于支持这些操作。（注： fb_ops结构与file_operations结构不同，fb_ops是底层操作的抽象,而file_operations是提供给上层系统调用的接 口，可以直接调用ioctl()系统调用在文件fbmem.c中实现，通过观察可以发现ioctl()命令与fb_ops’s 中函数的关系:<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" /><pre name="code" class="plain">FBIOGET_VSCREENINFO fb_get_var
+FBIOPUT_VSCREENINFO fb_set_var
+FBIOGET_FSCREENINFO fb_get_fix
+FBIOPUTCMAP fb_set_cmap
+FBIOGETCMAP fb_get_cmap
+FBIOPAN_DISPLAY fb_pan_display</pre><br /><p></p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px; font-family:Verdana,Arial,Helvetica,sans-serif">&nbsp;如果我们定义了fb_XXX_XXX 方法，用户程序就可以使用FBIOXXXX宏的ioctl()操作来操作硬件。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />文件linux/drivers/video/fbgen.c或者linux/drivers/video目录下的其它设备驱动是比较好的参考资料。在所 有的这 些函数中fb_set_var()是最重要的，它用于设定显示卡的模式和其它属性，下面是函数fb_set_var()的执行步骤：<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />1)检测是否必须设定模式<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />2)设定模式<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />3)设定颜色映射<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />4) 根据以前的设定重新设置LCD控制器的各寄存器。<br style="padding-top:0px; padding-right:0px; padding-bottom:0px; padding-left:0px; margin-top:0px; margin-right:0px; margin-bottom:0px; margin-left:0px; font-family:Verdana,Arial,Helvetica,sans-serif" />第四步表明了底层操作到底放置在何处。在系统内存中分配显存后，显存的起始地址及长度将被设定到LCD控制器的各寄存器中（一般通过 fb_set_var()函数），显存中的内容将自动被LCD控制器输出到屏幕上。另一方面，用户程序通过函数mmap()将显存映射到用户进程地址空间 中，然后用户进程向映射空间发送 的所有数据都将会被显示到LCD显示器上。</p><p style="padding-top:0px; padding-bottom:0px; margin-top:0px; margin-bottom:0px"></p><h1><span style="font-family:song,Verdana"><span style="font-size:16px">*三、FrameBuffer的应用*&nbsp;</span></span></h1><span style="font-family:song,Verdana"><span style="font-size:13px"><br />1. FrameBuffer主要是根据VESA标准的实现的，所以只能实现最简单的功能。&nbsp;<br />2. 由于涉及内核的问题，FrameBuffer是不允许在系统起来后修改显示模式等一系列操作。（好象很多人都想要这样干，这是不被允许的，当然如果你自己写驱动 的话，是可以实现的）.&nbsp;<br />3. 对FrameBuffer的操作，会直接影响到本机的所有控制台的输出，包括XWIN的图形界面。&nbsp;<br />好，现在可以让我们开始实现直接写屏：&nbsp;<br />1、打开一个FrameBuffer设备&nbsp;<br />2、通过mmap调用把显卡的物理内存空间映射到用户空间&nbsp;<br />3、直接写内存。&nbsp;</span><br /><span style="font-size:16px"></span></span><p></p><pre name="code" class="cpp">/******************************** 
+File name : fbtools.h 
+*/ 
+#ifndef _FBTOOLS_H_ 
+#define _FBTOOLS_H_ 
+#include &lt;linux/fb.h&gt; 
+//a framebuffer device structure; 
+typedef struct fbdev{ 
+       int fb; 
+       unsigned long fb_mem_offset; 
+       unsigned long fb_mem; 
+       struct fb_fix_screeninfo fb_fix; 
+       struct fb_var_screeninfo fb_var; 
+       char dev[20]; 
+} FBDEV, *PFBDEV; 
+
+
+
+
+//open &amp; init a frame buffer 
+//to use this function, 
+//you must set FBDEV.dev=&quot;/dev/fb0&quot; 
+//or &quot;/dev/fbX&quot; 
+//it's your frame buffer. 
+int fb_open(PFBDEV pFbdev); 
+//close a frame buffer 
+int fb_close(PFBDEV pFbdev); 
+//get display depth 
+int get_display_depth(PFBDEV pFbdev); 
+//full screen clear 
+void fb_memset(void *addr, int c, size_t len); 
+#endif 
+/****************** </pre><br /><pre name="code" class="cpp">File name : fbtools.c 
+*/ 
+#include &lt;stdio.h&gt; 
+#include &lt;stdlib.h&gt; 
+#include &lt;fcntl.h&gt; 
+#include &lt;unistd.h&gt; 
+#include &lt;string.h&gt; 
+#include &lt;sys/ioctl.h&gt; 
+#include &lt;sys/mman.h&gt; 
+#include &lt;asm/page.h&gt; 
+#include &quot;fbtools.h&quot; 
+#define TRUE        1 
+#define FALSE       0 
+#define MAX(x,y)        ((x)&gt;(y)?(x)y)) 
+#define MIN(x,y)        ((x)&lt;(y)?(x)y)) 
+//open &amp; init a frame buffer 
+int fb_open(PFBDEV pFbdev) 
+{ 
+       pFbdev-&gt;fb = open(pFbdev-&gt;dev, O_RDWR); 
+       if(pFbdev-&gt;fb &lt; 0) 
+       { 
+              printf(&quot;Error opening %s: %m. Check kernel config\n&quot;, 
+pFbdev-&gt;dev); 
+              return FALSE; 
+       } 
+       if (-1 == ioctl(pFbdev-&gt;fb,FBIOGET_VSCREENINFO,&amp;(pFbdev-&gt;fb_var))) 
+       { 
+              printf(&quot;ioctl FBIOGET_VSCREENINFO\n&quot;); 
+              return FALSE; 
+       } 
+       if (-1 == ioctl(pFbdev-&gt;fb,FBIOGET_FSCREENINFO,&amp;(pFbdev-&gt;fb_fix))) 
+       { 
+              printf(&quot;ioctl FBIOGET_FSCREENINFO\n&quot;); 
+              return FALSE; 
+       } 
+       //map physics address to virtual address 
+       pFbdev-&gt;fb_mem_offset = (unsigned long)(pFbdev-&gt;fb_fix.smem_start) &amp; 
+(~PAGE_MASK); 
+       pFbdev-&gt;fb_mem = (unsigned long int)mmap(NULL, 
+pFbdev-&gt;fb_fix.smem_len + pFbdev-&gt;fb_mem_offset,              PROT_READ | 
+PROT_WRITE, MAP_SHARED, pFbdev-&gt;fb, 0); 
+       if (-1L == (long) pFbdev-&gt;fb_mem) 
+       { 
+              printf(&quot;mmap error! mem:%d offset:%d\n&quot;, pFbdev-&gt;fb_mem, 
+pFbdev-&gt;fb_mem_offset); 
+              return FALSE; 
+       } 
+       return TRUE; 
+} 
+
+
+
+
+//close frame buffer 
+int fb_close(PFBDEV pFbdev) 
+{ 
+       close(pFbdev-&gt;fb); 
+       pFbdev-&gt;fb=-1; 
+} 
+
+
+
+
+//get display depth 
+int get_display_depth(PFBDEV pFbdev); 
+{ 
+       if(pFbdev-&gt;fb&lt;=0) 
+       { 
+              printf(&quot;fb device not open, open it first\n&quot;); 
+              return FALSE; 
+       } 
+       return pFbdev-&gt;fb_var.bits_per_pixel; 
+} 
+
+
+
+
+//full screen clear 
+void fb_memset (void *addr, int c, size_t len) 
+{ 
+    memset(addr, c, len); 
+} 
+</pre><br /><span style="font-size:16px"></span><pre name="code" class="cpp">//use by test 
+#define DEBUG 
+#ifdef DEBUG 
+main() 
+{ 
+       FBDEV fbdev; 
+       memset(&amp;fbdev, 0, sizeof(FBDEV)); 
+       strcpy(fbdev.dev, &quot;/dev/fb0&quot;); 
+       if(fb_open(&amp;fbdev)==FALSE) 
+       { 
+              printf(&quot;open frame buffer error\n&quot;); 
+              return; 
+       } 
+       fb_memset(fbdev.fb_mem + fbdev.fb_mem_offset, 0, 
+fbdev.fb_fix.smem_len); 
+              fb_close(&amp;fbdev); 
+} </pre>
+</div>
+
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.1.236-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/ce123/article/details/6705155">构建自己的Linux 之三 初步完善(提供网络功能等)</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/ce123/article/details/6705611">一个创建 ramdisk的脚本</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen">
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "117306";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<script type="text/javascript">
+    //new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '6705582';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/ce123" target="_blank">
+    <img src="http://avatar.csdn.net/D/3/A/1_ce123.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/ce123" class="user_name" target="_blank">ce123</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+        <div class="ico_expert" title="CSDN认证专家"></div>
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>445711次</span></li>
+    <li>积分：<span>9286分</span></li>
+    <li>排名：<span>第302名</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>255篇</span></li>
+    <li>转载：<span>29篇</span></li>
+    <li>译文：<span>5篇</span></li>
+    <li>评论：<span>577条</span></li>
+</ul>
+</ul>
+</div>
+
+
+
+<div id="custom_column_19131231" class="panel">
+<ul class="panel_head"><span>公告</span></ul>
+<ul class="panel_body">
+<center>欢迎交流</center>
+<br> E-mail：ce123#126.com<br>  
+QQ：350725201<br><br>
+嵌入式开发交流群：<br>
+(1)280352802<br>
+(2)289195589<br><br>  
+声明：版权所有，欢迎转载！<br>
+转载请注明出处：http://blog.csdn.net/ce123
+</ul>
+</div><div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+    <ul class="panel_head"><span>博客专栏</span></ul>
+    <ul class="panel_body" id="sp_column">
+    <table cellpadding="0" cellspacing="0"><tr>
+    <td style="padding:10px 10px 0 0;">
+    <a href="http://blog.csdn.net/column/details/e-busl-interface.html" target="_blank"><img src="http://avatar.csdn.net/blogpic/20121202102626182.jpg" style="width:75px;height:75px;" /></a>
+    </td>
+    <td style="padding:10px 0; vertical-align:top;">
+    <a href="http://blog.csdn.net/column/details/e-busl-interface.html" target="_blank">嵌入式外围总线和接口技术</a>
+    <p>文章：34篇</p>
+    <span>阅读：90919</span>
+    </td>
+    </tr></table>
+    <table cellpadding="0" cellspacing="0"><tr>
+    <td style="padding:10px 10px 0 0;">
+    <a href="http://blog.csdn.net/column/details/ce123-wishbone.html" target="_blank"><img src="http://avatar.csdn.net/blogpic/20111114223445169.jpg" style="width:75px;height:75px;" /></a>
+    </td>
+    <td style="padding:10px 0; vertical-align:top;">
+    <a href="http://blog.csdn.net/column/details/ce123-wishbone.html" target="_blank">Wishbone总线学习</a>
+    <p>文章：14篇</p>
+    <span>阅读：15333</span>
+    </td>
+    </tr></table>
+    <table cellpadding="0" cellspacing="0"><tr>
+    <td style="padding:10px 10px 0 0;">
+    <a href="http://blog.csdn.net/column/details/ce123.html" target="_blank"><img src="http://avatar.csdn.net/blogpic/20111114193052811.jpg" style="width:75px;height:75px;" /></a>
+    </td>
+    <td style="padding:10px 0; vertical-align:top;">
+    <a href="http://blog.csdn.net/column/details/ce123.html" target="_blank">专注于ARM+linux开发</a>
+    <p>文章：62篇</p>
+    <span>阅读：173584</span>
+    </td>
+    </tr></table>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/840137">ARM Linux开发</a><span>(51)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/1091340">U-Boot学习</a><span>(15)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/863254">Linux驱动</a><span>(10)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/1068011">ARM嵌入式底层软件开发</a><span>(14)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/910927">SPI总线学习</a><span>(8)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/906838">I2C总线学习</a><span>(14)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/913577">I2S音频总线</a><span>(4)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/918756">Wishbone总线学习</a><span>(14)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/919861">1-Wire总线学习</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/910926">总线学习</a><span>(10)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/846570">DS-5</a><span>(14)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/849226">linux</a><span>(27)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/852083">ARM</a><span>(25)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/871021">构建自己的Linux</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/840138">GeekOS</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/849220">嵌入式软件移植</a><span>(6)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/1077390">嵌入式Windows</a><span>(6)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/898335">嵌入式开发</a><span>(18)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/894496">程序设计</a><span>(23)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/898338">笔记</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/886525">杂文</a><span>(19)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/ce123/article/category/929239">一个程序员的爱情故事</a><span>(1)</span>
+</li>
+</ul>
+</div><div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/ce123/article/details/7526408" title="图解ARM Linux的启动全过程">图解ARM Linux的启动全过程</a><span>(15858)</span>
+</li>
+<li>
+<a href="/ce123/article/details/6971544" title="详解大端模式和小端模式">详解大端模式和小端模式</a><span>(15270)</span>
+</li>
+<li>
+<a href="/ce123/article/details/6868461" title="基于浏览器的Linux">基于浏览器的Linux</a><span>(13770)</span>
+</li>
+<li>
+<a href="/ce123/article/details/6905630" title="单片机软件模拟SPI接口—加深理解SPI总线协议">单片机软件模拟SPI接口—加深理解SPI总线协议</a><span>(8926)</span>
+</li>
+<li>
+<a href="/ce123/article/details/7319290" title="图解U-Boot：引导内核分析">图解U-Boot：引导内核分析</a><span>(8385)</span>
+</li>
+<li>
+<a href="/ce123/article/details/6878547" title="关于I2C和SPI总线协议">关于I2C和SPI总线协议</a><span>(7123)</span>
+</li>
+<li>
+<a href="/ce123/article/details/6919954" title="I2S音频总线学习（二）I2S总线协议">I2S音频总线学习（二）I2S总线协议</a><span>(5985)</span>
+</li>
+<li>
+<a href="/ce123/article/details/6919862" title="I2S音频总线学习（一）数字音频技术">I2S音频总线学习（一）数字音频技术</a><span>(5742)</span>
+</li>
+<li>
+<a href="/ce123/article/details/6923417" title="【博文汇总】SPI总线学习">【博文汇总】SPI总线学习</a><span>(5691)</span>
+</li>
+<li>
+<a href="/ce123/article/details/6896819" title="LCD的接口类型详解">LCD的接口类型详解</a><span>(5126)</span>
+</li>
+</ul>
+</div>
+<div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/ce123/article/details/6923293#comments">详解SPI中的极性CPOL和相位CPHA</a>
+    <p style="margin:0px;"><a href="/echofla" class="user_name">echofla</a>:
+还请问怎么能看出来是在上升沿或下降沿输出数据.
+    </p>
+    </li>
+    <li>
+    <a href="/ce123/article/details/6971544#comments">详解大端模式和小端模式</a>
+    <p style="margin:0px;"><a href="/xue815020462" class="user_name">xue815020462</a>:
+学习了
+    </p>
+    </li>
+    <li>
+    <a href="/ce123/article/details/8570616#comments">linux内核中的信号机制--信号处理</a>
+    <p style="margin:0px;"><a href="/xiajun07061225" class="user_name">xiajun07061225</a>:
+赞！学习了！
+    </p>
+    </li>
+    <li>
+    <a href="/ce123/article/details/6895408#comments">SPI时序详解</a>
+    <p style="margin:0px;"><a href="/zhaojkun" class="user_name">zhaojkun</a>:
+四种模式终于看懂了
+    </p>
+    </li>
+    <li>
+    <a href="/ce123/article/details/6923293#comments">详解SPI中的极性CPOL和相位CPHA</a>
+    <p style="margin:0px;"><a href="/bolin0070526" class="user_name">bolin0070526</a>:
+佩服  这个说明 很详细  很准确  学习 了 。。。
+    </p>
+    </li>
+    <li>
+    <a href="/ce123/article/details/7338048#comments">U-Boot与Linux内核的交互</a>
+    <p style="margin:0px;"><a href="/kangear" class="user_name">kangear</a>:
+@ce123:谢谢博主回复，第二个问题我已经找到答案：http://blog.csdn.net/ka...
+    </p>
+    </li>
+    <li>
+    <a href="/ce123/article/details/7338048#comments">U-Boot与Linux内核的交互</a>
+    <p style="margin:0px;"><a href="/ce123" class="user_name">ce123</a>:
+@kangear:“root=/dev/mtdblock2 init=/linuxrc consol...
+    </p>
+    </li>
+    <li>
+    <a href="/ce123/article/details/8744478#comments">好久没有更新博客了</a>
+    <p style="margin:0px;"><a href="/ce123" class="user_name">ce123</a>:
+@kangear:谢谢,这几天在整理近段时间学习的东西.多交流学习
+    </p>
+    </li>
+    <li>
+    <a href="/ce123/article/details/8744478#comments">好久没有更新博客了</a>
+    <p style="margin:0px;"><a href="/kangear" class="user_name">kangear</a>:
+期待你的新作，你的文章很耐读。
+    </p>
+    </li>
+    <li>
+    <a href="/ce123/article/details/7338048#comments">U-Boot与Linux内核的交互</a>
+    <p style="margin:0px;"><a href="/kangear" class="user_name">kangear</a>:
+敢问博主，所谓的标记列表就是“root=/dev/mtdblock2 init=/linuxrc c...
+    </p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=934145"></script>
+
+<script type="text/javascript">
+document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date()/120000).toString(36) + '="></'+'script>');
+</script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript" src="http://js.tongji.linezing.com/2790480/tongji.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js?v=1"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-cn">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>使用iostat分析IO性能 - bangerlee - 博客园</title>
+<link type="text/css" rel="stylesheet" href="/bundles/blog-common.css?v=gdNkSiQMyBMkpTeO1ex9qW-60UbMszQItnCUpBAT3LQ1"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="http://common.cnblogs.com/Skins/AnotherEon001/style.css?id=20140415"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/bangerlee/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/bangerlee/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/bangerlee/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">var currentBlogApp = 'bangerlee', cb_enable_mathjax=false;</script>
+<script src="/bundles/blog-common.js?v=iPflrWoIo72rhU3cYfJbnUvK6QAYRd4QPEVSKbmA4gw1" type="text/javascript"></script>
+</head>
+<body>
+<a name="top"></a>
+
+<div id="wrapper">
+<div id="header">
+
+<div id="top">
+<h1><a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/bangerlee/">bangerlee</a></h1>
+<div id="subtitle"></div>
+</div>
+<div id="sub">
+<div class="BlogStats">随笔 - 29, 文章 - 55, 评论 - 114, 引用 - 0</div>
+</div>
+
+
+
+</div>
+<div id="main_container">
+<div id="main_content">
+<div id="content">
+	
+
+	<div class="post">
+		<h2>
+			<a id="cb_post_title_url" href="http://www.cnblogs.com/bangerlee/articles/2547161.html">使用iostat分析IO性能</a>
+		</h2>
+		<div class="postbody">
+		<div id="cnblogs_post_body"><p align="left">对于I/O-bond类型的进程，我们经常用iostat工具查看进程IO请求下发的数量、系统处理IO请求的耗时，进而分析进程与操作系统的交互过程中IO方面是否存在瓶颈。</p>
+<p align="left">&nbsp;</p>
+<p align="left">下面通过iostat命令使用实例，说明使用iostat查看IO请求下发情况、系统IO处理能力的方法，以及命令执行结果中各字段的含义。</p>
+<p align="left">&nbsp;</p>
+<p align="left"><strong>1.</strong><strong>不加选项执行</strong><strong>iostat</strong></p>
+<p align="left">我们先来看直接执行iostat的输出结果：</p>
+<div class="cnblogs_code">
+<pre><span style="color: #000000;">linux # <span style="color: #ff0000;"><strong>iostat</strong></span>
+Linux </span><span style="color: #800080;">2.6</span>.<span style="color: #800080;">16.60</span>-<span style="color: #800080;">0.21</span>-smp (linux)     <span style="color: #800080;">06</span>/<span style="color: #800080;">12</span>/<span style="color: #800080;">12</span><span style="color: #000000;">
+
+avg</span>-cpu:  %user   %<span style="color: #0000ff;">nice</span> %system %iowait  %steal   %<span style="color: #000000;">idle
+           </span><span style="color: #800080;">0.07</span>    <span style="color: #800080;">0.00</span>    <span style="color: #800080;">0.05</span>    <span style="color: #800080;">0.06</span>    <span style="color: #800080;">0.00</span>   <span style="color: #800080;">99.81</span><span style="color: #000000;">
+
+Device:            tps   Blk_read</span>/s   Blk_wrtn/<span style="color: #000000;">s   Blk_read   Blk_wrtn
+sda               </span><span style="color: #800080;">0.58</span>         <span style="color: #800080;">9.95</span>        <span style="color: #800080;">37.47</span>    <span style="color: #800080;">6737006</span>   <span style="color: #800080;">25377400</span><span style="color: #000000;">
+sdb               </span><span style="color: #800080;">0.00</span>         <span style="color: #800080;">0.00</span>         <span style="color: #800080;">0.00</span>        <span style="color: #800080;">824</span>          <span style="color: #800080;">0</span></pre>
+</div>
+<p>单独执行iostat，显示的结果为从系统开机到当前执行时刻的统计信息。以上输出中，除最上面指示系统版本、主机名和日期的一行外，另有两部分：</p>
+<p align="left"><strong>avg-cpu</strong>:&nbsp;总体cpu使用情况统计信息，对于多核cpu，这里为所有cpu的平均值</p>
+<p align="left"><strong>Device</strong>:&nbsp;各磁盘设备的IO统计信息</p>
+<p align="left">&nbsp;</p>
+<p align="left">对于cpu统计信息一行，我们主要看iowait的值，它指示cpu用于等待io请求完成的时间。Device中各列含义如下：</p>
+<ul>
+<li><strong>Device</strong>:&nbsp;以sdX形式显示的设备名称</li>
+<li><strong>tps</strong>:&nbsp;每秒进程下发的IO读、写请求数量</li>
+<li><strong>Blk_read/s</strong>:&nbsp;每秒读扇区数量(一扇区为512bytes)</li>
+<li><strong>Blk_wrtn/s</strong>:&nbsp;每秒写扇区数量</li>
+<li><strong>Blk_read</strong>:&nbsp;取样时间间隔内读扇区总数量</li>
+<li><strong>Blk_wrtn</strong>:&nbsp;取样时间间隔内写扇区总数量</li>
+</ul>
+<p align="left">我们可以使用-c选项单独显示avg-cpu部分的结果，使用-d选项单独显示Device部分的信息。</p>
+<p align="left">&nbsp;</p>
+<p align="left"><strong>2.</strong><strong>指定采样时间间隔与采样次数</strong></p>
+<p align="left">与sar命令一样，我们可以以"<strong>iostat interval [count]</strong>&nbsp;&rdquo;形式指定iostat命令的采样间隔和采样次数：</p>
+<div class="cnblogs_code">
+<pre>linux # <strong><span style="color: #ff0000;">iostat -d 1 2</span></strong><span style="color: #000000;">
+Linux </span><span style="color: #800080;">2.6</span>.<span style="color: #800080;">16.60</span>-<span style="color: #800080;">0.21</span>-smp (linux)     <span style="color: #800080;">06</span>/<span style="color: #800080;">13</span>/<span style="color: #800080;">12</span><span style="color: #000000;">
+
+Device:            tps   Blk_read</span>/s   Blk_wrtn/<span style="color: #000000;">s   Blk_read   Blk_wrtn
+sda               </span><span style="color: #800080;">0.55</span>         <span style="color: #800080;">8.93</span>        <span style="color: #800080;">36.27</span>    <span style="color: #800080;">6737086</span>   <span style="color: #800080;">27367728</span><span style="color: #000000;">
+sdb               </span><span style="color: #800080;">0.00</span>         <span style="color: #800080;">0.00</span>         <span style="color: #800080;">0.00</span>        <span style="color: #800080;">928</span>          <span style="color: #800080;">0</span><span style="color: #000000;">
+
+Device:            tps   Blk_read</span>/s   Blk_wrtn/<span style="color: #000000;">s   Blk_read   Blk_wrtn
+sda               </span><span style="color: #800080;">2.00</span>         <span style="color: #800080;">0.00</span>        <span style="color: #800080;">72.00</span>          <span style="color: #800080;">0</span>         <span style="color: #800080;">72</span><span style="color: #000000;">
+sdb               </span><span style="color: #800080;">0.00</span>         <span style="color: #800080;">0.00</span>         <span style="color: #800080;">0.00</span>          <span style="color: #800080;">0</span>          <span style="color: #800080;">0</span></pre>
+</div>
+<p>以上命令输出Device的信息，采样时间为1秒，采样2次，若不指定采样次数，则iostat会一直输出采样信息，直到按&rdquo;ctrl+c&rdquo;退出命令。注意，第1次采样信息与单独执行iostat的效果一样，为从系统开机到当前执行时刻的统计信息。</p>
+<p align="left">&nbsp;</p>
+<p align="left"><strong>3.</strong><strong>以</strong><strong>kB</strong><strong>为单位显示读写信息</strong><strong>(-k</strong><strong>选项</strong><strong>)</strong></p>
+<p align="left">我们可以使用-k选项，指定iostat的部分输出结果以kB为单位，而不是以扇区数为单位：</p>
+<div class="cnblogs_code">
+<pre>linux # <strong><span style="color: #ff0000;">iostat -d -</span></strong><span style="color: #000000;"><strong><span style="color: #ff0000;">k</span></strong>
+Linux </span><span style="color: #800080;">2.6</span>.<span style="color: #800080;">16.60</span>-<span style="color: #800080;">0.21</span>-smp (linux)     <span style="color: #800080;">06</span>/<span style="color: #800080;">13</span>/<span style="color: #800080;">12</span><span style="color: #000000;">
+
+Device:            tps    kB_read</span>/s    kB_wrtn/<span style="color: #000000;">s    kB_read    kB_wrtn
+sda               </span><span style="color: #800080;">0.55</span>         <span style="color: #800080;">4.46</span>        <span style="color: #800080;">18.12</span>    <span style="color: #800080;">3368543</span>   <span style="color: #800080;">13686096</span><span style="color: #000000;">
+sdb               </span><span style="color: #800080;">0.00</span>         <span style="color: #800080;">0.00</span>         <span style="color: #800080;">0.00</span>        <span style="color: #800080;">464</span>          <span style="color: #800080;">0</span></pre>
+</div>
+<p>以上输出中，kB_read/s、kB_wrtn/s、kB_read和kB_wrtn的值均以kB为单位，相比以扇区数为单位，这里的值为原值的一半(1kB=512bytes*2)</p>
+<p align="left">&nbsp;</p>
+<p align="left"><strong>4.</strong><strong>更详细的</strong><strong>io</strong><strong>统计信息</strong><strong>(-x</strong><strong>选项</strong><strong>)</strong></p>
+<p align="left">为显示更详细的io设备统计信息，我们可以使用-x选项，在分析io瓶颈时，一般都会开启-x选项：</p>
+<div class="cnblogs_code">
+<pre>linux # <span style="color: #ff0000;"><strong>iostat -x -k -d 1</strong></span><span style="color: #000000;">
+Linux </span><span style="color: #800080;">2.6</span>.<span style="color: #800080;">16.60</span>-<span style="color: #800080;">0.21</span>-smp (linux)     <span style="color: #800080;">06</span>/<span style="color: #800080;">13</span>/<span style="color: #800080;">12</span><span style="color: #000000;">
+
+&hellip;&hellip;
+Device:         rrqm</span>/s   wrqm/s     r/s     <span style="color: #0000ff;">w</span>/s    rkB/s    wkB/s avgrq-sz avgqu-sz   await  svctm  %<span style="color: #000000;">util
+sda               </span><span style="color: #800080;">0.00</span>  <span style="color: #800080;">9915.00</span>    <span style="color: #800080;">1.00</span>   <span style="color: #800080;">90.00</span>     <span style="color: #800080;">4.00</span> <span style="color: #800080;">34360.00</span>   <span style="color: #800080;">755.25</span>    <span style="color: #800080;">11.79</span>  <span style="color: #800080;">120.57</span>   <span style="color: #800080;">6.33</span>  <span style="color: #800080;">57.60</span></pre>
+</div>
+<p>以上各列的含义如下：</p>
+<ul>
+<li><strong>rrqm/s</strong>:&nbsp;每秒对该设备的读请求被合并次数，文件系统会对读取同块(block)的请求进行合并</li>
+<li><strong>wrqm/s</strong>:&nbsp;每秒对该设备的写请求被合并次数</li>
+<li><strong>r/s</strong>:&nbsp;每秒完成的读次数</li>
+<li><strong>w/s</strong>:&nbsp;每秒完成的写次数</li>
+<li><strong>rkB/s</strong>:&nbsp;每秒读数据量(kB为单位)</li>
+<li><strong>wkB/s</strong>:&nbsp;每秒写数据量(kB为单位)</li>
+<li><strong>avgrq-sz</strong>:平均每次IO操作的数据量(扇区数为单位)</li>
+<li><strong>avgqu-sz</strong>:&nbsp;平均等待处理的IO请求队列长度</li>
+<li><strong>await</strong>:&nbsp;平均每次IO请求等待时间(包括等待时间和处理时间，毫秒为单位)</li>
+<li><strong>svctm</strong>:&nbsp;平均每次IO请求的处理时间(毫秒为单位)</li>
+<li><strong>%util</strong>:&nbsp;采用周期内用于IO操作的时间比率，即IO队列非空的时间比率</li>
+</ul>
+<p align="left">&nbsp;</p>
+<p align="left">对于以上示例输出，我们可以获取到以下信息：</p>
+<ol>
+<li>每秒向磁盘上写30M左右数据(wkB/s值)</li>
+<li>每秒有91次IO操作(r/s+w/s)，其中以写操作为主体</li>
+<li>平均每次IO请求等待处理的时间为120.57毫秒，处理耗时为6.33毫秒</li>
+<li>等待处理的IO请求队列中，平均有11.79个请求驻留</li>
+</ol>
+<p align="left">&nbsp;</p>
+<p align="left">以上各值之间也存在联系，我们可以由一些值计算出其他数值，例如：</p>
+<p align="left">util = (r/s+w/s) * (svctm/1000)</p>
+<p align="left">对于上面的例子有：util = (1+90)*(6.33/1000) = 0.57603</p>
+<p align="left">&nbsp;</p></div><div id="MySignature"></div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="blog_post_info">
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"></div>
+</div>
+
+
+		</div>
+		<p class="postfoot">
+			posted on <span id="post-date">2012-06-15 23:41</span> <a href='http://www.cnblogs.com/bangerlee/'>bangerlee</a> 阅读(<span id="post_view_count">...</span>) 评论(<span id="post_comment_count">...</span>) &nbsp;<a href="http://i.cnblogs.com/EditArticles.aspx?postid=2547161" rel="nofollow">编辑</a> <a href="#" onclick="AddToWz(2547161);return false;">收藏</a>
+		</p>
+	</div>
+	<script type="text/javascript">var allowComments=true,isLogined=false,cb_blogId=96117,cb_entryId=2547161,cb_blogApp=currentBlogApp,cb_blogUserGuid='653d7858-f024-df11-ba8f-001cf0cd104b',cb_entryCreatedDate='2012/6/15 23:41:00';loadViewCount(cb_entryId);</script>
+	
+	<a name="!comments"></a><div id="blog-comments-placeholder"></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="程序员的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="ad_under_post_holder"></div>
+<script type="text/javascript">
+var enableGoogleAd = true;
+var googletag = googletag || {};
+googletag.cmd = googletag.cmd || [];
+fixPostBodyFormat();
+loadAdUnderPost();
+</script>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+loadBlogSignature();
+LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);
+GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+</script>
+<script type="text/javascript">
+    $.ajax({ url: 'http://counter.cnblogs.com/blog/post/' + cb_entryId, type: 'get', dataType: 'script', cache: true });
+</script>
+</div>
+
+</div>
+</div>
+<div id="leftmenu">
+
+
+<h3>导航</h3>
+<ul>
+<li>
+<a id="MyLinks1_HomeLink" href="http://www.cnblogs.com/">博客园</a></li>
+<li>
+<a id="MyLinks1_MyHomeLink" class="two_words" href="http://www.cnblogs.com/bangerlee/">首页</a></li>
+<li>
+</li>
+<li>
+<a id="MyLinks1_ContactLink" accesskey="9" class="two_words" rel="nofollow" href="http://space.cnblogs.com/msg/send/bangerlee">联系</a></li>
+<li>
+<a id="MyLinks1_Syndication" class="two_words" href="http://www.cnblogs.com/bangerlee/rss">订阅</a>
+<a id="MyLinks1_XMLLink" href="http://www.cnblogs.com/bangerlee/rss"><img src="http://www.cnblogs.com/images/xml.gif" alt="订阅" /></a>
+</li>
+<li>
+<a id="MyLinks1_Admin" class="two_words" rel="nofollow" href="http://i.cnblogs.com/">管理</a></li>
+</ul>
+
+<div id="blog-calendar" style="display:none"></div><script type="text/javascript">loadBlogDefaultCalendar();</script>
+<meta name="vs_showGrid" content="False">
+
+<h3>公告</h3>
+<div id="blog-news"></div><script type="text/javascript">loadBlogNews();</script>
+
+<div id="blog-sidecolumn"></div><script type="text/javascript">loadBlogSideColumn();</script>
+
+</div>
+</div>
+<div class="clear"></div>
+<div id="footer">
+
+<p id="footer">
+	Powered by: 
+	<br />
+	
+	<a id="Footer1_Hyperlink3" NAME="Hyperlink1" href="http://www.cnblogs.com/" style="font-family:Verdana;font-size:12px;">博客园</a>
+	<br />
+	Copyright &copy; bangerlee
+</p>
+</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,498 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<title>Vsftp服务器配置指南_风信网</title>
+<meta name="keywords" content="Vsftp,服务器,配置指南" />
+<meta name="description" content="Vsftp服务器配置指南 1、开启防火墙ftp端口 vi /etc/sysconfig/iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 21 -j ACCEPT（允许21端口通过防火墙） -A INPUT -m state --state NEW -m tcp -p tcp --dport 20 -j ACCEPT（允许20端口通过防" />
+<link href="/templets/ithov/style/ithov.css" rel="stylesheet" type="text/css" />
+<script language="javascript" type="text/javascript" src="/images/js/j.js" ></script>
+<script language="javascript" type="text/javascript" src="/templets/ithov/js/jquery.cookie.js"></script>
+<script language="javascript" type="text/javascript" src="/include/dedeajax2.js"></script>
+<script language="javascript" type="text/javascript">
+<!--
+function CheckLogin(){
+	  var taget_obj = document.getElementById('_ajax_feedback');
+	  myajax = new DedeAjax(taget_obj,false,false,'','','');
+	  myajax.SendGet2("/member/ajax_feedback.php");
+	  DedeXHTTP = null;
+}
+function postBadGood(ftype,fid)
+{
+	var taget_obj = document.getElementById(ftype+fid);
+	var saveid = GetCookie('badgoodid');
+	if(saveid != null)
+	{
+		var saveids = saveid.split(',');
+		var hasid = false;
+		saveid = '';
+		j = 1;
+		for(i=saveids.length-1;i>=0;i--)
+		{
+			if(saveids[i]==fid && hasid) continue;
+			else {
+				if(saveids[i]==fid && !hasid) hasid = true;
+				saveid += (saveid=='' ? saveids[i] : ','+saveids[i]);
+				j++;
+				if(j==10 && hasid) break;
+				if(j==9 && !hasid) break;
+			}
+		}
+		if(hasid) { alert('您刚才已表决过了喔！'); return false;}
+		else saveid += ','+fid;
+		SetCookie('badgoodid',saveid,1);
+	}
+	else
+	{
+		SetCookie('badgoodid',fid,1);
+	}
+	myajax = new DedeAjax(taget_obj,false,false,'','','');
+	myajax.SendGet2("/plus/feedback.php?aid="+fid+"&action="+ftype+"&fid="+fid);
+}
+function postDigg(ftype,aid)
+{
+	var taget_obj = document.getElementById('newdigg');
+	var saveid = GetCookie('diggid');
+	if(saveid != null)
+	{
+		var saveids = saveid.split(',');
+		var hasid = false;
+		saveid = '';
+		j = 1;
+		for(i=saveids.length-1;i>=0;i--)
+		{
+			if(saveids[i]==aid && hasid) continue;
+			else {
+				if(saveids[i]==aid && !hasid) hasid = true;
+				saveid += (saveid=='' ? saveids[i] : ','+saveids[i]);
+				j++;
+				if(j==20 && hasid) break;
+				if(j==19 && !hasid) break;
+			}
+		}
+		if(hasid) { alert("您已经顶过该帖，请不要重复顶帖 ！"); return; }
+		else saveid += ','+aid;
+		SetCookie('diggid',saveid,1);
+	}
+	else
+	{
+		SetCookie('diggid',aid,1);
+	}
+	myajax = new DedeAjax(taget_obj,false,false,'','','');
+	var url = "/plus/digg_ajax.php?action="+ftype+"&id="+aid;
+	myajax.SendGet2(url);
+}
+function getDigg(aid)
+{
+	var taget_obj = document.getElementById('newdigg');
+	myajax = new DedeAjax(taget_obj,false,false,'','','');
+	myajax.SendGet2("/plus/digg_ajax.php?id="+aid);
+	DedeXHTTP = null;
+}
+function check(){
+		if(document.formsearch.searchtype.value=="")
+		document.formsearch.action="http://www.google.cn/custom"
+		else
+		document.formsearch.action="/plus/search.php"
+	} 
+-->
+</script>
+</head>
+<body class="articleview">
+<script type="text/javascript" src="/templets/ithov/js/gototop.js"></script>
+<div id="navigation">
+	<div class="logo">
+		<a href="http://www.ithov.com/" target="_blank" ><IMG src="/templets/ithov/images/ithovlogo.jpg" alt="风信网"></a>	</div>
+	<div class="metanav">
+		<div class="linkrss">
+		<a href="http://www.ithov.com/tags.php" target="_blank" title="热点TAG">TAG</a> | <a href="/data/rssmap.html" target="_blank" title="RSS订阅">RSS</a> | <a href=""onclick="this.style.behavior='url(#default#homepage)';this.setHomePage('http://www.ithov.com');">设为首页</a> | <a href="javascript:window.external.AddFavorite('http://www.ithov.com','风信网')">加入收藏</a>
+		</div>
+		<div class="google">
+    		<span><a href="/plus/heightsearch.php" target="_blank" title="高级搜索">高级搜索</a></span> | 
+			<span><a href="/data/sitemap.html" target="_blank" title="网站地图">网站地图</a></span> | 
+			<span><a href="http://hao.ithov.com" target="_blank" title="绿色导航">绿色导航</a></span>
+		</div>
+		<div class="baidushare">
+<!-- Baidu Button BEGIN -->
+<div id="bdshare" class="bdshare_b" style="line-height: 12px;">
+<img src="http://bdimg.share.baidu.com/static/images/type-button-1.jpg?cdnversion=20120831" />
+</div>
+<!-- Baidu Button END -->
+		</div>
+	</div>
+	<div class="linkmenu">
+		<ul> 
+			<li class=sectionlinks><a href="/" target="_blank" title="首页">首页</a> </li> 
+			<li class=sectionlinks><a href="/book/" target="_blank" title="电子书籍">电子书籍</a> </li> 
+			<li class=sectionlinks><a href="/soft/" target="_blank" title="软件下载">软件下载</a> </li> 
+			<li class=sectionlinks><a href="/code/" target="_blank" title="源代码">源代码</a> </li> 
+			<li class=sectionlinks><a href="http://sns.ithov.com/" target="_blank" title="风信社区">风信社区</a> </li>
+			<li class=sectionlinks><a href="/article/" target="_blank" title="软件资讯">软件资讯</a> </li> 
+			<li class=sectionlinks><a href="/master/" target="_blank" title="站长资讯">站长资讯</a> </li> 
+			<li class=sectionlinks><a href="/server/" target="_blank" title="服务器">服务器</a> </li> 
+			<li class=sectionlinks><a href="/linux/" target="_blank" title="Linux学院">Linux学院</a> </li>
+			<li class=sectionlinks><a href="/special/" target="_blank" title="专题">专题</a> </li> 
+			<li class=sectionlinks><a href="http://doc.ithov.com/" target="_blank" title="在线手册">手册</a> </li>  
+			<li class="sectionlinks last"><a href="/member/article_add.php" target="_blank" title="我要投稿">投稿</a></li>
+		</ul>
+	</div>
+</div>
+<div class="menuyellow"></div>
+<!-- /header -->
+<div class="search">
+		<ul>
+			
+				<li><a href='/linux/news/'>业界新闻</a></li>
+			
+				<li><a href='/linux/jack/'>新手入门</a></li>
+			
+				<li><a href='/linux/system/'>系统管理</a></li>
+			
+				<li><a href='/linux/apply/'>桌面应用</a></li>
+			
+				<li><a href='/linux/setting/'>桌面环境</a></li>
+			
+				<li><a href='/linux/network/'>网络服务</a></li>
+			
+				<li><a href='/linux/exp/'>程序开发</a></li>
+			
+				<li><a href='/linux/design/'>程序设计</a></li>
+			
+				<li><a href='/linux/corp/'>企业应用</a></li>
+			
+				<li><a href='/linux/ubuntu/'>Ubuntu</a></li>
+			
+				<li><a href='/linux/publish/'>发行版</a></li>
+			
+				<li><a href='/linux/product/'>产品应用</a></li>
+			
+		</ul>
+	<form action="/plus/search.php" name="formsearch"> 
+	<div class="form"> 
+	<h4>搜索</h4> 
+	<input type="hidden" name="kwtype" value="0" /> 
+	<input type="hidden" name="searchtype" value="titlekeyword" /> 
+	<input name="keyword" type="text" class="search-keyword" id="search-keyword" /> 
+	<select name="typeid" class="search-option" id="typeid">
+	<option value="titlekeyword">全站搜索</option>
+	<option value='1303'>软件资讯</option><option value='1304'>站长资讯</option><option value='1305'>服务器</option><option value='1306'>Linux学院</option><option value='1300'>软件下载</option><option value='1301'>电子书籍</option><option value='1302'>源码下载</option> 
+	</select>
+	<button type="submit" class="search-submit">搜 索</button> </div> 
+	</form>
+     <div class="left ad468x15">
+<script src='/plus/ad_js.php?aid=9' language='javascript'></script>
+     </div>
+</div><!-- //search -->
+
+    
+<!-- //header -->
+
+<div class="ad980">
+<script src='/plus/ad_js.php?aid=3' language='javascript'></script>
+</div>
+
+<div class="w960 center clear mt1">
+	<div class="pleft">
+		<div class="place">
+			<strong>当前位置:</strong> <a href='http://www.ithov.com/'>首页</a> > <a href='/linux/'>Linux学院</a> > <a href='/linux/network/'>网络服务</a> > <a href='/linux/network/ftp/'>FTP</a> > 正文
+		</div><!-- /place -->
+		<div class="viewbox">
+			<div class="title">
+				<h1>Vsftp服务器配置指南</h1>
+			</div><!-- /title -->
+			<div class="info">
+				2012-12-20 13:13<small>来源:</small>风信网 <small>作者:</small>末信 <small>点击:</small><script src="/plus/count.php?view=yes&aid=122556&mid=1" type='text/javascript' language="javascript"></script>次 <small><a href="#reviews">我要评论</a></small>				
+				</div><!-- /info -->
+<div class="center div468">
+<script src='/plus/ad_js.php?aid=7' language='javascript'></script>
+</div>
+            	<div class="intro">摘要：Vsftp服务器配置指南 1、开启防火墙ftp端口 vi /etc/sysconfig/iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 21 -j ACCEPT（允许21端口通过防火墙） -A INPUT -m state --state NEW -m tcp -p tcp --dport 20 -j ACCEPT（允许20端口通过防</div>
+			<div class="tag">
+			TAG标签： <a href='/tags.php?/%B7%FE%CE%F1%C6%F7/' target='_blank'>服务器</a> <a href='/tags.php?/%C5%E4%D6%C3%D6%B8%C4%CF/' target='_blank'>配置指南</a> <a href='/tags.php?/VSFTP/' target='_blank'>VSFTP</a>
+			</div>
+			<div class="content">
+				<div class="articlead">
+				<script src='/plus/ad_js.php?aid=5' language='javascript'></script>
+				</div><p>Vsftp<a href='http://www.ithov.com/server/' target='_blank'><u>服务器</u></a>配置指南</p>
+<p>1、开启防火墙ftp端口</p>
+<p>vi /etc/sysconfig/iptables<br />
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 21 -j ACCEPT（允许21端口通过防火墙）<br />
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 20 -j ACCEPT（允许20端口通过防火墙）<br />
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 9000:9045 -j ACCEPT（设置ftp被动模式的端口范围)<br />
+重启防火墙使配置生效<br />
+/etc/init.d/iptables restart<br />
+service iptables restart</p>
+<p>2、检查系统是否已安装vsftp</p>
+<p>rpm -q vsftpd<br />
+package vsftpd is not installed 说明系统没有安装vsftpd</p>
+<p>3、安装vsftpd</p>
+<p>yum install vsftpd<br />
+按Y回车，系统自动安装<br />
+设置开机时自动运行<br />
+chkconfig vsftpd on<br />
+启动vsftpd<br />
+service vsftpd start<br />
+/etc/init.d/vsftpd start<br />
+重启<br />
+service vsftpd restart<br />
+/etc/init.d/vsftpd restart<br />
+停止：<br />
+service vsftpd stop<br />
+/etc/init.d/vsftpd stop</p>
+<p>4、配置vsftp服务器</p>
+<p>========================================================================<br />
+配置文件说明：<br />
+/etc/vsftpd/vsftpd.conf vsftpd的核心配置文件<br />
+/etc/vsftpd/ftpusers 用于指定哪些用户不能访问FTP服务器<br />
+/etc/vsftpd/user_list 指定允许使用vsftpd的用户列表文件<br />
+/etc/vsftpd/vsftpd_conf_migrate.sh 是vsftpd操作的一些变量和设置脚本<br />
+/var/ftp/ 默认情况下匿名用户的根目录<br />
+========================================================================<br />
+配置/etc/vsftpd/vsftpd.conf<br />
+配置前先备份<br />
+cp /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.confbak <br />
+恢复文件<br />
+cp /etc/vsftpd/vsftpd.confbak /etc/vsftpd/vsftpd.conf<br />
+------------------------------------------------------------------------<br />
+vi /etc/vsftpd/vsftpd.conf</p>
+<p>anonymous_enable=NO　#禁止匿名用户<br />
+local_enable=YES<br />
+设定本地用户可以访问。注意：主要是为虚拟宿主用户，如果该项目设定为NO那么所有虚拟用户将无法访问<br />
+write_enable=YES #全局设置，是否容许写入（无论是匿名用户还是本地用户，若要启用上传权限的话，就要开启他）<br />
+local_umask=022 设定上传后文件的权限掩码。<br />
+anon_upload_enable=NO 禁止匿名用户上传。 <br />
+anon_mkdir_write_enable=NO 禁止匿名用户建立目录。<br />
+dirmessage_enable=YES 设定开启目录标语功能。<br />
+xferlog_enable=YES 设定开启日志记录功能。<br />
+connect_from_port_20=YES 设定端口20进行数据连接。<br />
+chown_uploads=NO 设定禁止上传文件更改宿主。<br />
+xferlog_file=/var/log/vsftpd.log 日志保存路径（先创建好文件）<br />
+xferlog_std_format=YES　#使用标准格式<br />
+async_abor_enable=YES 设定支持异步传输功能。<br />
+ascii_upload_enable=YES<br />
+ascii_download_enable=YES 设定支持ASCII模式的上传和<a href='http://www.ithov.com/soft/' target='_blank'><u>下载</u></a>功能。<br />
+ftpd_banner=Welcome to Awei FTP servers 设定Vsftpd的登陆标语。<br />
+chroot_local_user=YES 禁止本地用户登出自己的FTP主目录。<br />
+pam_service_name=vsftpd 设定PAM服务下Vsftpd的验证配置文件名。因此，PAM验证将参考/etc/pam.d/下的vsftpd文件配置。<br />
+userlist_enable=YES 设为YES的时候，如果一个用户名是在userlist_file参数指定的文件中，那么在要求他们输入密码之前，会直接拒绝他们登陆。<br />
+tcp_wrappers=YES 是否支持tcp_wrappers<br />
+#########################################################<br />
+以下这些是关于Vsftpd虚拟用户支持的重要配置项目。<br />
+默认Vsftpd.conf中不包含这些设定项目，需要自己手动添加配置<br />
+#########################################################<br />
+guest_enable=YES 设定启用虚拟用户功能。<br />
+guest_username=vsftpd 指定虚拟用户的宿主用户（就是我们前面新建的用户）<br />
+user_config_dir=/etc/vsftpd/vconf 设定虚拟用户个人Vsftp的配置文件存放路径。<br />
+也就是说，这个被指定的目录里，将存放每个Vsftp虚拟用户个性的配置文件，一个需要注意的<br />
+地方就是这些配置文件名必须和虚拟用户名相同。<br />
+比如说vsftpd.conf的配置文件，你复制到这个目录下，你要mv一下，配置成虚拟用户的名称</p>
+<p>virtual_use_local_privs=YES #当该参数激活（YES）时，虚拟用户使用与本地用户相同的权限。<br />
+#当此参数关闭（NO）时，虚拟用户使用与匿名用户相同的权限。默认情况下此参数是关闭的（NO）。<br />
+pasv_min_port=9000 （设置被动模式的端口范围）<br />
+pasv_max_port=9045 （设置被动模式的端口范围）</p>
+<p>
+			</div><!-- /content -->	
+			
+
+			<div class="relevant">
+				<h2>相关阅读：</h2>
+                    <ul> 
+<li><a href='/linux/123702.shtml' target='_blank' title='linux企业服务器配置方案：FTP服务器'>linux企业服务器配置方案：FTP服务器</a> <span>2013-02-21</span></li>
+<li><a href='/linux/122555.shtml' target='_blank' title='VSFTP服务器编译安装配置指南'>VSFTP服务器编译安装配置指南</a> <span>2012-12-20</span></li>
+<li><a href='/linux/117150.shtml' target='_blank' title='GoAnywhere Services 2.7.1发布 FTP服务器'>GoAnywhere Services 2.7.1发布 FTP服务器</a> <span>2012-06-06</span></li>
+<li><a href='/linux/112799.shtml' target='_blank' title='教你使用vsftpd架设Linux中的FTP：测试'>教你使用vsftpd架设Linux中的FTP：测试</a> <span>2012-02-20</span></li>
+<li><a href='/linux/112798.shtml' target='_blank' title='教你使用vsftpd架设Linux中的FTP：配置'>教你使用vsftpd架设Linux中的FTP：配置</a> <span>2012-02-20</span></li>
+<li><a href='/linux/112797.shtml' target='_blank' title='教你使用vsftpd架设Linux中的FTP：安装'>教你使用vsftpd架设Linux中的FTP：安装</a> <span>2012-02-20</span></li>
+<li><a href='/linux/108564.shtml' target='_blank' title='TFTP server with gui interface 2.2发布 TFTP服务器'>TFTP server with gui interface 2.2发布 TFTP服务器</a> <span>2011-09-14</span></li>
+<li><a href='/linux/103120.shtml' target='_blank' title='使您的linux服务器成为一个FTP服务器'>使您的linux服务器成为一个FTP服务器</a> <span>2011-04-18</span></li>
+   
+					</ul> 
+			</div>
+
+			<div class="dede_pages">
+				<ul class="pagelist">
+          <li><a>共2页: </a></li><li><a href='#'>上一页</a></li><li class="thisclass"><a href='#'>1</a></li><li><a href='122556_2.shtml'>2</a></li><li><a href='122556_2.shtml'>下一页</a></li>
+				</ul>
+			</div><!-- /pages -->
+			
+			<!-- //顶踩 -->
+			<div class="center newdigg" id="newdigg">
+				<div class="diggbox digg_good" onmousemove="this.style.backgroundPosition='left bottom';" onmouseout="this.style.backgroundPosition='left top';" onclick="javascript:postDigg('good',122556)">
+					<div class="digg_act">顶一下</div>
+					<div class="digg_num">(0)</div>
+					<div class="digg_percent">
+						<div class="digg_percent_bar"><span style="width:0%"></span></div>
+						<div class="digg_percent_num">0%</div>
+					</div>
+				</div>
+				<div class="diggbox digg_bad" onmousemove="this.style.backgroundPosition='right bottom';" onmouseout="this.style.backgroundPosition='right top';" onclick="javascript:postDigg('bad',122556)">
+					<div class="digg_act">踩一下</div>
+					<div class="digg_num">(0)</div>
+					<div class="digg_percent">
+						<div class="digg_percent_bar"><span style="width:0%"></span></div>
+						<div class="digg_percent_num">0%</div>
+					</div>
+				</div>
+			</div>
+			<script language="javascript" type="text/javascript">getDigg(122556);</script>
+			<!-- //顶踩部份的源码结束 -->
+<div class="articlecntcp">
+本站文章除注明转载外，均为本站原创或编译<br/>
+转载请注明：本文由风信网提供 <a href="http://www.ithov.com" target="_blank">http://www.ithov.com</a> 欢迎免费转载，转载时请保留该信息，谢谢合作！
+</div>
+			
+			<div class="boxoff">
+				<strong>------分隔线----------------------------</strong>
+			</div>
+			<div class="handle">
+				<div class="context">
+					<ul>
+						<li>上一篇：<a href='/linux/122555.shtml'>VSFTP服务器编译安装配置指南</a> </li>
+						<li>下一篇：<a href='/linux/123702.shtml'>linux企业服务器配置方案：FTP服务器</a> </li>
+					</ul>
+				</div><!-- /context -->
+				<div class="actbox">
+				    <h3><span><a href="http://www.ithov.com/" target="_self" title="风信网首页">【返回风信网首页】</a><a href="http://sns.ithov.com" title="风信社区" target="_blank">【进入风信社区】</a></span></h3>
+					<ul>
+						<li id="act-fav"><a href="/plus/stow.php?aid=122556" target="_blank">收藏</a></li>
+						<li id="act-err"><a href="/plus/erraddsave.php?aid=122556&title=Vsftp服务器配置指南" target="_blank">挑错</a></li>
+						<li id="act-pus"><a href="/plus/recommend.php?aid=122556" target="_blank">推荐</a></li>
+						<li id="act-pnt"><a href="#" onClick="window.print();">打印</a></li>
+					</ul>
+				</div><!-- /actbox -->
+			</div><!-- /handle -->
+		</div><!-- /viewbox -->
+		
+<!-- //AJAX评论区 -->
+
+<div class="mt1" id="reviews">
+		<dl class="tbox">
+			<dt>
+				<strong><a name='postform'></a>网友评论</strong>
+			</dt>
+			<dd>	
+			<!-- Duoshuo Comment BEGIN -->
+	<div class="ds-thread" data-thread-key="122556" data-title="Vsftp服务器配置指南" data-url="http://www.ithov.com/linux/122556.shtml"></div>
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"ithov"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = 'http://static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+<!-- Duoshuo Comment END -->	
+
+
+			</dd>
+		</dl>
+	</div><!-- //评论表单区结束 -->
+
+</div><!-- //左边内容结束 -->
+
+<!-- //右边内容开始 -->
+<div class="pright">
+		<div class="left ad300x250">
+		<script src='/plus/ad_js.php?aid=6' language='javascript'></script>
+		</div>
+		<div class="left jiuli10 ad300x250">
+		<script src='/plus/ad_js.php?aid=8' language='javascript'></script>
+		</div>
+			<div class="jiuli10 project">
+				<h2>推荐内容</h2>
+				<div class="projectlist">
+					<ul>
+				<li><a href='/linux/105761.shtml' target='_blank' title='Mandriva Linux 2011 RC1开发版发布'>Mandriva Linux 2011 RC1开发版发布</a></li>
+<li><a href='/linux/119830.shtml' target='_blank' title='以RHEL6为例介绍几种Linux灾难恢复技术和方法'>以RHEL6为例介绍几种Linux灾难恢复技术和方</a></li>
+<li><a href='/linux/119641.shtml' target='_blank' title='CentOS无损调整磁盘分区大小的实现方法'>CentOS无损调整磁盘分区大小的实现方法</a></li>
+<li><a href='/linux/103447.shtml' target='_blank' title='开源操作系统Ubuntu 11.04安装过程截图'>开源操作系统Ubuntu 11.04安装过程截图</a></li>
+<li><a href='/linux/107828.shtml' target='_blank' title='Ubuntu Server+Nginx+Mysql+Php5.3+Zend Guard Loader+eAccelerator+PhpMyAdmin安装配置详解'>Ubuntu Server+Nginx+Mysql+Php5.3+Zend Gu</a></li>
+<li><a href='/linux/121316.shtml' target='_blank' title='企业Linux系统运维四个重要应用工具的使用和实战'>企业Linux系统运维四个重要应用工具的使用</a></li>
+<li><a href='/linux/110688.shtml' target='_blank' title='SIREMIS Web Management Interface 2.1.0发布'>SIREMIS Web Management Interface 2.1.0发</a></li>
+<li><a href='/linux/99998.shtml' target='_blank' title='Ubuntu LiveCD图形界面安装指南'>Ubuntu LiveCD图形界面安装指南</a></li>
+<li><a href='/linux/112373.shtml' target='_blank' title='Devil-Linux 1.6-RC2发布 专业的Linux安全发行'>Devil-Linux 1.6-RC2发布 专业的Linux安全</a></li>
+<li><a href='/linux/107486.shtml' target='_blank' title='BlankOn Linux 7.0发布 基于Ubuntu的发行版'>BlankOn Linux 7.0发布 基于Ubuntu的发行版</a></li>
+
+					</ul>
+				</div>
+			</div>			
+
+		<div class="left ad300x250">
+		<script src='/plus/ad_js.php?aid=10' language='javascript'></script>
+		</div>
+		
+		<div class="commend mt1">
+			<dl class="light">
+				<dt class='light'><strong>图文看点</strong></dt>
+				<dd class='light'>
+					<ul class="lightimages">
+<li><a href='/linux/110109.shtml'><img src='/uploads/allimg/111115/2-111115145R20-L.jpg' border='0' width='120' height='120' alt='queXF 1.13.0发布 扫描字符识别工具'></a><a href='/linux/110109.shtml'>queXF 1.13.0发布 扫</a></li>
+<li><a href='/linux/106416.shtml'><img src='/uploads/allimg/110719/1_0G9101J96264.jpg' border='0' width='120' height='120' alt='Crack 0.5发布 一种编程语言'></a><a href='/linux/106416.shtml'>Crack 0.5发布 一种编</a></li>
+<li><a href='/linux/104022.shtml'><img src='/uploads/allimg/110512/1_05121432201121.jpg' border='0' width='120' height='120' alt='Ubuntu系统conky配置实例二则'></a><a href='/linux/104022.shtml'>Ubuntu系统conky配置</a></li>
+<li><a href='/linux/108891.shtml'><img src='/uploads/allimg/110926/2-1109261G0040-L.jpg' border='0' width='120' height='120' alt='Vendetta Online 1.8.190发布 3D太空战斗游戏'></a><a href='/linux/108891.shtml'>Vendetta Online 1.8.</a></li>
+
+					</ul>
+				</dd>
+			</dl>
+		</div><!-- /commend -->
+		<div class="left ad300x250">
+		<script src='/plus/ad_js.php?aid=14' language='javascript'></script>
+		</div>
+		
+			<div class="hot mt1">
+			<dl class="light">
+				<dt class='light'><strong>热点内容</strong></dt>
+				<dd class='light'>
+					<ul class="c1 ico2">
+             <li><a href='/linux/77328.shtml' target='_blank' title='使用vsftpd架设Linux FTP服务器'>使用vsftpd架设Linux FTP服务器</a></li>
+<li><a href='/linux/82861.shtml' target='_blank' title='简单介绍一下Linux下的FTP命令'>简单介绍一下Linux下的FTP命令</a></li>
+<li><a href='/linux/86021.shtml' target='_blank' title='Linux下vsftp的重新安装和配置虚拟用户'>Linux下vsftp的重新安装和配置虚拟用户</a></li>
+<li><a href='/linux/86633.shtml' target='_blank' title='Linux中WU-FTP服务器的安装与配置'>Linux中WU-FTP服务器的安装与配置</a></li>
+<li><a href='/linux/93419.shtml' target='_blank' title='在Linux系统下利用ProFTPD架设一台FTP服务器'>在Linux系统下利用ProFTPD架设一台FTP服务器</a></li>
+<li><a href='/linux/78600.shtml' target='_blank' title='利用wu-ftpd建立高效安全的Linux服务'>利用wu-ftpd建立高效安全的Linux服务</a></li>
+<li><a href='/linux/83349.shtml' target='_blank' title='Linux中利用SRP(安全远程密码)架设FTP服务器'>Linux中利用SRP(安全远程密码)架设FTP服务器</a></li>
+<li><a href='/linux/112797.shtml' target='_blank' title='教你使用vsftpd架设Linux中的FTP：安装'>教你使用vsftpd架设Linux中的FTP：安装</a></li>
+<li><a href='/linux/112799.shtml' target='_blank' title='教你使用vsftpd架设Linux中的FTP：测试'>教你使用vsftpd架设Linux中的FTP：测试</a></li>
+<li><a href='/linux/65756.shtml' target='_blank' title='用vsftp自架Linux网络安装服务器'>用vsftp自架Linux网络安装服务器</a></li>
+
+					</ul>
+				</dd>
+			</dl>
+		</div>	
+
+</div>
+<!-- /pright -->
+</div>
+<div class="footer">
+<div class="about">
+<ul>
+<li class="brand"><a onclick="this.style.behavior='url(#default#homepage)';this.setHomePage('http://www.ithov.com');" href="http://www.ithov.com/">设为首页</a></li>
+<li class="brand"><a href="javascript:window.external.addFavorite('http://www.ithov.com','风信网');">加入收藏</a></li>
+<li class="brand"><a href="http://www.ithov.com/company/about.html" target="_blank" title="关于我们">关于我们</a></li>
+<li class="brand"><a href="http://www.ithov.com/company/contactus.html" target="_blank" title="联系我们">联系我们</a></li>
+<li class="brand"><a href="http://www.ithov.com/company/ads.html" target="_blank" title="广告服务">广告服务</a></li> 
+<li class="brand"><a href="http://www.ithov.com/data/sitemap.html" target="_blank" title="网站地图">网站地图</a></li>
+<li class="brand"><a href="http://www.ithov.com/company/copyright.html" target="_blank" title="版权声明">版权声明</a></li>
+<li><a href="http://www.ithov.com/company/downloadhelp.html" target="_blank" title="下载帮助">下载帮助</a></li>
+</ul>
+</div>
+<div class="copyright">
+<p>CopyRight &copy; 2006-2011, ITHOV.COM Inc. All Rights Reserved 
+<script src='http://s71.cnzz.com/stat.php?id=269636&web_id=269636' language='JavaScript' charset='gb2312'></script> <a href="http://www.miibeian.gov.cn/" target=_blank>鄂ICP备12004347号</a></p>
+<p>网站客服QQ群： ①群15569476 ②群19439244 ③群20730522 ④群7190232 </p>
+</div>
+</div>
+<script src="/source.js" type=text/javascript></script>
+<script src='/plus/ad_js.php?aid=13' language='javascript'></script>
+<!-- Baidu Button BEGIN -->
+<script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=708333" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+	document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + new Date().getHours();
+</script>
+<!-- Baidu Button END -->
+
+</body>
+</html>

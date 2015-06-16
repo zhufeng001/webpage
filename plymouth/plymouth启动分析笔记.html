@@ -1,0 +1,525 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="zh-CN">
+    <head profile="http://gmpg.org/xfn/11">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=7" />
+        <title>plymouth启动分析笔记 | 方山子的博客</title>
+                        
+        <link rel="stylesheet" href="http://www.fangshanzi.com/wp-content/themes/LightBright/style.css" type="text/css" media="screen" />
+        <link rel="stylesheet" href="http://www.fangshanzi.com/wp-content/themes/LightBright/css/jquery.fancybox-1.2.6.css" type="text/css" media="screen" />
+        <!--[if lt IE 7]>
+                <link rel="stylesheet" type="text/css" href="http://www.fangshanzi.com/wp-content/themes/LightBright/css/ie6style.css" />
+                <script type="text/javascript" src="http://www.fangshanzi.com/wp-content/themes/LightBright/js/DD_belatedPNG_0.0.8a-min.js"></script>
+                <script type="text/javascript">DD_belatedPNG.fix('img#logo, a.bubble, .overlay, span.comment-count, #sidebar .search, .entry .post, .entry-top, .share .share_button, .share a.arrow, .share .buttons, .share .buttons a span.tooltip span.left-arrow, .share img, .entry-bottom, .comment-icon .bubble, .comment-icon, .widget-content, div.avatar span.avatar-overlay');</script>
+        <![endif]-->
+        <!--[if IE 7]>
+                <link rel="stylesheet" type="text/css" href="http://www.fangshanzi.com/wp-content/themes/LightBright/css/ie7style.css" />
+        <![endif]-->
+
+        <link rel="alternate" type="application/rss+xml" title="方山子的博客 RSS Feed" href="http://www.fangshanzi.com/feed/" />
+        <link rel="alternate" type="application/atom+xml" title="方山子的博客 Atom Feed" href="http://www.fangshanzi.com/feed/atom/" />
+        <link rel="pingback" href="http://www.fangshanzi.com/xmlrpc.php" />
+
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.3/jquery.min.js"></script>
+        <link rel="alternate" type="application/rss+xml" title="方山子的博客 &raquo; plymouth启动分析笔记 评论 Feed" href="http://www.fangshanzi.com/plymouth-qidong-boot-linux/feed/" />
+<meta content="LightBright v.1.0" name="generator"/><link rel='stylesheet' id='crayon-style-css'  href='http://www.fangshanzi.com/wp-content/plugins/crayon-syntax-highlighter/css/style.css?ver=1.10.1' type='text/css' media='all' />
+<link rel='stylesheet' id='wp-pagenavi-css'  href='http://www.fangshanzi.com/wp-content/plugins/wp-pagenavi/pagenavi-css.css?ver=2.70' type='text/css' media='all' />
+<script type='text/javascript' src='http://www.fangshanzi.com/wp-includes/js/jquery/jquery.js?ver=1.7.2'></script>
+<script type='text/javascript' src='http://www.fangshanzi.com/wp-content/plugins/crayon-syntax-highlighter/js/util.js?ver=1.10.1'></script>
+<script type='text/javascript' src='http://www.fangshanzi.com/wp-content/plugins/crayon-syntax-highlighter/js/crayon.js?ver=1.10.1'></script>
+<script type='text/javascript' src='http://www.fangshanzi.com/wp-content/plugins/crayon-syntax-highlighter/js/jquery.popup.js?ver=1.10.1'></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://www.fangshanzi.com/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://www.fangshanzi.com/wp-includes/wlwmanifest.xml" /> 
+<link rel='prev' title='总结WordPress博客运行慢的原因' href='http://www.fangshanzi.com/wordpress-boke-yunxing-muban/' />
+<link rel='next' title='博客演变的下一个方向：Quora' href='http://www.fangshanzi.com/%e5%8d%9a%e5%ae%a2%e6%bc%94%e5%8f%98%e7%9a%84%e4%b8%8b%e4%b8%80%e4%b8%aa%e6%96%b9%e5%90%91%ef%bc%9aquora/' />
+<meta name="generator" content="WordPress 3.4.2" />
+<link rel='shortlink' href='http://www.fangshanzi.com/?p=659' />
+
+<!-- All in One SEO Pack 1.6.15 by Michael Torbert of Semper Fi Web Design[380,436] -->
+<meta name="description" content="　　观察Linux启动的过程，我们会发现，截入完内核，会进入一次屏幕分辨率切换（闪烁），这时到了Splash屏幕显示加载进度，当加载完成后，到了KDM/GDM登录界面时，又会进行一次（甚至两次连续）的屏幕刷新，然后才进入桌面，但是plymouth通过内核中“内核模式设置”（Kernel Mode-Setting）和显示的支持，将带给你一个更加干净、容易定制和无闪烁的图形启动模式，绚丽的动画显示提供给用户更加友好的界面。 Plymouth的工作流程： Plymouth主要分为2个端和2个阶段 2个端分别为客户端和服务端,客户端是plymouth,服务端是plymouthd 2个阶段分别是ramdisk和root" />
+<meta name="keywords" content="linux,客户端" />
+<link rel="canonical" href="http://www.fangshanzi.com/plymouth-qidong-boot-linux/" />
+<!-- /all in one seo pack -->
+<style type="text/css" media="screen">#wp-admin-bar-user-info .avatar-64 {width:64px}</style>
+
+<!-- Start Of Script Generated By WP-PostViews 1.60 -->
+<script type="text/javascript">
+/* <![CDATA[ */
+jQuery.ajax({type:'GET',url:'http://www.fangshanzi.com/wp-content/plugins/wp-postviews/wp-postviews.php',data:'postviews_id=659',cache:false});/* ]]> */
+</script>
+<!-- End Of Script Generated By WP-PostViews 1.60 -->
+<style type="text/css">.recent-comment a.comment-link {
+	 text-decoration: none;
+	 display:block;
+         margin-left: -10px;
+}
+.recent-comment .comment-author-gravatar {
+	 float:left;
+     margin-right: 10px;
+}
+
+.recent-comment .comment-author {
+	 font-size: 1em;
+         color: #aaa;
+}
+
+.recent-comment .comment-meta {
+	 display: block;
+    height: 4px;
+    line-height: 0.3em;
+    text-decoration: none;
+}
+
+.recent-comment .comment-date-time {
+	 color: #666;
+}
+
+.recent-comment .comment-post-title {
+	 text-decoration:none;
+	 font-size: 0.9em;
+	 font-weight: bold;
+	 display:block;
+         width: 100%;
+}
+
+.recent-comment .comment-text {
+	 font-family:  Georgia,"Times New Roman",Times,serif;
+	 font-size: 1.5em;
+	 color: #333;
+}
+.recent-comment .comment-reply {
+         color: #999;
+position: relative;
+padding-left: 240px;
+}
+.recent-comment .comment-reply:hover {
+	 color: #ccc;
+}</style>                    <script type="text/javascript" src="http://www.fangshanzi.com/wp-content/themes/LightBright/comments-ajax.js"></script>
+        
+        <script type="text/javascript" src="http://www.fangshanzi.com/wp-content/themes/LightBright/js/audio-player.js"></script>  
+        <script src="http://www.fangshanzi.com/wp-content/themes/LightBright/js/cufon-yui.js" type="text/javascript"></script>
+
+        <script type="text/javascript">
+            Cufon.replace('ul.nav li a',{textShadow: '-1px -1px 1px #031112', hover: { textShadow: '-1px -1px 1px #031112'}})('h1')('h2')('h3')('h4')('h5')('h6')('span.date')('span.comment-count')('.widget h3.title', {textShadow: '-1px -1px 1px #032328'})('span.fn')('span.fn a')('.wp-pagenavi span', {textShadow: '-1px -1px 1px rgba(0,0,0,0.5)'})('.wp-pagenavi a.page',{textShadow: '-1px -1px 1px rgba(0,0,0,0.5)'});
+            AudioPlayer.setup("http://www.fangshanzi.com/wp-content/themes/LightBright/js/player.swf", { width: 380 });  
+        </script>
+
+    </head>
+    <body>
+        <div id="socialbar">
+            <ul class="social-icons">
+                <li><a href="http://weibo.com/huaruyue" target="_blank" class="weibo"></a></li>
+                <li><a href="https://twitter.com/fangshanzi" target="_blank" class="twitter"></a></li>
+                <li><a href="http://www.facebook.com/fangshanzi" target="_blank" class="facebook"></a></li>
+                <li><a href="https://plus.google.com/117752400378629240889" target="_blank" class="googleplus"></a></li>
+                <li><a href="http://www.fangshanzi.com/feed/" target="_blank" class="feed"></a></li>
+            </ul>
+        </div>
+        <div id="container">
+            <div id="header" class="clearfix">
+                <a href="http://www.fangshanzi.com">
+                    <img src="http://www.fangshanzi.com/wp-content/themes/LightBright/images/logo.png" alt="logo" id="logo" />
+                </a>
+                <p id="slogan"></p>
+
+                <ul id="menu-201111%e6%96%b0%e7%89%88" class="nav superfish clearfix"><li id="menu-item-2100" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-2100"><a href="http://www.fangshanzi.com">HOME</a></li>
+<li id="menu-item-1483" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1483"><a href="http://www.fangshanzi.com/category/php%e5%ad%a6%e4%b9%a0%e7%ac%94%e8%ae%b0/">PHP学习笔记</a>
+<ul class="sub-menu">
+	<li id="menu-item-1482" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-1482"><a href="http://www.fangshanzi.com/category/linux%e6%8a%80%e6%9c%af/">Linux技术</a></li>
+	<li id="menu-item-1884" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1884"><a href="http://www.fangshanzi.com/category/%e6%95%b0%e6%8d%ae%e5%ba%93%e7%9b%b8%e5%85%b3/">数据库相关</a></li>
+</ul>
+</li>
+<li id="menu-item-1484" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1484"><a title="Wordpress" href="http://www.fangshanzi.com/category/wordpress%e8%b5%84%e6%ba%90/">WordPress</a>
+<ul class="sub-menu">
+	<li id="menu-item-1485" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1485"><a href="http://www.fangshanzi.com/category/wordpress%e8%b5%84%e6%ba%90/wordpress%e4%b8%bb%e9%a2%98/">WordPress主题</a></li>
+	<li id="menu-item-1486" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1486"><a href="http://www.fangshanzi.com/category/wordpress%e8%b5%84%e6%ba%90/wordpress%e6%8f%92%e4%bb%b6/">WordPress插件</a></li>
+	<li id="menu-item-1487" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1487"><a href="http://www.fangshanzi.com/category/wordpress%e8%b5%84%e6%ba%90/wordpress%e8%b5%84%e8%ae%af/">WordPress资讯</a></li>
+</ul>
+</li>
+<li id="menu-item-1492" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1492"><a href="http://www.fangshanzi.com/category/%e8%ae%be%e8%ae%a1%e7%9b%b8%e5%85%b3/">设计相关</a>
+<ul class="sub-menu">
+	<li id="menu-item-1493" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1493"><a href="http://www.fangshanzi.com/category/%e8%ae%be%e8%ae%a1%e7%9b%b8%e5%85%b3/%e5%b9%b3%e9%9d%a2%e8%ae%be%e8%ae%a1/">平面设计</a></li>
+	<li id="menu-item-1494" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1494"><a href="http://www.fangshanzi.com/category/%e8%ae%be%e8%ae%a1%e7%9b%b8%e5%85%b3/%e7%bd%91%e9%a1%b5%e8%ae%be%e8%ae%a1/">网页设计</a></li>
+	<li id="menu-item-1495" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1495"><a href="http://www.fangshanzi.com/category/%e8%ae%be%e8%ae%a1%e7%9b%b8%e5%85%b3/%e8%ae%be%e8%ae%a1%e8%b5%84%e8%ae%af/">设计资讯</a></li>
+</ul>
+</li>
+<li id="menu-item-1488" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1488"><a href="http://www.fangshanzi.com/category/%e4%b8%aa%e4%ba%ba%e7%a9%ba%e9%97%b4/">个人空间</a>
+<ul class="sub-menu">
+	<li id="menu-item-2308" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-2308"><a href="http://www.fangshanzi.com/category/%e4%b8%aa%e4%ba%ba%e7%a9%ba%e9%97%b4/%e9%a3%98%e5%9c%a8%e4%b8%8a%e6%b5%b7/">飘在上海</a></li>
+	<li id="menu-item-1496" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1496"><a href="http://www.fangshanzi.com/category/%e8%af%ad%e5%bd%95%e4%b8%ad%e5%9b%bd/">语录中国</a></li>
+	<li id="menu-item-1490" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1490"><a href="http://www.fangshanzi.com/category/%e4%b8%aa%e4%ba%ba%e7%a9%ba%e9%97%b4/%e5%bb%ba%e7%ab%99%e6%97%a5%e5%bf%97/">建站日志</a></li>
+	<li id="menu-item-1489" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1489"><a href="http://www.fangshanzi.com/category/%e4%b8%aa%e4%ba%ba%e7%a9%ba%e9%97%b4/%e8%bd%af%e4%bb%b6/">应用软件</a></li>
+</ul>
+</li>
+<li id="menu-item-2102" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2102"><a href="http://www.fangshanzi.com/about/">关于方山子</a>
+<ul class="sub-menu">
+	<li id="menu-item-2101" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2101"><a href="http://www.fangshanzi.com/weibo/">我的微日记</a></li>
+</ul>
+</li>
+</ul></div> <!-- end #header -->
+            
+    
+<div id="content-area" class="clearfix">
+<div id="main-area">				
+		
+		
+<div class="entry linux">
+	<div class="entry-top"></div>
+	
+	<div class="share">
+	<span class="share_button">分享</span>
+	
+	<div class="share-box">
+		<div class="buttons">
+			<a href="http://twitter.com/home?status=plymouth启动分析笔记 http://www.fangshanzi.com/plymouth-qidong-boot-linux/" rel="nofollow">
+				<img src="http://www.fangshanzi.com/wp-content/themes/LightBright/images/share-icon1.png" alt="" />
+				<span class="tooltip">
+					+twitter					<span class="left-arrow"></span>
+				</span>
+			</a>
+			<a href="http://v.t.sina.com.cn/share/share.php?url=http://www.fangshanzi.com/plymouth-qidong-boot-linux/&amp;title=plymouth启动分析笔记" rel="nofollow">
+				<img src="http://www.fangshanzi.com/wp-content/themes/LightBright/images/share-icon2.png" alt="" />
+				<span class="tooltip">
+					+新浪微博					<span class="left-arrow"></span>
+				</span>
+			</a>
+			<a href="http://share.v.t.qq.com/index.php?c=share&a=index&url=http://www.fangshanzi.com/plymouth-qidong-boot-linux/&amp;title=plymouth启动分析笔记" rel="nofollow">
+				<img src="http://www.fangshanzi.com/wp-content/themes/LightBright/images/share-icon3.png" alt="" />
+				<span class="tooltip">
+					+腾讯微博					<span class="left-arrow"></span>
+				</span>
+			</a>
+			<a href="http://t.163.com/article/user/checkLogin.do?info=http://www.fangshanzi.com/plymouth-qidong-boot-linux/&amp;title=plymouth启动分析笔记" rel="nofollow">
+				<img src="http://www.fangshanzi.com/wp-content/themes/LightBright/images/share-icon4.png" alt="" />
+				<span class="tooltip">
+					+网易微博					<span class="left-arrow"></span>
+				</span>
+			</a>
+			<a href="http://www.connect.renren.com/sharer.do?url=http://www.fangshanzi.com/plymouth-qidong-boot-linux/&amp;title=plymouth启动分析笔记" rel="nofollow">
+				<img src="http://www.fangshanzi.com/wp-content/themes/LightBright/images/share-icon5.png" alt="" />
+				<span class="tooltip">
+					+人人网					<span class="left-arrow"></span>
+				</span>
+			</a>
+			<a href="http://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=http://www.fangshanzi.com/plymouth-qidong-boot-linux/&amp;title=plymouth启动分析笔记&desc=&summary=&site=" rel="nofollow">
+				<img src="http://www.fangshanzi.com/wp-content/themes/LightBright/images/share-icon6.png" alt="" />
+				<span class="tooltip">
+					+腾讯空间					<span class="left-arrow"></span>
+				</span>
+			</a>
+			<a href="http://cang.baidu.com/do/add?iu=http://www.fangshanzi.com/plymouth-qidong-boot-linux/&amp;it=plymouth启动分析笔记 " rel="nofollow">
+				<img src="http://www.fangshanzi.com/wp-content/themes/LightBright/images/share-icon7.png" alt="" />
+				<span class="tooltip">
+					+百度收藏					<span class="left-arrow"></span>
+				</span>
+			</a>
+						
+		</div> <!-- end .buttons -->
+		
+		<a href="#" class="arrow"></a>
+	</div> <!-- end .share-box -->
+</div> <!-- end .share -->	
+	<div class="post clearfix">
+		<div class="content clearfix">
+			
+									<a href="http://www.fangshanzi.com?post_type=post" class="bubble">plymouth启动分析笔记</a>
+			
+			<h1 class="title">plymouth启动分析笔记</h1>
+			
+			<div class="clear"></div>
+			
+						
+			
+													
+			
+						
+						
+						
+			
+				<p>观察Linux启动的过程，我们会发现，截入完内核，会进入一次屏幕分辨率切换（闪烁），这时到了Splash屏幕显示加载进度，当加载完成后，到了KDM/GDM登录界面时，又会进行一次（甚至两次连续）的屏幕刷新，然后才进入桌面，但是plymouth通过内核中“内核模式设置”（Kernel Mode-Setting）和显示的支持，将带给你一个更加干净、容易定制和无闪烁的图形启动模式，绚丽的动画显示提供给用户更加友好的界面。</p>
+<p style="text-align: center;"><img class="size-full wp-image-660  aligncenter" title="linux logo" src="http://www.fangshanzi.com/wp-content/uploads/2010/12/10122901.jpg" alt="" width="299" height="296" /></p>
+<p><strong>Plymouth的工作流程：</strong></p>
+<p>Plymouth主要分为2个端和2个阶段</p>
+<p>2个端分别为客户端和服务端,客户端是plymouth,服务端是plymouthd</p>
+<p>2个阶段分别是ramdisk和root</p>
+<p>首先是ramdisk,ramdisk在/boot/initrd-版本号.img</p>
+<p>我们把initrd解开之后可以看见在根目录下有一个init文件,打开查看可以看见对于Plymouth来说有3个命令</p>
+<p>1.daemonize -ignoe-missing /bin/plymouthd           /*这里开启了plymouth的服务端*/</p>
+<p>2.plymouth -show-splash              /*这里调用了客户端,并给出开始显示动画的指令*/</p>
+<p>3.plymouth -newroot=/sysroot         /*这里提示plymouth从initrd进入到root中*/</p>
+<p>ramdisk结束之后到root中</p>
+<p>root的初始化脚本在/etc/rc.d/rc.sysinit中</p>
+<p>里面最主要是2条指令</p>
+<p>1. plymouth &#8211;hide-splash<br />
+/*用于隐藏动画 显示自检信息 , 一般在遇到错误的时候会调用这条指令*/</p>
+<p>2. plymouth &#8211;show-splash</p>
+<p>/*用于恢复动画的显示 , 一般用于从错误信息中恢复动画*/最后当要进入GDM也就是GNOME的账户管理界面的时候会调用plymouth -quit来切换到GDM</p>
+<p>最后来看看2个端</p>
+<p>1.客户端和服务端之间的通信通过Socket进行;</p>
+<p>2.客户端向服务端发送Message,服务端收到指令之后回复一个Ack答复信息,客户端收到答复信息之后便结束进程;</p>
+<p>3.服务端根据收到的指令调用主题包中的对应函数进行操作;</p>
+<p>现在到程序的循环模式中</p>
+<p>服务端和客户端都使用了同一种的循环模式:<br />
+使用一个while(1)来对events和timeout两个结构进行循环:<br />
+events用于发送和接收指令信息;<br />
+timeout用于进行超时处理,进度条和界面的重绘都挂载在timeout下,on_timeout用于界面的重绘,这个函数可以由主题或者LIB提供,在我看来这两个端和X的客户端和server端相似；</p>
+<p><strong>plymouth相关包及其设置</strong></p>
+<p>plymouth可以提供给我们Solar、Text 、Details 、Label 、Fade-in、Spinfinity，fedora使</p>
+<p>用的Fade-in这个theme，而我们Lite1.4用的是 Spinfinity；</p>
+<p>[root@localhost /]# rpm -qa|grep plymouth</p>
+<p>plymouth-plugin-label-0.8.1-6.lp.i586</p>
+<p>plymouth-theme-solar-0.8.1-6.lp.i586</p>
+<p>plymouth-graphics-libs-0.8.1-6.lp.i586</p>
+<p>plymouth-theme-spinfinity-0.8.1-6.lp.i586</p>
+<p>plymouth-core-libs-0.8.1-6.lp.i586</p>
+<p>plymouth-plugin-space-flares-0.8.1-6.lp.i586</p>
+<p>plymouth-gdm-hooks-0.8.1-6.lp.i586</p>
+<p>plymouth-plugin-throbgress-0.8.1-6.lp.i586</p>
+<p>plymouth-system-theme-0.8.1-6.lp.i586</p>
+<p>plymouth-scripts-0.8.1-6.lp.i586</p>
+<p>plymouth-utils-0.8.1-6.lp.i586</p>
+<p>plymouth-0.8.1-6.lp.i586</p>
+<p>其中这些包中plymouth-theme-solar，plymouth-theme-spinfinity是可以设定的theme，plymouth-system-theme只是提供我们系统默认的安装的theme，这个包没有任何安装文件，plymouth提供一些必要的lib库文件和相关的版本信息，plymouth-theme-spinfinity安装相关的plymouth动画所需的图片，他所对应的库文件提供者是plymouth-plugin-throbgress；</p>
+<p>plymouth的theme安装目录：  /usr/share/plymouth/</p>
+<p>plymouth的lib安装目录：  /usr/lib/plymouth/</p>
+<p>使用/usr/sbin/plymouth-set-default-theme 可以查看当前使用的theme名；</p>
+<p>使用/usr/sbin/plymouth-set-default-theme【theme】可以用来更换新的theme；</p>
+<p>执行/usr/libexec/plymouth/plymouth-update-initrd之后就可以把改变后的plymouth更新到initrd里面，重启的时候发现已经是更新后的plymouth动画了；</p>
+<p>如果要修改plymouth相关的包来添加新的theme的时候，可以把新的图片加进去，并修改spec文件，设置默认安装的theme，然后rebuild就可以在安装了系统之后就是我们想要的那个theme显示了。</p>
+<div class="wumii-hook">
+<p>    <input type="hidden" name="wurl" value="http://www.fangshanzi.com/plymouth-qidong-boot-linux/" /></p>
+<p>    <input type="hidden" name="wtitle" value="plymouth启动分析笔记" /></p>
+<p>    <input type="hidden" name="wpic" value="" /></p>
+</div>
+<p style="margin:0;padding:0;height:1px;overflow:hidden;">
+<p>    <script type="text/javascript"><!--</p>
+<p>        var wumiiSitePrefix = "http://www.fangshanzi.com";</p>
+<p>        var wumiiEnableCustomPos = false;</p>
+<p>        var wumiiParams = "&#038;num=8&#038;mode=3&#038;displayInFeed=1&#038;version=1.0.5.5&#038;pf=WordPress3.4.2";</p>
+<p>    //--></script><script type="text/javascript" src="http://widget.wumii.com/ext/relatedItemsWidget.htm"></script><a href="http://www.wumii.com/widget/relatedItems.htm" style="border:0;"><img src="http://static.wumii.com/images/pixel.png" alt="无觅相关文章插件，快速提升流量" style="border:0;padding:0;margin:0;" /></a></p>
+			
+						
+																	
+		</div> <!-- end .content -->
+		
+		<div class="entry-bottom-top"></div>
+	
+		<div class="entry-meta clearfix">
+			<p class="meta">
+                            <span class="time">ON &nbsp;十二月 29th, 2010</span>
+                            <span class="cat">IN &nbsp;<a href="http://www.fangshanzi.com/category/linux%e6%8a%80%e6%9c%af/" title="查看 Linux技术 中的全部文章" rel="category tag">Linux技术</a></span>
+                            <span class="main">BY <a href="http://www.fangshanzi.com/author/admin/" title="由 方山子 发布" rel="author">方山子</a>									</span>
+                        <span class="comment-count"><a href="http://www.fangshanzi.com/plymouth-qidong-boot-linux/#respond" title="《plymouth启动分析笔记》上的评论">0</a></span></p>
+					</div> <!-- end .entry-meta -->		
+		
+	</div> <!-- end .main -->
+	
+	<div class="entry-bottom"></div>
+</div> <!-- end .entry -->
+
+
+<script type='text/javascript' charset='utf-8' src='http://open.denglu.cc/connect/commentcode?appid=49636denYWGlOuJXMpRZko9MsfrOI3&v=1.0.1'></script>
+<script type="text/javascript" charset='utf-8'>
+    var param = {};
+    param.title = "plymouth%E5%90%AF%E5%8A%A8%E5%88%86%E6%9E%90%E7%AC%94%E8%AE%B0"; // 文章标题
+    param.postid = "659"; // 文章ID
+param.image = "http://www.fangshanzi.com/wp-content/uploads/2010/12/10122901.jpg";
+param.video = "";
+param.login = false;
+param.exit = "http%3A%2F%2Fwww.fangshanzi.com%2Fwp-login.php%3Faction%3Dlogout%26amp%3Bredirect_to%3Dhttp%253A%252F%252Fwww.fangshanzi.com%252Fplymouth-qidong-boot-linux%252F%26amp%3B_wpnonce%3Dc01ab25737";
+    _dl_comment_widget.show(param);
+</script>
+		
+	</div> <!-- end #main-area -->
+		
+	<div id="sidebar">				
+	<div class="widget search">
+	<form action="http://www.fangshanzi.com" id="searchform1" method="get">
+		<input type="text" id="searchinput" name="s" value="搜索看看..."/>
+		
+						<input type="image" id="searchsubmit" src="http://www.fangshanzi.com/wp-content/themes/LightBright/images/search_btn.png"/>
+	</form>
+</div> <!-- end .widget -->
+<div id="wizzart-recent-comments-3" class="widget wizzart_recent_comments_widget"><h3 class="title">我的微日记</h3><div class="widget-content"><ul class="recent-comments-list"><li>
+<a class="comment-link" href="http://www.fangshanzi.com/weibo/" title="我的微日记, 欢迎发表见解~">
+	<span class="comment-meta">
+	<span class="comment-author">月如花</span>
+	<span class="comment-date-time">三月8日 (11:51)</span>
+	</span><br/>
+	<span class="comment-text">Every one of us every day has choices to make about the kind of person we are and what we wish to become. You can decide to be someone who brings people together, or you can fall prey to those who wish to divide us. You can be someone who educates yourself, or you can believe that being negative is clever and being cynical is fashionable. You have a choice。</span>
+</a>
+</li><li>
+<a class="comment-link" href="http://www.fangshanzi.com/weibo/" title="我的微日记, 欢迎发表见解~">
+	<span class="comment-meta">
+	<span class="comment-author">月如花</span>
+	<span class="comment-date-time">三月7日 (9:56)</span>
+	</span><br/>
+	<span class="comment-text">地铁上看到几个人拿着智能手机你传到我手里，我传到你手里，最后一个人用手指滑动了一下，竟给挂了电话，才想到，原来他们用智能手机，却不知道如何接电话，看来是刚换的新手机了，呵呵，这样尴尬的局面只有在现在传统手机被智能手机迅猛替换的情况下会出现....</span>
+</a>
+</li></ul></div> <!-- end .widget-content --> </div> <!-- end .widget -->		<div id="recent-posts-3" class="widget widget_recent_entries">		<h3 class="title">最新日志</h3><div class="widget-content">		<ul>
+				<li><a href="http://www.fangshanzi.com/linux%e7%b3%bb%e7%bb%9f%e5%a6%82%e4%bd%95%e8%ae%be%e7%bd%ae%e7%bd%91%e7%bb%9c/" title="Linux系统如何设置网络">Linux系统如何设置网络</a></li>
+				<li><a href="http://www.fangshanzi.com/%e4%b8%89%e4%b8%a4%e9%a5%ba%e5%ad%90%e8%ae%a9%e6%88%91%e6%83%85%e4%bd%95%e4%bb%a5%e5%a0%aa/" title="三两饺子让我情何以堪">三两饺子让我情何以堪</a></li>
+				<li><a href="http://www.fangshanzi.com/%e4%ba%8c%e5%8d%81%e4%b8%87%e7%9c%8b%e5%b0%bd%e4%b8%96%e9%97%b4%e5%86%b7%e6%9a%96/" title="二十万看尽世间冷暖">二十万看尽世间冷暖</a></li>
+				<li><a href="http://www.fangshanzi.com/%e7%94%9f%e6%b4%bb%e5%88%86%e4%ba%ab/" title="生活分享">生活分享</a></li>
+				<li><a href="http://www.fangshanzi.com/2013%e5%b9%b4%e6%9c%80%e5%90%83%e9%a6%99%e7%9a%84%e5%b7%a5%e4%bd%9ctop18/" title="2013年最吃香的工作Top18">2013年最吃香的工作Top18</a></li>
+				</ul>
+		</div> <!-- end .widget-content --> </div> <!-- end .widget --><div id="tag_cloud-2" class="widget widget_tag_cloud"><h3 class="title">标签</h3><div class="widget-content"><div class="tagcloud"><a href='http://www.fangshanzi.com/tag/android/' class='tag-link-12' title='8 个话题' style='font-size: 13.6875pt;'>Android</a>
+<a href='http://www.fangshanzi.com/tag/api/' class='tag-link-108' title='6 个话题' style='font-size: 12.8125pt;'>API</a>
+<a href='http://www.fangshanzi.com/tag/arm/' class='tag-link-163' title='2 个话题' style='font-size: 9.575pt;'>ARM</a>
+<a href='http://www.fangshanzi.com/tag/cms/' class='tag-link-155' title='7 个话题' style='font-size: 13.25pt;'>CMS</a>
+<a href='http://www.fangshanzi.com/tag/css/' class='tag-link-52' title='4 个话题' style='font-size: 11.5pt;'>CSS</a>
+<a href='http://www.fangshanzi.com/tag/facebook/' class='tag-link-37' title='8 个话题' style='font-size: 13.6875pt;'>Facebook</a>
+<a href='http://www.fangshanzi.com/tag/flash/' class='tag-link-51' title='3 个话题' style='font-size: 10.625pt;'>flash</a>
+<a href='http://www.fangshanzi.com/tag/gmail/' class='tag-link-103' title='3 个话题' style='font-size: 10.625pt;'>Gmail</a>
+<a href='http://www.fangshanzi.com/tag/google/' class='tag-link-162' title='6 个话题' style='font-size: 12.8125pt;'>Google</a>
+<a href='http://www.fangshanzi.com/tag/iphone/' class='tag-link-11' title='6 个话题' style='font-size: 12.8125pt;'>iPhone</a>
+<a href='http://www.fangshanzi.com/tag/jquery/' class='tag-link-77' title='3 个话题' style='font-size: 10.625pt;'>jQuery</a>
+<a href='http://www.fangshanzi.com/tag/linux/' class='tag-link-65' title='41 个话题' style='font-size: 19.55pt;'>Linux</a>
+<a href='http://www.fangshanzi.com/tag/logo/' class='tag-link-192' title='1 个话题' style='font-size: 8pt;'>logo</a>
+<a href='http://www.fangshanzi.com/tag/mysql/' class='tag-link-118' title='32 个话题' style='font-size: 18.675pt;'>MySQL</a>
+<a href='http://www.fangshanzi.com/tag/php/' class='tag-link-117' title='40 个话题' style='font-size: 19.4625pt;'>php</a>
+<a href='http://www.fangshanzi.com/tag/python/' class='tag-link-197' title='3 个话题' style='font-size: 10.625pt;'>Python</a>
+<a href='http://www.fangshanzi.com/tag/quora/' class='tag-link-168' title='8 个话题' style='font-size: 13.6875pt;'>Quora</a>
+<a href='http://www.fangshanzi.com/tag/sql-server/' class='tag-link-204' title='3 个话题' style='font-size: 10.625pt;'>sql server</a>
+<a href='http://www.fangshanzi.com/tag/twitter/' class='tag-link-36' title='19 个话题' style='font-size: 16.75pt;'>Twitter</a>
+<a href='http://www.fangshanzi.com/tag/ubuntu/' class='tag-link-151' title='6 个话题' style='font-size: 12.8125pt;'>Ubuntu</a>
+<a href='http://www.fangshanzi.com/tag/wordpress/' class='tag-link-4' title='79 个话题' style='font-size: 22pt;'>WordPress</a>
+<a href='http://www.fangshanzi.com/tag/%e4%b8%bb%e6%9c%ba/' class='tag-link-167' title='2 个话题' style='font-size: 9.575pt;'>主机</a>
+<a href='http://www.fangshanzi.com/tag/%e4%b8%bb%e9%a2%98/' class='tag-link-5' title='30 个话题' style='font-size: 18.4125pt;'>主题</a>
+<a href='http://www.fangshanzi.com/tag/%e5%8d%9a%e5%ae%a2/' class='tag-link-146' title='36 个话题' style='font-size: 19.1125pt;'>博客</a>
+<a href='http://www.fangshanzi.com/tag/%e5%ae%a2%e6%88%b7%e7%ab%af/' class='tag-link-114' title='6 个话题' style='font-size: 12.8125pt;'>客户端</a>
+<a href='http://www.fangshanzi.com/tag/%e5%b9%b3%e9%9d%a2%e8%ae%be%e8%ae%a1/' class='tag-link-56' title='3 个话题' style='font-size: 10.625pt;'>平面设计</a>
+<a href='http://www.fangshanzi.com/tag/%e5%b9%bf%e5%91%8a/' class='tag-link-25' title='4 个话题' style='font-size: 11.5pt;'>广告</a>
+<a href='http://www.fangshanzi.com/tag/%e5%be%ae%e5%8d%9a/' class='tag-link-33' title='18 个话题' style='font-size: 16.575pt;'>微博</a>
+<a href='http://www.fangshanzi.com/tag/%e5%be%ae%e8%bd%af/' class='tag-link-139' title='7 个话题' style='font-size: 13.25pt;'>微软</a>
+<a href='http://www.fangshanzi.com/tag/%e6%89%8b%e6%9c%ba/' class='tag-link-58' title='10 个话题' style='font-size: 14.475pt;'>手机</a>
+<a href='http://www.fangshanzi.com/tag/%e6%8f%92%e4%bb%b6/' class='tag-link-10' title='22 个话题' style='font-size: 17.275pt;'>插件</a>
+<a href='http://www.fangshanzi.com/tag/%e6%91%84%e5%bd%b1/' class='tag-link-122' title='1 个话题' style='font-size: 8pt;'>摄影</a>
+<a href='http://www.fangshanzi.com/tag/%e6%95%b0%e6%8d%ae%e5%ba%93/' class='tag-link-135' title='6 个话题' style='font-size: 12.8125pt;'>数据库</a>
+<a href='http://www.fangshanzi.com/tag/%e6%96%b0%e6%b5%aa%e5%be%ae%e5%8d%9a/' class='tag-link-78' title='4 个话题' style='font-size: 11.5pt;'>新浪微博</a>
+<a href='http://www.fangshanzi.com/tag/%e6%b7%98%e5%ae%9d/' class='tag-link-237' title='2 个话题' style='font-size: 9.575pt;'>淘宝</a>
+<a href='http://www.fangshanzi.com/tag/%e7%94%9f%e6%b4%bb/' class='tag-link-201' title='6 个话题' style='font-size: 12.8125pt;'>生活</a>
+<a href='http://www.fangshanzi.com/tag/%e7%94%b5%e5%bd%b1/' class='tag-link-32' title='5 个话题' style='font-size: 12.2pt;'>电影</a>
+<a href='http://www.fangshanzi.com/tag/%e7%bd%91%e7%ab%99/' class='tag-link-133' title='31 个话题' style='font-size: 18.5875pt;'>网站</a>
+<a href='http://www.fangshanzi.com/tag/%e7%bd%91%e9%a1%b5%e8%ae%be%e8%ae%a1/' class='tag-link-54' title='11 个话题' style='font-size: 14.825pt;'>网页设计</a>
+<a href='http://www.fangshanzi.com/tag/%e8%85%be%e8%ae%af/' class='tag-link-73' title='6 个话题' style='font-size: 12.8125pt;'>腾讯</a>
+<a href='http://www.fangshanzi.com/tag/%e8%ae%be%e8%ae%a1/' class='tag-link-26' title='2 个话题' style='font-size: 9.575pt;'>设计</a>
+<a href='http://www.fangshanzi.com/tag/%e8%ae%be%e8%ae%a1%e5%b8%88/' class='tag-link-38' title='6 个话题' style='font-size: 12.8125pt;'>设计师</a>
+<a href='http://www.fangshanzi.com/tag/%e8%b0%b7%e6%ad%8c/' class='tag-link-128' title='6 个话题' style='font-size: 12.8125pt;'>谷歌</a>
+<a href='http://www.fangshanzi.com/tag/%e8%bd%af%e4%bb%b6-2/' class='tag-link-71' title='3 个话题' style='font-size: 10.625pt;'>软件</a>
+<a href='http://www.fangshanzi.com/tag/%e9%bb%91%e8%8e%93/' class='tag-link-119' title='5 个话题' style='font-size: 12.2pt;'>黑莓</a></div>
+</div> <!-- end .widget-content --> </div> <!-- end .widget --><div id="wp-connect-comment-widget-2" class="widget widget_WP_Connect_Comment"><h3 class="title">最新评论</h3><div class="widget-content"><ul id="denglu_recentcomments"><style type="text/css" media="screen">#denglu_recentcomments li{margin-top:5px;display:block}#denglu_recentcomments .avatar{display:inline;float:left;margin-right:8px;border-radius:3px 3px 3px 3px;}#denglu_recentcomments .rc-info, #denglu_recentcomments .rc-content{overflow:hidden;text-overflow:ellipsis;-o-text-overflow:ellipsis;white-space:nowrap;}</style><li><img alt='' src='http://1.gravatar.com/avatar/b4521430850406dad7bc3a538f70de47?s=36&amp;d=wavatar&amp;r=G' class='avatar avatar-36 photo' height='36' width='36' /><div class="rc-info"><a href="http://www.fangshanzi.com/%e4%ba%8c%e5%8d%81%e4%b8%87%e7%9c%8b%e5%b0%bd%e4%b8%96%e9%97%b4%e5%86%b7%e6%9a%96/comment-page-1/#comment-38543">果果</a></div><div class="rc-content">博主是MM???
+呵呵,没办法,得不到家里的支持,就自己努力奋斗吧,20万而已.&nbsp;</div></li><li><img alt='' src='http://1.gravatar.com/avatar/71383e09f92459608d81e38c4237e38f?s=36&amp;d=wavatar&amp;r=G' class='avatar avatar-36 photo' height='36' width='36' /><div class="rc-info"><a href="http://www.fangshanzi.com/%e4%ba%8c%e5%8d%81%e4%b8%87%e7%9c%8b%e5%b0%bd%e4%b8%96%e9%97%b4%e5%86%b7%e6%9a%96/comment-page-1/#comment-38534">小昭melody</a></div><div class="rc-content">亲。你这个评论底部好好、。。、怎么弄的..还有就是友情链接怎么一个一行的，我的都不行。。help&nbsp;</div></li><li><img alt='' src='http://0.gravatar.com/avatar/8771edd1ada405923ec11b3d2cbdd81e?s=36&amp;d=wavatar&amp;r=G' class='avatar avatar-36 photo' height='36' width='36' /><div class="rc-info"><a href="http://www.fangshanzi.com/%e7%94%9f%e6%b4%bb%e5%88%86%e4%ba%ab/comment-page-1/#comment-38527">空气源贝贝</a></div><div class="rc-content">我也喜欢看《非诚勿扰》和《快乐大本营》&nbsp;</div></li><li><img alt='' src='http://0.gravatar.com/avatar/8771edd1ada405923ec11b3d2cbdd81e?s=36&amp;d=wavatar&amp;r=G' class='avatar avatar-36 photo' height='36' width='36' /><div class="rc-info"><a href="http://www.fangshanzi.com/%e7%94%9f%e6%b4%bb%e5%88%86%e4%ba%ab/comment-page-1/#comment-38526">艾富莱</a></div><div class="rc-content">鞋合不合脚，穿了才知道，把注视的目光不放在那些事上就会快乐···&nbsp;</div></li><li><img alt='' src='http://0.gravatar.com/avatar/8771edd1ada405923ec11b3d2cbdd81e?s=36&amp;d=wavatar&amp;r=G' class='avatar avatar-36 photo' height='36' width='36' /><div class="rc-info"><a href="http://www.fangshanzi.com/%e4%ba%8c%e5%8d%81%e4%b8%87%e7%9c%8b%e5%b0%bd%e4%b8%96%e9%97%b4%e5%86%b7%e6%9a%96/comment-page-1/#comment-38525">艾富莱</a></div><div class="rc-content">都站在对方的角度想想就好了&nbsp;</div></li></ul></div> <!-- end .widget-content --> </div> <!-- end .widget --><div id="linkcat-2" class="widget widget_links"><h3 class="title">友情链接</h3><div class="widget-content">
+	<ul class='xoxo blogroll'>
+<li><a href="http://www.conpad.com/" rel="friend" target="_blank">CONEY</a></li>
+<li><a href="http://www.mysqlops.com">MYSQLOPS</a></li>
+<li><a href="http://www.orczhou.com" target="_blank">MYSQL一个故事</a></li>
+<li><a href="http://smilebull.com" target="_blank">SMILE BULL</a></li>
+<li><a href="http://www.800l.com" rel="colleague" target="_blank">八佰里</a></li>
+<li><a href="http://www.321u.cn/" target="_blank">博客大全</a></li>
+<li><a href="http://www.boketo.net/" target="_blank">博客通</a></li>
+<li><a href="http://www.jyworld.net/" target="_blank">叽叽歪歪</a></li>
+<li><a href="http://xiaopan.cc">晓潘博客</a></li>
+<li><a href="http://www.91coding.com" target="_blank">真爱无悔</a></li>
+<li><a href="http://www.yuewei.net/" target="_blank">阅微博客</a></li>
+<li><a href="http://www.facebooksx.com/" target="_blank">随心</a></li>
+
+	</ul>
+</div> <!-- end .widget-content --> </div> <!-- end .widget -->
+</div> <!-- end #sidebar -->			
+</div> <!-- end #content-area -->
+
+<div id="footer">
+    <div id="footer">©2010-2012 <a href="http://www.fangshanzi.com/">  方山子的博客</a>  | All Rights Reserved.  <div id="credit" style="float:right;"><!-- Start -->Wordpress 强力驱动�?!-- End --><script src="http://s17.cnzz.com/stat.php?id=2627579&web_id=2627579&show=pic" language="JavaScript"></script></div></div></div>
+
+</div> <!-- end #footer -->
+</div> <!-- end #container -->
+
+
+<script type="text/javascript" src="http://www.fangshanzi.com/wp-content/themes/LightBright/js/superfish.js"></script>	
+<script type="text/javascript" src="http://www.fangshanzi.com/wp-content/themes/LightBright/js/jquery.fancybox-1.2.6.pack.js"></script>
+<script type="text/javascript">
+	jQuery("a[class^='fancybox']").fancybox({
+			'overlayOpacity'	:	0.7,
+			'overlayColor'		:	'#000000',
+			'zoomSpeedIn'		:	500,
+			'zoomSpeedOut'		:	500
+		});
+</script>
+<script type="text/javascript">
+//<![CDATA[
+	jQuery.noConflict();
+
+	jQuery('ul.superfish').superfish({ 
+		delay:       200,                            // one second delay on mouseout 
+		animation:   {'marginLeft':'0px',opacity:'show'},  // fade-in and slide-down animation 
+		speed:       'fast',                          // faster animation speed
+		onBeforeShow: function(){ this.css('marginLeft','20px'); }, 			
+		autoArrows:  true,                           // disable generation of arrow mark-up 
+		dropShadows: false                            // disable drop shadows 
+	}).find('> li > ul').prepend('<span class="top-arrow"></span>');
+	
+	var pagemenuwidth = jQuery("ul.nav").width();
+	var pagemleft = Math.round((804 - pagemenuwidth) / 2) + 55;
+	if (pagemenuwidth < 804) jQuery("ul.nav").css('padding-left',pagemleft);
+	
+	jQuery('ul.superfish ul a').hover(function(){
+		jQuery(this).parent('li').stop().animate({paddingLeft:'27px'},300);
+	},function(){
+		jQuery(this).parent('li').stop().animate({paddingLeft:'17px'},300);
+	});
+	
+	et_search_bar();
+	
+	jQuery('#sidebar ul li a').hover(function(){
+		jQuery(this).stop().animate({paddingLeft:'38px',backgroundPosition:'21px 14px'},300);
+	},function(){
+		jQuery(this).stop().animate({paddingLeft:'26px',backgroundPosition:'11px 14px'},300);
+	});
+	
+	jQuery('.share a.arrow').click(function(){
+		if (jQuery.browser.msie) 
+			jQuery(this).siblings('.buttons').animate({	opacity: 'toggle' }, 0, function() {
+				var sharebox = jQuery(this).parent('.share-box');
+				if (sharebox.hasClass('open')) sharebox.removeClass('open')
+				else sharebox.addClass('open');
+			});
+		else 
+			jQuery(this).siblings('.buttons').animate({	height: 'toggle' }, 700, function() {
+				var sharebox = jQuery(this).parent('.share-box');
+				if (sharebox.hasClass('open')) sharebox.removeClass('open')
+				else sharebox.addClass('open');
+			});
+
+		return false;
+	});
+	
+	jQuery('.share .buttons a').hover(function(){
+		jQuery(this).find('.tooltip').animate({	opacity: 'show', left: '39px' }, 300);
+	},function(){
+		jQuery(this).find('.tooltip').animate({	opacity: 'hide', left: '49px' }, 300);
+	});
+	
+	
+	<!---- Search Bar Improvements ---->
+	function et_search_bar(){
+		var $searchform = jQuery('#searchform1'),
+			$searchinput = $searchform.find("input#searchinput"),
+			searchvalue = $searchinput.val();
+			
+		$searchinput.focus(function(){
+			if (jQuery(this).val() === searchvalue) jQuery(this).val("");
+		}).blur(function(){
+			if (jQuery(this).val() === "") jQuery(this).val(searchvalue);
+		});
+	};
+
+		
+	Cufon.now();
+	
+//]]>	
+</script><!--cnzz tui-->
+<script  type="text/javascript" charset="utf-8"  src="http://tui.cnzz.net/cs.php?id=1000009457"></script>
+<!--cnzz tui-->
+</body>
+</html>

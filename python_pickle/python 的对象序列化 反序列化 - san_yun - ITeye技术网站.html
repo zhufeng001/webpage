@@ -1,0 +1,744 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-CN" dir="ltr">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>python 的对象序列化/反序列化  - san_yun - ITeye技术网站</title>
+    <meta name="description" content="java把对象放入memcached的时候需要序列化和反序列化才能确认类型，那python也应该有序列化的过程。google了一下，python是通过pickle来序列化的。      在了解pickle之前先了解一下marshal，marshal模块也用于序列化和反序列化，但marshal的功能比较薄弱，只支持部分内置数据类型的序列化/反序列化，对于用户自定义的类型就无能为力，同时marshal不 ..." />
+    <meta name="keywords" content=" python 的对象序列化/反序列化 " />
+    <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon" />
+    <link rel="search" type="application/opensearchdescription+xml" href="/open_search.xml" title="ITeye" />
+    <link href="/rss" rel="alternate" title="san_yun" type="application/rss+xml" />
+    <link href="http://www.iteye.com/stylesheets/blog.css?1393920955" media="screen" rel="stylesheet" type="text/css" />
+<link href="http://www.iteye.com/stylesheets/themes/blog/blue.css?1326191326" media="screen" rel="stylesheet" type="text/css" />
+    <script src="http://www.iteye.com/javascripts/application.js?1358214518" type="text/javascript"></script>
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-535605-1']);
+  _gaq.push(['_setDomainName', 'iteye.com']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+
+      <link href="http://www.iteye.com/javascripts/syntaxhighlighter/SyntaxHighlighter.css?1348819953" media="screen" rel="stylesheet" type="text/css" />
+  <script src="http://www.iteye.com/javascripts/syntaxhighlighter/shCoreCommon.js?1325907333" type="text/javascript"></script>
+<script src="http://www.iteye.com/javascripts/hotkey.js?1324994303" type="text/javascript"></script>
+  <script src="http://www.iteye.com/javascripts/code_favorites.js?1358214518" type="text/javascript"></script>
+<script src="http://www.iteye.com/javascripts/weiboshare.js?1324994303" type="text/javascript"></script>
+  </head>
+  <body>
+    <div id="header">
+      <div id="blog_site_nav">
+  <a href="http://www.iteye.com/" class="homepage">首页</a>
+  <a href="http://www.iteye.com/news">资讯</a>
+  <a href="http://www.iteye.com/magazines">精华</a>
+  <a href="http://www.iteye.com/forums">论坛</a>
+  <a href="http://www.iteye.com/ask">问答</a>
+  <a href="http://www.iteye.com/blogs">博客</a>
+  <a href="http://www.iteye.com/blogs/subjects">专栏</a>
+  <a href="http://www.iteye.com/groups">群组</a>
+  <a href="#" onclick="return false;" id="msna"><u>更多</u> <small>▼</small></a>
+  <div class="quick_menu" style="display:none;">
+    <a target="_blank" href="http://job.iteye.com/iteye">招聘</a>
+    <a href="http://www.iteye.com/search">搜索</a>
+  </div>
+</div>
+
+      <div id="user_nav">
+      <a href="/login" class="welcome" title="登录">您还未登录 !</a>
+    <a href="/login">登录</a>
+    <a href="/signup" class="nobg">注册</a>
+  </div>
+
+    </div>
+
+    <div id="page">
+      <div id="branding" class="clearfix">
+        <div id="blog_name">
+          <h1><a href="/">san_yun</a></h1>
+        </div>
+        <div id='fd'></div>
+        <div id="blog_navbar">
+          <ul>
+            <li class='blog_navbar_for'><a href="http://san-yun.iteye.com"><strong>博客</strong></a></li>
+            <li ><a href="/weibo">微博</a></li>
+            <li ><a href="/album">相册</a></li>
+            <li ><a href="/link">收藏</a></li>
+            <li ><a href="/blog/guest_book">留言</a></li>
+            <li ><a href="/blog/profile">关于我</a></li>
+          </ul>
+    
+          <div class="search">
+            <form action="/blog/search" method="get">
+              <input class="search_text" id="query" name="query" style="margin-left: 10px;width: 110px;" type="text" value="" />
+              <input class="submit_search" type="submit" value="" />
+            </form>
+          </div> 
+          <div id="fd"></div>         
+        </div>
+      </div>
+      
+      <div id="content" class="clearfix">
+        <div id="main">
+          
+
+
+
+          
+
+
+<div class="h-entry" style='display:none'>
+  <a href="http://san-yun.iteye.com" class="p-author" target="_blank">san_yun</a>
+</div>
+
+
+<div class="blog_main">
+  <div class="blog_title">
+    <h3>
+      <a href="/blog/1562883">python 的对象序列化/反序列化 </a>
+      <em class="actions">      </em>
+    </h3>
+    <ul class='blog_categories'><strong>博客分类：</strong> <li><a href="/category/218623">python</a></li> </ul>
+        <div class='news_tag'>&nbsp;</div>
+  </div>
+
+  <div id="blog_content" class="blog_content">
+    java把对象放入memcached的时候需要序列化和反序列化才能确认类型，那python也应该有序列化的过程。google了一下，python是通过pickle来序列化的。<br /><br />&nbsp;&nbsp;&nbsp;&nbsp; 在了解pickle之前先了解一下marshal，marshal模块也用于序列化和反序列化，但marshal的功能比较薄弱，只支持部分内置数据类型的序列化/反序列化，对于用户自定义的类型就无能为力，同时marshal不支持自引用(递归引用)的对象的序列化。所以直接使用marshal来序列化/反序列化可能不是很方便。还好，python标准库提供了功能更加强大且更加安全的pickle和cPickle模块。<br /><br />　　cPickle模块是使用C语言实现的，所以在运行效率上比pickle要高。但是cPickle模块中定义的类型不能被继承（其实大多数时候，我们不需要从这些类型中继承。）。cPickle和pickle的序列化/反序列化规则是一样的，我们可以使用pickle序列化一个对象，然后使用cPickle来反序列化。同时，这两个模块在处理自引用类型时会变得更加“聪明”，它不会无限制的递归序列化自引用对象，对于同一对象的多次引用，它只会序列化一次。例如：<br /><br /><pre class="python" name="code">
+import marshal,pickle
+
+list = [1]
+list.append(list)
+print marshal.dumps(list) #出错, 无限制的递归序列化
+print pickle.dumps(list) #no problem
+</pre><br /><br />pickle的序列化规则<br /><br />　　Python规范（Python-specific）提供了pickle的序列化规则。这就不必担心不同版本的Python之间序列化兼容性问题。默认情况下，pickle的序列化是基于文本的，我们可以直接用文本编辑器查看序列化的文本。我们也可以序列成二进制格式的数据，这样的结果体积会更小。更详细的内容，可以参考Python手册pickle模块。<br /><br />　　下面就开始使用pickle吧~<br /><br />pickle.dump(obj, file[, protocol])<br />　　序列化对象，并将结果数据流写入到文件对象中。参数protocol是序列化模式，默认值为0，表示以文本的形式序列化。protocol的值还可以是1或2，表示以二进制的形式序列化。<br /><br />pickle.load(file)<br />　　反序列化对象。将文件中的数据解析为一个Python对象。下面通过一个简单的例子来演示上面两个方法的使用：<br /><br /><pre class="python" name="code">
+#!/usr/bin/python
+# Filename: pickling.py
+
+import cPickle as p
+#import pickle as p
+
+shoplistfile = 'shoplist.data'
+# the name of the file where we will store the object
+
+shoplist = ['apple', 'mango', 'carrot']
+
+# Write to the file
+f = file(shoplistfile, 'w')
+p.dump(shoplist, f) # dump the object to a file
+f.close()
+
+del shoplist # remove the shoplist
+
+# Read back from the storage
+f = file(shoplistfile)
+storedlist = p.load(f)
+print storedlist 
+</pre><br />还有另一个模块称为cPickle，它的功能和pickle模块完全相同，只不过它是用C语言编写的，因此要快得多（比pickle快1000倍）。你可以使用它们中的任一个，而我们在这里将使用cPickle模块。记住，我们把这两个模块都简称为pickle模块。<br /><br /><strong>后记</strong><br /><pre class="java" name="code">
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+unpickler=pickle.Unpickler
+
+file = StringIO(val)
+_up = unpickler(file)
+val = _up.loads()
+</pre><br />可以简化成：<br /><pre class="java" name="code">
+import cPickle
+rp = cPickle.loads(val)
+</pre><br /><br /><br />http://sebug.net/paper/python/ch12s02.html<br />http://blog.csdn.net/jgood/article/details/4564014<br />http://www.ibm.com/developerworks/cn/linux/l-pypers/index.html
+  </div>
+
+  
+
+
+  
+  
+  <div id="bottoms" class="clearfix">
+    
+    <div id="share_weibo">分享到：
+      <a data-type='sina' href="javascript:;" title="分享到新浪微博"><img src="/images/sina.jpg"></a>
+      <a data-type='qq' href="javascript:;" title="分享到腾讯微博"><img src="/images/tec.jpg"></a>
+    </div>
+  </div>
+
+  <div class="blog_nav">
+    <div class="pre_next">
+      <a href="/blog/1563918" class="next" title="Web开发中的一些安全问题">Web开发中的一些安全问题</a>
+      |
+      <a href="/blog/1562071" class="pre" title="python的UnboundLocalError">python的UnboundLocalError</a>
+    </div>
+  </div>
+  <div class="blog_bottom">
+    <ul>
+      <li>2012-06-18 12:41</li>
+      <li>浏览 2370</li>
+      <li><a href="#comments">评论(0)</a></li>
+      
+      
+      <li>分类:<a href="http://www.iteye.com/blogs/category/opensource">开源软件</a></li>      
+      <li class='last'><a href="http://www.iteye.com/wiki/blog/1562883" target="_blank" class="more">相关推荐</a></li>
+    </ul>
+  </div>
+
+  <div class="blog_comment">
+    <h5>评论</h5>
+    <a id="comments" name="comments"></a>
+    
+    
+    
+  </div>
+
+  <div class="blog_comment">
+    <h5>发表评论</h5>
+            <p style="text-align:center; margin-top:30px;margin-bottom:0px;"><a href="/login" style="background-color:white;"> <img src="/images/login_icon.png" style="vertical-align:middle; margin-right: 10px;" /></a><a href="/login">  您还没有登录,请您登录后再发表评论 </a></p>
+      </div>
+</div>
+
+
+<script type="text/javascript">
+  dp.SyntaxHighlighter.HighlightAll('code', true, true);
+
+  $$('#main .blog_content pre[name=code]').each(function(pre, index){ // blog content
+    var post_id = 1562883;
+    var location = window.location;
+    source_url = location.protocol + "//" + location.host + location.pathname + location.search;
+    pre.writeAttribute('codeable_id', post_id);
+    pre.writeAttribute('codeable_type', "Blog");
+    pre.writeAttribute('source_url', source_url);
+    pre.writeAttribute('pre_index', index);
+    pre.writeAttribute('title', 'python 的对象序列化/反序列化 ');
+  });
+
+  fix_image_size($$('div.blog_content img'), 700);
+
+  function processComment() {
+    $$('#main .blog_comment > div').each(function(comment){// comment
+      var post_id = comment.id.substr(2);
+      $$("#"+comment.id+" pre[name=code]").each(function(pre, index){
+        var location = window.location;
+        source_url = location.protocol + "//" + location.host + location.pathname + location.search;
+        source_url += "#" + comment.id;
+        pre.writeAttribute('codeable_id', post_id);
+        pre.writeAttribute('codeable_type', "BlogComment");
+        pre.writeAttribute('source_url', source_url);
+        pre.writeAttribute('pre_index', index);
+        pre.writeAttribute('title', 'python 的对象序列化/反序列化 ');
+      });
+    });
+  }
+
+  function quote_comment(id) {
+    new Ajax.Request('/editor/quote', {
+      parameters: {'id':id, 'type':'BlogComment'},
+      onSuccess:function(response){editor.bbcode_editor.textarea.insertAfterSelection(response.responseText);
+        Element.scrollTo(editor.bbcode_editor.textarea.element);}
+    });
+  }
+
+  code_favorites_init();
+  processComment();
+  new WeiboShare({share_buttons: $('share_weibo'), img_scope: $('blog_content')});
+</script>
+
+
+
+
+        </div>
+
+        <div id="local">
+          <div class="local_top"></div>
+          <div id="blog_owner">
+  <div id="blog_owner_logo"><a href='http://san-yun.iteye.com'><img alt="san_yun的博客" class="logo" src="http://www.iteye.com/upload/logo/user/39684/8dfa939c-4f07-4298-a822-abf8a2cb3eae.jpg?1236834099" title="san_yun的博客: san_yun" /></a></div>
+  <div id="blog_owner_name">san_yun</div>
+</div>
+
+          <div id="blog_actions">
+            <ul>
+              <li>浏览: 256001 次</li>
+              
+              <li>来自: 杭州</li>
+              <li><img src='/images/status/offline.gif'/></li>
+              
+            </ul>
+          </div>
+          <div id="user_visits" class="clearfix">
+            <h5>最近访客 <span style='font-weight:normal;font-size:12px;padding-left:30px;'><a href="/blog/user_visits">更多访客&gt;&gt;</a></span></h5>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://dylinshi126.iteye.com' target='_blank'><img alt="dylinshi126的博客" class="logo" src="http://www.iteye.com/images/user-logo-thumb.gif?1324994303" title="dylinshi126的博客: " /></a></div>
+                <div class="left"><a href='http://dylinshi126.iteye.com' target='_blank' title='dylinshi126'>dylinshi126</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://nevergiveuptochange.iteye.com' target='_blank'><img alt="NeverGiveUpToChange的博客" class="logo" src="http://www.iteye.com/upload/logo/user/646489/2a86bd53-1a83-3102-8b35-66db0a55a8f0-thumb.jpg?1331469306" title="NeverGiveUpToChange的博客: " /></a></div>
+                <div class="left"><a href='http://nevergiveuptochange.iteye.com' target='_blank' title='NeverGiveUpToChange'>NeverGiveUpToChange</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://qqjjtt.iteye.com' target='_blank'><img alt="qqjjtt的博客" class="logo" src="http://www.iteye.com/images/user-logo-thumb.gif?1324994303" title="qqjjtt的博客: " /></a></div>
+                <div class="left"><a href='http://qqjjtt.iteye.com' target='_blank' title='qqjjtt'>qqjjtt</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://alenstudent.iteye.com' target='_blank'><img alt="alenstudent的博客" class="logo" src="http://www.iteye.com/images/user-logo-thumb.gif?1324994303" title="alenstudent的博客: " /></a></div>
+                <div class="left"><a href='http://alenstudent.iteye.com' target='_blank' title='alenstudent'>alenstudent</a></div>
+              </div>
+            
+          </div>
+
+          
+
+                      <div id="blog_menu">
+              <h5>文章分类</h5>
+              <ul>
+                <li><a href="/">全部博客 (1056)</a></li>
+                
+                  <li><a href="/category/10973">webwork (4)</a></li>
+                
+                  <li><a href="/category/11292">网摘 (18)</a></li>
+                
+                  <li><a href="/category/10974">java (98)</a></li>
+                
+                  <li><a href="/category/13588">hibernate (1)</a></li>
+                
+                  <li><a href="/category/142167">Linux (80)</a></li>
+                
+                  <li><a href="/category/142268">职业发展 (1)</a></li>
+                
+                  <li><a href="/category/155609">activeMQ (2)</a></li>
+                
+                  <li><a href="/category/158002">netty (15)</a></li>
+                
+                  <li><a href="/category/158003">svn (1)</a></li>
+                
+                  <li><a href="/category/160370">webx3 (12)</a></li>
+                
+                  <li><a href="/category/164526">mysql (72)</a></li>
+                
+                  <li><a href="/category/173174">css (1)</a></li>
+                
+                  <li><a href="/category/180150">HTML (6)</a></li>
+                
+                  <li><a href="/category/182653">apache (3)</a></li>
+                
+                  <li><a href="/category/182924">测试 (2)</a></li>
+                
+                  <li><a href="/category/190149">javascript (1)</a></li>
+                
+                  <li><a href="/category/202667">储存 (1)</a></li>
+                
+                  <li><a href="/category/202817">jvm (5)</a></li>
+                
+                  <li><a href="/category/203772">code (13)</a></li>
+                
+                  <li><a href="/category/204033">多线程 (12)</a></li>
+                
+                  <li><a href="/category/207870">Spring (18)</a></li>
+                
+                  <li><a href="/category/208137">webxs (2)</a></li>
+                
+                  <li><a href="/category/218623">python (118)</a></li>
+                
+                  <li><a href="/category/220694">duitang (0)</a></li>
+                
+                  <li><a href="/category/221342">mongo (3)</a></li>
+                
+                  <li><a href="/category/221363">nosql (1)</a></li>
+                
+                  <li><a href="/category/222422">tomcat (4)</a></li>
+                
+                  <li><a href="/category/222668">memcached (20)</a></li>
+                
+                  <li><a href="/category/223133">算法 (25)</a></li>
+                
+                  <li><a href="/category/223474">django (28)</a></li>
+                
+                  <li><a href="/category/224156">shell (1)</a></li>
+                
+                  <li><a href="/category/224895">工作总结 (5)</a></li>
+                
+                  <li><a href="/category/226883">solr (42)</a></li>
+                
+                  <li><a href="/category/231759">beansdb (6)</a></li>
+                
+                  <li><a href="/category/231760">nginx (2)</a></li>
+                
+                  <li><a href="/category/235285">性能 (28)</a></li>
+                
+                  <li><a href="/category/235512">数据推荐 (1)</a></li>
+                
+                  <li><a href="/category/235584">maven (5)</a></li>
+                
+                  <li><a href="/category/236012">tonado (1)</a></li>
+                
+                  <li><a href="/category/236378">uwsgi (5)</a></li>
+                
+                  <li><a href="/category/238174">hessian (4)</a></li>
+                
+                  <li><a href="/category/238706">ibatis (3)</a></li>
+                
+                  <li><a href="/category/238949">Security (2)</a></li>
+                
+                  <li><a href="/category/239686">HTPP (1)</a></li>
+                
+                  <li><a href="/category/240280">gevent (6)</a></li>
+                
+                  <li><a href="/category/240818">读书笔记 (1)</a></li>
+                
+                  <li><a href="/category/241143">Maxent (2)</a></li>
+                
+                  <li><a href="/category/241494">mogo (0)</a></li>
+                
+                  <li><a href="/category/242004">thread (3)</a></li>
+                
+                  <li><a href="/category/243987">架构 (4)</a></li>
+                
+                  <li><a href="/category/244880">NIO (5)</a></li>
+                
+                  <li><a href="/category/244963">正则 (1)</a></li>
+                
+                  <li><a href="/category/245415">lucene (4)</a></li>
+                
+                  <li><a href="/category/245888">feed (4)</a></li>
+                
+                  <li><a href="/category/246451">redis (17)</a></li>
+                
+                  <li><a href="/category/246478">TCP (3)</a></li>
+                
+                  <li><a href="/category/246538">test (0)</a></li>
+                
+                  <li><a href="/category/247216">python，code (1)</a></li>
+                
+                  <li><a href="/category/247253">PIL (3)</a></li>
+                
+                  <li><a href="/category/249128">guava (1)</a></li>
+                
+                  <li><a href="/category/249191">jython (4)</a></li>
+                
+                  <li><a href="/category/249194">httpclient (2)</a></li>
+                
+                  <li><a href="/category/249199">cache (3)</a></li>
+                
+                  <li><a href="/category/249427">signal (1)</a></li>
+                
+                  <li><a href="/category/249763">dubbo (6)</a></li>
+                
+                  <li><a href="/category/250096">HTTP (2)</a></li>
+                
+                  <li><a href="/category/250195">json (2)</a></li>
+                
+                  <li><a href="/category/250327">java socket (1)</a></li>
+                
+                  <li><a href="/category/250340">io (2)</a></li>
+                
+                  <li><a href="/category/250341">socket (21)</a></li>
+                
+                  <li><a href="/category/252072">hash (2)</a></li>
+                
+                  <li><a href="/category/252073">Cassandra (1)</a></li>
+                
+                  <li><a href="/category/252074">分布式文件系统 (4)</a></li>
+                
+                  <li><a href="/category/252080">Dynamo (2)</a></li>
+                
+                  <li><a href="/category/252153">gc (6)</a></li>
+                
+                  <li><a href="/category/252341">scp (1)</a></li>
+                
+                  <li><a href="/category/252342">rsync (1)</a></li>
+                
+                  <li><a href="/category/252397">mecached (0)</a></li>
+                
+                  <li><a href="/category/252518">mongoDB (29)</a></li>
+                
+                  <li><a href="/category/252531">Thrift (1)</a></li>
+                
+                  <li><a href="/category/252537">scribe (2)</a></li>
+                
+                  <li><a href="/category/253871">服务化 (2)</a></li>
+                
+                  <li><a href="/category/254466">问题 (77)</a></li>
+                
+                  <li><a href="/category/254490">mat (1)</a></li>
+                
+                  <li><a href="/category/254522">classloader (2)</a></li>
+                
+                  <li><a href="/category/254523">javaBean (1)</a></li>
+                
+                  <li><a href="/category/254524">文档集合 (24)</a></li>
+                
+                  <li><a href="/category/254526">消息队列 (3)</a></li>
+                
+                  <li><a href="/category/255151">nginx，文档集合 (1)</a></li>
+                
+                  <li><a href="/category/255779">dboss (12)</a></li>
+                
+                  <li><a href="/category/255833">libevent (1)</a></li>
+                
+                  <li><a href="/category/255840">读书 (0)</a></li>
+                
+                  <li><a href="/category/256721">数学 (3)</a></li>
+                
+                  <li><a href="/category/260188">流程 (0)</a></li>
+                
+                  <li><a href="/category/261093">HBase (28)</a></li>
+                
+                  <li><a href="/category/261283">自动化测试 (1)</a></li>
+                
+                  <li><a href="/category/262007">ubuntu (2)</a></li>
+                
+                  <li><a href="/category/262340">并发 (1)</a></li>
+                
+                  <li><a href="/category/263589">sping (1)</a></li>
+                
+                  <li><a href="/category/263868">图形 (1)</a></li>
+                
+                  <li><a href="/category/264137">freemarker (1)</a></li>
+                
+                  <li><a href="/category/264618">jdbc (3)</a></li>
+                
+                  <li><a href="/category/264632">dbcp (0)</a></li>
+                
+                  <li><a href="/category/265865">sharding (1)</a></li>
+                
+                  <li><a href="/category/265949">性能测试 (1)</a></li>
+                
+                  <li><a href="/category/267155">设计模式 (1)</a></li>
+                
+                  <li><a href="/category/268288">unicode (1)</a></li>
+                
+                  <li><a href="/category/269666">OceanBase (3)</a></li>
+                
+                  <li><a href="/category/271669">jmagick (1)</a></li>
+                
+                  <li><a href="/category/273619">gunicorn (1)</a></li>
+                
+                  <li><a href="/category/274897">url (1)</a></li>
+                
+                  <li><a href="/category/276593">form (1)</a></li>
+                
+                  <li><a href="/category/276670">安全 (2)</a></li>
+                
+                  <li><a href="/category/279912">nlp (8)</a></li>
+                
+                  <li><a href="/category/280427">libmemcached (1)</a></li>
+                
+                  <li><a href="/category/281887">规则引擎 (1)</a></li>
+                
+                  <li><a href="/category/281925">awk (1)</a></li>
+                
+                  <li><a href="/category/282269">服务器 (1)</a></li>
+                
+                  <li><a href="/category/283111">snmpd (1)</a></li>
+                
+                  <li><a href="/category/283436">btrace (1)</a></li>
+                
+                  <li><a href="/category/283567">代码 (1)</a></li>
+                
+                  <li><a href="/category/284052">cygwin (1)</a></li>
+                
+                  <li><a href="/category/285323">mahout (3)</a></li>
+                
+                  <li><a href="/category/289531">电子书 (1)</a></li>
+                
+                  <li><a href="/category/291431">机器学习 (3)</a></li>
+                
+                  <li><a href="/category/291433">数据挖掘 (1)</a></li>
+                
+                  <li><a href="/category/291466">nltk (6)</a></li>
+                
+                  <li><a href="/category/292076">pool (1)</a></li>
+                
+                  <li><a href="/category/292195">log4j (2)</a></li>
+                
+                  <li><a href="/category/292479">总结 (10)</a></li>
+                
+                  <li><a href="/category/292737">c++ (1)</a></li>
+                
+                  <li><a href="/category/293778">java源代码 (1)</a></li>
+                
+                  <li><a href="/category/294272">ocr (1)</a></li>
+                
+                  <li><a href="/category/294405">基础算法 (2)</a></li>
+                
+                  <li><a href="/category/295207">SA (1)</a></li>
+                
+                  <li><a href="/category/295328">笔记 (1)</a></li>
+                
+                  <li><a href="/category/296044">ml (4)</a></li>
+                
+                  <li><a href="/category/297150">zokeeper (0)</a></li>
+                
+                  <li><a href="/category/297459">jms (1)</a></li>
+                
+                  <li><a href="/category/297947">zookeeper (2)</a></li>
+                
+                  <li><a href="/category/297951">zkclient (1)</a></li>
+                
+                  <li><a href="/category/297959">hadoop (13)</a></li>
+                
+                  <li><a href="/category/298182">mq (2)</a></li>
+                
+                  <li><a href="/category/298462">git (4)</a></li>
+                
+                  <li><a href="/category/298482">问题，io (1)</a></li>
+                
+                  <li><a href="/category/298566">storm (7)</a></li>
+                
+                  <li><a href="/category/299059">zk (1)</a></li>
+                
+                  <li><a href="/category/299134">性能优化 (1)</a></li>
+                
+                  <li><a href="/category/299369">example (1)</a></li>
+                
+                  <li><a href="/category/299710">tmux (1)</a></li>
+                
+                  <li><a href="/category/300158">环境 (2)</a></li>
+                
+                  <li><a href="/category/300426">kyro (1)</a></li>
+                
+                  <li><a href="/category/300530">日志系统 (3)</a></li>
+                
+                  <li><a href="/category/302046">hdfs (2)</a></li>
+                
+                  <li><a href="/category/302122">python_socket (2)</a></li>
+                
+                  <li><a href="/category/302219">date (1)</a></li>
+                
+                  <li><a href="/category/303797">elasticsearch (1)</a></li>
+                
+                  <li><a href="/category/304364">jetty (1)</a></li>
+                
+                  <li><a href="/category/304368">树 (1)</a></li>
+                
+                  <li><a href="/category/304871">汽车 (1)</a></li>
+                
+                  <li><a href="/category/306188">mdrill (1)</a></li>
+                
+                  <li><a href="/category/306237">车 (1)</a></li>
+                
+                  <li><a href="/category/306320">日志 (1)</a></li>
+                
+                  <li><a href="/category/306404">web (1)</a></li>
+                
+                  <li><a href="/category/306496">编译原理 (1)</a></li>
+                
+                  <li><a href="/category/307153">信息检索 (1)</a></li>
+                
+                  <li><a href="/category/308280">性能，linux (1)</a></li>
+                
+                  <li><a href="/category/308287">spam (1)</a></li>
+                
+                  <li><a href="/category/309947">序列化 (1)</a></li>
+                
+                  <li><a href="/category/310553">fabric (2)</a></li>
+                
+                  <li><a href="/category/311180">guice (1)</a></li>
+                
+              </ul>
+            </div>
+            <div id='month_blogs'>
+              <h5>社区版块</h5>
+              <ul>
+                <li><a href="/blog/news">我的资讯</a> (0)</li>
+                <li>
+                  <a href="/blog/post">我的论坛</a> (98)
+                </li>
+                <li><a href="/blog/answered_problems">我的问答</a> (0)</li>
+              </ul>
+            </div>
+            <div id="month_blogs">
+              <h5>存档分类</h5>
+              <ul>
+                
+                  <li><a href="/blog/monthblog/2014-04">2014-04</a> (19)</li>
+                
+                  <li><a href="/blog/monthblog/2014-03">2014-03</a> (24)</li>
+                
+                  <li><a href="/blog/monthblog/2014-02">2014-02</a> (30)</li>
+                
+                <li><a href="/blog/monthblog_more">更多存档...</a></li>
+              </ul>
+            </div>
+            
+            
+              <div id="comments_top">
+                <h5>评论排行榜</h5>
+                <ul>
+                  
+                    <li><a href="/blog/1980174" title="Git简介和基础操作">Git简介和基础操作</a></li>
+                  
+                    <li><a href="/blog/1930016" title="ibatis一个很不灵活的地方">ibatis一个很不灵活的地方</a></li>
+                  
+                </ul>
+              </div>
+            
+
+            <div id="guest_books">
+              <h5>最新评论</h5>
+              <ul>
+                
+                <li>
+                  <a href='http://chenyechao-yeah-net.iteye.com' target='_blank' title='7先生'>7先生</a>： 
+                  今天也刚好遇到这个问题，可以通过如下设置解决：设置 selec ...<br />
+                  <a href="/blog/1930016#bc2334900">ibatis一个很不灵活的地方</a>
+                </li>
+                
+                <li>
+                  <a href='http://douspeng.iteye.com' target='_blank' title='缘字訣'>缘字訣</a>： 
+                   图片看不了啊<br />
+                  <a href="/blog/1980174#bc2332381">Git简介和基础操作</a>
+                </li>
+                
+                <li>
+                  <a href='http://san-yun.iteye.com' target='_blank' title='san_yun'>san_yun</a>： 
+                  某某某 写道python hessianlib.py执行__m ...<br />
+                  <a href="/blog/1610318#bc2331284">hessian的python客户端</a>
+                </li>
+                
+                <li>
+                  <a href='http://moumou.iteye.com' target='_blank' title='某某某'>某某某</a>： 
+                  python hessianlib.py执行__main__方 ...<br />
+                  <a href="/blog/1610318#bc2331267">hessian的python客户端</a>
+                </li>
+                
+                <li>
+                  <a href='http://zs396963330.iteye.com' target='_blank' title='zs396963330'>zs396963330</a>： 
+                  从google上搜到一篇介绍redis的文章，找到了您的blo ...<br />
+                  <a href="/blog/64339#bc2316100">我的2006 ―― 战斗的一年(转)</a>
+                </li>
+                
+              </ul>
+            </div>
+
+            <div class="local_bottom"></div>
+          
+        </div>
+      </div>
+
+      <div id="footer" class="clearfix">
+        <div id="copyright">
+          <hr/>
+          声明：ITeye文章版权属于作者，受法律保护。没有作者书面许可不得转载。若作者同意转载，必须以超链接形式标明文章原始出处和作者。<br />
+          &copy; 2003-2014 ITeye.com.   All rights reserved.  [ 京ICP证110151号  京公网安备110105010620 ]
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+  document.write("<img src='http://stat.iteye.com/?url="+ encodeURIComponent(document.location.href) + "&referrer=" + encodeURIComponent(document.referrer) + "&user_id=' width='0' height='0' />");
+</script>
+
+<script src="http://csdnimg.cn/pubfooter/js/tracking.js?version=20130923164150" type="text/javascript"></script>
+
+    
+    
+  </body>
+</html>

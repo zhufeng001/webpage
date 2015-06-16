@@ -1,0 +1,946 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-CN" dir="ltr">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>Tornado源码分析之http服务器篇 - The time is passing - ITeye技术网站</title>
+    <meta name="description" content="  一. Tornado是什么?  Facebook发布了开源网络服务器框架Tornado，该平台基于Facebook刚刚收购的社交聚合网站FriendFeed的实时信息服务开发而来.Tornado由Python编写，是一款轻量级的Web服务器，同时又是一个开发框架。采用非阻塞I/O模型(epoll)，主要是为了应对高并发 访问量而被开发出来，尤其适用于comet应用。        二. 为什么要 ..." />
+    <meta name="keywords" content="tornado, 源码分析, python, http服务器 Tornado源码分析之http服务器篇" />
+    <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon" />
+    <link rel="search" type="application/opensearchdescription+xml" href="/open_search.xml" title="ITeye" />
+    <link href="/rss" rel="alternate" title="The time is passing" type="application/rss+xml" />
+    <link href="http://www.iteye.com/stylesheets/blog.css?1423624400" media="screen" rel="stylesheet" type="text/css" />
+<link href="http://www.iteye.com/stylesheets/themes/blog/white.css?1326191326" media="screen" rel="stylesheet" type="text/css" />
+    <script src="http://www.iteye.com/javascripts/application.js?1358214518" type="text/javascript"></script>
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-535605-1']);
+  _gaq.push(['_setDomainName', 'iteye.com']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+
+      <link href="http://www.iteye.com/javascripts/syntaxhighlighter/SyntaxHighlighter.css?1348819953" media="screen" rel="stylesheet" type="text/css" />
+  <script src="http://www.iteye.com/javascripts/syntaxhighlighter/shCoreCommon.js?1325907333" type="text/javascript"></script>
+<script src="http://www.iteye.com/javascripts/hotkey.js?1324994303" type="text/javascript"></script>
+  <script src="http://www.iteye.com/javascripts/code_favorites.js?1358214518" type="text/javascript"></script>
+<script src="http://www.iteye.com/javascripts/weiboshare.js?1324994303" type="text/javascript"></script>
+  </head>
+  <body>
+    <div id="header">
+      <div id="blog_site_nav">
+  <a href="http://www.iteye.com/" class="homepage">首页</a>
+  <a href="http://www.iteye.com/news">资讯</a>
+  <a href="http://www.iteye.com/magazines">精华</a>
+  <a href="http://www.iteye.com/forums">论坛</a>
+  <a href="http://www.iteye.com/ask">问答</a>
+  <a href="http://www.iteye.com/blogs">博客</a>
+  <a href="http://www.iteye.com/blogs/subjects">专栏</a>
+  <a href="http://www.iteye.com/groups">群组</a>
+  <a href="#" onclick="return false;" id="msna"><u>更多</u> <small>▼</small></a>
+  <div class="quick_menu" style="display:none;">
+    <a target="_blank" href="http://job.iteye.com/iteye">招聘</a>
+    <a href="http://www.iteye.com/search">搜索</a>
+  </div>
+</div>
+
+      <div id="user_nav">
+      <a href="/login" class="welcome" title="登录">您还未登录 !</a>
+    <a href="/login">登录</a>
+    <a href="/signup" class="nobg">注册</a>
+  </div>
+
+    </div>
+
+    <div id="page">
+      <div id="branding" class="clearfix">
+        <div id="blog_name">
+          <h1><a href="/">The time is passing</a></h1>
+        </div>
+        <div id='fd'></div>
+        <div id="blog_navbar">
+          <ul>
+            <li class='blog_navbar_for'><a href="http://kenby.iteye.com"><strong>博客</strong></a></li>
+            <li ><a href="/weibo">微博</a></li>
+            <li ><a href="/album">相册</a></li>
+            <li ><a href="/link">收藏</a></li>
+            <li ><a href="/blog/guest_book">留言</a></li>
+            <li ><a href="/blog/profile">关于我</a></li>
+          </ul>
+    
+          <div class="search">
+            <form action="/blog/search" method="get">
+              <input class="search_text" id="query" name="query" style="margin-left: 10px;width: 110px;" type="text" value="" />
+              <input class="submit_search" type="submit" value="" />
+            </form>
+          </div> 
+          <div id="fd"></div>         
+        </div>
+      </div>
+      
+      <div id="content" class="clearfix">
+        <div id="main">
+          
+
+
+
+          
+
+
+<div class="h-entry" style='display:none'>
+  <a href="http://kenby.iteye.com" class="p-author" target="_blank">kenby</a>
+</div>
+
+
+<div class="blog_main">
+  <div class="blog_title">
+    <h3>
+      <a href="/blog/1159621">Tornado源码分析之http服务器篇</a>
+      <em class="actions">      </em>
+    </h3>
+    <ul class='blog_categories'><strong>博客分类：</strong> <li><a href="/category/176142">Python</a></li><li><a href="/category/176145">web</a></li> </ul>
+        <div class='news_tag'><a href="http://www.iteye.com/blogs/tag/tornado">tornado</a><a href="http://www.iteye.com/blogs/tag/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90">源码分析</a><a href="http://www.iteye.com/blogs/tag/python">python</a><a href="http://www.iteye.com/blogs/tag/http%E6%9C%8D%E5%8A%A1%E5%99%A8">http服务器</a>&nbsp;</div>
+  </div>
+
+  <div id="blog_content" class="blog_content">
+    <div style="font-size: 14px;" class="iteye-blog-content-contain">
+<p><span style="font-size: medium;"><strong>一. Tornado是什么?</strong></span></p>
+<p><span><span style="font-size: 14px; line-height: 23px;">Facebook发布了开源网络服务器框架Tornado，该平台基于Facebook刚刚收购的社交聚合网站FriendFeed的实时信息服务开发而来.</span><span style="color: #111111; font-size: 14px; line-height: 22px;">Tornado由Python编写，是一款轻量级的Web服务器，同时又是一个开发框架。采用非阻塞I/O模型(epoll)，主要是为了应对高并发 访问量而被开发出来，尤其适用于<a style="border-bottom-width: 1px; border-bottom-style: dotted; border-bottom-color: #bfbfbf; color: #002f5f; text-decoration: none;" title="什么是comet" href="http://en.wikipedia.org/wiki/Comet_(programming)" target="_blank">comet</a>应用。</span></span></p>
+<p> </p>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;"> </div>
+<div><span><span style="font-size: medium;"><strong>二. 为什么要阅读Tornado的源代码</strong></span></span></div>
+<div><span>Tornado由前google员工开发, 代码非常精练, 实现也很轻巧, 加上清晰的注释和丰富的demo, 我们可以很容易的阅读分析tornado. 通过阅读Tornado的源码, 你将学到:</span></div>
+<div>   * 理解Tornado的内部实现, 使用tornado进行web开发将更加得心应手</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">    * 如何实现一个高性能,非阻塞的http服务器</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">    * 如何实现一个web框架</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">    * 各种网络编程的知识, 比如epoll</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">    * python编程的绝佳实践</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;"> </div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;"><strong><span style="font-size: medium;">三. 从http服务器开始</span></strong></div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">Tornado不仅是一个web开发框架, 还自己实现了一个http服务器. 谈到http服务器, 我们自然想到<a href="http://www.kegel.com/c10k.html">C10K.</a>
+</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">其中介绍了很多种服务器的编程模型, tornado的http服务器采用的是: </div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;"><strong><span>多进程 + 非阻塞 + epoll + pre-fork 模型</span></strong></div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">在分析tornado服务器之前, 有必要了解web服务器的工作流程.</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;"> </div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;"><span style="font-size: medium;"><strong>四 http服务器工作三部曲</strong></span></div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">从实现上来说, web服务器是这样工作的:</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;"><img alt="" src="http://dl.iteye.com/upload/attachment/544892/dc31f511-256d-3bfd-92be-a0a1be2c4878.jpg"></div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">(1) 创建listen socket, 在指定的监听端口, 等待客户端请求的到来</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">(2) listen socket接受客户端的请求, 得到client socket, 接下来通过client socket与客户端通信</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">(3) 处理客户端的请求, 首先从client socket读取http请求的协议头, 如果是post协议, 还可能要</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">      读取客户端上传的数据, 然后处理请求, 准备好客户端需要的数据, 通过client socket写给客户端</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;"> </div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;"><span style="font-size: medium;"><strong>五 Hello World from Http Server</strong></span></div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">为了更加理解web服务器的工作流程, 我们使用python编写一个简单的http服务器, 返回Hello, World给浏览器</div>
+<div style="font-family: corbel, 'liberation sans', georgia, 'lucida grande', sans-serif;">
+<pre name="code" class="python">import socket
+
+def handle_request(client):
+  buf = client.recv(1024)
+  print buf
+  client.send("HTTP/1.1 200 OK\r\n\r\n")
+  client.send("Hello, World")
+
+def main():
+  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  sock.bind(('localhost',8080))
+  sock.listen(5)
+
+  while True:
+    connection, address = sock.accept()
+    handle_request(connection)
+    connection.close()
+
+if __name__ == '__main__':
+  main()</pre>
+ </div>
+<p>运行如下:</p>
+<p><img alt="" src="http://dl.iteye.com/upload/attachment/544896/01e1f7a2-b4fd-3ad5-b05d-2ea38e67fbf2.jpg"></p>
+<p> </p>
+<p><strong><span style="font-size: medium;">六. Hello World from Tornado Http Server</span></strong></p>
+<p>Tornado不能算是一个完整的http服务器, 它只实现小部分的http协议, 大部分要靠用户去实现.</p>
+<p>tornado其实是一个服务器开发框架, 使用它我们可以快速的开发一个高效的http服务器. 下面我们</p>
+<p>就使用tornado再写一个Hello, World的Http服务器.</p>
+<p> </p>
+<pre name="code" class="python">#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+
+import tornado.httpserver
+import tornado.ioloop
+
+def handle_request(request):
+   message = "Hello World from Tornado Http Server"
+   request.write("HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s" % (
+                 len(message), message))
+   request.finish()
+
+http_server = tornado.httpserver.HTTPServer(handle_request)
+http_server.listen(8080)
+tornado.ioloop.IOLoop.instance().start()</pre>
+<p> 运行如下:</p>
+<p><img alt="" src="http://dl.iteye.com/upload/attachment/544908/6f1075ab-df1e-301a-b5f3-509de2e058e7.jpg"></p>
+<p>实现非常简单, 只需要定义自己的处理方法, 其它的东西全部交给Tornado完成. 简单看一下Tornado做了哪些工作.</p>
+<p> </p>
+<p>首先创建HTTPServer类, 并把我们的处理方法传递过去</p>
+<p>然后在8080开始监听</p>
+<p>最后启动事件循环, 开始监听网络事件. 主要是socket的读和写</p>
+<p> </p>
+<p>到了这里, 我有点等不及了, 迫切想了解tornado的内部实现是怎么样的. 特别是想知道Tornado的IOLoop到底是如何</p>
+<p>工作的. 接下来我们开始解剖Tornado</p>
+<p> </p>
+<p><span style="font-size: medium;"><strong>七. Tornado服务器概览</strong></span></p>
+<p>理解了web服务器的工作流程之后, 我们再来看看Tornado服务器是如何实现这些处理流程的.</p>
+<p>Tornado服务器有3大核心模块:</p>
+<p><strong>(1) IOLoop</strong></p>
+<p>与我们上面那个简陋的http服务器不同, Tornado为了实现高并发和高性能, 使用了一个</p>
+<p>IOLoop来处理socket的读写事件, IOLoop基于epoll, 可以高效的响应网络事件. 这是Tornado</p>
+<p>高效的保证. </p>
+<p><strong>(2) IOStream</strong></p>
+<p>为了在处理请求的时候, 实现对socket的异步读写, Tornado实现了IOStream类, 用来处理socket</p>
+<p>的异步读写. </p>
+<p><strong>(3) HTTPConnection</strong></p>
+<p>这个类用来处理http的请求, 包括读取http请求头, 读取post过来的数据, 调用用户自定义的处理方法,</p>
+<p>以及把响应数据写给客户端socket</p>
+<p> </p>
+<p>下面这幅图描述了tornado服务器的大体处理流程, 接下来我们将会详细分析每一步流程的实现</p>
+<p> </p>
+<p><img alt="" height="572" src="http://dl.iteye.com/upload/attachment/544831/d7885932-0e2e-3bdc-b8b5-6c8d36a3c82b.png" width="1000"><strong><span style="font-size: medium;">八. 创建listen socket</span></strong></p>
+<p>httpserver.py, 定位到bind方法:</p>
+<p> </p>
+<pre name="code" class="python">for res in socket.getaddrinfo(address, port, family, socket.SOCK_STREAM,
+                            0, socket.AI_PASSIVE | socket.AI_ADDRCONFIG):
+  af, socktype, proto, canonname, sockaddr = res
+  
+  # 创建listen socket
+  sock = socket.socket(af, socktype, proto)
+
+  # 设置socket的属性 
+  flags = fcntl.fcntl(sock.fileno(), fcntl.F_GETFD)
+  flags |= fcntl.FD_CLOEXEC
+  fcntl.fcntl(sock.fileno(), fcntl.F_SETFD, flags)
+  sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+  if af == socket.AF_INET6:
+      if hasattr(socket, "IPPROTO_IPV6"):
+          sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+  sock.setblocking(0)
+
+  # bind 和 listen
+  sock.bind(sockaddr)
+  sock.listen(128)
+
+  # 加入ioloop
+  self._sockets[sock.fileno()] = sock
+  if self._started:
+      self.io_loop.add_handler(sock.fileno(), self._handle_events,
+                               ioloop.IOLoop.READ)<span style="white-space: normal;">
+</span></pre>
+<p>这是实现web服务器的标准步骤, 首先<span style="white-space: pre;">getaddrinfo返回服务器的所有网卡信息, 每块网卡上都要创建监听客户端的请求.</span></p>
+<p>按照socket -&gt; bind -&gt; listen步骤走下来, 最后把新建的listen socket加入ioloop. 那么ioloop又是个什么东西呢?</p>
+<p> </p>
+<p><span style="color: #ff0000;">暂时我们把ioloop理解为一个事件容器. 用户把socket和回调函数注册到容器中, 容器内部会轮询socket, 一旦某个socket</span></p>
+<p><span style="color: #ff0000;">可以读写, 就调用回调函数来处理socket的读写事件.</span></p>
+<p> </p>
+<p>这里, 我们只监听listen socket的读事件, 回调函数为_handle_events, 一旦listen socket可读, 说明客户端请求到来, </p>
+<p>然后调用_handle_events接受客户端的请求. </p>
+<p> </p>
+<p><strong><span style="font-size: medium;">九. accept</span></strong></p>
+<p>httpserver.py, 定位到_handle_events. 这个方法接受客户端的请求. </p>
+<p>为了便于分析, 我把处理ssl那部分代码剥离出去了.</p>
+<p> </p>
+<pre name="code" class="python">def _handle_events(self, fd, events):
+  while True:
+      try:
+          connection, address = self._sockets[fd].accept()
+      except socket.error, e:
+          if e.args[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
+              return
+          raise
+      try:
+          stream = iostream.IOStream(connection, io_loop=self.io_loop)
+          HTTPConnection(stream, address, self.request_callback,
+                         self.no_keep_alive, self.xheaders)
+      except:
+          logging.error("Error in connection callback", exc_info=True)</pre>
+<p>accept方法返回客户端的socket(注意connection的类型是socket), 以及客户端的地址</p>
+<p>然后创建IOStream对象, 用来处理socket的异步读写. 这一步会调用ioloop.add_handler把client socket加入ioloop</p>
+<p>再然后创建HTTPConnection, 处理用户的请求.</p>
+<p> </p>
+<p> </p>
+<p style="margin: 0px;"><strong><span style="font-size: medium;">十. 创建IOStream</span></strong></p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"><strong><span style="font-size: x-small;">10.1 何为IOStream</span></strong></p>
+<p style="margin: 0px;">accept完成后, 我们就可以用client socket与客户端通信了. 为了实现对client socket的异步读写, 我们为client socket</p>
+<p style="margin: 0px;">创建两个缓冲区: _read_buffer和_write_buffer, 写: 先写到_write_buffer, 读: 从_read_buffer读. 这样我们就不用</p>
+<p style="margin: 0px;">直接读写socket, 进而实现异步读写. 这些操作都封装在IOStream类中, 概括来说,</p>
+<p style="margin: 0px;"><span style="color: #ff0000;">IOStream对socket的读写做了一层封装, 通过使用两个缓冲区, 实现对socket的异步读写.</span></p>
+<p style="margin: 0px;"><img alt="" height="500" src="http://dl.iteye.com/upload/attachment/545016/6f4d4f5d-ca7f-3f27-bf31-1979f05349d1.jpg" width="618"></p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"><strong>10.2 IOStream的初始化</strong></p>
+<p style="margin: 0px;">IOStream与socket是一一对应的, 初始化主要做4个工作</p>
+<p style="margin: 0px;">(1) 初始化IOStream对应的socket</p>
+<p style="margin: 0px;">(2) 分配输入缓冲区_write_buffer</p>
+<p style="margin: 0px;">(3) 分配输出缓冲区_read_buffer</p>
+<p style="margin: 0px;">(4) 把socket加入ioloop, 这样当socket可读写的时候, 调用回调函数_handle_events把数据从socket读入buffer, </p>
+<p style="margin: 0px;">     或者把数据从buffer发送给socket</p>
+<p style="margin: 0px;">找到iosteram.py, 定位到__init__方法</p>
+<p style="margin: 0px;"> </p>
+<pre name="code" class="python">self.socket = socket
+self.io_loop = io_loop or ioloop.IOLoop.instance()
+self._read_buffer = collections.deque()
+self._write_buffer = collections.deque()
+self.io_loop.add_handler(
+    self.socket.fileno(), self._handle_events, self._state)</pre>
+<p> </p>
+<p style="margin: 0px;"> </p>
+<p> </p>
+<p style="margin: 0px;"><strong>10</strong><strong>.3 IOStream提供的接口</strong></p>
+<p style="margin: 0px;">IOStream对外提供了3个接口, 用来对socket的读写</p>
+<p style="margin: 0px;"><span style="color: #ff0000;">(1) write(data)</span></p>
+<p style="margin: 0px;">把数据写入IOStream的_write_buffer</p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"><span style="color: #ff0000;">(2) read_until(delimiter, callback)</span></p>
+<p style="margin: 0px;">从_read_buffer读取数据, delimiter作为读取结束符, 完了调用callback</p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"><span style="color: #ff0000;">(3) read_bytes(num_of_bytes, callback)</span></p>
+<p style="margin: 0px;">从_read_buffer读取指定大小的数据, 完了调用callback</p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"><img alt="" height="302" src="http://dl.iteye.com/upload/attachment/545018/90c038f6-5370-3fb5-8dda-a5aa3493f57a.jpg" width="293"></p>
+<p style="margin: 0px;">read_until和read_bytes都会调用_read_from_buffer把从buffer读取数据, 然后调用_consume消耗掉buffer中</p>
+<p style="margin: 0px;">的数据.</p>
+<p style="margin: 0px;"> </p>
+<p> </p>
+<p style="margin: 0px;"><strong>10</strong><strong>.4 体验异步IO</strong></p>
+<p style="margin: 0px;">下面我们来看一个异步IO的实例, 这是一个异步http client的例子, 使用IOStream来下载http://nginx.net/index.html</p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"> </p>
+<pre name="code" class="python">#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+
+from tornado import ioloop
+from tornado import iostream
+import socket
+
+def send_request():
+    stream.write("GET /index.html HTTP/1.0\r\nHost: nginx.net\r\n\r\n")
+    stream.read_until("\r\n\r\n", on_headers)
+
+def on_headers(data):
+    headers = {}
+    for line in data.split("\r\n"):
+       parts = line.split(":")
+       if len(parts) == 2:
+           headers[parts[0].strip()] = parts[1].strip()
+    stream.read_bytes(int(headers["Content-Length"]), on_body)
+
+def on_body(data):
+    print data
+    stream.close()
+    ioloop.IOLoop.instance().stop()
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+stream = iostream.IOStream(s)
+stream.connect(("nginx.net", 80), send_request)
+ioloop.IOLoop.instance().start()</pre>
+<p style="margin: 0px;">首先调用connect连接服务器, 完成后回调send_request发出请求, 并读取服务器返回的http协议头, 然后回调</p>
+<p style="margin: 0px;">on_headers解析协议头, 然后调用read_bytes读取数据体, 然后回调on_body把数据打印出来. 最后关闭stream</p>
+<p style="margin: 0px;">可以看到, 这一系列的调用都是通过回调函数实现的, 这就是异步的处理方式.</p>
+<p style="margin: 0px;"> </p>
+<p> </p>
+<p style="margin: 0px;"><strong>10</strong><strong>.5 IOStream响应ioloop事件</strong></p>
+<p style="margin: 0px;">上面提到, IOStream初始化的时候, 把socket加入ioloop, 一旦socket可读写, 就调用回调函数_handle_events处理IO</p>
+<p style="margin: 0px;">事件. 打开iostream.py, 定位到_handle_events</p>
+<p style="margin: 0px;"> </p>
+<pre name="code" class="python">    def _handle_events(self, fd, events):
+        if not self.socket:
+            logging.warning("Got events for closed stream %d", fd)
+            return
+        try:
+            if events &amp; self.io_loop.READ:
+                self._handle_read()
+            if not self.socket:
+                return
+            if events &amp; self.io_loop.WRITE:
+                if self._connecting:
+                    self._handle_connect()
+                self._handle_write()
+            if not self.socket:
+                return
+            if events &amp; self.io_loop.ERROR:
+                # We may have queued up a user callback in _handle_read or
+                # _handle_write, so don't close the IOStream until those
+                # callbacks have had a chance to run.
+                self.io_loop.add_callback(self.close)
+                return
+            state = self.io_loop.ERROR
+            if self.reading():
+                state |= self.io_loop.READ
+            if self.writing():
+                state |= self.io_loop.WRITE
+            if state != self._state:
+                self._state = state
+                self.io_loop.update_handler(self.socket.fileno(), self._state)
+        except:
+            logging.error("Uncaught exception, closing connection.",
+                          exc_info=True)
+            self.close()
+            raise</pre>
+<p style="margin: 0px;"> 可以看到_handle_events根据IO事件的类型, 来调用不同的处理函数, 对于可读事件, 调用handle_read来处理.</p>
+<p style="margin: 0px;">handle_read会从socket读取数据, 然后把数据存到_read_buffer.</p>
+<p style="margin: 0px;"><img alt="" height="283" src="http://dl.iteye.com/upload/attachment/545020/7da34d7e-3aa1-3993-bbc2-1b9402e07257.jpg" width="204"></p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"><span style="font-size: large;"><strong>十一. 处理请求 -- HTTPConnection</strong></span></p>
+<p style="margin: 0px;">HttpConnection类专门用来处理http请求, 处理http请求的一般流程是:</p>
+<p style="margin: 0px;"><img alt="" src="http://dl.iteye.com/upload/attachment/545078/55757649-99f0-3237-89df-0644cb7896c9.jpg"></p>
+<p style="margin: 0px;">HTTPConnection实现了一系列的函数用来处理这些流程, 参见下图:</p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"><img alt="" src="http://dl.iteye.com/upload/attachment/545067/cf4424a1-995d-39d6-b38d-5d70ca797417.jpg"></p>
+<p style="margin: 0px;">至于每个函数是如何实现的, 可以参考代码</p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"><strong><span style="font-size: medium;">十二. IOLoop</span></strong></p>
+<p style="margin: 0px;">在Tornado服务器中, IOLoop是调度的核心模块, Tornado服务器回把所有的socket描述符都注册到IOLoop, 注册的时候</p>
+<p style="margin: 0px;">指明回调处理函数, IOLoop内部不断的监听IO事件, 一旦发现某个socket可读写, 就调用其注册时指定的回调函数. </p>
+<p style="margin: 0px;">IOLoop的结构图如下所示:</p>
+<p style="margin: 0px;"><img alt="" src="http://dl.iteye.com/upload/attachment/545105/2814a894-fdf8-3b61-bdb3-7af6e71f3bd7.jpg"></p>
+<p style="margin: 0px;">下面我们使用IOLoop实现一个简单的TCP服务器, 看完之后相信可以对IOLoop有一个大概的了解.</p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"><strong>12.1 A Simple TCP Server Using IOLoop</strong></p>
+<p style="margin: 0px;"> </p>
+<pre name="code" class="python">#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+
+from tornado import ioloop
+from tornado import iostream
+import socket
+import errno
+import functools
+
+def handle_connection(client, address):
+  client.send("Hello World from A Simple TCP Server")
+  client.close()
+
+def connection_ready(sock, fd, events):
+    while True:
+        try:
+            connection, address = sock.accept()
+        except socket.error, e:
+            if e.args[0] not in (errno.EWOULDBLOCK, errno.EAGAIN):
+                raise
+            return
+        connection.setblocking(0)
+        handle_connection(connection, address)
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+sock.setblocking(0)
+sock.bind(("localhost", 8080))
+sock.listen(128)
+
+io_loop = ioloop.IOLoop.instance()
+callback = functools.partial(connection_ready, sock)
+io_loop.add_handler(sock.fileno(), callback, io_loop.READ)
+io_loop.start()</pre>
+<p style="margin: 0px;">创建完listen socket后, 再得到IOLoop的实例, 后面回介绍IOLoop的单例模式.然后调用add_handle把listen socket</p>
+<p style="margin: 0px;">注册到ioloop中, 指定监听事件为READ, 指定回调函数为connection_ready. 这样客户端来了一个连接后, 就会调用</p>
+<p style="margin: 0px;">connecion_ready来处理连接.</p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;"><strong>12.2 单例模式</strong></p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;">看了很多IOLoop的代码, 有一个地方相信大家注意到了, 得到IOLoop对象的时候, 都是通过instance()返回的. 事实上,</p>
+<p style="margin: 0px;">IOLoop使用了单例模式. 在Tornado运行的整个过程中, 只有一个IOLoop实例. 仅需一个 IOLoop实例, 就可以处理全部</p>
+<p style="margin: 0px;">的IO事件.  以前学习J2EE的时候接触过Java的单例模式, 接下来看看Python是如何实现单例模式的. </p>
+<p style="margin: 0px;"> </p>
+<pre name="code" class="python">#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+
+import os
+
+class IOLoop(object):
+    @classmethod
+    def instance(cls):
+        if not hasattr(cls, "_instance"):
+            cls._instance = cls()
+        return cls._instance
+
+    @classmethod
+    def initialized(cls):
+        """Returns true if the singleton instance has been created."""
+        return hasattr(cls, "_instance")
+
+    def service(self):
+      print 'Hello,World'
+
+print IOLoop.initialized(),
+ioloop = IOLoop.instance()
+ioloop.service()
+
+if os.fork() == 0:
+  print IOLoop.initialized(),
+  ioloop = IOLoop.instance()
+  ioloop.service()
+</pre>
+<p> </p>
+<p style="margin: 0px;">代码直接从ioloop.py文件抽取下来的, 演示了Python单例模式的实现方法. 实现相当简洁, 这得益于python强大的自省</p>
+<p style="margin: 0px;">功能. 代码中使用了cls, 这不是一个关键字, 像self一样, cls是python的一个built-in变量. self表示类的实例, 而cls表示类,</p>
+<p style="margin: 0px;">cls一般用于static method, 因为static method无须实例化就可以调用, 所以传递cls给static method. 然后调用cls()</p>
+<p style="margin: 0px;">可以创建对象. 就像调用IOLoop()一样. </p>
+<p style="margin: 0px;">最后两句话:</p>
+<p style="margin: 0px;"> </p>
+<p style="margin: 0px;">Always use 'self' for the first argument to instance methods.</p>
+<p style="margin: 0px;">Always use 'cls' for the first argument to class methods.</p>
+<p style="margin: 0px;"> </p>
+<div> </div>
+</div>
+  </div>
+
+  
+  <div class="attachments">
+    
+      
+        <ul style="display:none;">
+          <li><a href="http://dl2.iteye.com/upload/attachment/0054/4831/d7885932-0e2e-3bdc-b8b5-6c8d36a3c82b.png" target="_blank"><img src='http://dl2.iteye.com/upload/attachment/0054/4831/d7885932-0e2e-3bdc-b8b5-6c8d36a3c82b-thumb.png' class='magplus' title='点击查看原始大小图片' /></a></li>
+          
+          <li>大小: 52.8 KB</li>
+        </ul>
+      
+    
+      
+        <ul style="display:none;">
+          <li><a href="http://dl2.iteye.com/upload/attachment/0054/4892/dc31f511-256d-3bfd-92be-a0a1be2c4878.jpg" target="_blank"><img src='http://dl2.iteye.com/upload/attachment/0054/4892/dc31f511-256d-3bfd-92be-a0a1be2c4878-thumb.jpg' class='magplus' title='点击查看原始大小图片' /></a></li>
+          
+          <li>大小: 28.4 KB</li>
+        </ul>
+      
+    
+      
+        <ul style="display:none;">
+          <li><a href="http://dl2.iteye.com/upload/attachment/0054/4896/01e1f7a2-b4fd-3ad5-b05d-2ea38e67fbf2.jpg" target="_blank"><img src='http://dl2.iteye.com/upload/attachment/0054/4896/01e1f7a2-b4fd-3ad5-b05d-2ea38e67fbf2-thumb.jpg' class='magplus' title='点击查看原始大小图片' /></a></li>
+          
+          <li>大小: 7.1 KB</li>
+        </ul>
+      
+    
+      
+        <ul style="display:none;">
+          <li><a href="http://dl2.iteye.com/upload/attachment/0054/4908/6f1075ab-df1e-301a-b5f3-509de2e058e7.jpg" target="_blank"><img src='http://dl2.iteye.com/upload/attachment/0054/4908/6f1075ab-df1e-301a-b5f3-509de2e058e7-thumb.jpg' class='magplus' title='点击查看原始大小图片' /></a></li>
+          
+          <li>大小: 10.2 KB</li>
+        </ul>
+      
+    
+      
+        <ul style="display:none;">
+          <li><a href="http://dl2.iteye.com/upload/attachment/0054/5016/6f4d4f5d-ca7f-3f27-bf31-1979f05349d1.jpg" target="_blank"><img src='http://dl2.iteye.com/upload/attachment/0054/5016/6f4d4f5d-ca7f-3f27-bf31-1979f05349d1-thumb.jpg' class='magplus' title='点击查看原始大小图片' /></a></li>
+          
+          <li>大小: 20.6 KB</li>
+        </ul>
+      
+    
+      
+        <ul style="display:none;">
+          <li><a href="http://dl2.iteye.com/upload/attachment/0054/5018/90c038f6-5370-3fb5-8dda-a5aa3493f57a.jpg" target="_blank"><img src='http://dl2.iteye.com/upload/attachment/0054/5018/90c038f6-5370-3fb5-8dda-a5aa3493f57a-thumb.jpg' class='magplus' title='点击查看原始大小图片' /></a></li>
+          
+          <li>大小: 9.2 KB</li>
+        </ul>
+      
+    
+      
+        <ul style="display:none;">
+          <li><a href="http://dl2.iteye.com/upload/attachment/0054/5020/7da34d7e-3aa1-3993-bbc2-1b9402e07257.jpg" target="_blank"><img src='http://dl2.iteye.com/upload/attachment/0054/5020/7da34d7e-3aa1-3993-bbc2-1b9402e07257-thumb.jpg' class='magplus' title='点击查看原始大小图片' /></a></li>
+          
+          <li>大小: 8.2 KB</li>
+        </ul>
+      
+    
+      
+        <ul style="display:none;">
+          <li><a href="http://dl2.iteye.com/upload/attachment/0054/5067/cf4424a1-995d-39d6-b38d-5d70ca797417.jpg" target="_blank"><img src='http://dl2.iteye.com/upload/attachment/0054/5067/cf4424a1-995d-39d6-b38d-5d70ca797417-thumb.jpg' class='magplus' title='点击查看原始大小图片' /></a></li>
+          
+          <li>大小: 38 KB</li>
+        </ul>
+      
+    
+      
+        <ul style="display:none;">
+          <li><a href="http://dl2.iteye.com/upload/attachment/0054/5078/55757649-99f0-3237-89df-0644cb7896c9.jpg" target="_blank"><img src='http://dl2.iteye.com/upload/attachment/0054/5078/55757649-99f0-3237-89df-0644cb7896c9-thumb.jpg' class='magplus' title='点击查看原始大小图片' /></a></li>
+          
+          <li>大小: 8.7 KB</li>
+        </ul>
+      
+    
+      
+        <ul style="display:none;">
+          <li><a href="http://dl2.iteye.com/upload/attachment/0054/5105/2814a894-fdf8-3b61-bdb3-7af6e71f3bd7.jpg" target="_blank"><img src='http://dl2.iteye.com/upload/attachment/0054/5105/2814a894-fdf8-3b61-bdb3-7af6e71f3bd7-thumb.jpg' class='magplus' title='点击查看原始大小图片' /></a></li>
+          
+          <li>大小: 28.3 KB</li>
+        </ul>
+      
+    
+      
+        <ul style="display:none;">
+          <li><a href="http://dl2.iteye.com/upload/attachment/0054/5687/81903d67-2c59-3650-ad23-c2d8393fab62.jpg" target="_blank"><img src='http://dl2.iteye.com/upload/attachment/0054/5687/81903d67-2c59-3650-ad23-c2d8393fab62-thumb.jpg' class='magplus' title='点击查看原始大小图片' /></a></li>
+          
+          <li>大小: 55.6 KB</li>
+        </ul>
+      
+    
+      
+        <ul>
+          <li><a href="http://dl.iteye.com/topics/download/4ace3143-d87b-3c4c-98bc-b12e4330d130">bnac.rar</a> (24.5 KB)</li>
+          <li>描述: dddd</li>
+          <li>下载次数: 12</li>
+        </ul>
+      
+    
+      
+        <ul>
+          <li><a href="http://dl.iteye.com/topics/download/c8deb592-6f68-3a3b-94fc-b3ad2d8e6d6a">bnac.rar</a> (24.5 KB)</li>
+          
+          <li>下载次数: 4</li>
+        </ul>
+      
+    
+    
+      <ul>
+        <li><a href="#" onclick="$$('div.attachments ul').invoke('show');$(this).up(1).hide();return false;">查看图片附件</a></li>
+      </ul>
+    
+  </div>
+
+
+  
+  
+  <IFRAME SRC="/iframe_ggbd/187" SCROLLING=no WIDTH=468 HEIGHT=60 FRAMEBORDER=0></IFRAME>
+  
+  <div id="bottoms" class="clearfix">
+    
+    <div id="share_weibo">分享到：
+      <a data-type='sina' href="javascript:;" title="分享到新浪微博"><img src="/images/sina.jpg"></a>
+      <a data-type='qq' href="javascript:;" title="分享到腾讯微博"><img src="/images/tec.jpg"></a>
+    </div>
+  </div>
+
+  <div class="blog_nav">
+    <div class="pre_next">
+      <a href="/blog/1160823" class="next" title="学习使用epoll">学习使用epoll</a>
+      |
+      <a href="/blog/1158311" class="pre" title="Life is too short">Life is too short</a>
+    </div>
+  </div>
+  <div class="blog_bottom">
+    <ul>
+      <li>2011-08-28 01:04</li>
+      <li>浏览 17639</li>
+      <li><a href="#comments">评论(7)</a></li>
+      
+      
+      <li>分类:<a href="http://www.iteye.com/blogs/category/opensource">开源软件</a></li>      
+      <li class='last'><a href="http://www.iteye.com/wiki/blog/1159621" target="_blank" class="more">相关推荐</a></li>
+    </ul>
+  </div>
+
+  <div class="blog_comment">
+    <h5>评论</h5>
+    <a id="comments" name="comments"></a>
+    <div id="bc2340158">
+  <div class="comment_title">
+    7 楼
+    <a href='http://u011076827.iteye.com' target='_blank' title='u011076827'>u011076827</a>
+    2014-02-20&nbsp;&nbsp;
+    
+    
+  </div>
+  <div class="comment_content">读您这篇非常收益，谢谢！<br />同时有个问题不太懂：（图2）&nbsp; IOloop容器里共有多少个个listen socket？ 这多个listen socket 是在什么时候加入的？<br /><br />收到能回复我一下么，谢谢！<br /><br /></div>
+</div>
+
+<div id="bc2326064">
+  <div class="comment_title">
+    6 楼
+    <a href='http://zts0813.iteye.com' target='_blank' title='zts0813'>zts0813</a>
+    2013-09-21&nbsp;&nbsp;
+    
+    
+  </div>
+  <div class="comment_content"><img src="/images/smiles/icon_idea.gif" /> <br />谢楼主.这两天都在看这篇文章!</div>
+</div>
+
+<div id="bc2312393">
+  <div class="comment_title">
+    5 楼
+    <a href='http://2057.iteye.com' target='_blank' title='2057'>2057</a>
+    2013-05-22&nbsp;&nbsp;
+    
+    
+  </div>
+  <div class="comment_content"><div class="quote_title">山寨比目鱼 写道</div><div class="quote_div">第八段的代码示例中 <pre name="code" class="java">&lt;span style="white-space: normal;"&gt; &lt;/span&gt;</pre> 这段是？</div><br />应该是编辑文本的时候没识别这个标签导致的。</div>
+</div>
+
+<div id="bc2310802">
+  <div class="comment_title">
+    4 楼
+    <a href='http://demooooo.iteye.com' target='_blank' title='山寨比目鱼'>山寨比目鱼</a>
+    2013-05-10&nbsp;&nbsp;
+    
+    
+  </div>
+  <div class="comment_content">第八段的代码示例中 <pre name="code" class="java">&lt;span style="white-space: normal;"&gt; &lt;/span&gt;</pre> 这段是？</div>
+</div>
+
+<div id="bc2305955">
+  <div class="comment_title">
+    3 楼
+    <a href='http://2057.iteye.com' target='_blank' title='2057'>2057</a>
+    2013-03-29&nbsp;&nbsp;
+    
+    
+  </div>
+  <div class="comment_content">楼上两位难道是他国人，分析的真好。</div>
+</div>
+
+<div id="bc2231397">
+  <div class="comment_title">
+    2 楼
+    <a href='http://longbo567.iteye.com' target='_blank' title='longbo567'>longbo567</a>
+    2011-11-24&nbsp;&nbsp;
+    
+    
+  </div>
+  <div class="comment_content">Great article!</div>
+</div>
+
+<div id="bc2220300">
+  <div class="comment_title">
+    1 楼
+    <a href='http://firojre.iteye.com' target='_blank' title='firojre'>firojre</a>
+    2011-10-01&nbsp;&nbsp;
+    
+    
+  </div>
+  <div class="comment_content">Very nice I am looking for this ,many thanks .</div>
+</div>
+
+
+    
+    
+  </div>
+
+  <div class="blog_comment">
+    <h5>发表评论</h5>
+            <p style="text-align:center; margin-top:30px;margin-bottom:0px;"><a href="/login" style="background-color:white;"> <img src="/images/login_icon.png" style="vertical-align:middle; margin-right: 10px;" /></a><a href="/login">  您还没有登录,请您登录后再发表评论 </a></p>
+      </div>
+</div>
+
+
+<script type="text/javascript">
+  dp.SyntaxHighlighter.HighlightAll('code', true, true);
+
+  $$('#main .blog_content pre[name=code]').each(function(pre, index){ // blog content
+    var post_id = 1159621;
+    var location = window.location;
+    source_url = location.protocol + "//" + location.host + location.pathname + location.search;
+    pre.writeAttribute('codeable_id', post_id);
+    pre.writeAttribute('codeable_type', "Blog");
+    pre.writeAttribute('source_url', source_url);
+    pre.writeAttribute('pre_index', index);
+    pre.writeAttribute('title', 'Tornado源码分析之http服务器篇');
+  });
+
+  fix_image_size($$('div.blog_content img'), 700);
+
+  function processComment() {
+    $$('#main .blog_comment > div').each(function(comment){// comment
+      var post_id = comment.id.substr(2);
+      $$("#"+comment.id+" pre[name=code]").each(function(pre, index){
+        var location = window.location;
+        source_url = location.protocol + "//" + location.host + location.pathname + location.search;
+        source_url += "#" + comment.id;
+        pre.writeAttribute('codeable_id', post_id);
+        pre.writeAttribute('codeable_type', "BlogComment");
+        pre.writeAttribute('source_url', source_url);
+        pre.writeAttribute('pre_index', index);
+        pre.writeAttribute('title', 'Tornado源码分析之http服务器篇');
+      });
+    });
+  }
+
+  function quote_comment(id) {
+    new Ajax.Request('/editor/quote', {
+      parameters: {'id':id, 'type':'BlogComment'},
+      onSuccess:function(response){editor.bbcode_editor.textarea.insertAfterSelection(response.responseText);
+        Element.scrollTo(editor.bbcode_editor.textarea.element);}
+    });
+  }
+
+  code_favorites_init();
+  processComment();
+  new WeiboShare({share_buttons: $('share_weibo'), img_scope: $('blog_content')});
+</script>
+
+
+
+
+        </div>
+
+        <div id="local">
+          <div class="local_top"></div>
+          <div id="blog_owner">
+  <div id="blog_owner_logo"><a href='http://kenby.iteye.com'><img alt="kenby的博客" class="logo" src="http://www.iteye.com/images/user-logo.gif?1324994303" title="kenby的博客: The time is passing" width="" /></a></div>
+  <div id="blog_owner_name">kenby</div>
+</div>
+
+          <div id="blog_actions">
+            <ul>
+              <li>浏览: 245716 次</li>
+              <li>性别: <img alt="Icon_minigender_1" src="http://www.iteye.com/images/icon_minigender_1.gif?1324994303" title="男" /></li>
+              <li>来自: 北京</li>
+              <li><img src='/images/status/offline.gif'/></li>
+              
+            </ul>
+          </div>
+          <div id="user_visits" class="clearfix">
+            <h5>最近访客 <span style='font-weight:normal;font-size:12px;padding-left:30px;'><a href="/blog/user_visits">更多访客&gt;&gt;</a></span></h5>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://linchengjun.iteye.com' target='_blank'><img alt="linchengjun的博客" class="logo" src="http://www.iteye.com/images/user-logo-thumb.gif?1324994303" title="linchengjun的博客: " width="48px" /></a></div>
+                <div class="left"><a href='http://linchengjun.iteye.com' target='_blank' title='linchengjun'>linchengjun</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://deletexxx.iteye.com' target='_blank'><img alt="yooshang的博客" class="logo" src="http://www.iteye.com/images/user-logo-thumb.gif?1324994303" title="yooshang的博客: deleteAlready" width="48px" /></a></div>
+                <div class="left"><a href='http://deletexxx.iteye.com' target='_blank' title='yooshang'>yooshang</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://huangrui.iteye.com' target='_blank'><img alt="huangrui的博客" class="logo" src="http://www.iteye.com/images/user-logo-thumb.gif?1324994303" title="huangrui的博客: " width="48px" /></a></div>
+                <div class="left"><a href='http://huangrui.iteye.com' target='_blank' title='huangrui'>huangrui</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://dylinshi126.iteye.com' target='_blank'><img alt="dylinshi126的博客" class="logo" src="http://www.iteye.com/images/user-logo-thumb.gif?1324994303" title="dylinshi126的博客: " width="48px" /></a></div>
+                <div class="left"><a href='http://dylinshi126.iteye.com' target='_blank' title='dylinshi126'>dylinshi126</a></div>
+              </div>
+            
+          </div>
+
+          
+
+                      <div id="blog_menu">
+              <h5>文章分类</h5>
+              <ul>
+                <li><a href="/">全部博客 (133)</a></li>
+                
+                  <li><a href="/category/176142">Python (3)</a></li>
+                
+                  <li><a href="/category/176141">linux (25)</a></li>
+                
+                  <li><a href="/category/176143">c (8)</a></li>
+                
+                  <li><a href="/category/176145">web (5)</a></li>
+                
+                  <li><a href="/category/176146">algorithms (38)</a></li>
+                
+                  <li><a href="/category/180568">Network (2)</a></li>
+                
+                  <li><a href="/category/180725">erlang (1)</a></li>
+                
+                  <li><a href="/category/234545">java (1)</a></li>
+                
+              </ul>
+            </div>
+            <div id='month_blogs'>
+              <h5>社区版块</h5>
+              <ul>
+                <li><a href="/blog/news">我的资讯</a> (0)</li>
+                <li>
+                  <a href="/blog/post">我的论坛</a> (0)
+                </li>
+                <li><a href="/blog/answered_problems">我的问答</a> (0)</li>
+              </ul>
+            </div>
+            <div id="month_blogs">
+              <h5>存档分类</h5>
+              <ul>
+                
+                  <li><a href="/blog/monthblog/2014-08">2014-08</a> (1)</li>
+                
+                  <li><a href="/blog/monthblog/2013-11">2013-11</a> (2)</li>
+                
+                  <li><a href="/blog/monthblog/2012-07">2012-07</a> (2)</li>
+                
+                <li><a href="/blog/monthblog_more">更多存档...</a></li>
+              </ul>
+            </div>
+            
+            
+
+            <div id="guest_books">
+              <h5>最新评论</h5>
+              <ul>
+                
+                <li>
+                  <a href='http://kenby.iteye.com' target='_blank' title='kenby'>kenby</a>： 
+                  zmfyea 写道写的太赞了！！！怎么没有下篇了？好久没时间更 ...<br />
+                  <a href="/blog/1979899#bc2362865">Yaf源码阅读之请求的处理（二）</a>
+                </li>
+                
+                <li>
+                  <a href='http://zmfyea.iteye.com' target='_blank' title='zmfyea'>zmfyea</a>： 
+                  写的太赞了！！！怎么没有下篇了？<br />
+                  <a href="/blog/1979899#bc2362801">Yaf源码阅读之请求的处理（二）</a>
+                </li>
+                
+                <li>
+                  <a href='http://frankfan915.iteye.com' target='_blank' title='frankfan915'>frankfan915</a>： 
+                  不错，了解了<br />
+                  <a href="/blog/1603803#bc2350621">Java静态内部类</a>
+                </li>
+                
+                <li>
+                  <a href='http://joeytang.iteye.com' target='_blank' title='joeytang'>joeytang</a>： 
+                    赞<br />
+                  <a href="/blog/1423728#bc2349581">多线程与volatile变量</a>
+                </li>
+                
+                <li>
+                  <a href='http://u011076827.iteye.com' target='_blank' title='u011076827'>u011076827</a>： 
+                  读您这篇非常收益，谢谢！同时有个问题不太懂：（图2）  IOl ...<br />
+                  <a href="/blog/1159621#bc2340158">Tornado源码分析之http服务器篇</a>
+                </li>
+                
+              </ul>
+            </div>
+
+            <div class="local_bottom"></div>
+          
+        </div>
+      </div>
+
+      <div id="footer" class="clearfix">
+        <div id="copyright">
+          <hr/>
+          声明：ITeye文章版权属于作者，受法律保护。没有作者书面许可不得转载。若作者同意转载，必须以超链接形式标明文章原始出处和作者。<br />
+          &copy; 2003-2015 ITeye.com.   All rights reserved.  [ 京ICP证110151号  京公网安备110105010620 ]
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+  document.write("<img src='http://stat.iteye.com/?url="+ encodeURIComponent(document.location.href) + "&referrer=" + encodeURIComponent(document.referrer) + "&user_id=' width='0' height='0' />");
+</script>
+
+<script src="http://csdnimg.cn/pubfooter/js/tracking.js?version=20130923164150" type="text/javascript"></script>
+
+    
+<script type="text/javascript" src="http://js.tongji.linezing.com//tongji.js"></script>
+      
+    
+  </body>
+</html>

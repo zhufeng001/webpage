@@ -1,0 +1,438 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>网络处理的软中断机制分析 -  - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="&#160; 首先需要介绍的就是netif_rx（在net/core/dev.c中定义）函数，这个函数在网卡驱动程序与linux内核之间建立了一道桥梁，将网卡接收上来的数据包（sk_buff形式）插入内核维护的接收缓冲区队列当中：int netif_rx(struct sk_buff *skb){&#160;&#160;&#160;&#160;&#160; int this_cpu = smp_processor_id();&#160;&#160;&#160;&#160;&#160;&#160; struct " />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/efan_linux/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="/efan_linux"></a></h1>
+            <h2></h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="/efan_linux?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="/efan_linux?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="/efan_linux/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "efan_linux";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/efan_linux";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8899926" target="_blank">
+<font color=red>有奖征集活动系列——【HTML5游戏编程之旅】 
+   </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2013-05-13/2815252" target="_blank"><font color=blue>专访雷果国：我从1.5K到18K的成长之路 
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8863634" target="_blank"><font color=red>【限时优惠】第五届云计算大会社区门票抢购
+
+
+
+
+</font></a>
+
+<br />
+
+
+
+
+
+<a href="http://events.csdn.net/wy/APC/invite.html
+"target="_blank">
+<font color=red>探究云计算数据中心节能增效之道
+
+
+ </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8900468 "target="_blank">
+<font color=red>CSDN博客第一期云计算最佳博主评选
+ </font></a>
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8853291"target="_blank">
+<font color=blue>CSDN博客第二期最佳移动开发博主评选
+ </font></a>
+
+
+
+
+</div>
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Repost"></span>
+    <h3>
+        <span class="link_title"><a href="/efan_linux/article/details/4587249">
+        网络处理的软中断机制分析
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/efan_linux/article/category/595495">LINUX TCP/IP</a> 
+        </span>
+    <span class="link_postdate">2009-09-24 09:56</span>
+    <span class="link_view" title="阅读次数">271人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('网络处理的软中断机制分析','4587249');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(4587249,2);return false;" title="举报">举报</a></span>
+    
+</div>
+<div class="tag2box"><a href='http://blog.csdn.net/tag/details.html?tag=%e7%bd%91%e7%bb%9c' target=_blank>网络</a><a href='http://blog.csdn.net/tag/details.html?tag=struct' target=_blank>struct</a><a href='http://blog.csdn.net/tag/details.html?tag=list' target=_blank>list</a><a href='http://blog.csdn.net/tag/details.html?tag=action' target=_blank>action</a><a href='http://blog.csdn.net/tag/details.html?tag=linux%e5%86%85%e6%a0%b8' target=_blank>linux内核</a><a href='http://blog.csdn.net/tag/details.html?tag=null' target=_blank>null</a></div>
+
+
+    
+<div id="article_content" class="article_content">
+<p>&nbsp; 首先需要介绍的就是netif_rx（在net/core/dev.c中定义）函数，这个函数在网卡驱动程序与linux内核之间建立了一道桥梁，将网卡接收上来的数据包（sk_buff形式）插入内核维护的接收缓冲区队列当中：</p>
+<p>int netif_rx(struct sk_buff *skb)<br />{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int this_cpu = smp_processor_id();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct softnet_data *queue;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned long flags;<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (skb-&gt;stamp.tv_sec == 0)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; do_gettimeofday(&amp;skb-&gt;stamp);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 获取当前处理CPU的接收数据包缓冲区队列指针。系统为每一个CPU都维护一个独立的列表，这样可以避免共享访问互斥问题。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; queue = &amp;softnet_data[this_cpu];<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; local_irq_save(flags);<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; netdev_rx_stat[this_cpu].total++;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 这里判断当前输入队列的长度是否超过预定义的一个值，如果没有超过，则向下执行。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 如果当前队列的长度大于0，则将sk_buff插入队列，并且返回，注意这里并没有调用__cpu_raise_softirq产生一个软中断，而较老的内核版本当中，插入队列以后立刻调用这个函数产生软中断。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 另外，如果队列长度为0，则需要调用netif_rx_schedule及后续的__netif_rx_schedule函数将当前网络设备加入softnet_data的轮询列表（poll_list）当中，这个列表维护所有网络设备的列表，当系统软中断处理函数运行时，逐个检索处于poll_list中的设备，然后调用设备的dev-&gt;poll方法处理输入数据包队列中的数据。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 将设备加入poll_list列表当中后，返回enqueue标记处继续将sk_buff加入输入数据包队列中，然后返回。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (queue-&gt;input_pkt_queue.qlen &lt;= netdev_max_backlog) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (queue-&gt;input_pkt_queue.qlen) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (queue-&gt;throttle)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; goto drop;<br />&nbsp;<br />enqueue:<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dev_hold(skb-&gt;dev);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 将当前sk_buff插入input_pkt_queue队列的尾部，即刻返回。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; __skb_queue_tail(&amp;queue-&gt;input_pkt_queue,skb);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; local_irq_restore(flags);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return queue-&gt;cng_level;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (queue-&gt;throttle) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; queue-&gt;throttle = 0;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; netif_rx_schedule(&amp;queue-&gt;blog_dev);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; goto enqueue;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (queue-&gt;throttle == 0) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; queue-&gt;throttle = 1;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; netdev_rx_stat[this_cpu].throttled++;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;<br />drop:<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; netdev_rx_stat[this_cpu].dropped++;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; local_irq_restore(flags);<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; kfree_skb(skb);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return NET_RX_DROP;<br />}<br />&nbsp;<br />从上面的分析可以知道，netif_rx函数主要负责将数据包插入内核队列中，并触发软中断，这一点与较早的版本是不同的，那么软中断是在什么地方触发的呢？<br />以前的章节介绍过，硬件中断是在irq.c的do_IRQ函数中调用handle_IRQ_event函数，进而调用相应硬件驱动程序的中断处理函数实现的。在do_IRQ函数执行完硬件处理函数以后，接着就会调用do_softirq函数执行软中断，并且根据软中断号在softirq_vec数组中查找相应中断的action方法，对于NET_RX_SOFTIRQ类型的软中断来说，系统将其action注册为net_rx_action，这样我们就进入了net_rx_action函数当中：<br />static void net_rx_action(struct softirq_action *h)<br />{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int this_cpu = smp_processor_id();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct softnet_data *queue = &amp;softnet_data[this_cpu];<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned long start_time = jiffies;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int budget = netdev_max_backlog;（系统每次从队列中取300个sk_buff处理）<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; br_read_lock(BR_NETPROTO_LOCK);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; local_irq_disable();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 在这里循环判断当前轮询列表是否为空。如果不为空，则进入软中断处理过程。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while (!list_empty(&amp;queue-&gt;poll_list)) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct net_device *dev;<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (budget &lt;= 0 || jiffies - start_time &gt; 1)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; goto softnet_break;<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; local_irq_enable();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 从轮询列表中取出当前的设备dev指针，接着为dev调用poll方法，这是设备初始化过程中已经定义好的方法，如果设备未能自己实现该函数，则系统默认注册为process_backlog。poll函数执行成功返回0，失败返回－1。这里逻辑判断是，dev-&gt;quota必须大于0，而poll函数执行成功，则可以继续，直到所有的设备都查询一遍为止。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dev = list_entry(queue-&gt;poll_list.next, struct net_device, poll_list);<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (dev-&gt;quota &lt;= 0 || dev-&gt;poll(dev, &amp;budget)) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*<br />这里的poll函数是netdevice结构的一个函数指针，对于不同的网卡驱动程序，我们可以根据自己的情况定义poll方法的实现（e1000网卡驱动程序就自己实现了一个poll方法，详情后面来分析），而系统默认提供一个方法。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; local_irq_disable();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; list_del(&amp;dev-&gt;poll_list);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; list_add_tail(&amp;dev-&gt;poll_list, &amp;queue-&gt;poll_list);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (dev-&gt;quota &lt; 0)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dev-&gt;quota += dev-&gt;weight;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dev-&gt;quota = dev-&gt;weight;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dev_put(dev);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; local_irq_disable();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; local_irq_enable();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; br_read_unlock(BR_NETPROTO_LOCK);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return;<br />&nbsp;<br />softnet_break:<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; netdev_rx_stat[this_cpu].time_squeeze++;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 触发软中断处理，等待下一次调用本函数。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; __cpu_raise_softirq(this_cpu, NET_RX_SOFTIRQ);<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; local_irq_enable();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; br_read_unlock(BR_NETPROTO_LOCK);<br />}<br />&nbsp;<br />软中断处理函数net_rx_action实际上就是调用各个网络设备的poll方法处理数据包的，一般的讲，poll默认为process_backlog（在net/core/dev..c中定义）：<br />static int process_backlog(struct net_device *backlog_dev, int *budget)<br />{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int work = 0;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int quota = min(backlog_dev-&gt;quota, *budget);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int this_cpu = smp_processor_id();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct softnet_data *queue = &amp;softnet_data[this_cpu];<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned long start_time = jiffies;<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (;;) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct sk_buff *skb;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct net_device *dev;<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; local_irq_disable();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 从输入缓冲区队列中取出sk_buff，调用netif_receive_skb函数将sk_buff交给上层协议进行处理。这里就是循环调用__skb_dequeue取出skb，直到所有的skb处理完毕为止。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; skb = __skb_dequeue(&amp;queue-&gt;input_pkt_queue);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (skb == NULL)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; goto job_done;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; local_irq_enable();<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dev = skb-&gt;dev;<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; netif_receive_skb(skb);<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dev_put(dev);<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; work++;<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (work &gt;= quota || jiffies - start_time &gt; 1)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />}<br />&nbsp;<br />接下来看一下sk_buff是如何被递交到上层协议进行处理的，只是通过调用netif_receive_skb（在net/core/dev.c中定义）函数实现的：<br />int netif_receive_skb(struct sk_buff *skb)<br />{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct packet_type *ptype, *pt_prev;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int ret = NET_RX_DROP;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned short type = skb-&gt;protocol;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 给每个网络数据包打上时间戳。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (skb-&gt;stamp.tv_sec == 0)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; do_gettimeofday(&amp;skb-&gt;stamp);<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; skb_bond(skb);<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pt_prev = NULL;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 上层的每个协议在其初始化的过程中会调用dev_add_pack函数将自己的packet_type结构加入到ptye_all列表当中，其中packet_type结构中定义了该协议的处理方法，对于ip协议来说，func方法就注册为ip_rcv。另外，一般协议packet_type结构的dev字段设为NULL，所以下面的ptype-&gt;dev就为NULL。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 另外，如果我们需要增加自己的协议，则需要创建一个packet_type结构，用我们自己的协议处理函数填充该结构的func方法，并且调用dev_add_pack函数将我们自己的协议加入ptype_all数组当中。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (ptype = ptype_all; ptype; ptype = ptype-&gt;next) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 这里每一种协议在定义其packet_type结构时都设置接收这种<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 数据包协议类型的设备指针，如果设置为NULL，则可以从<br />任何设备接收数据包。<br />这里针对协议类型为ETH_P_ALL的情况进行处理，对于IP<br />协议来说，类型定义为ETH_P_IP，因此不在这里处理。<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!ptype-&gt;dev || ptype-&gt;dev == skb-&gt;dev) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (pt_prev) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!pt_prev-&gt;data) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret = deliver_to_old_ones(pt_prev, skb, 0);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; atomic_inc(&amp;skb-&gt;users);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret = pt_prev-&gt;func(skb, skb-&gt;dev, pt_prev);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pt_prev = ptype;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*<br />这里针对各种协议进行处理，IP包的类型为ETH_P_IP，因此在这里处理。<br />*/<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (ptype=ptype_base[ntohs(type)&amp;15];ptype;ptype=ptype-&gt;next) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (ptype-&gt;type == type &amp;&amp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (!ptype-&gt;dev || ptype-&gt;dev == skb-&gt;dev)) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (pt_prev) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!pt_prev-&gt;data) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret = deliver_to_old_ones(pt_prev, skb, 0);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; atomic_inc(&amp;skb-&gt;users);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret = pt_prev-&gt;func(skb, skb-&gt;dev, pt_prev);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pt_prev = ptype;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (pt_prev) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!pt_prev-&gt;data) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret = deliver_to_old_ones(pt_prev, skb, 1);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret = pt_prev-&gt;func(skb, skb-&gt;dev, pt_prev);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; kfree_skb(skb);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* Jamal, now you will not able to escape explaining<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * me how you were going to use this. :-)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret = NET_RX_DROP;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ret;<br />}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 在软中断处理函数当中，我们根据数据包的类型，调用相应的底层数据处理函数，对于IP包来说，就是调用ip_rcv函数并且进一步向上层协议递交和处理。至此，内核的软中断的主要过程已经结束了。</p>
+<p><br />本文来自CSDN博客，转载请标明出处：<a href="http://blog.csdn.net/aaa6695798/archive/2009/08/14/4443073.aspx">http://blog.csdn.net/aaa6695798/archive/2009/08/14/4443073.aspx</a></p>
+</div>
+
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.1.236-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/efan_linux/article/details/4585665">利用NetXen 10G网卡实现零拷贝抓包</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/efan_linux/article/details/4588583">sk_buffer 详细分析</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen">
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "117306";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<script type="text/javascript">
+    //new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '4587249';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/efan_linux" target="_blank">
+    <img src="http://avatar.csdn.net/5/4/B/1_efan_linux.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/efan_linux" class="user_name" target="_blank">efan_linux</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>81175次</span></li>
+    <li>积分：<span>1020分</span></li>
+    <li>排名：<span>第10043名</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>3篇</span></li>
+    <li>转载：<span>92篇</span></li>
+    <li>译文：<span>0篇</span></li>
+    <li>评论：<span>16条</span></li>
+</ul>
+</ul>
+</div>
+
+
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/efan_linux/article/category/595738">C编程相关</a><span>(5)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/efan_linux/article/category/595495">LINUX TCP/IP</a><span>(66)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/efan_linux/article/category/595493">LINUX 内核</a><span>(14)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/efan_linux/article/category/596081">笔记整理</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/efan_linux/article/category/595496">网络技术</a><span>(10)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/efan_linux/article/category/595664">资源链接</a><span>(0)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/efan_linux/article/category/595498">链接</a><span>(0)</span>
+</li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/efan_linux/article/month/2010/02">2010年02月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/efan_linux/article/month/2009/11">2009年11月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/efan_linux/article/month/2009/10">2009年10月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/efan_linux/article/month/2009/09">2009年09月</a><span>(84)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/efan_linux/article/details/4598261" title="SKB_BUFF整理笔记">SKB_BUFF整理笔记</a><span>(4198)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4584807" title="Cache 的write back和write through">Cache 的write back和write through</a><span>(4170)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4604362" title="netfilter中的conntrack内核阅读笔记(1)">netfilter中的conntrack内核阅读笔记(1)</a><span>(3555)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4593971" title="Linux网桥分析">Linux网桥分析</a><span>(2171)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4729647" title="中断、DMA、通道 ">中断、DMA、通道 </a><span>(2059)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4604375" title="netfilter中的conntrack内核阅读笔记(5)">netfilter中的conntrack内核阅读笔记(5)</a><span>(1958)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4605073" title="Netfilter分析">Netfilter分析</a><span>(1691)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4604372" title="netfilter中的conntrack内核阅读笔记(2)">netfilter中的conntrack内核阅读笔记(2)</a><span>(1648)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4594489" title="PPP帧的发送 ">PPP帧的发送 </a><span>(1619)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4606108" title="数据包的截取方法与实现">数据包的截取方法与实现</a><span>(1541)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/efan_linux/article/details/4598261" title="SKB_BUFF整理笔记">SKB_BUFF整理笔记</a><span>(2)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4580024" title="不同情况下构造skb数据包的实现。">不同情况下构造skb数据包的实现。</a><span>(2)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4804760" title="vxworks源码剖析-对象篇 ">vxworks源码剖析-对象篇 </a><span>(2)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4593934" title="Linux PPP 数据收发流程">Linux PPP 数据收发流程</a><span>(2)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4644756" title="PING用一生诠释了TCP/IP（4）------二三层转发为PING劈荆斩棘">PING用一生诠释了TCP/IP（4）------二三层转发为PING劈荆斩棘</a><span>(2)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4594489" title="PPP帧的发送 ">PPP帧的发送 </a><span>(1)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4584013" title="根据红头发组播视频，整理的个人组播笔记(一) ">根据红头发组播视频，整理的个人组播笔记(一) </a><span>(1)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4606662" title="Linux网络层 ip_rcv()函数代码分析">Linux网络层 ip_rcv()函数代码分析</a><span>(1)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/4574222" title="Understanding.Linux.Network.Internals 读书笔记 Chapter 5 network device init">Understanding.Linux.Network.Internals 读书笔记 Chapter 5 network device init</a><span>(1)</span>
+</li>
+<li>
+<a href="/efan_linux/article/details/5315796" title="利用jiffies计算代码的运行时间 ">利用jiffies计算代码的运行时间 </a><span>(1)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/efan_linux/article/details/4574222#comments">Understanding.Linux.Network.Internals 读书笔记 Chapter 5 network device init</a>
+    <p style="margin:0px;"><a href="/wxj839437532" class="user_name">wxj839437532</a>:
+非常感谢您的分享，让我受益颇多，另外想请问您分析的linux 内核版本是3.5.4的吗？
+    </p>
+    </li>
+    <li>
+    <a href="/efan_linux/article/details/4580024#comments">不同情况下构造skb数据包的实现。</a>
+    <p style="margin:0px;"><a href="/SCDXMOU" class="user_name">SCDXMOU</a>:
+lz学习啦，很受用的哦！继续期待您的文章！谢谢
+    </p>
+    </li>
+    <li>
+    <a href="/efan_linux/article/details/4593934#comments">Linux PPP 数据收发流程</a>
+    <p style="margin:0px;"><a href="/lllxxxqqq000444333" class="user_name">lllxxxqqq000444333</a>:
+讲得真好，很受用
+    </p>
+    </li>
+    <li>
+    <a href="/efan_linux/article/details/4593934#comments">Linux PPP 数据收发流程</a>
+    <p style="margin:0px;"><a href="/paladinzh" class="user_name">paladinzh</a>:
+不错，很好，具有参考性！
+    </p>
+    </li>
+    <li>
+    <a href="/efan_linux/article/details/4804760#comments">vxworks源码剖析-对象篇 </a>
+    <p style="margin:0px;"><a href="/william_linan" class="user_name">william_linan</a>:
+顶
+    </p>
+    </li>
+    <li>
+    <a href="/efan_linux/article/details/4580024#comments">不同情况下构造skb数据包的实现。</a>
+    <p style="margin:0px;"><a href="/Jennyleee" class="user_name">Jennyleee</a>:
+kfree_skb(skb); // 注意，如果此时是钩子函数钩出来的，则skb不能在这里释放，否则...
+    </p>
+    </li>
+    <li>
+    <a href="/efan_linux/article/details/4595546#comments">PPPOE的用户空间实现</a>
+    <p style="margin:0px;"><a href="/ChiDao_2010" class="user_name">ChiDao_2010</a>:
+看了这篇文章，读pppoe源码轻松了许多。同时，还有些问题想请教：1、我现在想把pppoe拨号封装成...
+    </p>
+    </li>
+    <li>
+    <a href="/efan_linux/article/details/4584013#comments">根据红头发组播视频，整理的个人组播笔记(一) </a>
+    <p style="margin:0px;"><a href="/pengxiuqiong" class="user_name">pengxiuqiong</a>:
+不错哈
+    </p>
+    </li>
+    <li>
+    <a href="/efan_linux/article/details/4598261#comments">SKB_BUFF整理笔记</a>
+    <p style="margin:0px;"><a href="/ivan_" class="user_name">ivan_</a>:
+不错，正是我想看的。谢谢楼主分享！
+    </p>
+    </li>
+    <li>
+    <a href="/efan_linux/article/details/4594489#comments">PPP帧的发送 </a>
+    <p style="margin:0px;"><a href="/zhaoli_1956" class="user_name">zhaoli_1956</a>:
+
+    </p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=674197"></script>
+
+<script type="text/javascript">
+document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date()/120000).toString(36) + '="></'+'script>');
+</script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js?v=1"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+
+</div>
+</body>
+</html>

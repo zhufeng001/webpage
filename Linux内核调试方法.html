@@ -1,0 +1,2590 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Linux内核调试方法 - veryhappy - 博客园</title>
+<link type="text/css" rel="stylesheet" href="http://common.cnblogs.com/blog/css/common.css?id=2012050403"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="http://common.cnblogs.com/Skins/LoveGiveHeart/style.css?id=2012050403"/>
+<link type="text/css" rel="stylesheet" href="http://common.cnblogs.com/blog/css/common2.css"/>
+<link type="text/css" rel="stylesheet" href="http://common.cnblogs.com/css/shStyle.css"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/shineshqw/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/shineshqw/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/shineshqw/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script src="http://common.cnblogs.com/blog/script/common.js?id=2012050403" type="text/javascript"></script> 
+<script src="http://common.cnblogs.com/script/json2.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://common.cnblogs.com/script/syntaxHighlighter.js"></script>
+</head>
+<body>
+<a name="top"></a>
+<form method="post" action="2359114.html" id="Form1">
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="" />
+</div>
+
+
+<script type="text/javascript">
+//<![CDATA[
+var currentBlogApp='shineshqw';
+//]]>
+</script>
+
+    
+<!--done-->
+<div id="banner">
+<!--done-->
+<div class="header">
+	<div class="headerText">
+		<a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/shineshqw/">very happy</a><br>
+		<div class="headerDis">hapyy every day</div>
+	</div>
+</div>
+</div>
+<div id="main">
+	<!-- right starts -->
+	<div id="right">
+		<div id="right_content">
+			<div id="mylinks">
+				<DIV id="mystats">
+					
+						
+<!--done-->
+<div class="blogStats">
+随笔- 1&nbsp;
+文章- 55&nbsp;
+评论- 0&nbsp;
+
+</div>
+					
+				</DIV>
+				
+<!--done-->
+<a id="MyLinks1_HomeLink" class="menu" href="http://www.cnblogs.com/">博客园</a>&nbsp;&nbsp;<a href="http://space.cnblogs.com" class="menu">社区</a>&nbsp;&nbsp;<a id="MyLinks1_MyHomeLink" class="menu" href="http://www.cnblogs.com/shineshqw/">首页</a>&nbsp;&nbsp;<a id="MyLinks1_NewPostLink" class="menu" rel="nofollow" href="http://www.cnblogs.com/shineshqw/admin/EditPosts.aspx?opt=1">新随笔</a>&nbsp;&nbsp;<a id="MyLinks1_ContactLink" accesskey="9" class="menu" rel="nofollow" href="http://space.cnblogs.com/msg/send/veryhappy">联系</a>&nbsp;&nbsp;<a id="MyLinks1_Admin" class="menu" rel="nofollow" href="http://www.cnblogs.com/shineshqw/admin/EditPosts.aspx">管理</a>&nbsp;&nbsp;<a id="MyLinks1_Syndication" class="menu" href="http://www.cnblogs.com/shineshqw/rss">订阅</a>&nbsp;<a id="MyLinks1_XMLLink" href="http://www.cnblogs.com/shineshqw/rss"><img src="http://www.cnblogs.com/images/xml.gif" alt="订阅" /></a>
+			</div>
+			<div id="topics">
+				
+				
+<!--done-->
+<div id="topics">
+	<div class = "post">
+		<h1 class = "postTitle">
+			<a id="cb_post_title_url" class="postTitle2" href="http://www.cnblogs.com/shineshqw/articles/2359114.html">Linux内核调试方法</a>
+		</h1>
+		<div class="clear"></div>
+		<div class="postBody">
+			<div id="cnblogs_post_body"><p>kdb：只能在汇编代码级进行调试；</p>
+<p>　　优点是不需要两台机器进行调试。</p>
+<p>　　gdb：在调试模块时缺少一些至关重要的功能，它可用来查看内核的运行情况，包括反汇编内核函数。</p>
+<p>　　kgdb：能很方便的在源码级对内核进行调试，缺点是kgdb只能进行远程调试，它需要一根串口线及两台机器来调试内核(也可以是在同一台主机上用vmware软件运行两个操作系统来调试)</p>
+<p>printk() 是调试内核代码时最常用的一种技术。在内核代码中的特定位置加入printk() 调试调用，可以直接把所关心的信息打打印到屏幕上，从而可以观察程序的执行路径和所关心的变量、指针等信息。 Linux 内核调试器（Linux kernel debugger，kdb）是 Linux 内核的补丁，它提供了一种在系统能运行时对内核内存和数据结构进行检查的办法。Oops、KDB在文章掌握 Linux 调试技术有详细介绍，大家可以参考。 Kprobes 提供了一个强行进入任何内核例程，并从中断处理器无干扰地收集信息的接口。使用 Kprobes 可以轻松地收集处理器寄存器和全局数据结构等调试信息，而无需对Linux内核频繁编译和启动，具体使用方法，请参考使用 Kprobes 调试内核。</p>
+<p>/proc文件系统</p>
+<p>在 /proc 文件系统中，对虚拟文件的读写操作是一种与内核通信的手段，要查看内核回环缓冲区中的消息，可以使用 dmesg 工具（或者通过 /proc 本身使用 cat /proc/kmsg 命令）。清单 6 给出了 dmesg 显示的最后几条消息。</p>
+<p>清单 6. 查看来自 LKM 的内核输出</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="br0">[</span>root<span class="sy0">@</span>plato<span class="br0">]</span><span class="co0"># dmesg | tail -5</span>
+cs: IO port probe 0xa00-0xaff: clean.
+eth0: Link is down
+eth0: Link is up, running at 100Mbit half-duplex
+my_module_init called.  Module is now loaded.
+my_module_cleanup called.  Module is now unloaded.</pre>
+</div>
+</div>
+<p><br />可以在内核输出中看到这个模块的消息。现在让我们暂时离开这个简单的例子，来看几个可以用来开发有用 LKM 的内核 API。</p>
+<p>调试工具</p>
+<p>　　使用调试器来一步步地跟踪代码，查看变量和计算机寄存器的值。在内核中使用交互式调试器是一个很复杂的问题。内核在它自己的地址空间中运行。许多用户空间下的调试器所提供的常用功能很难用于内核之中，比如断点和单步调试等。</p>
+<table id="toc" class="toc">
+<tbody>
+<tr>
+<td>
+<div id="toctitle">
+<div class="headerTree headerTree-h2">
+<h2>目录</h2>
+</div>
+<span class="toctoggle">[<a id="togglelink" class="internal" href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95">隐藏</a>]</span></div>
+<ul>
+<li class="toclevel-1 tocsection-1"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E5.86.85.E6.A0.B8bug.E8.B7.9F.E8.B8.AA"><span class="tocnumber">1</span> <span class="toctext">内核bug跟踪</span></a>
+<ul>
+<li class="toclevel-2 tocsection-2"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#oops.E6.B6.88.E6.81.AF.E5.88.86.E6.9E.90"><span class="tocnumber">1.1</span> <span class="toctext">oops消息分析</span></a></li>
+<li class="toclevel-2 tocsection-3"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E7.B3.BB.E7.BB.9F.E5.B4.A9.E6.BA.83.E9.87.8D.E5.90.AF.E5.8A.A8"><span class="tocnumber">1.2</span> <span class="toctext">系统崩溃重启动</span></a>
+<ul>
+<li class="toclevel-3 tocsection-4"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.EF.BC.881.EF.BC.89.E5.B7.A5.E5.85.B7kexec.E4.BB.8B.E7.BB.8D"><span class="tocnumber">1.2.1</span> <span class="toctext">（1）工具kexec介绍</span></a></li>
+<li class="toclevel-3 tocsection-5"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.EF.BC.882.EF.BC.89kdump.E4.BB.8B.E7.BB.8D"><span class="tocnumber">1.2.2</span> <span class="toctext">（2）kdump介绍</span></a></li>
+</ul>
+</li>
+<li class="toclevel-2 tocsection-6"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#SysRq.E9.AD.94.E6.9C.AF.E7.BB.84.E5.90.88.E9.94.AE.E6.89.93.E5.8D.B0.E5.86.85.E6.A0.B8.E4.BF.A1.E6.81.AF"><span class="tocnumber">1.3</span> <span class="toctext">SysRq魔术组合键打印内核信息</span></a></li>
+<li class="toclevel-2 tocsection-7"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E5.91.BD.E4.BB.A4strace"><span class="tocnumber">1.4</span> <span class="toctext">命令strace</span></a></li>
+<li class="toclevel-2 tocsection-8"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E7.94.A8.E5.87.BD.E6.95.B0printk.E6.89.93.E5.8D.B0.E5.86.85.E6.A0.B8.E4.BF.A1.E6.81.AF"><span class="tocnumber">1.5</span> <span class="toctext">用函数printk打印内核信息</span></a></li>
+<li class="toclevel-2 tocsection-9"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E5.86.85.E6.A0.B8.E6.8E.A2.E6.B5.8Bkprobe"><span class="tocnumber">1.6</span> <span class="toctext">内核探测kprobe</span></a></li>
+<li class="toclevel-2 tocsection-10"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#Systemtap.E8.B0.83.E8.AF.95"><span class="tocnumber">1.7</span> <span class="toctext">Systemtap调试</span></a>
+<ul>
+<li class="toclevel-3 tocsection-11"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.EF.BC.881.EF.BC.89Systemtap.E5.8E.9F.E7.90.86"><span class="tocnumber">1.7.1</span> <span class="toctext">（1）Systemtap原理</span></a></li>
+<li class="toclevel-3 tocsection-12"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.EF.BC.882.EF.BC.89stap.E7.A8.8B.E5.BA.8F"><span class="tocnumber">1.7.2</span> <span class="toctext">（2）stap程序</span></a></li>
+<li class="toclevel-3 tocsection-13"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.EF.BC.883.EF.BC.89Systemtap.E8.84.9A.E6.9C.AC.E8.AF.AD.E6.B3.95"><span class="tocnumber">1.7.3</span> <span class="toctext">（3）Systemtap脚本语法</span></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toclevel-1 tocsection-14"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#kdb.E5.86.85.E6.A0.B8.E8.B0.83.E8.AF.95.E5.99.A8"><span class="tocnumber">2</span> <span class="toctext">kdb内核调试器</span></a>
+<ul>
+<li class="toclevel-2 tocsection-15"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E5.AE.89.E8.A3.85kdb"><span class="tocnumber">2.1</span> <span class="toctext">安装kdb</span></a></li>
+<li class="toclevel-2 tocsection-16"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E4.BD.BF.E7.94.A8kdb.E8.B0.83.E8.AF.95.E5.91.BD.E4.BB.A4"><span class="tocnumber">2.2</span> <span class="toctext">使用kdb调试命令</span></a></li>
+</ul>
+</li>
+<li class="toclevel-1 tocsection-17"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#kgdb"><span class="tocnumber">3</span> <span class="toctext">kgdb</span></a>
+<ul>
+<li class="toclevel-2 tocsection-18"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#kgdb.E8.B0.83.E8.AF.95.E5.8E.9F.E7.90.86"><span class="tocnumber">3.1</span> <span class="toctext">kgdb调试原理</span></a></li>
+<li class="toclevel-2 tocsection-19"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E5.BB.BA.E7.AB.8Bkdbg.E8.81.94.E6.9C.BA.E8.B0.83.E8.AF.95.E7.9A.84.E6.96.B9.E6.B3.95"><span class="tocnumber">3.2</span> <span class="toctext">建立kdbg联机调试的方法</span></a></li>
+<li class="toclevel-2 tocsection-20"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E8.B0.83.E8.AF.95.E5.86.85.E6.A0.B8.E6.A8.A1.E5.9D.97"><span class="tocnumber">3.3</span> <span class="toctext">调试内核模块</span></a></li>
+<li class="toclevel-2 tocsection-21"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E8.B0.83.E8.AF.95.E5.86.85.E6.A0.B8"><span class="tocnumber">3.4</span> <span class="toctext">调试内核</span></a></li>
+</ul>
+</li>
+<li class="toclevel-1 tocsection-22"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E4.BD.BF.E7.94.A8UML.E8.B0.83.E8.AF.95Linux.E5.86.85.E6.A0.B8"><span class="tocnumber">4</span> <span class="toctext">使用UML调试Linux内核</span></a>
+<ul>
+<li class="toclevel-2 tocsection-23"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#UML.E5.8E.9F.E7.90.86"><span class="tocnumber">4.1</span> <span class="toctext">UML原理</span></a></li>
+<li class="toclevel-2 tocsection-24"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E7.BC.96.E8.AF.91UML.E6.A8.A1.E5.BC.8F.E5.AE.A2.E6.88.B7.E6.9C.BALinux.E5.86.85.E6.A0.B8"><span class="tocnumber">4.2</span> <span class="toctext">编译UML模式客户机Linux内核</span></a></li>
+<li class="toclevel-2 tocsection-25"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E8.BF.90.E8.A1.8CUML"><span class="tocnumber">4.3</span> <span class="toctext">运行UML</span></a></li>
+<li class="toclevel-2 tocsection-26"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E5.BB.BA.E7.AB.8B.E4.B8.B2.E8.A1.8C.E7.BA.BF.E5.92.8C.E6.8E.A7.E5.88.B6.E5.8F.B0"><span class="tocnumber">4.4</span> <span class="toctext">建立串行线和控制台</span></a></li>
+<li class="toclevel-2 tocsection-27"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E5.BB.BA.E7.AB.8B.E7.BD.91.E7.BB.9C"><span class="tocnumber">4.5</span> <span class="toctext">建立网络</span></a></li>
+<li class="toclevel-2 tocsection-28"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E5.9C.A8.E8.99.9A.E6.8B.9F.E6.9C.BA.E9.97.B4.E5.85.B1.E4.BA.AB.E6.96.87.E4.BB.B6.E7.B3.BB.E7.BB.9F"><span class="tocnumber">4.6</span> <span class="toctext">在虚拟机间共享文件系统</span></a></li>
+<li class="toclevel-2 tocsection-29"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E5.88.9B.E5.BB.BAUML.E7.9A.84.E6.96.87.E4.BB.B6.E7.B3.BB.E7.BB.9F"><span class="tocnumber">4.7</span> <span class="toctext">创建UML的文件系统</span></a></li>
+<li class="toclevel-2 tocsection-30"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E4.B8.BB.E6.9C.BA.E6.96.87.E4.BB.B6.E8.AE.BF.E9.97.AE"><span class="tocnumber">4.8</span> <span class="toctext">主机文件访问</span></a></li>
+<li class="toclevel-2 tocsection-31"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E5.86.85.E6.A0.B8.E8.B0.83.E8.AF.95"><span class="tocnumber">4.9</span> <span class="toctext">内核调试</span></a></li>
+</ul>
+</li>
+<li class="toclevel-1 tocsection-32"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E6.96.AD.E8.A8.80.E8.AF.AD.E5.8F.A5"><span class="tocnumber">5</span> <span class="toctext">断言语句</span></a></li>
+<li class="toclevel-1 tocsection-33"><a href="http://www.shangshuwu.cn/index.php/Linux%E5%86%85%E6%A0%B8%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95#.E5.90.8C.E6.AD.A5.E9.94.81.E8.B0.83.E8.AF.95"><span class="tocnumber">6</span> <span class="toctext">同步锁调试</span></a></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="headerTree headerTree-h2">
+<h2><span id=".E5.86.85.E6.A0.B8bug.E8.B7.9F.E8.B8.AA" class="mw-headline">内核bug跟踪 </span></h2>
+<div class="headerTree headerTree-h3">
+<h3><span id="oops.E6.B6.88.E6.81.AF.E5.88.86.E6.9E.90" class="mw-headline">oops消息分析 </span></h3>
+<p>（1）oops消息产生机制</p>
+<p>oops（也称 panic），称程序运行崩溃，程序崩溃后会产生oops消息。应用程序或内核线程的崩溃都会产生oops消息，通常发生oops时，系统不会发生死机，而在终端或日志中打印oops信息。</p>
+<p>当使用NULL指针或不正确的指针值时，通常会引发一个 oops 消息，这是因为当引用一个非法指针时，页面映射机制无法将虚拟地址映像到物理地址，处理器就会向操作系统发出一个"页面失效"的信号。内核无法"换页"到并不存在的地址上，系统就会产生一个"oops"。</p>
+<p>oops 显示发生错误时处理器的状态，包括 CPU 寄存器的内容、页描述符表的位置，以及其一些难理解的信息。这些消息由失效处理函数（arch/*/kernel/traps.c）中的printk 语句产生。较为重要的信息就是指令指针（EIP），即出错指令的地址。</p>
+<p>由于很难从十六进制数值中看出含义，可使用符号解析工具klogd。klogd 守护进程能在 oops 消息到达记录文件之前对它们解码。klogd在缺省情况下运行并进行符号解码。</p>
+<p>通常Oops文本由klogd从内核缓冲区里读取并传给syslogd，由syslogd写到syslog文件中，该文件典型为/var/log/messages(依赖于/etc/syslog.conf)。如果klogd崩溃了，用户可"dmesg &gt; file"从内核缓冲区中读取数据并保存下来。还可用"cat /proc/kmsg &gt; file"读取数据，此时，需要用户中止传输，因为kmsg是一个"永不结束的文件"。</p>
+<p>当保护错误发生时，klogd守护进程自动把内核日志信息中的重要地址翻译成它们相应的符号。klogd执行静态地址翻译和动态地址翻译。静态地址翻译使用System.map文件将符号地址翻译为符号。klogd守护进程在初始化时必须能找到system.map文件。</p>
+<p>动态地址翻译通常对内核模块中的符号进行翻译。内核模块的内存从内核动态内存池里分配，内核模块中符号的位置在内核装载后才最终确定。</p>
+<p>Linux内核提供了调用，允许程序决定装载哪些模块和它们在内存中位置。通过这些系统调用，klogd守护进程生成一张符号表用于调试发生在可装载模块中的保护错误。内核模块的装载或者卸载都会自动向klogd发送信号，klogd可将内核模块符号的地址动态翻译为符号字符串。</p>
+<p>（2）产生oops的样例代码</p>
+<p>使用空指针和缓冲区溢出是产生oops的两个最常见原因。下面两个函数faulty_write和faulty_read是一个内核模块中的写和读函数，分别演示了这两种情况。当内核调用这两个函数时，会产生oops消息。</p>
+函数faulty_write删除一个NULL指针的引用，由于0不是一个有效的指针值，内核将打印oops信息，并接着，杀死调用些函数的进程。
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="c source-c">
+<pre class="de1">ssize_t faulty_write <span class="br0">(</span><span class="kw4">struct</span> file <span class="sy0">*</span>filp<span class="sy0">,</span> <span class="kw4">const</span> <span class="kw4">char</span> _ _user <span class="sy0">*</span>buf<span class="sy0">,</span> size_t count<span class="sy0">,</span> loff_t <span class="sy0">*</span>pos<span class="br0">)</span>
+<span class="br0">{</span>
+    <span class="coMULTI">/* make a simple fault by dereferencing a NULL pointer */</span>
+    <span class="sy0">*</span><span class="br0">(</span><span class="kw4">int</span> <span class="sy0">*</span><span class="br0">)</span><span class="nu0">0</span> <span class="sy0">=</span> <span class="nu0">0</span><span class="sy0">;</span>
+    <span class="kw1">return</span> <span class="nu0">0</span><span class="sy0">;</span>
+<span class="br0">}</span></pre>
+</div>
+</div>
+<br />函数faulty_write产生oops信息列出如下（注意 EIP 行和 stack 跟踪记录中已经解码的符号）：
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1">Unable to handle kernel NULL pointer dereference at virtual address \</pre>
+<pre>   00000000 
+</pre>
+<p>printing eip: c48370c3 <span class="sy0">*</span>pde = 00000000 Oops: 0002 CPU: <span class="nu0">0</span> EIP: 0010:<span class="br0">[</span>faulty:faulty_write+<span class="nu0">3</span><span class="sy0">/</span><span class="nu0">576</span><span class="br0">]</span> EFLAGS: 00010286 eax: ffffffea ebx: c2c55ae0 ecx: c48370c0 edx: c2c55b00 esi: 0804d038 edi: 0804d038 ebp: c2337f8c esp: c2337f8c ds: 0018 es: 0018 ss: 0018 Process <span class="kw2">cat</span> <span class="br0">(</span>pid: <span class="nu0">23413</span>, <span class="re2">stackpage</span>=c2337000<span class="br0">)</span> Stack: 00000001 c01356e6 c2c55ae0 0804d038 00000001 c2c55b00 c2336000 \</p>
+<pre>          00000001 
+     0804d038 bffffbd4 00000000 00000000 bffffbd4 c010b860 00000001 \ 
+          0804d038 
+     00000001 00000001 0804d038 bffffbd4 00000004 0000002b 0000002b \ 
+          00000004 
+</pre>
+<p>Call Trace: <span class="br0">[</span>sys_write+<span class="nu0">214</span><span class="sy0">/</span><span class="nu0">256</span><span class="br0">]</span> <span class="br0">[</span>system_call+<span class="nu0">52</span><span class="sy0">/</span><span class="nu0">56</span><span class="br0">]</span></p>
+<pre class="de1">Code: c7 05 00 00 00 00 00 00 00 00 <span class="nu0">31</span> c0 <span class="nu0">89</span> ec 5d c3 8d b6 00 00</pre>
+</div>
+</div>
+<br />上述oops消息中，字符串 3/576 表示处理器正处于函数的第3个字节上，函数整体长度为 576 个字节。 函数faulty_read拷贝一个字符串到本地变量，由于字符串比目的地数组长造成缓冲区溢出。当函数返回时，缓冲区溢出导致产生oops信息。因为返回指令引起指令指针找不到运行地址，这种错误很难发现和跟踪。
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="c source-c">
+<pre class="de1">ssize_t faulty_read<span class="br0">(</span><span class="kw4">struct</span> file <span class="sy0">*</span>filp<span class="sy0">,</span> <span class="kw4">char</span> _ _user <span class="sy0">*</span>buf<span class="sy0">,</span> size_t count<span class="sy0">,</span> loff_t <span class="sy0">*</span>pos<span class="br0">)</span>
+<span class="br0">{</span>
+    <span class="kw4">int</span> ret<span class="sy0">;</span>
+    <span class="kw4">char</span> stack_buf<span class="br0">[</span><span class="nu0">4</span><span class="br0">]</span><span class="sy0">;</span>
+    <span class="coMULTI">/* Let's try a buffer overflow */</span>
+    memset<span class="br0">(</span>stack_buf<span class="sy0">,</span> <span class="nu12">0xff</span><span class="sy0">,</span> <span class="nu0">20</span><span class="br0">)</span><span class="sy0">;</span>
+    <span class="kw1">if</span> <span class="br0">(</span>count <span class="sy0">&gt;</span> <span class="nu0">4</span><span class="br0">)</span>
+        count <span class="sy0">=</span> <span class="nu0">4</span><span class="sy0">;</span>
+    <span class="coMULTI">/* copy 4 bytes to the user */</span>
+    ret <span class="sy0">=</span> copy_to_user<span class="br0">(</span>buf<span class="sy0">,</span> stack_buf<span class="sy0">,</span> count<span class="br0">)</span><span class="sy0">;</span>
+    <span class="kw1">if</span> <span class="br0">(</span><span class="sy0">!</span>ret<span class="br0">)</span>
+        <span class="kw1">return</span> count<span class="sy0">;</span>
+    <span class="kw1">return</span> ret<span class="sy0">;</span>
+<span class="br0">}</span></pre>
+</div>
+</div>
+<br />函数faulty_read产生oops信息列出如下：
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1">EIP: 0010:<span class="br0">[</span><span class="sy0">&lt;</span>00000000<span class="sy0">&gt;</span><span class="br0">]</span></pre>
+<p>Unable to handle kernel paging request at virtual address ffffffff printing eip: ffffffff Oops: 0000 <span class="br0">[</span><span class="co0">#5] SMP </span>CPU: <span class="nu0">0</span> EIP: 0060:<span class="br0">[</span><span class="br0">]</span> Not tainted EFLAGS: 00010296 <span class="br0">(</span>2.6.6<span class="br0">)</span> EIP is at 0xffffffff eax: 0000000c ebx: ffffffff ecx: 00000000 edx: bfffda7c esi: cf434f00 edi: ffffffff ebp: 00002000 esp: c27fff78 ds: 007b es: 007b ss: 0068 Process <span class="kw2">head</span> <span class="br0">(</span>pid: <span class="nu0">2331</span>, <span class="re2">threadinfo</span>=c27fe000 <span class="re2">task</span>=c3226150<span class="br0">)</span> Stack: ffffffff bfffda70 00002000 cf434f20 00000001 00000286 cf434f00 fffffff7 bfffda70 c27fe000 c0150612 cf434f00 bfffda70 00002000 cf434f20 00000000 00000003 00002000 c0103f8f 00000003 bfffda70 00002000 00002000 bfffda70 Call Trace: <span class="br0">[</span><span class="br0">]</span> sys_read+0x42<span class="sy0">/</span>0x70 <span class="br0">[</span><span class="br0">]</span> syscall_call+0x7<span class="sy0">/</span>0xb</p>
+<pre class="de1">Code: Bad EIP value.</pre>
+</div>
+</div>
+<br />在上述oops消息中，由于缓冲区溢出，仅能看到函数调用栈的一部分，看不见函数名vfs_read和faulty_read，并且代码（Code）处仅输出"bad EIP value."，列在栈上开始处的地址"ffffffff"表示内核栈已崩溃。
+<p>（3）oops信息分析</p>
+<p>面对产生的oops信息，首先应查找源程序发生oops的位置，通过查看指令指令寄存器EIP的值，可以找到位置，如：EIP: 0010:[faulty:faulty_write+3/576]。</p>
+<p>再查找函数调用栈（call stack）可以得到更多的信息。从函数调用栈可辨别出局部变量、全局变量和函数参数。例如：在函数faulty_read的oops信息的函数调用栈中，栈顶为ffffffff，栈顶值应为一个小于ffffffff的值，为此值，说明再找不回调用函数地址，说明有可能因缓冲区溢出等原因造成指针错误。</p>
+<p>在x86构架上，用户空间的栈从0xc0000000以下开始，递归值bfffda70可能是用户空间的栈地址。实际上它就是传递给read系统调用的缓冲区地址，系统调用read进入内核时，将用户空间缓冲区的数据拷贝到内核空间缓冲区。</p>
+<p>如果oops信息显示触发oops的地址为0xa5a5a5a5，则说明很可能是因为没有初始化动态内存引起的。</p>
+<p>另外，如果想看到函数调用栈的符号，编译内核时，请打开CONFIG_KALLSYMS选项。</p>
+<p>klogd 提供了许多信息来帮助分析。为了使 klogd 正确地工作，必须在 /boot 中提供符号表文件 System.map。如果符号表与当前内核不匹配，klogd 就会拒绝解析符号。</p>
+<p>有时内核错误会将系统完全挂起。例如代码进入一个死循环，系统不会再响应任何动作。这时可通过在一些关键点上插入 schedule 调用可以防止死循环。</p>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E7.B3.BB.E7.BB.9F.E5.B4.A9.E6.BA.83.E9.87.8D.E5.90.AF.E5.8A.A8" class="mw-headline">系统崩溃重启动 </span></h3>
+<p>由于内核运行错误，在某些极端情况下，内核会运行崩溃，内核崩溃时会导致死机。为了解决此问题，内核引入了快速装载和重启动新内核机制。内核通过kdump在崩溃时触发启动新内核，存储旧内存映像以便于调试，让系统在新内核上运行 ，从而避免了死机，增强了系统的稳定性。</p>
+<div class="headerTree headerTree-h4">
+<h4><span id=".EF.BC.881.EF.BC.89.E5.B7.A5.E5.85.B7kexec.E4.BB.8B.E7.BB.8D" class="mw-headline">（1）工具kexec介绍 </span></h4>
+<p>kexec是一套系统调用，允许用户从当前正执行的内核装载另一个内核。用户可用shell命令"yum install kexec-tools"安装kexec工具包，安装后，就可以使用kexec命令。</p>
+<p>工具kexec直接启动进入一个新内核，它通过系统调用使用户能够从当前内核装载并启动进入另一个内核。在当前内核中，kexec执行BootLoader的功能。在标准系统启动和kexec启动之间的主要区别是：在kexec启动期间，依赖于硬件构架的固件或BIOS不会被执行来进行硬件初始化。这将大大降低重启动的时间。</p>
+<p>为了让内核的kexec功能起作用，内核编译配置是应确认先择了"CONFIG_KEXEC=y"，在配置后生成的.config文件中应可看到此条目。</p>
+<p>工具kexec的使用分为两步，首先，用kexec将调试的内核装载进内存，接着，用kexec启动装载的内核。</p>
+<p>装载内核的语法列出如下：</p>
+<p>kexec -l kernel-image --append=command-line-options --initrd=initrd-image</p>
+<p>上述命令中，参数kernel-image为装载内核的映射文件，该命令不支持压缩的内核映像文件bzImage，应使用非压缩的内核映射文件vmlinux；参数initrd-image为启动时使用initrd映射文件；参数command-line-options为命令行选项，应来自当前内核的命令行选项，可从文件"/proc/cmdline"中提取，该文件的内容列出如下：</p>
+<p>^-^$ cat /proc/cmdline</p>
+<p>ro root=/dev/VolGroup00/LogVol00 rhgb quiet</p>
+<p>例如：用户想启动的内核映射为/boot/vmlinux，initrd为/boot/initrd，则kexec加载命令列出如下：</p>
+<p>Kexec &ndash;l /boot/vmlinux &ndash;append=/dev/VolGroup00/LogVol00 initrd=/boot/initrd</p>
+<p>还可以加上选项-p或--load-panic，表示装载新内核在系统内核崩溃使用。</p>
+<p>在内核装载后，用下述命令启动装载的内核，并进行新的内核中运行：</p>
+<p>kexec -e</p>
+<p>当kexec将当前内核迁移到新内核上运行时，kexec拷贝新内核到预保留内存块，该保留位置如图1所示， 原系统内核给kexec装载内核预保留一块内存（在图中的阴影部分），用于装载新内核，其他内存区域在未装载新内核时，由原系统内核使用。</p>
+<center>
+<p><a class="image" href="http://www.shangshuwu.cn/index.php/%E6%96%87%E4%BB%B6:Linux_kernel_debug_method_02_png"><img src="http://www.shangshuwu.cn/images/0/03/Linux_kernel_debug_method_02.png" alt="Linux kernel debug method 02.png" width="1042" height="598" /></a></p>
+</center><center>图1 kexec装载的内核所在预保留位置示意图</center>
+<p>在x86构架的机器上，系统启动时需要使用第一个640KB物理内存，用于内核装载，kexec在重启动进入转储捕捉的内核之前备份此区域。相似地，PPC64构架的机器在启动里需要使用第一个32KB物理内核，并需要支持64K页，kexec备份第一个64KB内存。</p>
+</div>
+<div class="headerTree headerTree-h4">
+<h4><span id=".EF.BC.882.EF.BC.89kdump.E4.BB.8B.E7.BB.8D" class="mw-headline">（2）kdump介绍 </span></h4>
+<p>kdump是基于kexec的崩溃转储机制（kexec-based Crash Dumping），无论内核内核需要转储时，如：系统崩溃时，kdump使用kexec快速启动进入转储捕捉的内核。在这里，原运行的内核称为系统内核或原内核，新装载运行的内核称为转储捕捉的内核或装载内核或新内核。</p>
+<p>在重启动过程中，原内核的内存映像被保存下来，并且转储捕捉的内核（新装载的内核）可以访问转储的映像。用户可以使用命令cp和scp将内存映射拷贝到一个本地硬盘上的转储文件或通过网络拷贝到远程计算机上。</p>
+<p>当前仅x86, x86_64, ppc64和ia64构架支持kdump和kexec。</p>
+<p>当系统内核启动时，它保留小部分内存给转储（dump）捕捉的内核，确保了来自系统内核正进行的直接内存访问（Direct Memory Access：DMA）不会破坏转储捕捉的内核。命令kexec &ndash;p装载新内核到这个保留的内存。</p>
+<p>在崩溃前，所有系统内核的核心映像编码为ELF格式，并存储在内核的保留区域。ELF头的开始物理地址通过参数elfcorehdr=boot传递到转储捕捉的内核。</p>
+<p>通过使用转储捕捉的内核，用户可以下面两种方式访问内存映像或旧内存：</p>
+<p>（1）通过/dev/oldmem设备接口，捕捉工具程序能读取设备文件并以原始流的格式写出内存，它是一个内存原始流的转储。分析和捕捉工具必须足够智能以判断查找正确信息的位置。</p>
+<p>（2）通过/proc/vmcore，能以ELF格式文件输出转储信息，用户可以用GDB（GNU Debugger）和崩溃调试工具等分析工具调试转储文件。</p>
+<p>（3）建立快速重启动机制和安装工具</p>
+<p>1）安装工具kexec-tools</p>
+<p>可以下载源代码编译安装工具kexec-tools。由于工具kexec-tools还依赖于一些其他的库，因此，最好的方法是使用命令"yum install kexec-tools"从网上下载安装并自动解决依赖关系。</p>
+<p>2）编译系统和转储捕捉的内核</p>
+<p>可编译独立的转储捕捉内核用于捕捉内核的转储，还可以使用原系统内核作为转储捕捉内核，在这种情况下，不需要再编译独立的转储捕捉内核，但仅支持重定位内核的构架才可以用作转储捕捉的内核，如：构架i386和ia64支持重定位内核。</p>
+<p>对于系统和转储捕捉内核来说，为了打开kdump支持，内核需要设置一些特殊的配置选项，下面分别对系统内核和转储捕捉内核的配置选项进行说明：</p>
+<p>系统内核的配置选项说明如下：</p>
+<ul>
+<li>在菜单条目"Processor type and features."中打开选项"kexec system call"，使内核编译安装kexe系统调用。配置文件.config生成语句"CONFIG_KEXEC=y"。</li>
+<li>在菜单条目"Filesystem"-&gt;"Pseudo filesystems."中打开选项"sysfs file system support"，使内核编译安装文件系统sysfs.配置文件.config生成语句"CONFIG_SYSFS=y"。</li>
+<li>在菜单条目"Kernel hacking."中打开选项"Compile the kernel with debug info "，使内核编译安装后支持调试信息输出，产生调试符号用于分析转储文件。配置文件.config生成语句"CONFIG_DEBUG_INFO=Y"。</li>
+</ul>
+<p>转储捕捉内核配置选项（不依赖于处理器构架）说明如下：</p>
+<ul>
+<li>在菜单条目"Processor type and features"中打开选项"kernel crash dumps"，配置文件.config生成语句" CONFIG_CRASH_DUMP=y"。</li>
+<li>在菜单条目"Filesystems"-&gt;"Pseudo filesystems"中打开选项"/proc/vmcore support"，配置文件.config生成语句"CONFIG_PROC_VMCORE=y"。</li>
+</ul>
+<p>转储捕捉内核配置选项（依赖于处理器构架i386和x86_64）说明如下：</p>
+<ul>
+<li>在处理器构架i386上，在菜单条目"Processor type and features"中打开高端内存支持，配置文件.config生成语句"CONFIG_HIGHMEM64G=y"或"CONFIG_HIGHMEM4G"。</li>
+<li>在处理器构架i386和x86_64上，在菜单条目"rocessor type and features"中关闭对称多处理器支持，配置文件.config生成语句"CONFIG_SMP=n"。如果配置文件中的设置为"CONFIG_SMP=y"，则可在装载转储捕捉内核的内核命令行上指定"maxcpus=1"。</li>
+<li>如果想构建和使用可重定位内核，在菜单条目"rocessor type and featuresIf"中打开选项"Build a relocatable kernel"，配置文件.config生成语句"CONFIG_RELOCATABLE=y"。</li>
+<li>在菜单"Processor type and features"下的条目"Physical address where the kernel is loaded"设置合适的值用于内核装载的物理地址。它仅在打开了"kernel crash dumps"时出现。合适的值依赖于内核是否可重定位。</li>
+</ul>
+<p>如果设置了值"CONFIG_PHYSICAL_START=0x100000"，则表示使用可重定位内核。它将编译内核在物理地址1MB处，内核是可重定位的，因此，内核可从任何物理地址运行。Kexec BootLoader将装载内核到用于转储捕捉内核的内核保留区域。</p>
+<p>否则，将使用启动参数"crashkernel=Y@X"指定第二个内核保留内核区域的开始地址，其中，Y表示内存区域的大小，X表示保留给转储捕捉内核的内存区域的开始地址，通过X为16MB (0x1000000)，因此用户可设置"CONFIG_PHYSICAL_START=0x1000000"。</p>
+<p>在配置完内核后，编译和安装内核及内核模块。</p>
+<p>3）扩展的crashkernel语法</p>
+<p>在系统内核的启动命令行选项中，通常语法"crashkernel=size[@offset]"对于大多数据配置已够用了，但有时候保留的内存依赖于系统RAM。此时可通过扩展的crashkernel命令行对内存进行 限制避免从机器上移去一部分内核后造成系统不可启动。扩展的crashkernel语法列出如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="re2">crashkernel</span>=<span class="sy0">&lt;</span>range1<span class="sy0">&gt;</span>:<span class="sy0">&lt;</span>size1<span class="sy0">&gt;</span><span class="br0">[</span>,<span class="sy0">&lt;</span>range2<span class="sy0">&gt;</span>:<span class="sy0">&lt;</span>size2<span class="sy0">&gt;</span>,...<span class="br0">]</span><span class="br0">[</span><span class="sy0">@</span>offset<span class="br0">]</span></pre>
+</div>
+</div>
+<p>其中，range=start-[end]。</p>
+<p>例如：crashkernel=512M-2G:64M,2G-:128M，含义为：如果内存小于512M，不设置保留内存，如果内存为512M到2G之间，设置保留内存区域为64M，如果内存大于128M，设置保留内存区域为128M。</p>
+<p>4）启动进入系统内核</p>
+<p>必要时更新BootLoader。然后用参数"crashkernel=Y@X"启动系统内核，如：crashkernel=64M@16M，表示告诉系统内核保留从物理地址0x01000000 (16MB)开始的64MB大小给转储捕捉内核使用。通常x86和x86_64平台设置"crashkernel=64M@16M"，ppc64平台设置"crashkernel=128M@32M"。</p>
+<p>5）装载转储捕捉内核</p>
+<p>在启动进入系统内核后，需要装载转储捕捉内核。根据处理器构架和映射文件的类型（可否重定位），可以选择装载不压缩的vmlinux或压缩的bzImage/vmlinuz内核映像。选择方法说明如下：</p>
+<p>对于i386和x86_64平台：</p>
+<ul>
+<li>如果内核不是可重定位的，使用vmlinux。</li>
+<li>如果内核是可重定位的，使用bzImage/vmlinuz。</li>
+</ul>
+<p>对于ppc64平台：</p>
+<ul>
+<li>使用vmlinux。</li>
+</ul>
+<p>对于ia64平台：</p>
+<ul>
+<li>使用vmlinux或vmlinuz.gz。</li>
+</ul>
+如果用户使用不压缩的vmlinux映像，那么使用下面的命令装载转储捕捉内核：
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1">kexec <span class="re5">-p</span> <span class="sy0">&lt;</span>dump-capture-kernel-vmlinux-image<span class="sy0">&gt;</span> \
+   <span class="re5">--initrd</span>=<span class="sy0">&lt;</span>initrd-for-dump-capture-kernel<span class="sy0">&gt;</span> <span class="re5">--args-linux</span> \
+   <span class="re5">--append</span>=<span class="st0">"root=&lt;root-dev&gt; &lt;arch-specific-options&gt;"</span></pre>
+</div>
+</div>
+<br />如果用户使用压缩的bzImage/vmlinuz映像，那么使用下面的命令装载转储捕捉内核：
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1">kexec <span class="re5">-p</span> <span class="sy0">&lt;</span>dump-capture-kernel-bzImage<span class="sy0">&gt;</span>\</pre>
+<pre>  <span class="re5">--initrd</span>=<span class="sy0">&lt;</span>initrd-for-dump-capture-kernel<span class="sy0">&gt;</span> \
+</pre>
+<pre class="de1">   <span class="re5">--append</span>=<span class="st0">"root=&lt;root-dev&gt; &lt;arch-specific-options&gt;"</span></pre>
+</div>
+</div>
+<br />注意：参数--args-linux在ia64平台中不用指定。
+<p>下面是在装载转储捕捉内核时使用的构架特定命令行选项：</p>
+<ul>
+<li>对于i386, x86_64和ia64平台，选项为"1 irqpoll maxcpus=1 reset_devices"。</li>
+<li>对于ppc64平台，选项为"1 maxcpus=1 noirqdistrib reset_devices"。</li>
+</ul>
+<p>在装载转储捕捉内核时需要注意的事项说明如下：</p>
+<ul>
+<li>缺省设置下，ELF头以ELF64格式存储，以支持多于4GB内核的系统，在i386上，kexec自动检查物理RAM尺寸是否超过4GB限制，如果没有超过，使用ELF32。因此，在非PAE系统上ELF头总是使用ELF32格式。</li>
+<li>选项--elf32-core-headers可用于强制产生ELF32头，这是必要的，因为在32位系统上，GDB当前不能打开带有ELF64头的vmcore文件。</li>
+<li>在转储捕捉内核中，启动参数irqpoll减少了由于共享中断引起的驱动程序初始化失败。</li>
+<li>用户必须以命令mount输出的根设备名的格式指定&lt;root-dev&gt;。</li>
+<li>启动参数"1"将转储捕捉内核启动进入不支持网络的单用户模式。如果用户想使用网络，需要设置为3。</li>
+<li>通常不必让转储捕捉内核以SMP方式运行。因此，通常编译一个单CPU转储捕捉内核或装载转储捕捉内核时指定选项"maxcpus=1"。</li>
+</ul>
+<p>6）内核崩溃时触发内核启动</p>
+<p>在装载转储捕捉内核后，如果系统发生崩溃（Kernel Panic），系统将重启动进入转储捕捉内核。重启动的触发点在函数die(), die_nmi()和sysrq处理例程（按ALT-SysRq-c组合键）。</p>
+<p>下面条件将执行一个崩溃触发点：</p>
+<ul>
+<li>如果检测到硬件锁住，并且配置了"NMI watchdog"，系统将调用函数die_nmi()启动进入转储捕捉内核。</li>
+<li>如果调用了函数die()，并且该线程的pid为0或1,或者在中断上下文中调用die()，或者设置了panic_on_oops并调用了die()，系统将启动进入转储捕捉内核。</li>
+<li>在powerpc系统，当一个软复位产生时，所有的CPU调用die()，并且系统将启动进入转储捕捉内核。</li>
+<li>为了测试目的，用户可以使用"ALT-SysRq-c"，"echo c &gt; /proc/sysrq-trigger"触发一个崩溃，或者写一个内核模块强制内核崩溃。</li>
+</ul>
+<p>7）写出转储文件</p>
+<p>在转储捕捉内核启动后，可用下面的命令写出转储文件：</p>
+<p>cp /proc/vmcore &lt;dump-file&gt;</p>
+<p>用户还可以将转储内存作为设备/dev/oldmem以线性原始流视图进行访问，使用下面的命令创建该设备：</p>
+<p>mknod /dev/oldmem c 1 12</p>
+<p>使用命令dd拷贝转储内存的特定部分，拷贝整个内存的命令列出如下：</p>
+<p>dd if=/dev/oldmem of=oldmem.001</p>
+<p>8）转储文件分析</p>
+<p>在分析转储映像之前，用户应重启动进入一个稳定的内核。用户可以用GDB对拷贝出的转储进行有限分析。编译vmlinux时应加上-g选项，才能生成调试用的符号，然后，用下面的命令调试vmlinux：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="kw2">gdb</span> vmlinux <span class="sy0">&lt;</span>dump-file<span class="sy0">&gt;</span></pre>
+</div>
+</div>
+<br />
+<div class="headerTree headerTree-h3">
+<h3><span id="SysRq.E9.AD.94.E6.9C.AF.E7.BB.84.E5.90.88.E9.94.AE.E6.89.93.E5.8D.B0.E5.86.85.E6.A0.B8.E4.BF.A1.E6.81.AF" class="mw-headline">SysRq魔术组合键打印内核信息 </span></h3>
+<p>SysRq"魔术组合键"是一组按键，由键盘上的"Alt+SysRq+[CommandKey]"三个键组成，其中CommandKey为可选的按键。SysRq魔术组合键根据组合键的不同，可提供控制内核或打印内核信息的功能。SysRq魔术组合键的功能说明如表1所示。</p>
+<center>表1 SysRq组合键的功能说明</center>
+<table style="width: 100%;" border="1">
+<tbody>
+<tr>
+<td>键名</td>
+<td>功能说明</td>
+</tr>
+<tr>
+<td>b</td>
+<td>在没有同步或卸载硬盘的情况下立即启动。</td>
+</tr>
+<tr>
+<td>c</td>
+<td>为了获取崩溃转储执行kexe重启动。</td>
+</tr>
+<tr>
+<td>d</td>
+<td>显示被持的所有锁。</td>
+</tr>
+<tr>
+<td>e</td>
+<td>发送信号SIGTERM给所有进程，除了init外。</td>
+</tr>
+<tr>
+<td>f</td>
+<td>将调用oom_kill杀死内存热进程。</td>
+</tr>
+<tr>
+<td>g</td>
+<td>在平台ppc和sh上被kgdb使用。</td>
+</tr>
+<tr>
+<td>h</td>
+<td>显示帮助信息。</td>
+</tr>
+<tr>
+<td>i</td>
+<td>发送信号SIGKILL给所有的进程，除了init外。</td>
+</tr>
+<tr>
+<td>k</td>
+<td>安全访问密钥（Secure Access Key，SAK）杀死在当前虚拟终端上的所有程序。</td>
+</tr>
+<tr>
+<td>m</td>
+<td>转储当前的内存信息到控制台。</td>
+</tr>
+<tr>
+<td>n</td>
+<td>用于设置实时任务为可调整nice的。</td>
+</tr>
+<tr>
+<td>o</td>
+<td>将关闭系统（如果配置为支持）。</td>
+</tr>
+<tr>
+<td>p</td>
+<td>打印当前寄存器和标识到控制台。</td>
+</tr>
+<tr>
+<td>q</td>
+<td>将转储所有正运行定时器的列表。</td>
+</tr>
+<tr>
+<td>r</td>
+<td>关闭键盘Raw模式并设置为XLATE模式。</td>
+</tr>
+<tr>
+<td>s</td>
+<td>尝试同步所有挂接的文件系统。</td>
+</tr>
+<tr>
+<td>t</td>
+<td>将转储当前的任务列表和它们的信息到控制台。</td>
+</tr>
+<tr>
+<td>u</td>
+<td>尝试以仅读的方式重挂接所有已挂接的文件系统。</td>
+</tr>
+<tr>
+<td>v</td>
+<td>转储Voyager SMP处理器信息到控制台。</td>
+</tr>
+<tr>
+<td>w</td>
+<td>转储的所有非可中断（已阻塞）状态的任务。</td>
+</tr>
+<tr>
+<td>x</td>
+<td>在平台ppc/powerpc上被xmon（X监视器）接口使用。</td>
+</tr>
+<tr>
+<td>0~9</td>
+<td>设备控制台日志级别，控制将打印到控制台的内核信息。例如：0仅打印紧急信息，如：PANIC和OOPS信息。</td>
+</tr>
+</tbody>
+</table>
+<p>默认SysRq组合键是关闭的。可用下面的命令打开此功能：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="co0"># echo 1 &gt; /proc/sys/kernel/sysrq</span></pre>
+</div>
+</div>
+<br />
+<p>关闭此功能的命令列出如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="co0"># echo 0 &gt; /proc/sys/kernel/sysrq</span></pre>
+</div>
+</div>
+<br />
+<p>如果想让此功能总是起作用，可在/etc/sysctl.conf文件中设置kernel.sysrq值为1。 系统重新启动以后，此功能将会自动打开。</p>
+<p>打开SysRq组合键功能后，有终端访问权限的用户就可以自用它打印内核信息了。</p>
+注意：SysRq组合键在X windows上是无法使用的。必须先要切换到文本虚拟终端下。如果在图形界面，可以按Ctrl+Alt+F1切换到虚拟终端。在串口终端上，需要先在终端上发送Break信号，然后在5秒内输入sysrq组合键。如果用户有root权限，可把commandkey字符写入到/proc/sysrq-trigger文件，触发一个内核信息打印，打印的信息存放在/var/log/messages中。下面是一个命令样例：
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1">^-^$ <span class="kw3">echo</span> <span class="st_h">'t'</span> <span class="sy0">&gt;</span> sysrq-trigger
+^-^<span class="kw2">vim</span> <span class="sy0">/</span>var<span class="sy0">/</span>log<span class="sy0">/</span>messages
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: SysRq : Show State
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel:  task                        PC stack   pid father
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: init          S ffffffff812b76a0     <span class="nu0">0</span>     <span class="nu0">1</span>      <span class="nu0">0</span>
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: ffff81013fa97998 0000000000000082 0000000000000000 ffff81013fa9795c
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: 000000003fa97978 ffffffff81583700 ffffffff81583700 ffff81013fa98000
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: ffffffff813cc5b0 ffff81013fa98350 000000003c352a50 ffff81013fa98350
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: Call Trace:
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: 000300000004 ffff8101333cb090
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: Call Trace:
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: <span class="br0">[</span><span class="sy0">&lt;</span>ffffffff81040c2e<span class="sy0">&gt;</span><span class="br0">]</span> sys_pause+0x19<span class="sy0">/</span>0x22
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: <span class="br0">[</span><span class="sy0">&lt;</span>ffffffff8100c291<span class="sy0">&gt;</span><span class="br0">]</span> tracesys+0xd0<span class="sy0">/</span>0xd5
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel:
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: lighttpd      S ffffffff812b76a0     <span class="nu0">0</span>  <span class="nu0">3365</span>      <span class="nu0">1</span>
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: ffff810132d49b18 0000000000000082 0000000000000000 ffff810132d49adc
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: ffff81013fb2d148 ffffffff81583700 ffffffff81583700 ffff8101354896a0
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: ffffffff813cc5b0 ffff8101354899f0 0000000032d49ac8 ffff8101354899f0
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: Call Trace:
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: <span class="br0">[</span><span class="sy0">&lt;</span>ffffffff81040722<span class="sy0">&gt;</span><span class="br0">]</span> ? __mod_timer+0xbb<span class="sy0">/</span>0xcd
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: <span class="br0">[</span><span class="sy0">&lt;</span>ffffffff8129b2ee<span class="sy0">&gt;</span><span class="br0">]</span> schedule_timeout+0x8d<span class="sy0">/</span>0xb4
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: <span class="br0">[</span><span class="sy0">&lt;</span>ffffffff81040100<span class="sy0">&gt;</span><span class="br0">]</span> ? process_timeout+0x0<span class="sy0">/</span>0xb
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: <span class="br0">[</span><span class="sy0">&lt;</span>ffffffff8129b2e9<span class="sy0">&gt;</span><span class="br0">]</span> ? schedule_timeout+0x88<span class="sy0">/</span>0xb4
+Oct <span class="nu0">29</span> <span class="nu0">17</span>:<span class="nu0">51</span>:<span class="nu0">43</span> njllinux kernel: <span class="br0">[</span><span class="sy0">&lt;</span>ffffffff810b9498<span class="sy0">&gt;</span><span class="br0">]</span> do_sys_poll+0x2a8<span class="sy0">/</span>0x370
+&hellip;&hellip;</pre>
+</div>
+</div>
+<br />
+<div class="headerTree headerTree-h3">
+<h3><span id=".E5.91.BD.E4.BB.A4strace" class="mw-headline">命令strace </span></h3>
+<p>命令strace 显示程序调用的所有系统调用。使用 strace 工具，用户可以清楚地看到这些调用过程及其使用的参数，了解它们与操作系统之间的底层交互。当系统调用失败时，错误的符号值（如 ENOMEM）和对应的字符串（如Out of memory）都能被显示出来。</p>
+<p>starce 的另一个用处是解决和动态库相关的问题。当对一个可执行文件运行ldd时，它会告诉你程序使用的动态库和找到动态库的位置</p>
+<p>strace命令行选项说明如表1。常用的选项为-t, -T, -e, -o等。</p>
+<center>表1 命令strace的命令行选项说明</center>
+<table style="width: 100%;" border="1">
+<tbody>
+<tr>
+<td>选项</td>
+<td>说明</td>
+</tr>
+<tr>
+<td>-c</td>
+<td>统计每个系统调用执行的时间、次数和出错的次数等。</td>
+</tr>
+<tr>
+<td>-d</td>
+<td>输出一些strace自身的调试信息到标准输出。</td>
+</tr>
+<tr>
+<td>-f</td>
+<td>跟踪当前进程由系统调用fork产生的子进程。</td>
+</tr>
+<tr>
+<td>-ff</td>
+<td>如果使用选项-o filename,则将跟踪结果输出到相应的filename.pid中,pid是各进程的进程号。</td>
+</tr>
+<tr>
+<td>-F</td>
+<td>尝试跟踪vfork调用.在-f时,vfork不被跟踪。</td>
+</tr>
+<tr>
+<td>-h</td>
+<td>输出简要的帮助信息。</td>
+</tr>
+<tr>
+<td>-i</td>
+<td>在系统调用的时候打印指令指针。</td>
+</tr>
+<tr>
+<td>-q</td>
+<td>禁止输出关于粘附和脱离的信息，发生在输出重定向到文件且直接而不是粘附运行命令时。</td>
+</tr>
+<tr>
+<td>-r</td>
+<td>依赖于每个系统调用的入口打印相对时间戳。</td>
+</tr>
+<tr>
+<td>-t</td>
+<td>在输出中的每一行前加上时间信息。</td>
+</tr>
+<tr>
+<td>-tt</td>
+<td>在输出中的每一行前加上时间信息，包括毫秒。</td>
+</tr>
+<tr>
+<td>-ttt</td>
+<td>毫秒级输出,以秒表示时间。</td>
+</tr>
+<tr>
+<td>-T</td>
+<td>显示系统调用所花费的时间。</td>
+</tr>
+<tr>
+<td>-v</td>
+<td>输出所有的系统调用的信息。一些关于环境变量,状态,输入输出等调用由于使用频繁,默认不输出。</td>
+</tr>
+<tr>
+<td>-V</td>
+<td>输出strace的版本信息。</td>
+</tr>
+<tr>
+<td>-x</td>
+<td>以十六进制形式输出非ASCII标准字符串。</td>
+</tr>
+<tr>
+<td>-xx</td>
+<td>所有字符串以十六进制形式输出。</td>
+</tr>
+<tr>
+<td>-a column</td>
+<td>以特定的列数对齐返回值，缺省值为40。</td>
+</tr>
+<tr>
+<td>-e expr</td>
+<td>指定一个表达式,用来控制如何跟踪.格式如下:<br />[qualifier=][!]value1[,value2]...<br />qualifier只能是 trace,abbrev,verbose,raw,signal,read,write其中之一。value是用来限定的符号或数字。默认的qualifier是 trace。感叹号是否定符号。</td>
+</tr>
+<tr>
+<td>-eopen</td>
+<td>等价于 -e trace=open,表示只跟踪open调用。而-etrace!=open表示跟踪除了open以外的其他调用。</td>
+</tr>
+<tr>
+<td>-e trace=set</td>
+<td>只跟踪指定的系统调用。例如:-e trace=open,close,rean,write表示只跟踪这四个系统调用。默认的为set=all。</td>
+</tr>
+<tr>
+<td>-e trace=file</td>
+<td>只跟踪文件名作为参数的系统调用，一般为文件操作。</td>
+</tr>
+<tr>
+<td>-e trace=process</td>
+<td>只跟踪有关进程控制的系统调用。</td>
+</tr>
+<tr>
+<td>-e trace=network</td>
+<td>只跟踪与网络有关的所有系统调用。</td>
+</tr>
+<tr>
+<td>-e strace=signal</td>
+<td>跟踪所有与系统信号有关的系统调用。</td>
+</tr>
+<tr>
+<td>-e trace=ipc</td>
+<td>跟踪所有与进程间通信有关的系统调用。</td>
+</tr>
+<tr>
+<td>-o filename</td>
+<td>将strace的输出写入文件filename。</td>
+</tr>
+<tr>
+<td>-p pid</td>
+<td>跟踪指定的进程pid。</td>
+</tr>
+<tr>
+<td>-s strsize</td>
+<td>指定最大字符串打印长度，默认值为32。</td>
+</tr>
+<tr>
+<td>-u username</td>
+<td>以username的UID和GID执行命令。</td>
+</tr>
+</tbody>
+</table>
+例如：命令strace pwd的输出部分列出如下：
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1">execve<span class="br0">(</span><span class="st0">"/bin/pwd"</span>, <span class="br0">[</span><span class="st0">"pwd"</span><span class="br0">]</span>, <span class="br0">[</span><span class="sy0">/*</span> <span class="nu0">39</span> vars <span class="sy0">*/</span><span class="br0">]</span><span class="br0">)</span> = <span class="nu0">0</span>
+<span class="kw2">uname</span><span class="br0">(</span><span class="br0">{</span><span class="re2">sys</span>=<span class="st0">"Linux"</span>, <span class="re2">node</span>=<span class="st0">"sammy"</span>, ...<span class="br0">}</span><span class="br0">)</span> = <span class="nu0">0</span>
+brk<span class="br0">(</span><span class="nu0">0</span><span class="br0">)</span>                                  = 0x804c000
+old_mmap<span class="br0">(</span>NULL, <span class="nu0">4096</span>, PROT_READ<span class="sy0">|</span>PROT_WRITE, MAP_PRIVATE<span class="sy0">|</span>MAP_ANONYMOUS, -<span class="nu0">1</span>, <span class="nu0">0</span><span class="br0">)</span> = 0x4001...
+	fstat64<span class="br0">(</span><span class="nu0">3</span>, <span class="br0">{</span><span class="re2">st_mode</span>=S_IFREG<span class="sy0">|</span>0644, <span class="re2">st_size</span>=<span class="nu0">115031</span>, ...<span class="br0">}</span><span class="br0">)</span> = <span class="nu0">0</span>
+old_mmap<span class="br0">(</span>NULL, <span class="nu0">115031</span>, PROT_READ, MAP_PRIVATE, <span class="nu0">3</span>, <span class="nu0">0</span><span class="br0">)</span> = 0x40017000
+close<span class="br0">(</span><span class="nu0">3</span><span class="br0">)</span>                                = <span class="nu0">0</span>
+open<span class="br0">(</span><span class="st0">"/lib/tls/libc.so.6"</span>, O_RDONLY<span class="br0">)</span>    = <span class="nu0">3</span>
+<span class="kw2">read</span><span class="br0">(</span><span class="nu0">3</span>, <span class="st0">"\177ELF\1\1\1\0\0\0\0\0\0\0\0\0\3\0\3\0\1\0\0\0\360U\1"</span>..., <span class="nu0">1024</span><span class="br0">)</span> = <span class="nu0">1024</span>
+fstat64<span class="br0">(</span><span class="nu0">3</span>, <span class="br0">{</span><span class="re2">st_mode</span>=S_IFREG<span class="sy0">|</span>0755, <span class="re2">st_size</span>=<span class="nu0">1547996</span>, ...<span class="br0">}</span><span class="br0">)</span> = <span class="nu0">0</span></pre>
+</div>
+</div>
+<br />
+<div class="headerTree headerTree-h3">
+<h3><span id=".E7.94.A8.E5.87.BD.E6.95.B0printk.E6.89.93.E5.8D.B0.E5.86.85.E6.A0.B8.E4.BF.A1.E6.81.AF" class="mw-headline">用函数printk打印内核信息 </span></h3>
+<p>Linux内核用函数printk打印调试信息，该函数的用法与C库打印函数printf格式类似，但在内核使用。用户可在内核代码中的某位置加入函数printk，直接把所关心的信息打打印到屏幕上或日志文件中。</p>
+<p>函数printk根据日志级别（loglevel）对调试信息进行分类。日志级别用宏定义，展开为一个字符串，在编译时由预处理器将它和消息文本拼接成一个字符串，因此函数printk中的日志级别和格式字符串间不能有逗号。</p>
+下面两个 printk 的例子，一个是调试信息，一个是临界信息：
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="c source-c">
+<pre class="de1">printk<span class="br0">(</span>KERN_DEBUG <span class="st0">"Here I am: %s:%i<span class="es1">\n</span>"</span><span class="sy0">,</span> _ _FILE_ _<span class="sy0">,</span> _ _LINE_ _<span class="br0">)</span><span class="sy0">;</span> 
+printk<span class="br0">(</span>KERN_CRIT <span class="st0">"I'm trashed; giving up on %p<span class="es1">\n</span>"</span><span class="sy0">,</span> ptr<span class="br0">)</span><span class="sy0">;</span></pre>
+</div>
+</div>
+<br />样例：在用户空间或内核中开启及关闭打印调试消息 用户还可以在内核或用户空间应用程序定义统一的函数打印调试信息，可在Makefile文件中打开或关闭调试函数。定义方法列出如下：
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="c source-c">
+<pre class="de1"><span class="coMULTI">/*debug_on_off.h*/</span>
+<span class="co2">#undef PDEBUG             /* undef it, just in case */ </span>
+<span class="co2">#ifdef SCULL_DEBUG </span>
+<span class="co2">#ifdef _ _KERNEL_ _ </span>
+    <span class="coMULTI">/* This one if debugging is on, and kernel space */</span> 
+<span class="co2">#define PDEBUG(fmt,args...) printk(KERN_DEBUG "scull: " fmt, ## args)</span>
+<span class="co2">#else </span>
+    <span class="coMULTI">/* This one for user space */</span> 
+<span class="co2">#define PDEBUG(fmt, args...) fprintf(stderr, fmt, ## args) </span>
+<span class="co2">#endif </span>
+<span class="co2">#else </span>
+<span class="co2">#define PDEBUG(fmt, args...) /* not debugging: nothing */ </span>
+<span class="co2">#endif</span></pre>
+</div>
+</div>
+<br />在文件Makefile加上下面几行：
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="make source-make">
+<pre class="de1"><span class="co1"># Comment/uncomment the following line to disable/enable debugging </span>
+DEBUG <span class="sy0">=</span> y 
+ 
+<span class="co1"># Add your debugging flag (or not) to CFLAGS </span>
+<span class="kw1">ifeq</span> <span class="br0">(</span><span class="sy0">$</span><span class="br0">(</span><span class="re2">DEBUG</span><span class="br0">)</span><span class="sy0">,</span>y<span class="br0">)</span> 
+ DEBFLAGS <span class="sy0">=</span> <span class="sy0">-</span>O <span class="sy0">-</span>g <span class="sy0">-</span>DSCULL_DEBUG <span class="co1"># "-O" </span>
+<span class="kw1">else</span> 
+ DEBFLAGS <span class="sy0">=</span> <span class="sy0">-</span>O2 
+<span class="kw1">endif</span> 
+ 
+CFLAGS <span class="sy0">+=</span> <span class="sy0">$</span><span class="br0">(</span><span class="re2">DEBFLAGS</span><span class="br0">)</span></pre>
+</div>
+</div>
+<br />
+<p>更改makefile中的DEBUG值，需要调试信息时，DEBUG = y，不需要时，DEBUG赋其它值。再用make编译即可。</p>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E5.86.85.E6.A0.B8.E6.8E.A2.E6.B5.8Bkprobe" class="mw-headline">内核探测kprobe </span></h3>
+<p>kprobe（内核探测，kernel probe）是一个动态地收集调试和性能信息的工具，如：收集寄存器和全局数据结构等调试信息，无需对Linux内核频繁编译和启动。用户可以在任何内核代码地址进行陷阱，指定调试断点触发时的处理例程。工作机制是：用户指定一个探测点，并把用户定义的处理函数关联到该探测点，当内核执行到该探测点时，相应的关联函数被执行，然后继续执行正常的代码路径。</p>
+<p>kprobe允许用户编写内核模块添加调试信息到内核。当在远程机器上调试有bug的程序而日志/var/log/messages不能看出错误时，kprobe显得非常有用。用户可以编译一个内核模块，并将内核模块插入到调试的内核中，就可以输出所需要的调试信息了。</p>
+<p>内核探测分为kprobe, jprobe和kretprobe（也称return probe，返回探测）三种。kprobe可插入内核中任何指令处；jprobe插入内核函数入口，方便于访问函数的参数；return probe用于探测指定函数的返回值。</p>
+<p>内核模块的初始化函数init安装（或注册）了多个探测函数，内核模块的退出函数exit将注销它们。注册函数（如：register_kprobe()）指定了探测器插入的地方、探测点触发的处理例程。</p>
+<p>（1）配置支持kprobe的内核</p>
+<p>配置内核时确信在.config文件中设置了CONFIG_KPROBES、CONFIG_MODULES、CONFIG_MODULE_UNLOAD、CONFIG_KALLSYMS_ALL和CONFIG_DEBUG_INFO。</p>
+<p>配置了CONFIG_KALLSYMS_ALL，kprobe可用函数kallsyms_lookup_name从地址解析代码。配置了CONFIG_DEBUG_INFO后，可以用命令"objdump -d -l vmlinux"查看源到对象的代码映射。</p>
+<p>调试文件系统debugfs含有kprobe的调试接口，可以查看注册的kprobe列表，还可以关闭/打开kprobe。</p>
+<p>查看系统注册probe的方法列出如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="co0">#cat /debug/kprobes/list</span>
+c015d71a  k  vfs_read+0x0
+c011a316  j  do_fork+0x0
+c03dedc5  r  tcp_v4_rcv+0x0</pre>
+</div>
+</div>
+<br />
+<p>第一列表示探测点插入的内核地址，第二列表示内核探测的类型，k表示kprobe，r表示kretprobe，j表示jprobe，第三列指定探测点的"符号+偏移"。如果被探测的函数属于一个模块，模块名也被指定。</p>
+<p>打开和关闭kprobe的方法列出如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="co0">#echo &lsquo;1&rsquo; /debug/kprobes/enabled</span>
+<span class="co0">#echo &lsquo;0&rsquo; /debug/kprobes/enabled</span></pre>
+</div>
+</div>
+<p>（2）kprobe样例</p>
+<p>Linux内核源代码在目录samples/kpobges下提供了各种kprobe类型的探测处理例程编写样例，分别对应文件kprobe_example.c、jprobe_example.c和kretprobe_example.c，用户稍加修改就可以变成自己的内核探测模块。下面仅说明kprobe类型的探测例程。</p>
+<p>样例kprobe_example是kprobe类型的探测例程内核模块，显示了在函数do_fork被调用时如何使用kprobe转储栈和选择的寄存器。当内核函数do_fork被调用创建一个新进程时，在控制台和/var/log/messages中将显示函数printk打印的跟踪数据。样例kprobe_example列出如下（在samples/kprobe_example.c中）：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="c source-c">
+<pre class="de1"><span class="co2">#include &lt;linux/kernel.h&gt;</span>
+<span class="co2">#include &lt;linux/module.h&gt;</span>
+<span class="co2">#include &lt;linux/kprobes.h&gt;</span>
+ 
+<span class="coMULTI">/* 对于每个探测，用户需要分配一个kprobe对象*/</span>
+<span class="kw4">static</span> <span class="kw4">struct</span> kprobe kp <span class="sy0">=</span> <span class="br0">{</span>
+	.<span class="me1">symbol_name</span>	<span class="sy0">=</span> <span class="st0">"do_fork"</span><span class="sy0">,</span>
+<span class="br0">}</span><span class="sy0">;</span>
+ 
+<span class="coMULTI">/* 在被探测指令执行前，将调用预处理例程 pre_handler，用户需要定义该例程的操作*/</span>
+<span class="kw4">static</span> <span class="kw4">int</span> handler_pre<span class="br0">(</span><span class="kw4">struct</span> kprobe <span class="sy0">*</span>p<span class="sy0">,</span> <span class="kw4">struct</span> pt_regs <span class="sy0">*</span>regs<span class="br0">)</span>
+<span class="br0">{</span>
+<span class="co2">#ifdef CONFIG_X86</span>
+	printk<span class="br0">(</span>KERN_INFO <span class="st0">"pre_handler: p-&gt;addr = 0x%p, ip = %lx,"</span>
+			<span class="st0">" flags = 0x%lx<span class="es1">\n</span>"</span><span class="sy0">,</span>
+		p<span class="sy0">-&gt;</span>addr<span class="sy0">,</span> regs<span class="sy0">-&gt;</span>ip<span class="sy0">,</span> regs<span class="sy0">-&gt;</span>flags<span class="br0">)</span><span class="sy0">;</span>  <span class="coMULTI">/*打印地址、指令和标识*/</span>
+<span class="co2">#endif</span>
+<span class="co2">#ifdef CONFIG_PPC</span>
+	printk<span class="br0">(</span>KERN_INFO <span class="st0">"pre_handler: p-&gt;addr = 0x%p, nip = 0x%lx,"</span>
+			<span class="st0">" msr = 0x%lx<span class="es1">\n</span>"</span><span class="sy0">,</span>
+		p<span class="sy0">-&gt;</span>addr<span class="sy0">,</span> regs<span class="sy0">-&gt;</span>nip<span class="sy0">,</span> regs<span class="sy0">-&gt;</span>msr<span class="br0">)</span><span class="sy0">;</span>
+<span class="co2">#endif</span>
+ 
+	<span class="coMULTI">/* 在这里可以调用内核接口函数dump_stack打印出栈的内容*/</span>
+	<span class="kw1">return</span> <span class="nu0">0</span><span class="sy0">;</span>
+<span class="br0">}</span>
+ 
+<span class="coMULTI">/* 在被探测指令执行后，kprobe调用后处理例程post_handler */</span>
+<span class="kw4">static</span> <span class="kw4">void</span> handler_post<span class="br0">(</span><span class="kw4">struct</span> kprobe <span class="sy0">*</span>p<span class="sy0">,</span> <span class="kw4">struct</span> pt_regs <span class="sy0">*</span>regs<span class="sy0">,</span>
+				<span class="kw4">unsigned</span> <span class="kw4">long</span> flags<span class="br0">)</span>
+<span class="br0">{</span>
+<span class="co2">#ifdef CONFIG_X86</span>
+	printk<span class="br0">(</span>KERN_INFO <span class="st0">"post_handler: p-&gt;addr = 0x%p, flags = 0x%lx<span class="es1">\n</span>"</span><span class="sy0">,</span>
+		p<span class="sy0">-&gt;</span>addr<span class="sy0">,</span> regs<span class="sy0">-&gt;</span>flags<span class="br0">)</span><span class="sy0">;</span>
+<span class="co2">#endif</span>
+<span class="co2">#ifdef CONFIG_PPC</span>
+	printk<span class="br0">(</span>KERN_INFO <span class="st0">"post_handler: p-&gt;addr = 0x%p, msr = 0x%lx<span class="es1">\n</span>"</span><span class="sy0">,</span>
+		p<span class="sy0">-&gt;</span>addr<span class="sy0">,</span> regs<span class="sy0">-&gt;</span>msr<span class="br0">)</span><span class="sy0">;</span>
+<span class="co2">#endif</span>
+<span class="br0">}</span>
+ 
+<span class="coMULTI">/*在pre-handler或post-handler中的任何指令或者kprobe单步执行的被探测指令产生了例外时，会调用fault_handler*/</span>
+<span class="kw4">static</span> <span class="kw4">int</span> handler_fault<span class="br0">(</span><span class="kw4">struct</span> kprobe <span class="sy0">*</span>p<span class="sy0">,</span> <span class="kw4">struct</span> pt_regs <span class="sy0">*</span>regs<span class="sy0">,</span> <span class="kw4">int</span> trapnr<span class="br0">)</span>
+<span class="br0">{</span>
+	printk<span class="br0">(</span>KERN_INFO <span class="st0">"fault_handler: p-&gt;addr = 0x%p, trap #%dn"</span><span class="sy0">,</span>
+		p<span class="sy0">-&gt;</span>addr<span class="sy0">,</span> trapnr<span class="br0">)</span><span class="sy0">;</span>
+	<span class="coMULTI">/* 不处理错误时应该返回*/</span>
+	<span class="kw1">return</span> <span class="nu0">0</span><span class="sy0">;</span>
+<span class="br0">}</span>
+ 
+<span class="coMULTI">/*初始化内核模块*/</span>
+<span class="kw4">static</span> <span class="kw4">int</span> __init kprobe_init<span class="br0">(</span><span class="kw4">void</span><span class="br0">)</span>
+<span class="br0">{</span>
+	<span class="kw4">int</span> ret<span class="sy0">;</span>
+	kp.<span class="me1">pre_handler</span> <span class="sy0">=</span> handler_pre<span class="sy0">;</span>
+	kp.<span class="me1">post_handler</span> <span class="sy0">=</span> handler_post<span class="sy0">;</span>
+	kp.<span class="me1">fault_handler</span> <span class="sy0">=</span> handler_fault<span class="sy0">;</span>
+ 
+	ret <span class="sy0">=</span> register_kprobe<span class="br0">(</span><span class="sy0">&amp;</span>kp<span class="br0">)</span><span class="sy0">;</span>  <span class="coMULTI">/*注册kprobe*/</span>
+	<span class="kw1">if</span> <span class="br0">(</span>ret <span class="sy0">&lt;</span> <span class="nu0">0</span><span class="br0">)</span> <span class="br0">{</span>
+		printk<span class="br0">(</span>KERN_INFO <span class="st0">"register_kprobe failed, returned %d<span class="es1">\n</span>"</span><span class="sy0">,</span> ret<span class="br0">)</span><span class="sy0">;</span>
+		<span class="kw1">return</span> ret<span class="sy0">;</span>
+	<span class="br0">}</span>
+	printk<span class="br0">(</span>KERN_INFO <span class="st0">"Planted kprobe at %p<span class="es1">\n</span>"</span><span class="sy0">,</span> kp.<span class="me1">addr</span><span class="br0">)</span><span class="sy0">;</span>
+	<span class="kw1">return</span> <span class="nu0">0</span><span class="sy0">;</span>
+<span class="br0">}</span>
+ 
+<span class="kw4">static</span> <span class="kw4">void</span> __exit kprobe_exit<span class="br0">(</span><span class="kw4">void</span><span class="br0">)</span>
+<span class="br0">{</span>
+	unregister_kprobe<span class="br0">(</span><span class="sy0">&amp;</span>kp<span class="br0">)</span><span class="sy0">;</span>
+	printk<span class="br0">(</span>KERN_INFO <span class="st0">"kprobe at %p unregistered<span class="es1">\n</span>"</span><span class="sy0">,</span> kp.<span class="me1">addr</span><span class="br0">)</span><span class="sy0">;</span>
+<span class="br0">}</span>
+ 
+module_init<span class="br0">(</span>kprobe_init<span class="br0">)</span>
+module_exit<span class="br0">(</span>kprobe_exit<span class="br0">)</span>
+MODULE_LICENSE<span class="br0">(</span><span class="st0">"GPL"</span><span class="br0">)</span><span class="sy0">;</span></pre>
+</div>
+</div>
+<br />
+<div class="headerTree headerTree-h3">
+<h3><span id="Systemtap.E8.B0.83.E8.AF.95" class="mw-headline">Systemtap调试 </span></h3>
+<div class="headerTree headerTree-h4">
+<h4><span id=".EF.BC.881.EF.BC.89Systemtap.E5.8E.9F.E7.90.86" class="mw-headline">（1）Systemtap原理 </span></h4>
+<p>Systemtap是一个基于kprobe调试内核的开源软件。调试者只需要写一些脚本，通过Systemtap提供的命令行接口对正在运行的内核进行诊断调试，不需要修改或插入调试代码、重新编译内核、安装内核和重启动等工作，使内核调试变得简单容易。Systemtap调试过程与在gdb调试器中用断点命令行调试类似。</p>
+<p>Systemtap用类似于awk语言的脚本语言编写调试脚本，该脚本命名事件并给这些事件指定处理例程。只要指定的事件发生，Linux内核将运行对应的处理例程。</p>
+<p>有几种类型的事件，如：进入或退出一个函数，一个定时器超时或整个systemtap会话开始或停止。处理例程是一系列脚本语言语句指定事件发生时所做的工作，包括从事件上下文提取数据，存储它们进入内部变量或打印结果。</p>
+<p>Systemtap的运行过程如图2所示，用户调试时用Systemtap编写调试脚本，Systemtap的翻译模块（translator）将脚本经语法分析（parse）、功能处理（elaborate）和翻译后生成C语言调试程序，然后，运行C编译器编译（build）创建调试内核模块。再接着将该内核模块装载入内核，通过kprobe机制，内核的hook激活所有的探测事件。当任何处理器上有这些事件发生时，对应的处理例程被触发工作，kprobe机制在内核获取的调试数据通过文件系统relayfs传回Systemtap，输出调试数据probe.out。在调试结束时，会话停止，内核断开hook连接，并卸载内核模块。整个操作过程由单个命令行程序strap驱动控制。</p>
+<center>
+<p><a class="image" href="http://www.shangshuwu.cn/index.php/%E6%96%87%E4%BB%B6:Linux_kernel_debug_method_03_png"><img src="http://www.shangshuwu.cn/images/f/f0/Linux_kernel_debug_method_03.png" alt="Linux kernel debug method 03.png" width="694" height="566" /></a></p>
+</center><center>图2 Systemtap运行过程</center></div>
+<div class="headerTree headerTree-h4">
+<h4><span id=".EF.BC.882.EF.BC.89stap.E7.A8.8B.E5.BA.8F" class="mw-headline">（2）stap程序 </span></h4>
+<p>stap程序是Systemtap工具的前端，它接受用systemtap脚本语言编写的探测指令，翻译这些指令到C语言代码，编译C代码产生并装载内核模块到正运行的Linux内核，执行请求的跟踪或探测函数。用户可在一个命名文件中提供脚本或从命令行中提供调试语句。</p>
+<p>命令stap的用法列出如下：</p>
+<p>stap [ OPTIONS ] FILENAME [ ARGUMENTS ]</p>
+<p>stap [ OPTIONS ] - [ ARGUMENTS ]</p>
+<p>stap [ OPTIONS ] -e SCRIPT [ ARGUMENTS ]</p>
+<p>stap [ OPTIONS ] -l PROBE [ ARGUMENTS ]</p>
+<p>选项[ OPTIONS ]说明如下：</p>
+<p>-h 显示帮助信息。</p>
+<p>-V 显示版本信息。</p>
+<p>-k 在所有操作完成后，保留临时目录。对于检查产生的C代码或重使用编译的内核对象来说，这是有用的。</p>
+<p>-u 非优化编译模式。.</p>
+<p>-w 关闭警告信息。</p>
+<p>-b 让内核到用户数据传输使用bulk模式。</p>
+<p>-t 收集时间信息：探测执行的次数、每个探测花费的平均时间量。</p>
+<p>-sNUM 内核到用户数据传输使用NUM MB 的缓冲区。当多个处理器工作在bulk模式时，这是单个处理器的缓冲区大小。</p>
+<p>-p NUM Systemtap在通过NUM个步骤后停止。步骤数为1-5： parse, elaborate, translate, compile, run。</p>
+<p>-I DIR 添加tapset库（用于翻译C代码的函数集）搜索目录。</p>
+<p>-D NAME=VALUE 添加C语言宏定义给内核模块Makefile，用于重写有限的参数。</p>
+<p>-R DIR 在给定的目录查找Systemtap运行源代码。</p>
+<p>-r RELEASE 为给定的内核发布版本RELEASE而不是当前运行内核编译内核模块。</p>
+<p>-m MODULE 给编译产生的内核模块命名MODULE，替代缺省下的随机命名。产生的内核模块被拷贝到当前目录。</p>
+<p>-o FILE 发送标准输出到命名文件FILE。在bulk模式，每个CPU的文件名将用"FILE_CPU序号"表示。</p>
+<p>-c CMD 开始探测，运行CMD，当CMD完成时退出。</p>
+<p>-x PID 设置target()𤣵到PID。这允许脚本作为指定进程的过滤器。</p>
+<p>-l PROBE 代替运行一个探测脚本，它仅列出所有匹配给定模式PROBE可用的探测点，模式PROBE可用通配符。</p>
+<p>--kmap[=FILE] 指定符号文件，缺省文件为/boot/System.map-VER-SION。探测的函数的地址和名字需要通过内核或内核模块的符号表解析。如果内核编译时没有调试信息或者探测是在没有调试信息的汇编语言言论的，这将是有用的。</p>
+<p>--ignore-vmlinux 忽略vmlinux文件。</p>
+</div>
+<div class="headerTree headerTree-h4">
+<h4><span id=".EF.BC.883.EF.BC.89Systemtap.E8.84.9A.E6.9C.AC.E8.AF.AD.E6.B3.95" class="mw-headline">（3）Systemtap脚本语法 </span></h4>
+<p>Systemtap脚本语法类似于C语言，它使用了三种数据类型：整数(integers)、字符串（strings）和关联数组（associative Arrays）。它有与C语言一样的控制结构。Systemtap脚本语法详细内容请参考《Systemtap tutorial》。</p>
+<p>Systemtap脚本由探测点(probe)和探测输出函数组成。每个Systemtap脚本至少定义一个探测点。函数是探测点的处理例程。</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="co0">#!/usr/bin/env stap    #Systemtap脚本的标志</span>
+<span class="co0">#</span>
+<span class="co0"># 显示在最后5秒内调用最后10个系统调用</span>
+display the top <span class="nu0">10</span> syscalls called <span class="kw1">in</span> <span class="kw2">last</span> <span class="nu0">5</span> seconds
+<span class="co0">#</span>
+global syscalls          <span class="co0">#定义全局变量</span>
+<span class="kw1">function</span> print_top <span class="br0">(</span><span class="br0">)</span> <span class="br0">{</span>  <span class="co0">#定义函数</span>
+        <span class="re2">cnt</span>=<span class="nu0">0</span>            <span class="co0">#局部变量</span>
+        log <span class="br0">(</span><span class="st0">"SYSCALL<span class="es1">\t</span><span class="es1">\t</span><span class="es1">\t</span><span class="es1">\t</span>COUNT"</span><span class="br0">)</span>      <span class="co0">#打印表头标题&ldquo;SYSCALL COUNT&rdquo;</span>
+        foreach <span class="br0">(</span><span class="br0">[</span>name<span class="br0">]</span> <span class="kw1">in</span> syscalls-<span class="br0">)</span> <span class="br0">{</span>   <span class="co0">#查询每个系统调用的计数值</span>
+                <span class="kw3">printf</span><span class="br0">(</span><span class="st0">"%-20s<span class="es1">\t</span><span class="es1">\t</span>%5d<span class="es1">\n</span>"</span>,name, syscalls<span class="br0">[</span>name<span class="br0">]</span><span class="br0">)</span>  <span class="co0">#按格式打印</span>
+                <span class="kw1">if</span> <span class="br0">(</span>cnt++ == <span class="nu0">10</span><span class="br0">)</span>
+                        <span class="kw3">break</span>
+        <span class="br0">}</span>
+        <span class="kw3">printf</span><span class="br0">(</span><span class="st0">"--------------------------------------<span class="es1">\n</span>"</span><span class="br0">)</span>
+        delete syscalls                 <span class="co0">#删除全局变量</span>
+<span class="br0">}</span>
+probe syscall.<span class="sy0">*</span> <span class="br0">{</span>       <span class="co0">#在系统调用探测点</span>
+        syscalls<span class="br0">[</span>probefunc<span class="br0">(</span><span class="br0">)</span><span class="br0">]</span>++      <span class="co0">#系统调用计数</span>
+<span class="br0">}</span>
+probe timer.ms<span class="br0">(</span><span class="nu0">5000</span><span class="br0">)</span> <span class="br0">{</span>
+        print_top <span class="br0">(</span><span class="br0">)</span>       <span class="co0">#调用函数</span>
+<span class="br0">}</span></pre>
+</div>
+</div>
+<br />
+<div class="headerTree headerTree-h2">
+<h2><span id="kdb.E5.86.85.E6.A0.B8.E8.B0.83.E8.AF.95.E5.99.A8" class="mw-headline">kdb内核调试器 </span></h2>
+<p>Kdb（Kernel Debug）是SGI公司开发的遵循GPL的内建Linux内核调试工具。标准的Linux内核不包括kdb，需要从<a class="external free" href="ftp://oss.sgi.com/www/projects/kdb/download/ix86" rel="nofollow">ftp://oss.sgi.com/www/projects/kdb/download/ix86</a> 下载对应标准版本内核的kdb补丁，对标准内核打补丁，然后，编译打过补丁的内核代码。目前kdb支持包括x86(IA32)、IA64和MIPS在内的体系结构。</p>
+<p>Kdb调试器是Linux内核的一部分，提供了检查内存和数据结构的方法。通过附加命令，它可以格式化显示给定地址或ID的基本系统数据结构。kdb当前的命令集可以完全控制内核的操作，包括单步运行一个处理器、在指定的指令执行处理暂停、在访问或修改指定虚拟内存的位置暂停、在输入-输出地址空间对一个寄存器访问处暂停、通过进程ID跟踪任务、指令反汇编等。</p>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E5.AE.89.E8.A3.85kdb" class="mw-headline">安装kdb </span></h3>
+<p>标准内核不包含kdb，因此，用户需要先下载kdb补丁，如：kdb-v4.4-2.6.24-x86-2.bz2，接着，应打补丁、配置、编译和安装内核。</p>
+<p>（1）打补丁</p>
+<p>下载和解压缩补丁，将补丁打进标准内核中。方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1">$ upzip kdb-v4.4-2.6.24-x86-<span class="nu0">2</span>.bz2
+<span class="re1">$cp</span> kdb-v4.4-2.6.24-x86-<span class="nu0">2</span>  linux-2.6.24<span class="sy0">/</span>
+$ <span class="kw3">cd</span> linux-2.6.24
+$ <span class="kw2">patch</span> <span class="re5">-p1</span> <span class="sy0">&lt;</span> kdb-v4.4-2.6.24-x86-<span class="nu0">2</span>.bz
+$ <span class="kw2">make</span> xconfig</pre>
+</div>
+</div>
+<br />
+<p>（2）配置新内核</p>
+<p>运行make xconfig，在配置界面上选择CONFIG_KDB选项，为了更好地调试，建议用户从配置界面上选择CONFIG_FRAME_POINTER选项，尽管该选项使用了格外的寄存器并产生稍慢一些的内核。</p>
+<p>（3）编译与安装新内核</p>
+<p>按下面步骤重新编译和安装新内核：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="co0">#make   </span>
+<span class="co0">#make install  </span>
+<span class="co0">#make modules_install</span></pre>
+</div>
+</div>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E4.BD.BF.E7.94.A8kdb.E8.B0.83.E8.AF.95.E5.91.BD.E4.BB.A4" class="mw-headline">使用kdb调试命令 </span></h3>
+<p>运行支持kdb的内核后，在控制台上按下 Pause（或 Break）键将启动调试。当内核发生 oop或到达某个断点时，也会启动 kdb。kdb提示符如下所示：</p>
+<p>Entering kdb (current=0xc03b0000,pid 0)on processor 0 due to Keyboard Entry</p>
+<p>[0]kdb&gt;</p>
+<p>在kdb提示符下，用户可以输入kdb命令，详细的kdb命令使用说明请参考man kdb文档，一些常见的命令说明如表1.</p>
+<p>表1 常见kdb命令说明</p>
+<table style="width: 100%;" border="1">
+<tbody>
+<tr>
+<td>命令</td>
+<td>命令说明</td>
+</tr>
+<tr>
+<td>'</td>
+<td>命令可以用于显示所有kdb命令。</td>
+</tr>
+<tr>
+<td>bp</td>
+<td>设置或显示一个断点。</td>
+</tr>
+<tr>
+<td>bph</td>
+<td>设置一个硬件断点。</td>
+</tr>
+<tr>
+<td>bc</td>
+<td>清除一个断点。</td>
+</tr>
+<tr>
+<td>bl</td>
+<td>列出所有当前断点。</td>
+</tr>
+<tr>
+<td>bt</td>
+<td>显示当前进程的堆栈跟踪情况。</td>
+</tr>
+<tr>
+<td>go</td>
+<td>退出调试器并重启内核运行。</td>
+</tr>
+<tr>
+<td>Id</td>
+<td>反汇编指令。</td>
+</tr>
+<tr>
+<td>md</td>
+<td>显示指定地址内容。</td>
+</tr>
+<tr>
+<td>mds</td>
+<td>以符号形式显示内存。</td>
+</tr>
+<tr>
+<td>mm</td>
+<td>修改内存。</td>
+</tr>
+<tr>
+<td>reboot</td>
+<td>立即重启机器。</td>
+</tr>
+<tr>
+<td>rd</td>
+<td>显示寄存器内容。</td>
+</tr>
+<tr>
+<td>ss</td>
+<td>单步执行（一次一条指令）。</td>
+</tr>
+<tr>
+<td>ssb</td>
+<td>单步执行CPU直到到达一分支。</td>
+</tr>
+</tbody>
+</table>
+<p>下面以调试scull驱动程序为例简单说明kdb的使用方法：</p>
+<p>假定scull驱动程序内核模块已装载入内核，先在驱动程序的函数scull_read 中设置一个断点，方法如下：</p>
+<p>[1]kdb&gt; bp scull_read</p>
+<p>Instruction(i) BP #0 at 0xc8833514 (scull_read) is enabled on cpu 1</p>
+<p>[1]kdb&gt; go</p>
+<p>　　命令bp在函数scull_read 开始处设置了一个断点，接着，命令go退出调试器，重启内核运行。内核下一次进入函数scull_read 时暂停运行。产生如下的状态：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1">Entering kdb <span class="br0">(</span>0xc3108000<span class="br0">)</span> on processor <span class="nu0">0</span> due to Breakpoint <span class="sy0">@</span> 0xc8833515 
+Instruction<span class="br0">(</span>i<span class="br0">)</span> breakpoint <span class="co0">#0 at 0xc8833514 </span>
+scull_read+0x1:   movl   <span class="sy0">%</span>esp,<span class="sy0">%</span>ebp 
+<span class="br0">[</span><span class="nu0">0</span><span class="br0">]</span>kdb<span class="sy0">&gt;</span></pre>
+</div>
+</div>
+<br />
+<p>　　kdb当前scull_read断点位置。可用命令bt查看堆栈跟踪记录，检查函数调用层次树，方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="br0">[</span><span class="nu0">0</span><span class="br0">]</span>kdb<span class="sy0">&gt;</span> bt 
+   EBP       EIP         Function<span class="br0">(</span>args<span class="br0">)</span> 
+0xc3109c5c 0xc8833515  scull_read+0x1 
+0xc3109fbc 0xfc458b10  scull_read+0x33c255fc<span class="br0">(</span> 0x3, 0x803ad78, 0x1000, 
+0x1000, 0x804ad78<span class="br0">)</span> 
+0xbffffc88 0xc010bec0  system_call 
+<span class="br0">[</span><span class="nu0">0</span><span class="br0">]</span>kdb<span class="sy0">&gt;</span></pre>
+</div>
+</div>
+<br />
+<p>再可用命令mds显示指定内存的数据，如：查询 scull_devices 指针的值方法如下：</p>
+<p>[0]kdb&gt; mds scull_devices 1</p>
+<p>c8836104: c4c125c0 ....</p>
+<p>上面命令查看指针scull_devices所指位置的一个双字（4个字节）数据，表示设备结构数组的起始地址为c4c125c0。再用mds查看设备结构的数据，方法如下：</p>
+<p>[0]kdb&gt; mds c4c125c0</p>
+<p>c4c125c0: c3785000 ....</p>
+<p>c4c125c4: 00000000 ....</p>
+<p>c4c125c8: 00000fa0 ....</p>
+<p>c4c125cc: 000003e8 ....</p>
+<p>c4c125d0: 0000009a ....</p>
+<p>c4c125d4: 00000000 ....</p>
+<p>c4c125d8: 00000000 ....</p>
+<p>c4c125dc: 00000001 ....</p>
+<p>　　上面8行分别对应结构Scull_Dev的8个成员。再与数据结构Scull_Dev的定义相对照，可知这8个数据的含义。</p>
+<p>还可以使用命令mm修改数据。例如：将结构Scull_Dev的某一成员值设置为0x50，方法如下：</p>
+<p>[0]kdb&gt; mm c4c125d0 0x50</p>
+<p>0xc4c125d0 = 0x50</p>
+<div class="headerTree headerTree-h2">
+<h2><span id="kgdb" class="mw-headline">kgdb </span></h2>
+<div class="headerTree headerTree-h3">
+<h3><span id="kgdb.E8.B0.83.E8.AF.95.E5.8E.9F.E7.90.86" class="mw-headline">kgdb调试原理 </span></h3>
+<p>调试器GNU gdb主要用于调试用户级程序，通过串口线或网络将两台计算机以主机/目标机（host machine/target machine）方式连接时，gdb还可用于调试linux内核。这种方式需要给内核打进包含kgdb驱动程序在内的补丁。</p>
+<p>kgdb是Linux内核的源代码级调试器，与gdb配合使用可以调试Linux内核。在Linux内核的kgdb配合下，内核开发者可以用类似于调试应用程序的方式通过gdb调试内核，可以方便以使用gdb的命令在内核代码放置断点、单步调试内核和观察内核变量值等。</p>
+<p>kgdb进行源码级内核调试的原理图如图1所示。在两台计算中机，一台用作开发计算机，称为主机或开发机；一台用作测试计算机，称为目标机或测试机。两台计算机可通过串行线或以太网进行通信。内核在测试机上调试，gdb在开发机上运行，gdb通过串行线用null modem与调试的内核通信。两台计算机也可以使用一台计算机上的两个虚拟机进行替代。</p>
+<p><a class="image" href="http://www.shangshuwu.cn/index.php/%E6%96%87%E4%BB%B6:Linux_kernel_debug_method_04_png"><img src="http://www.shangshuwu.cn/images/6/6e/Linux_kernel_debug_method_04.png" alt="Linux kernel debug method 04.png" width="386" height="143" /></a></p>
+<p>图1 kgdb进行源码级内核调试原理图</p>
+<p>目前，kgdb支持i386, x86_64, ppc, arm, mips和ia64等处理器构架，开发机和测试机可用串行线或以太网进行连接通信。</p>
+<p>kgdb补丁将下面的内容加入到内核代码中：</p>
+<p>●gdb stub - gdb stub（"树桩"）是调试器的核心，它处理来自开发机上gdb的请求。当测试机运行了帯有kgdb的内核时，gdb stub控制测试机中所有的处理器。</p>
+<p>●对出错处理例程的修改- 当一个不期望的错误发生时，内核将控制传递给kgdb调试器。不含有kgdb的内核在出现不可预测错误时会崩溃（panic），通过对出错处理的修改，kgdb允许开发者分析不可预测的出错。</p>
+<p>●串行通信-该部件通过内核的串行驱动程序，为内核中的stub提供接口，负责在串行连接线上发送和接收数据，还负责处理开发机上gdb发送的处理控制断点请求。</p>
+</div>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E5.BB.BA.E7.AB.8Bkdbg.E8.81.94.E6.9C.BA.E8.B0.83.E8.AF.95.E7.9A.84.E6.96.B9.E6.B3.95" class="mw-headline">建立kdbg联机调试的方法 </span></h3>
+<p>下面说明建立kdbg联机调试的步骤：</p>
+<p>（1）软件建立和应用kgdb补丁</p>
+<p>1）下载Linux内核源代码：linux-2.6.15.5.tar.bz2。</p>
+<p>2）下载与内核版本对应的kgdb补丁：linux-2.6.15.5-kgdb-2.4.tar.bz2。</p>
+<p>3）解压缩软件包，方法如下：</p>
+<p>cd ${BASE_DIR}</p>
+<p>tar -jxvf linux-2.6.15.5.tar.bz2</p>
+<p>cd ${BASE_DIR}/linux-2.6.15.5</p>
+<p>tar -jxvf linux-2.6.15.5-kgdb-2.4.tar.bz2</p>
+<p>在${BASE_DIR}/linux-2.6.15.5目录中，给Linux内核打kgdb补丁，方法如下：</p>
+<p>patch -p1 &lt; ${BASE_DIR}/linux-2.6.15.5-kgdb-2.4/core-lite.patch</p>
+<p>patch -p1 &lt; ${BASE_DIR}/linux-2.6.15.5-kgdb-2.4/i386.patch</p>
+<p>（2）在开发机上编译内核</p>
+<p>1）在${BASE_DIR}/linux-2.6.15.5/Makefile，设置EXTRAVERSION = -kgdb。</p>
+<p>2）运行命令make xconfig或make oldconfig，出现如图2所示的内核配置界面。在配置界面中，为目标机硬件选择合适的选项；在"Kernel hacking"条目下，选择kgdb的选项。</p>
+<p><a class="image" href="http://www.shangshuwu.cn/index.php/%E6%96%87%E4%BB%B6:Linux_kernel_debug_method_05_png"><img src="http://www.shangshuwu.cn/images/3/39/Linux_kernel_debug_method_05.png" alt="Linux kernel debug method 05.png" width="720" height="489" /></a></p>
+<p>图2 在Linux内核配置界面中与kgdb相关的配置选项</p>
+<p>3）运行make bzImage编译内核。</p>
+<p>4）将编译的内核从开发机上传送到目标机上，拷贝内核映像${BASE_DIR}/linux-2.6.15.5/arch/i386/boot/bzImage到目标机/boot/vmlinuz-2.6.15.5-kgdb。然后，再拷贝映射文件${BASE_DIR}/linux-2.6.15.5/System.map到目标机/boot/System.map-2.6.15.5-kgdb。再如下建立符号链接：</p>
+<p>ln -s /boot/vmlinuz-2.6.15.5-kgdb /boot/vmlinuz</p>
+<p>ln -s /boot/System.map-2.6.15.5-kgdb /boot/System.map</p>
+<p>5）在目标机上编辑文件/boot/grub/grub.conf， 在该文件加入含有kgdb的内核条目，方法如下：</p>
+<p>title Linux-2.6.15.5-kgdb</p>
+<p>root (hd0,0)</p>
+<p>kernel /boot/vmlinuz-2.6.15.5-kgdb ro root=/dev/hda1 kgdbwait</p>
+<p>（3）在开发机上开始调试会话</p>
+<p>1）在启动目标机后，它将等待开发机连接，显示下面的消息：</p>
+<p>Waiting for connection from remote gdb...</p>
+<p>2）用命令cd ${BASE_DIR}/linux-2.6.15.5进入目录linux-2.6.15.5目录。</p>
+<p>3）用root用户登录设置调试会话波特率，方法如下：</p>
+<p>&lt;root#&gt; gdb ./vmlinux</p>
+<p>(gdb) set remotebaud 115200</p>
+<p>(gdb) target remote /dev/ttyS0</p>
+<p>Remote debugging using /dev/ttyS0</p>
+<p>breakpoint () at kernel/kgdb.c:1212</p>
+<p>1212 atomic_set(&amp;kgdb_setting_breakpoint, 0);</p>
+<p>warning: shared library handler failed to enable breakpoint</p>
+<p>(gdb)</p>
+<p>4）在开发机上输入调试命令</p>
+<p>此时，gdb已连接到目标机上的内核，目标机上的内核正等待接收命令进行测试。输入命令(gdb) c（表示继续运行）时，目标机系统正常启动，在配置内核时，如果开发机选择了通过gdb输出控制台消息，则控制台log消息会从gdb上显示。</p>
+<p>由gdb连接到测试内核，如果测试内核发生内核崩溃（kernel panic），它将首先将控制权转移给gdb，以让gdb分析崩溃原因。</p>
+<p>（4）使用kgdb以太网接口</p>
+<p>kgdb还可能通过以太网接口调试内核，用以太网接口建立连接的步骤说明如下：</p>
+<p>1）添加下面的行到grub条目中：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="re2">kgdboe</span>=<span class="sy0">@</span>10.0.0.6<span class="sy0">/</span>,<span class="sy0">@</span>10.0.0.3<span class="sy0">/</span> <span class="br0">(</span>that<span class="st_h">'s kgdboe=@LOCAL-IP/,@REMOTE-IP/)
+# Sample grub.conf which will by default boot the kgdb enabled kernel
+title Linux-2.6.15.5-kgdb(eth)
+root (hd0,0)
+kernel /boot/vmlinuz-2.6.15.5-kgdb ro root=/dev/hda1 kgdboe=@10.0.0.6/,@10.0.0.3/
+console=ttyS0,115200</span></pre>
+</div>
+</div>
+<br />
+<p>2）接着在gdb中用下面的命令开始调试会话：</p>
+<p>(gdb) ./vmlinux</p>
+<p>(gdb) target remote udp:HOSTNAME:6443</p>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E8.B0.83.E8.AF.95.E5.86.85.E6.A0.B8.E6.A8.A1.E5.9D.97" class="mw-headline">调试内核模块 </span></h3>
+<p>内核可加载模块的调试具有其特殊性，内核模块中各段的地址在模块加载进内核后才最终确定的，开发机的gdb无法得到各种符号地址信息。因此，用户需要使用特殊版本的gdb，可以检测到内核模块的装载和卸载。另外，还需要将内核模块的符号装载到gdb中，这样，gdb才能解析到符号。</p>
+<p>（1）准备检测内核模块装载和卸载代码的gdb派生版本</p>
+<p>此步骤在开发机上完成。</p>
+<p>安装在开发机上的gdb应含有内核模块调试特征，用户需要安装含有检测内核模块装载和卸载代码的gdb派生版本，该版本gdb派生于标准的gdb。用户可以从网址<a class="external free" href="http://kgdb.linsyssoft.com/downloads.htm" rel="nofollow">http://kgdb.linsyssoft.com/downloads.htm</a>下载gdb-6.4-kgdb-2.4.tar.bz2，然后，编译安装生成gdb派生版本。或者下载gdbmod-2.4.bz2，解压缩后得到可执行的gdb派生版本。</p>
+<p>在测试机上不需要特别的安装，内核模块可以出现在根文件系统或一个ramdisk中。</p>
+<p>（2）装载内核模块符号到gdb中</p>
+<p>此步骤在开发机上完成。</p>
+<p>在开发机上，用户应装载内核模块的符号到gdb，让gdb调试时可以解析到二进制代码对应的符号。</p>
+<p>首先，内核模块编译时应打开调试信息。然后，用下面方法设置内核、调试接口和定位内核模块位置：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="co0">#cd /usr/src/linux 2.6.13 </span>
+<span class="co0">#gdbmod 2.4 vmlinux </span>
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> target remote <span class="sy0">/</span>dev<span class="sy0">/</span>ttyS0
+Remote debugging using <span class="sy0">/</span>dev<span class="sy0">/</span>ttyS0
+breakpoint <span class="br0">(</span><span class="br0">)</span> at gdbstub.c:<span class="nu0">1153</span>
+<span class="nu0">1153</span> <span class="br0">}</span>
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span><span class="kw1">set</span> solib search path <span class="sy0">/</span>usr<span class="sy0">/</span>linux 2.6.13<span class="sy0">/</span>drivers<span class="sy0">/</span>net</pre>
+</div>
+</div>
+<br />
+<p>一旦kgdb通知一个内核模块装载时，gdb必须能定位模块文件。因此，用户需要用命令"set solib-search-path"设置内核模块文件所在的路径。</p>
+<p>（3）插入内核模块到内核</p>
+<p>插入内核模块到内核，方法 如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="co0"># insmod mymodule.ko</span></pre>
+</div>
+</div>
+<br />
+<p>到此，已装载了内核模块符号，内核模块可以像正常的内核代码一样调试了。</p>
+<p>样例：调试内核模块test</p>
+<p>1）编写内核模块</p>
+<p>首先，在开发机上编写简单的内核模块test，代码如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="c source-c">
+<pre class="de1"><span class="kw4">void</span> test_func<span class="br0">(</span><span class="br0">)</span>
+<span class="br0">{</span>
+    printk<span class="br0">(</span><span class="st0">"test_func<span class="es1">\n</span>"</span><span class="br0">)</span><span class="sy0">;</span>
+    printk<span class="br0">(</span><span class="st0">"aaaaaaaaaaa<span class="es1">\n</span>"</span><span class="br0">)</span><span class="sy0">;</span>
+<span class="br0">}</span>
+ 
+<span class="kw4">int</span> test_init<span class="br0">(</span><span class="br0">)</span>
+<span class="br0">{</span>
+    printk<span class="br0">(</span><span class="st0">"test_init_module<span class="es1">\n</span>"</span><span class="br0">)</span><span class="sy0">;</span>
+ 
+    <span class="kw1">return</span> <span class="nu0">0</span><span class="sy0">;</span>
+<span class="br0">}</span>
+ 
+<span class="kw4">void</span> test_exit<span class="br0">(</span><span class="br0">)</span>
+<span class="br0">{</span>
+    printk<span class="br0">(</span><span class="st0">"test_cleanup_module<span class="es1">\n</span>"</span><span class="br0">)</span><span class="sy0">;</span>
+<span class="br0">}</span>
+ 
+module_init<span class="br0">(</span>test_init<span class="br0">)</span><span class="sy0">;</span>
+module_exit<span class="br0">(</span>test_exit<span class="br0">)</span><span class="sy0">;</span></pre>
+</div>
+</div>
+<br />
+<p>2）编译安装内核模块</p>
+<p>接着，编译内核模块，并将内核模块拷贝到测试机上。方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="co0">#cd /root/mymodule</span>
+<span class="co0">#gcc -D__KERNEL__ -DMODULE -I/usr/src/linux-2.6.15/kernel/include -O -Wall -g -c -o test.ko test.c</span>
+<span class="co0">#scp test.ko root@192.168.1.130:/root</span></pre>
+</div>
+</div>
+<p>3）开始调试</p>
+<p>装载内核符号到gdb中，设置内核模块所在路径，方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="co0"># gdbmod vmlinux</span>
+ <span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> <span class="kw1">set</span> solib-search-path <span class="sy0">/</span>root<span class="sy0">/</span>mymodule</pre>
+</div>
+</div>
+<br />
+<p>执行命令rmt，进入测试机调试，方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> rmt
+breakpoint <span class="br0">(</span><span class="br0">)</span> at kgdbstub.c:<span class="nu0">1005</span>
+<span class="nu0">1005</span>                    atomic_set<span class="br0">(</span><span class="sy0">&amp;</span>kgdb_setting_breakpoint, <span class="nu0">0</span><span class="br0">)</span>;</pre>
+</div>
+</div>
+<br />
+<p>在内核模块初始化处设置断点。查内核源码可知，内核模块初始化函数init在module.c文件函数sys_init_module函数中的mod-&gt;init处调用，对应行号为2168（根据不同版本的内核，行号可能不同）。设置断点方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> b module.c:<span class="nu0">2168</span>
+Breakpoint <span class="nu0">1</span> at 0xc011cd83: <span class="kw2">file</span> module.c, line <span class="nu0">2168</span>.</pre>
+</div>
+</div>
+<br />
+<p>让测试机上的内核继续运行，方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> c
+Continuing.
+<span class="br0">[</span>New Thread <span class="nu0">1352</span><span class="br0">]</span>
+<span class="br0">[</span>Switching to Thread <span class="nu0">1352</span><span class="br0">]</span></pre>
+</div>
+</div>
+<br />
+<p>测试机用命令"insmod test.ko"执行插入内核模块操作时，开发机会在断点处被暂停，暂停时显示如下</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1">Breakpoint <span class="nu0">1</span>, sys_init_module <span class="br0">(</span><span class="re2">name_user</span>=0xc03401bc <span class="st0">"\001"</span>,
+<span class="re2">mod_user</span>=0x80904d8<span class="br0">)</span> at module.c:<span class="nu0">2168</span>
+<span class="nu0">2168</span>             ret = mod-<span class="sy0">&gt;</span>init<span class="br0">(</span><span class="br0">)</span>;</pre>
+</div>
+</div>
+<br />
+<p>用step命令进入内核模块test的函数init，方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> step
+test_init <span class="br0">(</span><span class="br0">)</span> at test.c:<span class="nu0">12</span>
+<span class="nu0">12</span>              printk<span class="br0">(</span><span class="st0">"test_init_module<span class="es1">\n</span>"</span><span class="br0">)</span>;
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> n
+<span class="nu0">15</span>      <span class="br0">}</span>
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span></pre>
+</div>
+</div>
+<br />
+<p>对内核模块的非init函数调试时，由于测试机上已插入模块，模块的符号也已加载，只需要直接需要调试的代码处设置断点。如：在函数test_func处设置断点的方法如下：</p>
+<p>(gdb)bt test_func</p>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E8.B0.83.E8.AF.95.E5.86.85.E6.A0.B8" class="mw-headline">调试内核 </span></h3>
+<p>用gdb调试内核类型于调试应用程序进程，kgdb支持gdb的执行控制命令、栈跟踪和线程分析等。但kgdb不支持watchpoint，kgdb通过gdb宏来执行watchpoint。</p>
+<p>调试内核的命令说明如下：</p>
+<p>（1）停止内核执行</p>
+<p>用户在gdb终端中按下Ctrl + C键，gdb将发送停止消息给kgdb stub，kgdb stub控制内核的运行，并与gdb通信。</p>
+<p>（2）继续内核运行</p>
+<p>gdb命令"(gdb) c"告诉kgdb stub继续内核运行，直到遇到一个断点，或者gdb执行Ctrl + C，或其他原因，内核运行才停顿下来。</p>
+<p>（3）断点</p>
+<p>gdb断点（Breakpoints）用于在一个函数或代码行处暂停内核运行，设置断点命令如："(gdb) b module.c:2168"。</p>
+<p>（4）进入代码</p>
+<p>使用命令"(gdb) step"进入一个函数或在暂停后执行下一个程序行；使用命令"(gdb) next"跳过一个函数执行下一个程序行或暂停后执行下一个程序；</p>
+<p>（5）栈跟踪（Stack Trace）</p>
+<p>使用命令"(gdb) bt"或"(gdb) backtrace"显示程序栈，它显示了调用函数的层次列表，表明了函数的调用函数。该命令还打印调解函数的参数值。</p>
+<p>例如，运行命令backtrace的样例列出如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> backtrace
+<span class="co0">#0 breakpoint () at gdbstub.c:1160</span>
+<span class="co0">#1 0xc0188b6c in gdb_interrupt (irq=3, dev_id=0x0, regs=0xc02c9f9c) at gdbserial.c:143</span>
+<span class="co0">#2 0xc0108809 in handle_IRQ_event (irq=3, regs=0xc02c9f9c, action=0xc12fd200)3 0xc0108a0d in do_IRQ (regs={ebx = 1072672288, ecx = 0, edx = 1070825472, esi = 1070825472, edi = 1072672288, ebp = 1070817328, eax = 0, xds = 1072693224, xes = 1072693224, orig_eax = 253, eip = 1072672241, xcs = 16, eflags = 582, esp = 1070817308, xss = 1072672126}) at irq.c:621</span>
+<span class="co0">#4 0xc0106e04 in ret_from_intr () at af_packet.c:1878</span>
+<span class="co0">#5 0xc0105282 in cpu_idle () at process.c:135</span>
+<span class="co0">#6 0xc02ca91f in start_kernel () at init/main.c:599</span>
+<span class="co0">#7 0xc01001cf in L6 () at af_packet.c:1878</span>
+Cannot access memory at address 0x8e000</pre>
+</div>
+</div>
+<br />
+<p>除非栈帧数作为命令backtrace的参数外，gdb仅在栈跟踪走出了可访问地址空间时才停止打印栈的信息。上面例子中，函数调用层次次序从上到下为：ret_from_intr, do_IRQ, handle_IRQ_event, gdb_interrupt。</p>
+<p>放置一个断点在函数ext2_readlink，并访问一个符号链接，以便运行到该断点。 设置断点方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> br ext2_readlink
+Breakpoint <span class="nu0">2</span> at 0xc0158a05: <span class="kw2">file</span> symlink.c, line <span class="nu0">25</span>.
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> c
+Continuing.</pre>
+</div>
+</div>
+<br />
+<p>在测试机上运行命令"ls -l /boot/vmlinuz"显示一个符号链接。在测试机上，内核会运行到上述断点处，并暂停。然后，将断点信息传回开发机。在开发机上，用户可以查看栈或运行其他调试命令。例如：运行栈跟踪命令，显示的结果列出如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1">Breakpoint <span class="nu0">2</span>, ext2_readlink <span class="br0">(</span><span class="re2">dentry</span>=0xc763c6c0, <span class="re2">buffer</span>=0xbfffed84 <span class="st0">"\214\005"</span>,<span class="re2">buflen</span>=<span class="nu0">4096</span><span class="br0">)</span> at symlink.c:<span class="nu0">25</span> <span class="nu0">25</span> char <span class="sy0">*</span>s = <span class="br0">(</span>char <span class="sy0">*</span><span class="br0">)</span>dentry <span class="sy0">&gt;</span>d_inode <span class="sy0">&gt;</span>u.ext2_i.i_data; 
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> bt
+<span class="co0">#0 ext2_readlink (dentry=0xc763c6c0, buffer=0xbfffed84 "\214\005",buflen=4096) at symlink.c:25</span>
+<span class="co0">#1 0xc013b027 in sys_readlink (path=0xbfffff77 "/boot/vmlinuz", buf=0xbfffed84 "\214\005", bufsiz=4096) at stat.c:262</span>
+<span class="co0">#2 0xc0106d83 in system_call () at af_packet.c:1878</span>
+<span class="co0">#3 0x804aec8 in ?? () at af_packet.c:1878</span>
+<span class="co0">#4 0x8049697 in ?? () at af_packet.c:1878</span>
+<span class="co0">#5 0x400349cb in ?? () at af_packet.c:1878</span></pre>
+</div>
+</div>
+<br />
+<p>上述栈跟踪中，gdb打印一些无效的栈帧（#3~#5），这是因为gdb不知道在哪里停止栈跟踪，可以忽略这些无效的栈帧。</p>
+<p>系统调用readlink在函数system_call进入内核，该函数显示在af_packet.c中，这是不对的，因为对于汇编语言文件的函数，gdb不能指出正常的代码行。但gdb可以正确处理在C语言文件中内联汇编代码。更多的调用层次是：sys_readlink和ext2_readlink。</p>
+<p>在调试完后，用户可用"删除"命令和"继续"命令删除断点，并继续内核的运行，方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> delete
+Delete all breakpoints? <span class="br0">(</span>y or n<span class="br0">)</span> y
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> c
+Continuing.</pre>
+</div>
+</div>
+<br />
+<p>（6）内联函数</p>
+<p>使用gdb栈跟踪命令通常足够找出一个函数的调用层次关系。但当其中一个栈帧在扩展的内联函数中，或者从一个内联函数访问另一个内联函数时，栈跟踪命令是不够用的，栈跟踪仅显示在内联函数中的源代码文件名和语句的行号，通过查看外面的函数，这可能知道调用的内联函数，但如果调用了两次内联函数，它就不知道是哪个内联函数了。</p>
+<p>下面的处理流程可用来找出内联函数信息：</p>
+<p>在栈跟踪中，gdb还与函数名一起显示代码地址，在调用了一个内联函数的语句中，gdb显示了这些代码调用和被调用的地址。脚本disasfun.sh可用来反汇编，源代码从vmlinux文件引用一个内核函数。文件vmlinux含有内核函数的绝对地址，因此，在汇编代码中看见的地址是在内存中的地址。</p>
+<p>下面是一个样例。</p>
+<p>配置内核时，kgdb应打开线程分析（CONFIG_KGDB_THREAD），gdb应连接到目标内核。</p>
+<p>用"Ctrl+C"中断内核，放置一个断点在函数__down处，并继续运行，方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1">Program received signal SIGTRAP, Trace<span class="sy0">/</span>breakpoint trap.
+breakpoint <span class="br0">(</span><span class="br0">)</span> at gdbstub.c:<span class="nu0">1160</span>
+<span class="nu0">1160</span>    <span class="br0">}</span>
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> <span class="kw3">break</span> __down
+Breakpoint <span class="nu0">1</span> at 0xc0105a43: <span class="kw2">file</span> semaphore.c, line <span class="nu0">62</span>.
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> c
+Continuing.</pre>
+</div>
+</div>
+<br />
+<p>为了让程序运行到断点处，在目标机上运行"man lilo"。程序会运行到断点，gdb会进入命令行模式。输入栈跟踪命令，显示如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1">Breakpoint <span class="nu0">1</span>, __down <span class="br0">(</span><span class="re2">sem</span>=0xc7393f90<span class="br0">)</span> at semaphore.c:<span class="nu0">62</span>
+<span class="nu0">62</span>              add_wait_queue_exclusive<span class="br0">(</span><span class="sy0">&amp;</span>sem-<span class="sy0">&gt;</span><span class="kw3">wait</span>, <span class="sy0">&amp;</span><span class="kw3">wait</span><span class="br0">)</span>;
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> backtrace
+<span class="co0">#0  __down (sem=0xc7393f90) at semaphore.c:62</span>
+<span class="co0">#1  0xc0105c70 in __down_failed () at af_packet.c:1878</span>
+<span class="co0">#2  0xc011433b in do_fork (clone_flags=16657, stack_start=3221199556,</span>
+     <span class="re2">regs</span>=0xc7393fc4, <span class="re2">stack_size</span>=<span class="nu0">0</span><span class="br0">)</span>
+     at <span class="sy0">/</span>mnt<span class="sy0">/</span>work<span class="sy0">/</span>build<span class="sy0">/</span>old-pc<span class="sy0">/</span>linux-2.4.6-kgdb<span class="sy0">/</span>include<span class="sy0">/</span>asm<span class="sy0">/</span>semaphore.h:<span class="nu0">120</span>
+<span class="co0">#3  0xc010594b in sys_vfork (regs={ebx = 1074823660, ecx = 1074180970,</span>
+      edx = <span class="nu0">1074823660</span>, esi = -<span class="nu0">1073767732</span>, edi = <span class="nu0">134744856</span>, ebp = -<span class="nu0">1073767712</span>,
+      eax = <span class="nu0">190</span>, xds = <span class="nu0">43</span>, xes = <span class="nu0">43</span>, orig_eax = <span class="nu0">190</span>, eip = <span class="nu0">1074437320</span>,
+      xcs = <span class="nu0">35</span>, eflags = <span class="nu0">518</span>, esp = -<span class="nu0">1073767740</span>, xss = <span class="nu0">43</span><span class="br0">}</span><span class="br0">)</span> at process.c:<span class="nu0">719</span></pre>
+</div>
+</div>
+<br />
+<p>在函数sys_vfork中行号显示为719，这与文件process.c中的行号一致，查看该文件可得到确认，方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="c source-c">
+<pre class="de1"><span class="br0">(</span>gdb<span class="br0">)</span> list process.<span class="me1">c</span><span class="sy0">:</span><span class="nu0">719</span>
+<span class="nu0">714</span>      <span class="sy0">*</span> <span class="kw1">do</span> not have enough call<span class="sy0">-</span>clobbered registers to hold all
+<span class="nu0">715</span>      <span class="sy0">*</span> the information you need.
+<span class="nu0">716</span>      <span class="sy0">*/</span>
+<span class="nu0">717</span>     asmlinkage <span class="kw4">int</span> sys_vfork<span class="br0">(</span><span class="kw4">struct</span> pt_regs regs<span class="br0">)</span>
+<span class="nu0">718</span>     <span class="br0">{</span>
+<span class="nu0">719</span>             <span class="kw1">return</span> do_fork<span class="br0">(</span>CLONE_VFORK <span class="sy0">|</span> CLONE_VM <span class="sy0">|</span> SIGCHLD<span class="sy0">,</span> regs.<span class="me1">esp</span><span class="sy0">,</span> <span class="sy0">&amp;</span>regs<span class="sy0">,</span> <span class="nu0">0</span><span class="br0">)</span><span class="sy0">;</span>
+<span class="nu0">720</span>     <span class="br0">}</span>
+<span class="nu0">721</span>
+<span class="nu0">722</span>     <span class="coMULTI">/*
+723      * sys_execve() executes a new program.</span></pre>
+</div>
+</div>
+<br />
+<p>就像gdb显示的一样，函数sys_vfork调用函数do_fork，再看栈跟踪显示的第2帧，gdb显示它在文件semaphore.h中的行号是120，显示的行号虽然没有用但是正确的。查看该文件可得到确认，方法如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="c source-c">
+<pre class="de1"><span class="br0">(</span>gdb<span class="br0">)</span> list semaphore.<span class="me1">h</span><span class="sy0">:</span><span class="nu0">118</span>
+<span class="nu0">113</span>      <span class="sy0">*/</span>
+<span class="nu0">114</span>     <span class="kw4">static</span> <span class="kw2">inline</span> <span class="kw4">void</span> down<span class="br0">(</span><span class="kw4">struct</span> semaphore <span class="sy0">*</span> sem<span class="br0">)</span>
+<span class="nu0">115</span>     <span class="br0">{</span>
+<span class="nu0">116</span>     <span class="co2">#if WAITQUEUE_DEBUG</span>
+<span class="nu0">117</span>             CHECK_MAGIC<span class="br0">(</span>sem<span class="sy0">-&gt;</span>__magic<span class="br0">)</span><span class="sy0">;</span>
+<span class="nu0">118</span>     <span class="co2">#endif</span>
+<span class="nu0">119</span>
+<span class="nu0">120</span>             __asm__ __volatile__<span class="br0">(</span>                                              <span class="sy0">&lt;-----</span>
+<span class="nu0">121</span>                     <span class="st0">"# atomic down operation<span class="es1">\n</span><span class="es1">\t</span>"</span>
+<span class="nu0">122</span>                     LOCK <span class="st0">"decl %0<span class="es1">\n</span><span class="es1">\t</span>"</span>     <span class="coMULTI">/* --sem-&gt;count */</span></pre>
+</div>
+</div>
+<p>上述代码中，在箭头所指示语句处，得到的信息仅是它在do_fork的一个扩展的内联函数down中。gdb还打印了在do_fork中从下一个被调用的函数开始代码的绝对地址：0xc011433b。这里我们用脚本disasfun找出该地址所对应的代码行。命令"disasfun vmlinux do_fork"输出的部分结果显示如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="c source-c">
+<pre class="de1"><span class="kw1">if</span> <span class="br0">(</span><span class="br0">(</span>clone_flags <span class="sy0">&amp;</span> CLONE_VFORK<span class="br0">)</span> <span class="sy0">&amp;&amp;</span> <span class="br0">(</span>retval <span class="sy0">&gt;</span> <span class="nu0">0</span><span class="br0">)</span><span class="br0">)</span>
+c011431d<span class="sy0">:</span>       8b 7d <span class="nu19">08</span>                mov    <span class="nu12">0x8</span><span class="br0">(</span><span class="sy0">%</span>ebp<span class="br0">)</span><span class="sy0">,%</span>edi
+c0114320<span class="sy0">:</span>       f7 c7 <span class="nu8">00</span> <span class="nu0">40</span> <span class="nu8">00</span> <span class="nu8">00</span>       test   $<span class="nu12">0x4000</span><span class="sy0">,%</span>edi
+c0114326<span class="sy0">:</span>       <span class="nu0">74</span> <span class="nu0">13</span>                   je     c011433b <span class="sy0">&lt;</span>do_fork<span class="sy0">+</span><span class="nu12">0x707</span><span class="sy0">&gt;</span>
+c0114328<span class="sy0">:</span>       <span class="nu0">83</span> 7d d4 <span class="nu8">00</span>             cmpl   $<span class="nu12">0x0</span><span class="sy0">,</span><span class="nu12">0xffffffd4</span><span class="br0">(</span><span class="sy0">%</span>ebp<span class="br0">)</span>
+c011432c<span class="sy0">:</span>       7e 0d                   jle    c011433b <span class="sy0">&lt;</span>do_fork<span class="sy0">+</span><span class="nu12">0x707</span><span class="sy0">&gt;</span>
+<span class="co2">#if WAITQUEUE_DEBUG</span>
+CHECK_MAGIC<span class="br0">(</span>sem<span class="sy0">-&gt;</span>__magic<span class="br0">)</span><span class="sy0">;</span>
+<span class="co2">#endif</span>
+        __asm__ __volatile__<span class="br0">(</span>
+c011432e<span class="sy0">:</span>       8b 4d d0                mov    <span class="nu12">0xffffffd0</span><span class="br0">(</span><span class="sy0">%</span>ebp<span class="br0">)</span><span class="sy0">,%</span>ecx
+c0114331<span class="sy0">:</span>       f0 ff 4d ec             lock decl <span class="nu12">0xffffffec</span><span class="br0">(</span><span class="sy0">%</span>ebp<span class="br0">)</span>
+c0114335<span class="sy0">:</span>       <span class="nu17">0f</span> <span class="nu0">88</span> <span class="nu0">68</span> <span class="nu0">95</span> <span class="nu0">13</span> <span class="nu8">00</span>       js     c024d8a3 <span class="sy0">&lt;</span>stext_lock<span class="sy0">+</span><span class="nu12">0x7bf</span><span class="sy0">&gt;</span>
+                down<span class="br0">(</span><span class="sy0">&amp;</span>sem<span class="br0">)</span><span class="sy0">;</span>
+        <span class="kw1">return</span> retval<span class="sy0">;</span>
+c011433b<span class="sy0">:</span>       8b <span class="nu0">45</span> d4                mov    
+<span class="nu12">0xffffffd4</span><span class="br0">(</span><span class="sy0">%</span>ebp<span class="br0">)</span><span class="sy0">,%</span>eax              <span class="sy0">&lt;-----</span>
+c011433e<span class="sy0">:</span>       e9 8d <span class="nu8">00</span> <span class="nu8">00</span> <span class="nu8">00</span>          jmp    c01143d0 <span class="sy0">&lt;</span>do_fork<span class="sy0">+</span><span class="nu12">0x79c</span><span class="sy0">&gt;</span>
+Looking at the code in fork.<span class="me1">c</span>  we know where above code is<span class="sy0">:</span>
+fork_out<span class="sy0">:</span>
+<span class="kw1">if</span> <span class="br0">(</span><span class="br0">(</span>clone_flags <span class="sy0">&amp;</span> CLONE_VFORK<span class="br0">)</span> <span class="sy0">&amp;&amp;</span> <span class="br0">(</span>retval <span class="sy0">&gt;</span> <span class="nu0">0</span><span class="br0">)</span><span class="br0">)</span>
+    down<span class="br0">(</span><span class="sy0">&amp;</span>sem<span class="br0">)</span></pre>
+</div>
+</div>
+<br />
+<p>（7）线程分析</p>
+<p>gdb具有分析应用程序线程的特征，它提供了应用程序创建的线程的列表，它允许开发者查看其中任何一个线程。gdb的特征可用来与kgdb一起查看内核线程。gdb能提供内核中所有线程的列表。开发者可指定一个线程进行分析。像backtrace，info regi这样的gdb命令接着可以显示指定线程上下文的信息。</p>
+<p>应用程序创建的所有线程分享同一地址空间，相似地，所有内核线程共享内核地址空间。每个内核线程的用户地址空间可能不同，因此，gdb线程可较好地分析内核代码和驻留在内核空间的数据结构。</p>
+<p>gdb info给出了关于gdb线程分析方面更多的信息。下面列出一个内核线程分析的样例：</p>
+<p>gdb命令"info threads"给出了内核线程的列表，显示如下：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> info thr
+  <span class="nu0">21</span> thread <span class="nu0">516</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=<span class="nu0">2147483647</span><span class="br0">)</span> at sched.c:<span class="nu0">411</span>
+  <span class="nu0">20</span> thread <span class="nu0">515</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=<span class="nu0">2147483647</span><span class="br0">)</span> at sched.c:<span class="nu0">411</span>
+  <span class="nu0">19</span> thread <span class="nu0">514</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=<span class="nu0">2147483647</span><span class="br0">)</span> at sched.c:<span class="nu0">411</span>
+  <span class="nu0">18</span> thread <span class="nu0">513</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=<span class="nu0">2147483647</span><span class="br0">)</span> at sched.c:<span class="nu0">411</span>
+  <span class="nu0">17</span> thread <span class="nu0">512</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=<span class="nu0">2147483647</span><span class="br0">)</span> at sched.c:<span class="nu0">411</span>
+  <span class="nu0">16</span> thread <span class="nu0">511</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=<span class="nu0">2147483647</span><span class="br0">)</span> at sched.c:<span class="nu0">411</span>
+  <span class="nu0">15</span> thread <span class="nu0">438</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=<span class="nu0">2147483647</span><span class="br0">)</span> at sched.c:<span class="nu0">411</span>
+  <span class="nu0">14</span> thread <span class="nu0">420</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=-<span class="nu0">1013981316</span><span class="br0">)</span> at sched.c:<span class="nu0">439</span>
+  <span class="nu0">13</span> thread <span class="nu0">406</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=-<span class="nu0">1013629060</span><span class="br0">)</span> at sched.c:<span class="nu0">439</span>
+  <span class="nu0">12</span> thread <span class="nu0">392</span>  do_syslog <span class="br0">(</span><span class="re2">type</span>=<span class="nu0">2</span>, <span class="re2">buf</span>=0x804dc20 <span class="st0">"run/utmp"</span>, <span class="re2">len</span>=<span class="nu0">4095</span><span class="br0">)</span>
+    at printk.c:<span class="nu0">182</span>
+  <span class="nu0">11</span> thread <span class="nu0">383</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=<span class="nu0">2147483647</span><span class="br0">)</span> at sched.c:<span class="nu0">411</span>
+  <span class="nu0">10</span> thread <span class="nu0">328</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=<span class="nu0">2147483647</span><span class="br0">)</span> at sched.c:<span class="nu0">411</span>
+  <span class="nu0">9</span> thread <span class="nu0">270</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=-<span class="nu0">1011908724</span><span class="br0">)</span> at sched.c:<span class="nu0">439</span>
+  <span class="nu0">8</span> thread <span class="nu0">8</span>  interruptible_sleep_on <span class="br0">(</span><span class="re2">q</span>=0xc02c8848<span class="br0">)</span> at sched.c:<span class="nu0">814</span>
+  <span class="nu0">7</span> thread <span class="nu0">6</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=-<span class="nu0">1055490112</span><span class="br0">)</span> at sched.c:<span class="nu0">439</span>
+  <span class="nu0">6</span> thread <span class="nu0">5</span>  interruptible_sleep_on <span class="br0">(</span><span class="re2">q</span>=0xc02b74b4<span class="br0">)</span> at sched.c:<span class="nu0">814</span>
+  <span class="nu0">5</span> thread <span class="nu0">4</span>  kswapd <span class="br0">(</span><span class="re2">unused</span>=0x0<span class="br0">)</span> at vmscan.c:<span class="nu0">736</span>
+  <span class="nu0">4</span> thread <span class="nu0">3</span>  ksoftirqd <span class="br0">(</span><span class="re2">__bind_cpu</span>=0x0<span class="br0">)</span> at softirq.c:<span class="nu0">387</span>
+  <span class="nu0">3</span> thread <span class="nu0">2</span>  context_thread <span class="br0">(</span><span class="re2">startup</span>=0xc02e93c8<span class="br0">)</span> at context.c:<span class="nu0">101</span>
+  <span class="nu0">2</span> thread <span class="nu0">1</span>  schedule_timeout <span class="br0">(</span><span class="re2">timeout</span>=-<span class="nu0">1055703292</span><span class="br0">)</span> at sched.c:<span class="nu0">439</span>
+<span class="sy0">*</span> <span class="nu0">1</span> thread <span class="nu0">0</span>  breakpoint <span class="br0">(</span><span class="br0">)</span> at gdbstub.c:<span class="nu0">1159</span>
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span></pre>
+</div>
+</div>
+<br />
+<p>如上所显示，gdb为每个线程设定在gdb中唯一的id，当gdb内部引用一个线程时，可以使用这个id。例如：线程7（PID 7）具有gdb id 8。为了分析内核线程8 ，我们指定线程9给gdb。gdb接着切换到该线程中，准备做更多的分析。</p>
+<p>下面是分析线程的命令显示：</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> thr <span class="nu0">9</span>
+<span class="br0">[</span>Switching to thread <span class="nu0">9</span> <span class="br0">(</span>thread <span class="nu0">270</span><span class="br0">)</span><span class="br0">]</span>
+<span class="co0">#0  schedule_timeout (timeout=-1011908724) at sched.c:439</span>
+<span class="nu0">439</span>             del_timer_sync<span class="br0">(</span><span class="sy0">&amp;</span>timer<span class="br0">)</span>;
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> bt
+<span class="co0">#0  schedule_timeout (timeout=-1011908724) at sched.c:439</span>
+<span class="co0">#1  0xc0113f36 in interruptible_sleep_on_timeout (q=0xc11601f0, timeout=134)</span>
+    at sched.c:<span class="nu0">824</span>
+<span class="co0">#2  0xc019e77c in rtl8139_thread (data=0xc1160000) at 8139too.c:1559</span>
+<span class="co0">#3  0xc010564b in kernel_thread (fn=0x70617773, arg=0x6361635f,</span>
+    <span class="re2">flags</span>=<span class="nu0">1767859560</span><span class="br0">)</span> at process.c:<span class="nu0">491</span>
+<span class="co0">#4  0x19 in uhci_hcd_cleanup () at uhci.c:3052</span>
+<span class="co0">#5  0x313330 in ?? () at af_packet.c:1891</span>
+Cannot access memory at address 0x31494350
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> info regi
+eax            0xc38fdf7c       <span class="re5">-1013981316</span>
+ecx            0x86     <span class="nu0">134</span>
+edx            0xc0339f9c       <span class="re5">-1070358628</span>
+ebx            0x40f13  <span class="nu0">266003</span>
+esp             0xc3af7f74       0xc3af7f74
+ebp            0xc3af7fa0       0xc3af7fa0
+esi            0xc3af7f8c       <span class="re5">-1011908724</span>
+edi            0xc3af7fbc       <span class="re5">-1011908676</span>
+eip            0xc011346d       0xc011346d
+eflags         0x86     <span class="nu0">134</span>
+cs             0x10     <span class="nu0">16</span>
+ss             0x18     <span class="nu0">24</span>
+ds             0x18     <span class="nu0">24</span>
+es             0x18     <span class="nu0">24</span>
+fs             0xffff   <span class="nu0">65535</span>
+<span class="kw2">gs</span>             0xffff   <span class="nu0">65535</span>
+fctrl          0x0      <span class="nu0">0</span>
+fstat          0x0      <span class="nu0">0</span>
+ftag           0x0      <span class="nu0">0</span>
+fiseg          0x0      <span class="nu0">0</span>
+fioff          0x0      <span class="nu0">0</span>
+foseg          0x0      <span class="nu0">0</span>
+fooff          0x0      <span class="nu0">0</span>
+<span class="re5">---Type</span> <span class="sy0">&lt;</span><span class="kw3">return</span><span class="sy0">&gt;</span> to <span class="kw3">continue</span>, or q <span class="sy0">&lt;</span><span class="kw3">return</span><span class="sy0">&gt;</span> to quit---
+fop            0x0      <span class="nu0">0</span>
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> thr <span class="nu0">7</span>
+<span class="br0">[</span>Switching to thread <span class="nu0">7</span> <span class="br0">(</span>thread <span class="nu0">6</span><span class="br0">)</span><span class="br0">]</span>
+<span class="co0">#0  schedule_timeout (timeout=-1055490112) at sched.c:439</span>
+<span class="nu0">439</span>             del_timer_sync<span class="br0">(</span><span class="sy0">&amp;</span>timer<span class="br0">)</span>;
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> bt
+<span class="co0">#0  schedule_timeout (timeout=-1055490112) at sched.c:439</span>
+<span class="co0">#1  0xc0137ef2 in kupdate (startup=0xc02e9408) at buffer.c:2826</span>
+<span class="co0">#2  0xc010564b in kernel_thread (fn=0xc3843a64, arg=0xc3843a68,</span>
+    <span class="re2">flags</span>=<span class="nu0">3280222828</span><span class="br0">)</span> at process.c:<span class="nu0">491</span>
+<span class="co0">#3  0xc3843a60 in ?? ()</span>
+Cannot access memory at address 0x1f4
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span></pre>
+</div>
+</div>
+<br />
+<p>用户可从<a class="external free" href="http://sourceware.org/gdb/download/下载进程信息宏ps和psname，ps宏提供了运行在内核的线程的名字和ID。运行结果显示如下：" rel="nofollow">http://sourceware.org/gdb/download/下载进程信息宏ps和psname，ps宏提供了运行在内核的线程的名字和ID。运行结果显示如下：</a></p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="bash source-bash">
+<pre class="de1"><span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> <span class="kw2">ps</span>
+<span class="nu0">0</span> swapper
+<span class="nu0">1</span> init
+<span class="nu0">2</span> keventd
+<span class="nu0">3</span> ksoftirqd_C
+<span class="nu0">4</span> kswapd
+<span class="nu0">5</span> bdflush
+<span class="nu0">6</span> kupdated
+<span class="nu0">8</span> khubd
+<span class="nu0">270</span> eth0
+<span class="nu0">328</span> portmap
+<span class="nu0">383</span> syslogd
+<span class="nu0">392</span> klogd
+<span class="nu0">406</span> atd
+<span class="nu0">420</span> crond
+<span class="nu0">438</span> inetd
+<span class="nu0">511</span> mingetty
+<span class="nu0">512</span> mingetty
+<span class="nu0">513</span> mingetty
+<span class="nu0">514</span> mingetty
+<span class="nu0">515</span> mingetty
+<span class="nu0">516</span> mingetty
+<span class="br0">(</span><span class="kw2">gdb</span><span class="br0">)</span> 
+The psname macro can be used to get name of a thread when it<span class="st_h">'s id is known.
+(gdb) psname 8
+8 khubd
+(gdb) psname 7
+(gdb)
+ 
+（7）Watchpoints</span></pre>
+</div>
+</div>
+<br />
+<p>（7）Watchpoints</p>
+<p>kgdb stub使用x86处理器的调试特征支持硬件断点，这些断点不需要代码修改。它们使用调试寄存器。x86体系中的ia32处理器有4个硬件断点可用。每个硬件断点可以是下面三个类型之一：</p>
+<p>执行断点 当代码在断点地址执行时，触发执行断点。由于硬件断点有限，建议通过gdb break命令使用软件断点，除非可避免修改代码。</p>
+<p>写断点 当系统对在断点地址的内存位置进行写操作时，触发一个写断点。写断点可以放置可变长度的数据。写断点的长度指示为观察的数据类型长度，1表示为字节数据，2表示为2字节数据，3表示为4字节数据。</p>
+<p>访问断点 当系统读或写断点地址的内存时，触发一个访问断点。访问断点也有可变长度数据类型。</p>
+<p>ia-32处理器不支持IO断点。</p>
+<p>因为gdb stub目前不使用gdb用于硬件断点的协议，因此，它通过gdb宏访问硬件断点。硬件断点的gdb宏说明如下：</p>
+<p>1）hwebrk &ndash; 放置一个执行断点。</p>
+<p>用法：hwebrk breakpointno address</p>
+<p>2）hwwbrk &ndash; 放置一个写断点。</p>
+<p>用法：hwwbrk breakpointno length address</p>
+<p>3）hwabrk &ndash; 放置一个访问断点。</p>
+<p>用法：hwabrk breakpointno length address</p>
+<p>4）hwrmbrk &ndash; 删除一个断点</p>
+<p>用法：hwrmbrk breakpointno</p>
+<p>5）exinfo &ndash; 告诉是否有一个软件或硬件断点发生。如果硬件断点发生，打印硬件断点的序号。</p>
+<p>这些命令要求的参数说明如下：</p>
+<p>breakpointno &ndash; 0~3</p>
+<p>length - 1~3</p>
+<p>address - 16进制内存位置（没有0x），如：c015e9bc</p>
+<div class="headerTree headerTree-h2">
+<h2><span id=".E4.BD.BF.E7.94.A8UML.E8.B0.83.E8.AF.95Linux.E5.86.85.E6.A0.B8" class="mw-headline">使用UML调试Linux内核 </span></h2>
+<p>用户模式Linux（User Mode Linux，UML）不同于其他Linux虚拟化项目，UML尽量将它自己作为一个普通的程序。UML与其他虚拟化系统相比，优点说明如下：</p>
+<p>良好的速度</p>
+<p>UML编译成本地机器的代码，像主机上的其他已编译应用程序一样运行。它比在软件上应用整个硬件构架的虚拟机快得多。另一方面，UML不需要考虑依赖于特定CPU的虚拟化系统的硬件特异性。</p>
+<p>获益于Liunx更新</p>
+<p>每次Linux的改进，UML自动得到这些功能，虚拟化系统并不一定能从更新中获益。</p>
+<p>弹性编码</p>
+<p>内核需要与硬件或虚拟硬件交互，但UML可将交互看作其他方式。例如：可以将这些交互转换成共享的库，其他程序可以在使用时连接该库。它还可作为其他应用程序的子shell启动，能任何其他程序的stin/stdout使用。</p>
+<p>可移植性</p>
+<p>UML将来可以移植到x86 Windows, PowerPC Linux, x86 BSD或其他系统上运行。</p>
+<p>从Linux2.6.9版本起，用户模式Linux（User mode Linux,UML）已随Linux内核源代码一起发布，它存放于arch/um目录下。编译好UML的内核之后，可直接用gdb运行编译好的内核并进行调试。</p>
+<div class="headerTree headerTree-h3">
+<h3><span id="UML.E5.8E.9F.E7.90.86" class="mw-headline">UML原理 </span></h3>
+<p>用户模式Linux（User mode Linux,UML）将Linux内核的一部分作为用户空间的进程运行，称为客户机内核。UML运行在基于Linux系统调用接口所实现的虚拟机。UML运行的方式如图1所示。UML像其他应用程序一样与一个"真实"的Linux内核（称为"主机内核"）交互。应用程序还可运行在UML中，就像运行在一个正常的Linux内核下。</p>
+<p>&nbsp;</p>
+<div class="floatnone"><a class="image" title="Linux kernel debug method 01.gif" href="http://www.shangshuwu.cn/index.php/%E6%96%87%E4%BB%B6:Linux_kernel_debug_method_01_gif"><img src="http://www.shangshuwu.cn/images/3/37/Linux_kernel_debug_method_01.gif" alt="Linux kernel debug method 01.gif" width="252" height="120" /></a></div>
+<p>图1 UML在Linux系统中运行的位置</p>
+<p>使用UML的优点列出如下：</p>
+<p>如果UML崩溃，主机内核还将运行完好。</p>
+<p>可以用非root用户运行UML。</p>
+<p>可以像正常进程一样调试UML。</p>
+<p>在不中断任何操作下与内核进行交互。</p>
+<p>用UML作为测试新应用程序的"沙箱"，用于测试可能有伤害的程序。</p>
+<p>可以用UML安全地开发内核。</p>
+<p>可以同时运行不同的发布版本。</p>
+<p>由于UML基于以Linux系统调用接口实现的虚拟机，UML无法访问主机的硬件设备。因此，UML不适合于调试与硬件相关的驱动程序。</p>
+</div>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E7.BC.96.E8.AF.91UML.E6.A8.A1.E5.BC.8F.E5.AE.A2.E6.88.B7.E6.9C.BALinux.E5.86.85.E6.A0.B8" class="mw-headline">编译UML模式客户机Linux内核 </span></h3>
+<p>（1）获取源代码</p>
+<p>从<a class="external free" href="http://www.kernel.org/" rel="nofollow">http://www.kernel.org/</a>下载linux-2.6.24.tar.bz2，解压缩源代码，方法如下：</p>
+<p>host% bunzip2 linux-2.6.24.tar.bz2</p>
+<p>host% tar xf linux-2.6.24.tar</p>
+<p>host% cd linux-2.6.24</p>
+<p>（2）配置UML模式内核</p>
+<p>如果使用缺省配置，那么，方法如下：</p>
+<p>host% make defconfig ARCH=um</p>
+<p>如果运行配置界面，方法如下：</p>
+<p>host% make menuconfig ARCH=um</p>
+<p>如果不使用缺省配置defconfig，那么，内核编译将使用主机的配置文件，该配置文件在主机/boot目录下。对于UML模式内核来说，这是不对的，它将编译产生缺乏重要的驱动程序和不能启动的UML。</p>
+<p>以编译UML时，每个make命令应加上选项"ARCH=um"，或者设置环境变量"export ARCH=um"。</p>
+<p>当再次配置时，可以先运行下面的命令清除所有原来编译产生的影响：</p>
+<p>host% make mrproper</p>
+<p>host% make mrproper ARCH=um</p>
+<p>内核提供了配置选项用于内核调试，这些选项大部分在配置界面的kernel hacking菜单项中。一般需要选取CONFIG_DEBUG_INFO选项，以使编译的内核包含调试信息。</p>
+<p>（3）编译UML模式内核</p>
+<p>编译内核的方法如下：</p>
+<p>host% make ARCH=um</p>
+<p>当编译完成时，系统将产生名为"linux"的UML二进制。查看方法如下：</p>
+<p>host% ls -l linux</p>
+<p>-rwxrwxr-x 2 jdike jdike 18941274 Apr 7 15:18 linux</p>
+<p>由于UML加入了调试符号，UML模式内核变得很大，删除这些符号将会大大缩小内核的大小，变为与标准内核接近的UML二进制。</p>
+<p>现在，用户可以启动新的UML模式内核了。</p>
+<p>（4）UML的工具</p>
+<p>使用UML和管理UML的工具说明如下：</p>
+<p>UMLd &ndash; 用于创建UML实例、管理实例启动/关闭的后台程序。</p>
+<p>umlmgr &ndash;用于管理正运行的UML实例的前台工具程序。</p>
+<p>UML Builder &ndash; 编译根文件系统映像（用于UML模式操作系统安装）。</p>
+<p>uml switch2 用于后台传输的用户空间虚拟切换。</p>
+<p>VNUML &ndash; 基于XML的语言，定义和启动基于UML的虚拟网络场景。</p>
+<p>UMLazi &ndash; 配置和运行基于虚拟机的UML的管理工具。</p>
+<p>vmon &ndash; 运行和监管多个UML虚拟机的轻量级工具，用Python 书写。</p>
+<p>umvs &ndash; umvs是用C++和Bash脚本写的工具，用于管理UML实例。该应用程序的目的是简化UML的配置和管理。它使用了模板，使得编写不同的UML配置更容易。</p>
+<p>MLN - MLN (My Linux Network) 是一个perl程序，用于从配置文件创建UML系统的完整网络，使得虚拟网络的配置和管理更容易。MLN基于它的描述和简单的编程语言编译和配置文件系统模板，并用一种组织方式存储它们。它还产生每个虚拟主机的启动和停止脚本，在一个网络内启动和停止单个虚拟机。MLN可以一次使用几个独立的网络、项目，甚至还可以将它们连接在一起。</p>
+<p>Marionnet &ndash; 一个完全的虚拟网络实验，基于UML，带有用户友好的图形界面。</p>
+</div>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E8.BF.90.E8.A1.8CUML" class="mw-headline">运行UML </span></h3>
+<p>（1）启动UML</p>
+<p>为了运行UML实例，用户需要运行Linux操作系统主机和带有自己文件系统的UML客户机。用户可以从<a class="external free" href="http://uml.nagafix.co.uk/" rel="nofollow">http://uml.nagafix.co.uk/</a>下载UML（如：kernel）和客户机文件系统（如：root_fs），运行UML实例的方法如下：</p>
+<p>$ ./kernel ubda= root_fs mem=128M</p>
+<p>上述命令中，参数mem指定虚拟机的内存大小；参数ubda表示根文件系统root_fs作为虚拟机第一个块设备，虚拟机用/dev/udba表示虚拟机的第一个块设备，与Linux主机系统的第一个物理块设备/dev/sda类似。</p>
+<p>用户还可以自己创建虚拟块设备，例如：建立交换分区并在UML上使用它的方法如下：</p>
+<p>$ dd if=/dev/zero of=swap bs=1M count=128</p>
+<p>$ ./kernel ubda= root_fs ubdb=swap mem=128M</p>
+<p>上述命令，创建了128M的交换分区，作为第二个块设备ubdb，接着，启动UML模式内核，用ubdb作为它的交换分区。</p>
+<p>（2）登录</p>
+<p>预打包的文件系统有一个带有"root"密码的root帐户，还有一个带有"user"密码的user帐户。用户登录后可以进入虚拟机。预打包的文件系统已安装了各种命令和实用程序，用户还可容易地添加工具或程序。</p>
+<p>还有一些其他登录方法，说明如下：</p>
+<p>在虚拟终端上登录</p>
+<p>每个已配置（设备存在于/dev，并且/etc/inittab在上面运行了一个getty）的虚拟终端有它自己的xterm。.</p>
+<p>通过串行线登录</p>
+<p>在启动输出中，找到类似下面的一行：</p>
+<p>serial line 0 assigned pty /dev/ptyp1</p>
+<p>粘贴用户喜爱的终端程序到相应的tty，如：minicom，方法如下：</p>
+<p>host% minicom -o -p /dev/ttyp1</p>
+<p>通过网络登录</p>
+<p>如果网络正运行，用户可用telnet连接到虚拟机。</p>
+<p>虚拟机运行后，用户可像一般Linux一样运行各种shell命令和应用程序。</p>
+</div>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E5.BB.BA.E7.AB.8B.E4.B8.B2.E8.A1.8C.E7.BA.BF.E5.92.8C.E6.8E.A7.E5.88.B6.E5.8F.B0" class="mw-headline">建立串行线和控制台 </span></h3>
+<p>可以粘附UML串行线和控制台到多个类型的主机I/O通道，通过命令行指定，用户可以粘附它们到主机ptys, ttys, 文件描述子和端口。常用连接方法说明如下：</p>
+<p>让UML控制台出现在不用的主机控制台上。</p>
+<p>将两个虚拟机连接在一起，一个粘到pty，另一个粘附到相应的tty。</p>
+<p>创建可从网络访问的虚拟，粘附虚拟机的控制台到主机的一个端口。</p>
+<p>（1）指定设备</p>
+<p>用选项"con"或"ssl"（分别代表控制台和串行线）指定设备。例如：如果用户想用3号控制台或10号串行线交互，命令行选项分别为"con3"和"ssl10"。</p>
+<p>例如：指定pty给每个串行线的样例选项列出如下：</p>
+<p>ssl=pty ssl0=tty:/dev/tty0 ssl1=tty:/dev/tty1</p>
+<p>（2）指定通道</p>
+<p>可以粘附UML设备到多个不同类型的通道，每个类型有不同的指定方法，分别说明如下：</p>
+<p>伪终端为：device=pty，pts终端为：device=pts</p>
+<p>UML分配空闲的主机伪终端给。用户可以通过粘附终端程序到相应的tty访问伪终端，方法如下：</p>
+<p>screen /dev/pts/n</p>
+<p>screen /dev/ttyxx</p>
+<p>minicom -o -p /dev/ttyxx #minicom似乎不能处理pts设备</p>
+<p>kermit #启动它，打开设备，然后连接设备</p>
+<p>终端为：device=tty:tty设备文件</p>
+<p>UML将粘附设备到指定的tty，例如：一个样例选项列出如下：</p>
+<p>con1=tty:/dev/tty3</p>
+<p>上面语句将粘附UML的控制台1到主机的/dev/tty3。如果用户指定的tty是tty/pty对的slave端，则相应的pty必须已打开。</p>
+<p>xterms为：device=xterm</p>
+<p>UML将运行一个xterm，并且将设备粘附到xterm。</p>
+<p>端口为：device=port:端口号</p>
+<p>上述选项将粘附UML设备到指定的主机端口。例如：粘附控制台1到主机的端口9000，方法如下：</p>
+<p>con1=port:9000</p>
+<p>粘附所有串行线到主机端口，方法如下：</p>
+<p>ssl=port:9000</p>
+<p>用户可以通过telnet到该端口来访问这些设备，每个激活的telnet会话得到不同的设备，如果有比粘附到端口的UML设备多的telnet连接到一个端口，格外的telnet会话将阻塞正存在的telnet断线，或直到其他设备变为激活（如：通过在/etc/inittab中设置激活）。</p>
+<p>已存在的文件描述子：device=文件描述子</p>
+<p>如果用户在UML命令行中建立了一个文件描述子，他可以粘附UML设备到文件描述子。这最常用于在指定所有其他控制台后将主控制台放回到stdin和stdout上。方法如下：</p>
+<p>con0=fd:0,fd:1 con=pts</p>
+<p>null设备：device=null</p>
+<p>与"none"选项相比，上述选项允许打开设备，但读将阻塞，并且写将成功，但数据会被丢掉。</p>
+<p>无设备：device=none</p>
+<p>上述选项将引起设备消失。如果你正使用devfs，设备将不出现在/dev下。如果设备出现，尝试打开它将返回错误-ENODEV。</p>
+<p>用户还可以指定不同的输入和输出通道给一个设备，最常用的用途是重粘附主控制到stdin和stdout。例如：一个样例选项列出如下：</p>
+<p>ssl3=tty:/dev/tty2,xterm</p>
+<p>上述诗句将引起在主机/dev/tty3上的串行线3接受输入，显示输出在xterm上。</p>
+<p>如果用户决定将主控制台从stdin/stdout移开，初始的启动输出将出现在用户正运行UML所在的终端。然而，一旦控制台驱动程序已初始化，启动及随后的输出将出现在控制台0所在的地方。</p>
+</div>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E5.BB.BA.E7.AB.8B.E7.BD.91.E7.BB.9C" class="mw-headline">建立网络 </span></h3>
+<p>UML实例可以用网络访问主机、本地网络上的其他机器和网络的其他部分。新的辅助程序uml_net进行主机建立时需要root权限。</p>
+<p>当前UML虚拟机有5种传输类型用于与其他主机交换包，分别是：ethertap，TUN/TAP， Multicast，交换机后台（switch daemon），slip，slirp和pcap。</p>
+<p>TUN/TAP, ethertap, slip和slirp传输允许UML实例与主机交换包。它们可定向到主机或主机可扮作路由器提供对其他物理或虚拟机的访问。</p>
+<p>pcap传输是一个综合的仅读接口，用libpcap二进制从主机上的接口收集包并过滤包。这对于构建预配置的交通监管器或sniffer来说，是有用的。</p>
+<p>后台和多播传输提供了完全虚拟的网络络其他虚拟机器。该网络完全从物理网络断开，除非某一个虚拟机扮作网关。</p>
+<p>如何选择这些主机传输类型 '用户可根据用途进行选择，选择方法说明如下：</p>
+<p>ethertap &ndash; 如果用户想对主机网络进行访问，并且运行以2.2以前版本时，使用它。</p>
+<p>TUN/TAP &ndash; 如果用户想访问主机网络，可使用它。TUN/TAP 运行在2.4以后的版本，比ethertap 更有效率。TUN/TAP 传输还能使用预置的设备，避免对uml_net辅助程序进行setuid操作。</p>
+<p>Multicast &ndash; 如果用户期望建立一个纯虚拟网络，并且仅想建立UML，就使用它。</p>
+<p>交换机后台 &ndash; 如果用户想建立一个纯虚拟网络，并且不介意为了得到较好执行效率而建立后台，就使用它。</p>
+<p>slip &ndash; 没有特殊理由不要运行slip后端，除非ethertap和TUN/TAP不可用。</p>
+<p>slirp &ndash; 如果用户在主机上没有root权限对建立网络进行访问，或者如果用户不想分配对UML分配IP时，使用它。</p>
+<p>pcap &ndash; 对实际的网络连接没有太多用途，但用于主机上监管网络交通很有用。</p>
+<p>（1）网络建立通用步骤</p>
+<p>首先，用户必须已在UML中打开虚拟网络。如果运行下载的预编译的内核，则已打开虚拟网络。如果用户自己编译内核，则在配置界面上的"Network device support"菜单中，打开"Network device support"和三种传输选项。</p>
+<p>下一步是提供网络设备给虚拟机，通过在内核命令行中进行描述，格式如下：</p>
+<p>eth &lt;n&gt; = &lt;transport&gt; , &lt;transport args&gt;</p>
+<p>例如：一个虚拟以太网设备可以如下粘附到一个主机ethertap上：</p>
+<p>eth0=ethertap,tap0,fe:fd:0:0:0:1,192.168.0.254</p>
+<p>上述语句在虚拟机内部建立eth0，粘附它自己到主机/dev/tap0，指定一个以太网地址，并指定给主机tap0接口一个IP地址。</p>
+<p>一旦用户决定如何建立设备后，就可以启动UML、登录、配置设备的UML侧，并设置对外界的路由。此后，UML就可以与网络任何其他机器（物理或虚拟的）通信。</p>
+<p>（2）用户空间后台</p>
+<p>从<a class="external free" href="http://www.user-mode-linux.org/cvs/tools/" rel="nofollow">http://www.user-mode-linux.org/cvs/tools/</a>下载工具uml_net和uml_switch，编译并安装。uml_switch是在UML系统之间管理虚拟网络的后台，而不用连接到主机系统的网络。uml_switch将在UNIX域的socket上监听连接，并在连接到UNIX域的客户端之间转发包。</p>
+<p>（3）指定以太网地址</p>
+<p>TUN/TAP, ethertap和daemon接口允许用户给虚拟以太网设备指定硬件地址。但通常不需要指定硬件地址。如果命令行没有指定硬件地址，它将提供地址为fe:fd:nn:nn:nn:nn，其中，nn.nn.nn.nn是设备IP地址。这种方法通常足够保证有唯一的硬件地址。</p>
+<p>（4）UML接口建立</p>
+<p>一旦用命令行描述网络设备，用户在启动UML和登录后，第一件事应是建立接口，方法如下：</p>
+<p>UML# ifconfig ethn ip-address up</p>
+<p>此时，用户应可以ping通主机。为了能查看网络，用户设置缺省的路由为到达主机，方法如下：</p>
+<p>UML# route add default gw host ip</p>
+<p>例如：主机IP为192.168.0.4，设置路由方法如下：</p>
+<p>UML# route add default gw 192.168.0.4</p>
+<p>注意：如果UML不能与物理以太网上其他主机通信，可能是因为网络路由自动建立，可以运行"route &ndash;n"查看路由，结果类似如下：</p>
+<p>Destination Gateway Genmask Flags Metric Ref Use Iface</p>
+<p>192.168.0.0 0.0.0.0 255.255.255.0 U 0 0 0 eth0</p>
+<p>掩码不是255.255.255.255，因此，就使用到用户主机的路由替换它，方法如下：</p>
+<p>UML# route del -net 192.168.0.0 dev eth0 netmask 255.255.255.0</p>
+<p>UML# route add -host 192.168.0.4 dev eth0</p>
+<p>添加缺省的路由到主机，将允许UML与用户以太网上任何机器交换包。</p>
+<p>（5）多播</p>
+<p>在多个UML之间建立一个虚拟网络的最简单方法是使用多播传输。用户的系统必须在内核中打开多播（multicast），并且在主机上必须有一个多播能力的网络设备。通常它是eth0。</p>
+<p>为了使用多播，运行两个UML，命令行带有"eth0=mcast"选项。登录后，用户在每个虚拟机上用不同的IP地址配置以太网设备，方法如下：</p>
+<p>UML1# ifconfig eth0 192.168.0.254</p>
+<p>UML2# ifconfig eth0 192.168.0.253</p>
+<p>这两个虚拟机应能相互通信。</p>
+<p>传输设置的整个命令行选项列出如下：</p>
+<p>ethn=mcast,ethernet address,multicast address,multicast port,ttl</p>
+<p>（6）TUN/TAP和uml_net辅助程序</p>
+<p>TUN/TAP驱动程序实现了虚拟网卡的功能，TUN 表示虚拟的是点对点设备，TAP表示虚拟的是以太网设备，这两种设备针对网络包实施不同的封装。利用TUN/TAP驱动，可以将tcp/ip协议栈处理好的网络分包传给任何一个使用TUN/TAP驱动的进程，由进程重新处理后再发到物理链路中。</p>
+<p>TUN/TAP是与主机交换包的较好机制，主机建立TUN/TAP较简单的方法是使用uml_net辅助程序，它包括插入tun.o内核模块、配置设备、建立转发IP、路由和代理ARP。</p>
+<p>如果在设备的主机侧指定了IP地址，uml_net将在主机上做所有的建立工作。粘附设备到TUN/TAP设备的命令行格式列出如下：</p>
+<p>eth &lt;n&gt; =tuntap,,, &lt;host IP address&gt;</p>
+<p>例如：下面参数将粘附UML的eth0到下一个可用的tap设备，指定IP地址192.168.0.254么tap设备的主机侧，并指定一个基于IP地址的以太网地址。</p>
+<p>eth0=tuntap,,,192.168.0.254</p>
+<p>（7）带有预配置的tap设备的TUN/TAP</p>
+<p>如果用户没有更好的uml_net，可以预先建立TUN/TAP。步骤如下：</p>
+<p>用工具tunctl创建tap设备，方法如下：</p>
+<p>host# tunctl -u uid</p>
+<p>上述命令中，uid是用户的ID或UML将运行登录的用户名。</p>
+<p>配置设备IP地址，方法如下：</p>
+<p>host# ifconfig tap0 192.168.0.254 up</p>
+<p>建立路由和ARP，方法如下：</p>
+<p>host# bash -c 'echo 1 &gt; /proc/sys/net/ipv4/ip_forward'</p>
+<p>host# route add -host 192.168.0.253 dev tap0</p>
+<p>host# bash -c 'echo 1 &gt; /proc/sys/net/ipv4/conf/tap0/proxy_arp'</p>
+<p>host# arp -Ds 192.168.0.253 eth0 pub</p>
+<p>注意：这个配置没有重启机时失效，每次主机启动时，应重新设置它。最好的方法是用一个小应用程序，每次启动时，读出配置文件重新建立设置的配置。</p>
+<p>使用网桥</p>
+<p>为了不使用2个IP地址和ARP，还可通过对UML使用网桥提供对用户LAN直接访问，方法如下：</p>
+<p>host# brctl addbr br0</p>
+<p>host# ifconfig eth0 0.0.0.0 promisc up</p>
+<p>host# ifconfig tap0 0.0.0.0 promisc up</p>
+<p>host# ifconfig br0 192.168.0.1 netmask 255.255.255.0 up</p>
+<p>host# brctl stp br0 off</p>
+<p>host# brctl setfd br0 1</p>
+<p>host# brctl sethello br0 1</p>
+<p>host# brctl addif br0 eth0</p>
+<p>host# brctl addif br0 tap0</p>
+<p>注意：用户应该用eth0的IP地址通过ifconfig建立"br0"。</p>
+<p>运行UML</p>
+<p>一旦设备建立好后，运行UML，命令格式为： eth0=tuntap,devicename，例如：一个样例列出如下：</p>
+<p>eth0=tuntap,tap0</p>
+<p>如果用户不再使用tap设置，可以用下面命令删除它：</p>
+<p>host# tunctl -d tap device</p>
+<p>最后，tunctl有一个"-b"（用于简捷模式）切换，仅输出它所创建的tap设备的名字。它很适合于被一个脚本使用，方法如下：</p>
+<p>host# TAP=`tunctl -u 1000 -b`</p>
+<p>（8）交换机后台</p>
+<p>交换机后台uml_switch以前称为uml_router，它提供了创建整个虚拟网络的机制。缺省下，它不提供对主机网络的连接。</p>
+<p>首先，用户需要运行uml_switch，无参数运行时，表示它将监听缺省的unix域socket。使用选项"-unix socket"可指定不同的socket，"-hub"可将交换机后台变为集线器（Hub）。如果用户期望交换机后台连接到主机网络（允许UML访问通过主机访问外部的网络），可使用选项"-tap tap0"。</p>
+<p>uml_switch还可作为后台运行，方法如下：</p>
+<p>host% uml_switch [ options ] &lt; /dev/null &gt; /dev/null</p>
+<p>内核命令行交换机的通用命令行格式列出如下：</p>
+<p>ethn=daemon,ethernet address,socket type,socket</p>
+<p>通常只需要指定参数"daemon"，其他使用缺省参数，如果用户运行没有参数的交换机后台，在同一台机器上使用选项"eth0=daemon"运行UML，etho驱动程序会直接粘附它自己到交换机后台。参数socket为unix域socket的文件名，用于uml_switch和UML之间网络通信。</p>
+<p>（9）Slirp</p>
+<p>slirp通常使用外部程序/usr/bin/slirp，仅通过主机提供IP网络连接。它类似于防火墙的IP伪装，跃然传输有用户空间进行，而不是由内核进行。slirp不在主机上建立任何接口或改变路由。slirp在主机上不需要root权限或运行setuid。</p>
+<p>slirp命令行的通用格式为：</p>
+<p>ethn=slirp,ethernet address,slirp path</p>
+<p>在UML上，用户应使用没有网关IP的etho设置缺省路由，方法如下：</p>
+<p>UML# route add default dev eth0</p>
+<p>slirp提供了UML可使用的大量有用IP地址，如：10.0.2.3，是DNS服务器的一个别名，定义在主机/etc/resolv.conf中，或者它是slirp的选项"dns"中给定的IP地址。</p>
+<p>（10）pcap</p>
+<p>pcap对网络上传输的数据包进行截获和过滤。通过命令行或pcap传输粘附到UML以太网设备uml_mconsole工具，语法格式如下：</p>
+<p>ethn=pcap,host interface,filter expression,option1,option2</p>
+<p>其中，expression和option1、option2是可选的。</p>
+<p>这个接口是主机上用户想嗅探（sniff）的任何网络设备，过滤器表达式（filter expression）与工具tcpdump使用的一样，option1为"promisc"或"nopromisc"，控制pcap是否将主机接口设为"promiscuous"（混杂）模式；option2为"optimize "或"nooptimize"，表示是否使用pcap表达式优化器。</p>
+<p>一个设置pcap的样例列出如下：</p>
+<p>eth0=pcap,eth0,tcp</p>
+<p>eth1=pcap,eth0,!tcp</p>
+<p>上述语句将引起在主机eth0上的UML eth0将所有的tcp发出，并且在主机eth0上的UML eth1将发出所有非tcp包。</p>
+<p>（11）用户建立主机</p>
+<p>主机上的网络设备需要配置IP地址，还需要用值为1484的mtu配置tap设备。slip设置还需要配置点到点（pointopoint）地址，方法如下：</p>
+<p>host# ifconfig tap0 arp mtu 1484 192.168.0.251 up</p>
+<p>host# ifconfig sl0 192.168.0.251 pointopoint 192.168.0.250 up</p>
+<p>如果正建立tap设备，就将路由设置到UML IP。方法如下：</p>
+<p>UML# route add -host 192.168.0.250 gw 192.168.0.251</p>
+<p>为了允许网络上其他主机看见这个虚拟机，化理ARP设置如下：</p>
+<p>host# arp -Ds 192.168.0.250 eth0 pub</p>
+<p>最后，将主机设置到路由包，方法如下：</p>
+<p>host# echo 1 &gt; /proc/sys/net/ipv4/ip_forward</p>
+</div>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E5.9C.A8.E8.99.9A.E6.8B.9F.E6.9C.BA.E9.97.B4.E5.85.B1.E4.BA.AB.E6.96.87.E4.BB.B6.E7.B3.BB.E7.BB.9F" class="mw-headline">在虚拟机间共享文件系统 </span></h3>
+<p>在虚拟机间共享文件系统的方法是使用ubd（UML Block Device）块设备驱动程序的写拷贝（copy-on-write，COW）分层能力实现。COW支持在仅读的共享设备上分层读写私有设备。一个虚拟机的写数据存储在它的私有设备上，而读来自任一请求块有效的设备。如果请求的块有效，读取私有设备，如果无效，就读取共享设备。</p>
+<p>用这种方法，数据大部分在多个虚拟机间共享，每个虚拟机有多个小文件用于存放虚拟机所做的修改。当大量UML从一个大的根文件系统启动时，这将节约大量磁盘空间。它还提供执行性能，因为主机可用较小的内存缓存共享数据，主机的内存而不是硬盘提供UML硬盘请求服务。</p>
+<p>可通过简单地加COW文件的名字到合适的ubd，实现加一个COW层到存在的块设备文件。方法如下：</p>
+<p>ubd0=root_fs_cow,root_fs_debian_22</p>
+<p>上述语句中，"root_fs_cow"是私有的COW文件，"root_fs_debian_22"是存在的共享文件系统。COW文件不必要存在，如果它不存在，驱动程序将创建并初始化它。一旦COW文件已初始化，可在以命令行中使用它，方法如下：</p>
+<p>ubd0=root_fs_cow</p>
+<p>后备文件（backing file）的名字存在COW文件头中，因此在命令行中继续指定它将是多余的。</p>
+<p>COW文件是稀疏的，因此它的长度不同于硬盘的实际使用长度。可以用命令"ls &ndash;ls"查看硬盘的实际消耗，用"ls &ndash;l"查看COW文件和后备文件（backing file）的长度，方法如下：</p>
+<p>host% ls -l cow.debian debian2.2</p>
+<p>-rw-r--r-- 1 jdike jdike 492504064 Aug 6 21:16 cow.debian</p>
+<p>-rwxrw-rw- 1 jdike jdike 537919488 Aug 6 20:42 debian2.2</p>
+<p>host% ls -ls cow.debian debian2.2</p>
+<p>880 -rw-r--r-- 1 jdike jdike 492504064 Aug 6 21:16 cow.debian</p>
+<p>525832 -rwxrw-rw- 1 jdike jdike 537919488 Aug 6 20:42 debian2.2</p>
+<p>从上述显示结构，用户会发现COW文件实际硬盘消耗小于1M，面不是492M。</p>
+<p>一旦文件系统用作一个COW文件的仅读后备文件，不要直接从它启动或修改它。这样，会使使用经的任何COW文件失效。后备文件在创建时它的修改时间mtime和大小size存放在COW文件头中，它们必须相匹配。如果不匹配，驱动程序将拒绝使用COW文件。</p>
+<p>如果用户手动地改变后备文件或COW头，将得到一个崩溃的文件系统。</p>
+<p>操作COW文件的方法说明如下：</p>
+<p>（1）删除后备文件</p>
+<p>由于UML存放后备文件名和它的修改时间mtime在COW头中，如果用户删除后文件文件，这些信息将变成无效的。因此，删除后备文件的步骤如下：</p>
+<p>用保护时间戳的方式删除文件。通常，使用"-p"选项。拷贝操作命令"cp &ndash;a"中的"-a"隐含了"-p"。</p>
+<p>通过启动UML更新COW头，命令行指定COW文件和新的后备文件的位置，方法如下：</p>
+<p>ubda=COW file,新的后备文件位置</p>
+<p>UML将注意到命令行和COW头之间的不匹配，检查新后文件路径的大小和修改时间mtime，并更新COW头。</p>
+<p>如果当用户删除后备文件时忘记保留时间戳，用户可手动整理mtime，方法如下：</p>
+<p>host% mtime=UML认定的修改时间mtime; \</p>
+<p>touch --date="`date -d 1970-01-01\ UTC\ $mtime\ seconds`" 后备文件</p>
+<p>注意如果对真正修改过而不是刚删除的后备文件进行上述操作，那么将会文件崩溃，用户将丢失文件系统。</p>
+<p>（2）uml_moo :将COW文件与它的后备文件融合</p>
+<p>依赖于用户如何使用UML和COW设备，系统可能建议每隔一段时间融合COW文件中的变化到后备文件中。用户可以用工具uml_moo完成该操作，方法如下：</p>
+<p>host% uml_moo COW file new backing file</p>
+<p>由于信息已在COW文件头中，因此，不必指定后备文件。</p>
+<p>uml_moo在缺省下创建一个新的后备文件，它还有一个破坏性的融合选项，直接将融合COW文件到它当前的后备文件。当后备文件仅有一个COW文件与它相关时，该选项很有用。如果多个COW与一个后备文件相关，融合选项"-d"将使所有其他的COW无效。但是，如果硬盘空间不够时，使用融合选项"-d"很方便快捷，方法如下：</p>
+<p>host% uml_moo -d COW file</p>
+<p>（3）uml_mkcow :创建新COW文件</p>
+<p>正常创建COW文件的方法是以UML命令行中指定一个不存在的COW文件，让UML创建COW文件。但是，用户有时想创建一个COW文件，但不想启动UML。此时，可以使用uml_mkcow工具。方法如下：</p>
+<p>host% uml_mkcow 新COW文件 存在的后备文件</p>
+<p>如果用户想销毁一个存在的COW文件，可以加"-f"选项强制重写旧的COW文件，方法如下：</p>
+<p>host% uml_mkcow -f 存在的COW文件 存在的后备文件</p>
+</div>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E5.88.9B.E5.BB.BAUML.E7.9A.84.E6.96.87.E4.BB.B6.E7.B3.BB.E7.BB.9F" class="mw-headline">创建UML的文件系统 </span></h3>
+<p>如果根文件系统硬盘空间不够大，或者想使用不同于ext2的文件系统，用户就可能想创建和挂接新的UML文件系统，用户可以用如下方法创建UML的根文件系统：</p>
+<p>（1）创建文件系统的文件</p>
+<p>使用命令dd创建一个合适尺寸的空文件，用户可以创建稀疏文件，该文件直到实际使用时才分配硬盘空间。例如：下面的命令创建一个100M填满0的稀疏文件：</p>
+<p>host% dd if=/dev/zero of=new_filesystem seek=100 count=1 bs=1M</p>
+<p>（2）指定文件给一个UML设备</p>
+<p>在UML命令行上加入下面的选项：</p>
+<p>ubdd=new_filesystem</p>
+<p>上述命令中，ubdd应确保没被使用。</p>
+<p>（3）创建和挂接文件系统</p>
+<p>创建和挂接文件系统方法如下：</p>
+<p>host# mkreiserfs /dev/ubdd</p>
+<p>UML# mount /dev/ubdd /mnt</p>
+</div>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E4.B8.BB.E6.9C.BA.E6.96.87.E4.BB.B6.E8.AE.BF.E9.97.AE" class="mw-headline">主机文件访问 </span></h3>
+<p>如果用户在UML中想访问主机上的文件，用户可将主机当作独立的机器，可以使用nfs从主机挂接目录，或者用scp和rcp拷贝文件到虚拟机，因为UML运行在主机上，它能象其他进程一样访问这些文件，并使它们在虚拟机内部可用，而不需要使用网络。</p>
+<p>还可以使用hostfs虚拟文件系统，用户通过它可以挂接一个主机目录到UML文件系统，并像在主机上一样访问该目录中的文件。</p>
+<p>（1）使用hostfs</p>
+<p>首先，确认虚拟机内部是否有hostfs可用，方法如下：</p>
+<p>UML# cat /proc/filesystems</p>
+<p>如果没有列出hostfs，则需要重编译内核，配置hostfs，将它编译成一个内核模块，并用"insmod"插入该内核模块。</p>
+<p>挂接hostfs文件系统，例如：将hostfs挂接到虚拟机的/mnt/host下，方法如下：</p>
+<p>UML# mount none /mnt/host -t hostfs</p>
+<p>如果用户不想挂接主机的root目录，他可以用"-o"选项指定挂接的子目录。例如：挂接主机的/home到虚拟机的/mnt/home，方法如下：</p>
+<p>UML# mount none /mnt/home -t hostfs -o /home</p>
+<p>（2）hostfs命令行选项</p>
+<p>在UML命令行选项可使用hostfs选项，用来指定多个hostfs挂接到一个主机目录或阻止hostfs用户从主机上销毁数据，方法如下：</p>
+<p>hostfs=directory,options</p>
+<p>当前可用的选项是"append"，用来阻止所有的文件在追加方式打开，并不允许删除文件。</p>
+<p>（3）hostfs作为根文件系统</p>
+<p>还可以通过hostfs从主机上的目录而不是在一个文件中的标准文件系统启动UML。最简单的方法是用loop挂接一个存在的root_fs文件，方法如下：</p>
+<p>host# mount root_fs uml_root_dir -o loop</p>
+<p>用户需要将/etc/fstab中的文件类型改变为"hostfs"，fstab中的该行列出如下：</p>
+<p>none / hostfs defaults 1 1</p>
+<p>接着用户可以用chown将目录中root拥有的所有文件改变为用户拥有，方法如下：</p>
+<p>host# find . -uid 0 -exec chown user {} \;</p>
+<p>如果用户不想用上面的命令改变文件属主，用户可以用root身份运行UML。</p>
+<p>接着，确保UML内核编译进hostfs，而不是以内核模块方式包含hostfs。那么，加入下面的命令行运行UML：</p>
+<p>root=/dev/root rootflags=/path/to/uml/root rootfstype=hostfs</p>
+<p>加入上述选项后，UML应该像正常的一样启动。</p>
+<p>（4）编译hostfs</p>
+<p>如果hostfs不在内核中，用户需要编译hostfs，用户可以将它编译进内核或内核模块。用户在内核配置界面上选项hostfs，并编译和安装内核。</p>
+</div>
+<div class="headerTree headerTree-h3">
+<h3><span id=".E5.86.85.E6.A0.B8.E8.B0.83.E8.AF.95" class="mw-headline">内核调试 </span></h3>
+<p>因为UML运行为正常的Linux进程，用户可以用gdb像调试其他进程一样调试内核，稍微不同的是：因为内核的线程已用系统调用ptrace进行拦截跟踪，因此，gdb不能ptrace它们。UML已加入了解决此问题的机制。</p>
+<p>为了调试内核，用户需要从源代码编译，确保打开CONFIG_DEBUGSYM和CONFIG_PT_PROXY配置选项。它们分别用来确保编译内核带有"-g"选项和打开ptrace代理，以便gdb能与UML一起工作调试内核。</p>
+<p>（1）在gdb下启动内核</p>
+<p>用户可以在命令行中放入"debug"选项，在启动UML时将内核放在gdb的控制之下。用户可以得到一个运行gdb的xterm，内核将送一些命令到gdb，停在"start_kernel"处，用户可以输入"next", "step"或"cont"运行内核。</p>
+<p>（2）检查睡眠的进程</p>
+<p>并非每个bug在当前运行的进程中，有时候，当进程在信号量上或其他类似原因死锁时，原本不应该挂起的进程在内核中挂起。这种情况下，用户在gdb中用"Ctrl+C"时，得到一个跟踪栈，用户将可以看见到不相关的空闲线程。</p>
+<p>用户本想看到的是不应该睡眠的进程的栈，为了看到睡眠的进程，用户可以在主机上用命令ps得到该进程的主机进程id。</p>
+<p>用户将gdb与当前线程分离，方法如下：</p>
+<p>(UML gdb) det</p>
+<p>然后将gdb粘附到用户感兴趣的线程上，方法如下：</p>
+<p>(UML gdb) att &lt;host pid&gt;</p>
+<p>查看该线程的栈，方法如下：</p>
+<p>(UML gdb) bt</p>
+<p>（3）在UML上运行ddd</p>
+<p>ddd可以工作于UML，用户可以主机上运行ddd，它给gdb提供了图形界面。运行ddd的步骤如下：</p>
+<p>启动ddd，方法如下：</p>
+<p>host% ddd linux</p>
+<p>得到gdb的pid</p>
+<p>用命令ps可以得到ddd启动的gdb的pid。</p>
+<p>运行UML</p>
+<p>在运行UML的命令行中加上选项"debug=parent gdb-pid=&lt;pid&gt;"，启动并登录UML。</p>
+<p>在ddd的gdb命令行中输入"att 1"，gdb显示如下：</p>
+<p>0xa013dc51 in __kill ()</p>
+<p>(gdb)</p>
+<p>在gdb中输入"c"，UML将继续运行，用户可接着像调试其他进程一样调试了。</p>
+<p>（4）调试内核模块</p>
+<p>gdb已支持调试动态装载入进程的代码，这需要在UML下调试内核模块。调试内核模块有些复杂，用户需要告诉gdb装入UML的对象文件名以及它在内存中的位置。接着，它能读符号表，并从装载地址指出所有的符号。</p>
+<p>当用户在rmmod内核模块后重装载它时，可得到更多信息。用户必须告诉gdb忘记所有它的符号，包括主UML的符号，接着再装载回所有的符号。</p>
+<p>用户可以使用脚本umlgdb进行内核模块的重装载和读取它的符号表。用户还可以手动进行一步步处理完成符号表的获取工作。下面分别说明这两种方法。</p>
+<p>1）运行脚本umlgdb调试内核模块</p>
+<p>运行脚本umlgd较容易获取内核模块的符号表。</p>
+<p>首先，用户应告诉内核模块所在的位置，在脚本中有一个列表类似如下：</p>
+<p>set MODULE_PATHS {</p>
+<p>"fat" "/usr/src/uml/linux-2.6.18/fs/fat/fat.ko"</p>
+<p>"isofs" "/usr/src/uml/linux-2.6.18/fs/isofs/isofs.ko"</p>
+<p>"minix" "/usr/src/uml/linux-2.6.18/fs/minix/minix.ko"</p>
+<p>}</p>
+<p>用户将上述列表改为将调试的内核模块的路径，接着，从UML的顶层目录运行该脚本，显示如下：</p>
+<ul>
+<li>
+<ul>
+<li>
+<ul>
+<li>
+<ul>
+<li>
+<ul>
+<li>
+<ul>
+<li>
+<ul>
+<li>
+<ul>
+<li>GDB pid is 21903 ********</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>Start UML as: ./linux &lt;kernel switches&gt; debug gdb-pid=21903</p>
+<p>GNU gdb 5.0rh-5 Red Hat Linux 7.1</p>
+<p>Copyright 2001 Free Software Foundation, Inc.</p>
+<p>GDB is free software, covered by the GNU General Public License, and you are</p>
+<p>welcome to change it and/or distribute copies of it under certain conditions.</p>
+<p>Type "show copying" to see the conditions.</p>
+<p>There is absolutely no warranty for GDB. Type "show warranty" for details.</p>
+<p>This GDB was configured as "i386-redhat-linux"...</p>
+<p>(gdb) b sys_init_module</p>
+<p>Breakpoint 1 at 0xa0011923: file module.c, line 349.</p>
+<p>(gdb) att 1</p>
+<p>在用户运行UML后，用户只需要在"att 1"按回车，并继续执行它。方法如下：</p>
+<p>Attaching to program: /home/jdike/linux/2.4/um/./linux, process 1</p>
+<p>0xa00f4221 in __kill ()</p>
+<p>(UML gdb) c</p>
+<p>Continuing.</p>
+<p>此时，当用户用insmod插入内核模块，显示列出如下：</p>
+<ul>
+<li>
+<ul>
+<li>
+<ul>
+<li>Module hostfs loaded ***</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>Breakpoint 1, sys_init_module (name_user=0x805abb0 "hostfs",</p>
+<p>mod_user=0x8070e00) at module.c:349</p>
+<p>349 char *name, *n_name, *name_tmp = NULL;</p>
+<p>(UML gdb) finish</p>
+<p>Run till exit from #0 sys_init_module (name_user=0x805abb0 "hostfs",</p>
+<p>mod_user=0x8070e00) at module.c:349</p>
+<p>0xa00e2e23 in execute_syscall (r=0xa8140284) at syscall_kern.c:411</p>
+<p>411 else res = EXECUTE_SYSCALL(syscall, regs);</p>
+<p>Value returned is $1 = 0</p>
+<p>(UML gdb)</p>
+<p>p/x (int)module_list + module_list-&gt;size_of_struct</p>
+<p>$2 = 0xa9021054</p>
+<p>(UML gdb) symbol-file ./linux</p>
+<p>Load new symbol table from "./linux" ' (y or n) y</p>
+<p>Reading symbols from ./linux...</p>
+<p>done.</p>
+<p>(UML gdb)</p>
+<p>add-symbol-file /home/jdike/linux/2.4/um/arch/um/fs/hostfs/hostfs.o 0xa9021054</p>
+<p>add symbol table from file "/home/jdike/linux/2.4/um/arch/um/fs/hostfs/hostfs.o" at</p>
+<p>.text_addr = 0xa9021054</p>
+<p>(y or n) y</p>
+<p>Reading symbols from /home/jdike/linux/2.4/um/arch/um/fs/hostfs/hostfs.o...</p>
+<p>done.</p>
+<p>(UML gdb) p *module_list</p>
+<p>$1 = {size_of_struct = 84, next = 0xa0178720, name = 0xa9022de0 "hostfs",</p>
+<p>size = 9016, uc = {usecount = {counter = 0}, pad = 0}, flags = 1,</p>
+<p>nsyms = 57, ndeps = 0, syms = 0xa9023170, deps = 0x0, refs = 0x0,</p>
+<p>init = 0xa90221f0 &lt;init_hostfs&gt;, cleanup = 0xa902222c &lt;exit_hostfs&gt;,</p>
+<p>ex_table_start = 0x0, ex_table_end = 0x0, persist_start = 0x0,</p>
+<p>persist_end = 0x0, can_unload = 0, runsize = 0, kallsyms_start = 0x0,</p>
+<p>kallsyms_end = 0x0,</p>
+<p>archdata_start = 0x1b855 &lt;Address 0x1b855 out of bounds&gt;,</p>
+<p>archdata_end = 0xe5890000 &lt;Address 0xe5890000 out of bounds&gt;,</p>
+<p>kernel_data = 0xf689c35d &lt;Address 0xf689c35d out of bounds&gt;}</p>
+<p>&gt;&gt; Finished loading symbols for hostfs ...</p>
+<p>（2）手动调试内核模块</p>
+<p>在调试器中启动内核，并用insmod或modprobe装载内核模块。在gdb中执行下面命令：</p>
+<p>(UML gdb) p module_list</p>
+<p>这是已装载进内核的内核模块列表，通常用户期望的内核模块在module_lis中。如果不在，就进入下一个链接，查看name域，直到找到用户调试的内核模块。获取该结构的地址，并加上module.size_of_struct值，gdb可帮助获取该值，方法如下：</p>
+<p>(UML gdb) printf "%#x\n", (int)module_list module_list-&gt;size_of_struct</p>
+<p>从内核模块开始处的偏移偶尔会改变，因此，应检查init和cleanup的地址，方法如下：</p>
+<p>(UML gdb) add-symbol-file /path/to/module/on/host that_address</p>
+<p>如果断点不在正确的位置或不工作等 ，用户可以查看内核模块结构，init和cleanup域应该类似如下：</p>
+<p>init = 0x588066b0 &lt;init_hostfs&gt;, cleanup = 0x588066c0 &lt;exit_hostfs&gt;</p>
+<p>如果名字正确，但它们有偏移，那么，用户应该将偏移加到add-symbol-file所在地址上。</p>
+<p>当用户想装载内核模块的新版本时，需要让gdb删除旧内核模块的所有符号。方法如下：</p>
+<p>(UML gdb) symbol-file</p>
+<p>接着，从内核二进制重装载符号，方法如下：</p>
+<p>(UML gdb) symbol-file /path/to/kernel</p>
+<p>然后，重复上面的装载符号过程。还需要重打开断点。</p>
+<p>（5）粘附gdb到内核</p>
+<p>如果用户还没有在gdb下运行内核，用户可以通过给跟踪线程发送一个SIGUSR1，用于以后粘附gdb到内核。控制台第一行的输出鉴别它的id，显示类似如下：</p>
+<p>tracing thread pid = 20093</p>
+<p>发送信号的方法如下：</p>
+<p>host% kill -USR1 20093</p>
+<p>上述命令运行后，用户将可看见带有gdb运行的xterm。</p>
+<p>如果用户已将mconsole（UML的控制台）编译进UML，那么可用mconsole客户端启动gdb，方法如下：</p>
+<p>(mconsole) (mconsole) config gdb=xterm</p>
+<p>上述命令运行后，用户将可看见带有gdb运行的xterm。</p>
+<p>（6）使用可替换的调试器</p>
+<p>UML支持粘附到一个已运行的调试器，而不是启动gdb本身。当gdb是一些UI的子进程（如：emacs或ddd）时，这将是有用的。它还被用于在UML上运行非gdb的调试器。下面是一个使用strace作为可替代调试器的例子。</p>
+<p>用户需要得到调试器的pid，并将pid用"gdb-pid=&lt;pid&gt;"选项与"debug"选项一起传递。</p>
+<p>如果用户在UI下使用gdb，那么，应告诉UML"att 1"，那么，UI将粘附到UML。</p>
+<p>下面以替换调试器strace为例，用户可以用strace调试实际的内核，方法如下：</p>
+<p>在shell中运行下述命令</p>
+<p>host%</p>
+<p>sh -c 'echo pid=$$; echo -n hit return; read x; exec strace -p 1 -o strace.out'</p>
+<p>用"debug"和"gdb-pid=&lt;pid&gt;"运行UML。</p>
+<p>strace输出将出现在输出文件中。</p>
+<p>注意：运行下面的命令，结果不同于前面命令。</p>
+<p>host% strace ./linux</p>
+<p>上述命令将仅strace主UML线程，跟踪的线程不做任何实际的内核操作。它仅标识出虚拟机。而使用上述的strce将显示虚拟机低层的活动情况。</p>
+</div>
+</div>
+<div class="headerTree headerTree-h2">
+<h2><span id=".E6.96.AD.E8.A8.80.E8.AF.AD.E5.8F.A5" class="mw-headline">断言语句 </span></h2>
+<p>在代码里面老能看到 BUG_ON() , WARN_ON() 这样的宏 ， 类似 我们日常编程里面的断言（assert） 。</p>
+<p>在include/asm-generic/bug.h</p>
+<div class="mw-geshi" style="text-align: left;" dir="ltr">
+<div class="c source-c">
+<pre class="de1"><span class="co2">#ifdef CONFIG_BUG</span>
+ 
+<span class="co2">#ifdef CONFIG_GENERIC_BUG</span>
+<span class="co2">#ifndef __ASSEMBLY__</span>
+<span class="kw4">struct</span> bug_entry <span class="br0">{</span>
+	<span class="kw4">unsigned</span> <span class="kw4">long</span>	bug_addr<span class="sy0">;</span>
+<span class="co2">#ifdef CONFIG_DEBUG_BUGVERBOSE</span>
+	<span class="kw4">const</span> <span class="kw4">char</span>	<span class="sy0">*</span>file<span class="sy0">;</span>
+	<span class="kw4">unsigned</span> <span class="kw4">short</span>	line<span class="sy0">;</span>
+<span class="co2">#endif</span>
+	<span class="kw4">unsigned</span> <span class="kw4">short</span>	flags<span class="sy0">;</span>
+<span class="br0">}</span><span class="sy0">;</span>
+<span class="co2">#endif		/* __ASSEMBLY__ */</span>
+ 
+<span class="co2">#define BUGFLAG_WARNING	(1&lt;&lt;0)</span>
+<span class="co2">#endif	/* CONFIG_GENERIC_BUG */</span>
+ 
+<span class="co2">#ifndef HAVE_ARCH_BUG</span>
+<span class="co2">#define BUG() do { \
+	printk("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __FUNCTION__); \
+	panic("BUG!"); \
+} while (0)</span>
+<span class="co2">#endif</span>
+ 
+<span class="co2">#ifndef HAVE_ARCH_BUG_ON</span>
+<span class="co2">#define BUG_ON(condition) do { if (unlikely(condition� BUG(); } while(0)</span>
+<span class="co2">#endif</span>
+ 
+<span class="co2">#ifndef __WARN</span>
+<span class="co2">#ifndef __ASSEMBLY__</span>
+<span class="kw2">extern</span> <span class="kw4">void</span> warn_on_slowpath<span class="br0">(</span><span class="kw4">const</span> <span class="kw4">char</span> <span class="sy0">*</span>file<span class="sy0">,</span> <span class="kw4">const</span> <span class="kw4">int</span> line<span class="br0">)</span><span class="sy0">;</span>
+<span class="co2">#define WANT_WARN_ON_SLOWPATH</span>
+<span class="co2">#endif</span>
+<span class="co2">#define __WARN() warn_on_slowpath(__FILE__, __LINE__)</span>
+<span class="co2">#endif</span>
+ 
+<span class="co2">#ifndef WARN_ON</span>
+<span class="co2">#define WARN_ON(condition) ({						\
+	int __ret_warn_on = !!(condition);				\
+	if (unlikely(__ret_warn_on�					\
+		__WARN();						\
+	unlikely(__ret_warn_on);					\
+})</span>
+<span class="co2">#endif</span>
+ 
+<span class="co2">#else /* !CONFIG_BUG */</span>
+<span class="co2">#ifndef HAVE_ARCH_BUG</span>
+<span class="co2">#define BUG()</span>
+<span class="co2">#endif</span>
+ 
+<span class="co2">#ifndef HAVE_ARCH_BUG_ON</span>
+<span class="co2">#define BUG_ON(condition) do { if (condition) ; } while(0)</span>
+<span class="co2">#endif</span>
+ 
+<span class="co2">#ifndef HAVE_ARCH_WARN_ON</span>
+<span class="co2">#define WARN_ON(condition) ({						\
+	int __ret_warn_on = !!(condition);				\
+	unlikely(__ret_warn_on);					\
+})</span>
+<span class="co2">#endif</span>
+<span class="co2">#endif</span>
+ 
+<span class="co2">#define WARN_ON_ONCE(condition)	({				\
+	static int __warned;					\
+	int __ret_warn_once = !!(condition);			\
+								\
+	if (unlikely(__ret_warn_once�				\
+		if (WARN_ON(!__warned� 			\
+			__warned = 1;				\
+	unlikely(__ret_warn_once);				\
+})</span>
+ 
+<span class="co2">#ifdef CONFIG_SMP</span>
+<span class="co2"># define WARN_ON_SMP(x)			WARN_ON(x)</span>
+<span class="co2">#else</span>
+<span class="co2"># define WARN_ON_SMP(x)			do { } while (0)</span>
+<span class="co2">#endif</span></pre>
+</div>
+</div>
+<br />
+<div class="headerTree headerTree-h2">
+<h2><span id=".E5.90.8C.E6.AD.A5.E9.94.81.E8.B0.83.E8.AF.95" class="mw-headline">同步锁调试 </span></h2>
+<p>锁验证器</p>
+<p>内核锁验证器（Kernel lock validator）可以在死锁发生前检测到死锁，即使是很少发生的死锁。它将每个自旋锁与一个键值相关，相似的锁仅处理一次。加锁时，查看所有已获取的锁，并确信在其他上下文中没有已获取的锁，在新获取锁之后被获取。解锁时，确信正被解开的锁在已获取锁的顶部。</p>
+<p>.</p>
+<p>Validate spinlocks vs interrupts behavior.</p>
+<p>当加锁动态发生时，锁验证器映射所有加锁规则，该检测由内核的spinlocks、rwlocks、mutexes和rwsems等锁机制触发。不管何时锁合法性检测器子系统检测到一个新加锁场景，它检查新规则是否违反正存在的规则集，如果新规则与正存在的规则集一致，则加入新规则，内核正常运行。如果新规则可能创建一个死锁场景，那么这种创建死锁的条件会被打印出来。</p>
+<p>当判断加锁的有效性时，所有可能的"死锁场景"会被考虑到：假定任意数量的CPU、任意的中断上下文和任务上下文群、运行所有正存在的加锁场景的任意组合。在一个典型系统中，这意味着有成千上万个独立的场景。这就是为什么称它为"加锁正确性"验证器，对于所有被观察的规则来说，锁验证器用数学的确定性证明死锁不可能发生，假定锁验证器实现本身正确，并且它内部的数据结构不会被其他内核子系统弄坏。</p>
+<p>还有，验证器的属性"所有可能的场景"也使查找变得复杂，特别是多CPU、多上下文竞争比单个上下文规则复杂得多，</p>
+<p>为了增加验证器的效率，不是将每个锁实例进行映射，而是映射每个锁类型。例如：内核中所有的结构inode对象有inode-&gt;inotify_mutex，如果缓存了10000个inode，将会有10000个锁对象。但-&gt;inotify_mutex是单个锁类型，所有-&gt;inotify_mutex发生的加锁活动都归入单个锁类型。</p>
+<p>Lock-class</p>
+<hr />
+<p>验证器操作的基本对象是锁类Lock-class，一个锁类是一组锁，逻辑上有同样的加锁规则，尽管锁可能有多个实例。例如：在结构inode中的一个锁是一个类，而每个节点有它自己的锁类实例。</p>
+<p>验证器跟踪锁类的状态和不同锁类之间的依赖性。验证器维护一个有关状态和依赖性是否正确的滚动证据。</p>
+<p>不像一个锁实例，锁类lock-class它本身从不消失：当lock-class注册使用后，所有随后锁类的使用都会被附加到该lock-class上。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div></div><div id="MySignature">http://www.ahbank.org/</div>
+<script type="text/javascript">
+if ($ != jQuery) {
+	$ = jQuery.noConflict();
+}
+var isLogined = false;
+var cb_blogId = 74688;
+var cb_entryId = 2359114;
+var cb_blogApp = "shineshqw";
+var cb_blogUserGuid = "df240982-70ab-df11-8eb9-001cf0cd104b";
+var cb_entryCreatedDate = '2012/2/20 11:23:00';
+</script>
+<div id="blog_post_info_block">
+<div id="BlogPostCategory"></div>
+<div id="EntryTag"></div>
+<div id="green_channel" style="display:none;">
+绿色通道：<a href="javascript:void(0);" id="green_channel_digg" onclick="DiggIt(cb_entryId,cb_blogId,1);green_channel_success(this,'谢谢推荐！');">好文要顶</a><a id="green_channel_follow" onclick="c_follow();" href="javascript:void(0);">关注我</a><a id="green_channel_favorite" onclick="AddToWz(2359114);return false;" href="javascript:void(0);" >收藏该文</a><a id="green_channel_contact" href="http://space.cnblogs.com/msg/send/veryhappy" target="_blank">与我联系</a>
+<a id="green_channel_weibo" href="javascript:void(0);" title="分享至新浪微博" onclick="ShareToTsina()"><img src="http://static.cnblogs.com/images/icon_sina.gif" alt="" /></a>
+</div>
+<div id="digg_block">
+<div id="author_profile">
+<div id="author_profile_info" class="author_profile_info">
+<div id="author_profile_detail" class="author_profile_info">
+</div>
+</div>
+<div class="clear"></div>
+<div id="author_profile_honor"></div>
+<div id="author_profile_follow"></div>
+</div>
+<div id="div_digg" style="display:none;">										
+	<div class="diggit" onclick="DiggIt(cb_entryId,cb_blogId,1)"> 
+		<span class="diggnum" id="digg_count"></span>
+	</div>
+	<div class="buryit" onclick="DiggIt(cb_entryId,cb_blogId,2)"> 
+		<span class="burynum" id="bury_count"></span>
+	</div>
+	<div class="clear"></div>	
+	<div class="diggword" id="digg_tips"></div>	
+</div>
+</div>
+<div class="clear"></div>
+<div id="post_next_prev">
+</div>
+</div>
+<script type="text/javascript">
+LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);
+</script>
+
+
+
+
+		</div>
+		<div class = "postDesc">posted @ 2012-02-20 11:23 <a href='http://www.cnblogs.com/shineshqw/'>veryhappy</a> 阅读(464) <a href='#commentform'>评论(0)</a> &nbsp;<a href="http://www.cnblogs.com/shineshqw/admin/EditArticles.aspx?postid=2359114" rel="nofollow">编辑</a> <a href="#" onclick="AddToWz(2359114);return false;">收藏</a></div>
+	</div>
+	<img src ="http://www.cnblogs.com/shineshqw/aggbug/2359114.html?type=2&webview=1" width="1px" height="1px" alt=""/>
+	
+</div><!--end: topics 文章、评论容器-->
+
+<div id="comment_form" class="commentform">
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="#" onclick="return RefreshCommentList(cb_entryId);" name="commentform" id="lnk_RefreshComments">刷新评论列表</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+
+<script type="text/javascript">
+    commentManager.loadCommentForm();
+</script>
+
+<div class="ad_text_commentbox"><a href="http://q.cnblogs.com/" target="_blank">程序员问答社区，解决您的IT难题</a></div>
+<div id="clear_read_link"></div>
+<script type="text/javascript">
+    $("#clear_read_link").html('<a href="http://archive.cnblogs.com/a/' + cb_entryId + '/" target="_blank" rel="nofollow">简洁阅读版式</a>')
+</script>
+<div id="site_nav_under">
+<a href="http://www.cnblogs.com/" target="_blank" title="程序员的网上家园">网站首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a> 
+<div id="site_editor_opt"></div>
+<script type="text/javascript">
+    if (isLogined) {
+        showEditorOpt();
+    }
+</script>
+</div>
+
+
+<script type="text/javascript">
+    var enableGoogleAd = true;
+    if ($("#cnblogs_post_body").text().length < 1000) {
+        enableGoogleAd = false;
+    }
+</script>
+<script type='text/javascript'>
+    var googletag = googletag || {};
+    googletag.cmd = googletag.cmd || [];
+    (function () {
+        if (enableGoogleAd) {
+            var gads = document.createElement('script');
+            gads.async = true;
+            gads.type = 'text/javascript';
+            gads.src = 'http://common.cnblogs.com/script/gpt.js';
+            var node = document.getElementsByTagName('script')[0];
+            node.parentNode.insertBefore(gads, node);
+        }
+    })();
+</script>
+<script type='text/javascript'>
+    if (enableGoogleAd) {
+        try {
+            googletag.cmd.push(function () {
+                googletag.defineSlot('/1090369/cnblogs_blogpost_C1', [300, 250], 'div-gpt-ad-1320933818841-0').addService(googletag.pubads());
+                googletag.defineSlot('/1090369/cnblogs_blogpost_C2', [468, 60], 'div-gpt-ad-1320933818841-1').addService(googletag.pubads());
+                googletag.pubads().enableSingleRequest();
+                googletag.enableServices();
+            });
+        } catch (e) { }
+    }
+</script>
+
+<div id="google_ad_c1" class="c_ad_block">
+<!-- cnblogs_blogpost_C1 -->
+<div id='div-gpt-ad-1320933818841-0' style='width:300px; height:250px;'>
+<script type='text/javascript'>
+    if (enableGoogleAd) {
+        try {
+            googletag.cmd.push(function () { googletag.display('div-gpt-ad-1320933818841-0'); });
+        } catch (e) { }
+    }
+</script>
+</div>
+</div>
+
+<div class="itnews c_ad_block">
+<b>最新IT新闻</b>:<br />
+
+          ·  <a href="http://news.cnblogs.com/n/141332/" target="_blank">尹生：为什么Vertu没有成为诺基亚的iPhone</a><br />
+	
+          ·  <a href="http://news.cnblogs.com/n/141331/" target="_blank">富士康悖论：工作条件改善 争议仍层出不穷</a><br />
+	
+          ·  <a href="http://news.cnblogs.com/n/141329/" target="_blank">有图有真相 Lumia 900运行WP8</a><br />
+	
+          ·  <a href="http://news.cnblogs.com/n/141328/" target="_blank">那些自称遭外星人绑架的家伙……</a><br />
+	
+          ·  <a href="http://news.cnblogs.com/n/141326/" target="_blank">Facebook CEO扎克伯格财富高可达187亿美元</a><br />
+	
+&raquo; <a href="http://news.cnblogs.com/" title="IT新闻" target="_blank">更多新闻...</a>
+</div>
+
+
+<div class="itnews c_ad_block" id="kb_block">
+<b>最新知识库文章</b>:<br />
+<div id="kb_recent">
+
+·  <a href="http://kb.cnblogs.com/page/141172/" target="_blank">我最喜欢的10条编程语录</a><br />
+
+·  <a href="http://kb.cnblogs.com/page/140612/" target="_blank">版本控制入门简介</a><br />
+
+·  <a href="http://kb.cnblogs.com/page/140870/" target="_blank">Javascript 编程风格</a><br />
+
+·  <a href="http://kb.cnblogs.com/page/140950/" target="_blank">通天塔导游 - 细数各种编程语言优缺点</a><br />
+
+·  <a href="http://kb.cnblogs.com/page/140015/" target="_blank">中文编码杂谈</a><br />
+
+</div>
+&raquo; <a href="http://kb.cnblogs.com/" target="_blank">更多知识库文章...</a>
+</div>
+
+<div id="google_ad_c2" class="c_ad_block">
+<!-- cnblogs_blogpost_C2 -->
+<div id='div-gpt-ad-1320933818841-1' style='width:468px; height:60px;'>
+<script type='text/javascript'>
+    if (enableGoogleAd) {
+        try {
+            googletag.cmd.push(function () { googletag.display('div-gpt-ad-1320933818841-1'); });
+        } catch (e) { }
+
+    }
+</script>
+</div>
+</div>
+<div id="ad_under_comment2" class="c_ad_block" style="display:none;">
+<a href="http://www.china-pub.com/STATIC07/1204/mz_qhwk/mz_qhwk.asp" target="_blank" rel="nofollow"><img src="http://static.cnblogs.com/images/a4/china-pub-20120419.jpg" alt="" style="border:0px;"/></a><br />
+<a href="http://www.china-pub.com/sale/usedbook.aspx" target="_blank" rel="nofollow">China-Pub 低价书精选</a><br />
+<a href="http://www.china-pub.com/static07/0901/zh_jueba_090121.asp" target="_blank" rel="nofollow">China-Pub 计算机绝版图书按需印刷服务</a><br />
+</div>
+<script type="text/javascript">
+    if (enableGoogleAd) {
+        if (document.getElementById("ad_under_comment2")) {
+            $("#ad_under_comment2").show();
+        }
+    }
+    else {
+        $("#google_ad_c1").hide();
+        $("#google_ad_c2").hide();
+    }
+</script>
+
+<div id="HistoryToday" class="c_ad_block">
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+    });
+</script>
+</div>
+
+
+
+
+			
+			</div>
+			<div id="footer">
+				
+<!--done-->
+Copyright &copy;2012 veryhappy
+			</div>
+		</div>
+	</div>
+	<!-- right ends -->
+	<!-- left starts -->
+	<div id="left">
+		<!-- 左侧工具部分 -->
+		<div id="left_content">
+			
+<!--done-->
+<!-- <h1 class="listtitle">公告</h1> -->
+<div class="newsItem">
+	<script type="text/javascript"><!--
+google_ad_client = "pub-5874905001369626";
+/* 234x60, 创建于 10-8-19 */
+google_ad_slot = "0843820407";
+google_ad_width = 234;
+google_ad_height = 60;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script><div id="profile_block">昵称：<a href="http://home.cnblogs.com/u/shineshqw/">veryhappy</a><br/>园龄：<a href="http://home.cnblogs.com/u/shineshqw/" title="入园时间：2010-08-19">1年8个月</a><br/>粉丝：<a href="http://home.cnblogs.com/u/shineshqw/followers/">2</a><br/>关注：<a href="http://home.cnblogs.com/u/shineshqw/followees/">0</a><div id="p_b_follow"></div><script type="text/javascript">cnblogs.UserManager.GetFollowStatus('df240982-70ab-df11-8eb9-001cf0cd104b')</script></div>
+</div>
+
+			<div id="calendar"><div id="blog-calendar" style="displya:none"></div></div>
+			
+				<DIV id="leftcontentcontainer">
+					
+<script type="text/javascript">
+    var blogapp = 'shineshqw';
+</script>
+<div class="mySearch">
+<h3 class="catListTitle">搜索</h3>
+<div id="widget_my_zzk" class="div_my_zzk"><input  type="text" id="q" onkeydown="return zzk_go_enter(event);" class="input_my_zzk"/>&nbsp;<input onclick="zzk_go()" type="button" value="找找看" id="btnZzk" class="btn_my_zzk"/></div>
+<div id="SingleColumn1_ctl00_widget_my_google" class="div_my_zzk"><input type="text" name="google_q" id="google_q" onkeydown="return google_go_enter(event)" class="input_my_zzk"/>&nbsp;<input onclick="google_go()" type="button" value="谷歌搜索"  class="btn_my_zzk"/></div>
+</div>
+
+
+<div class="catListLink">
+<h3 class ="catListTitle">常用链接</h3>
+<ul>
+
+		<li><a id="SingleColumn1_ctl01_rptMainLinks_lnkLinkItem_0" href="http://www.cnblogs.com/shineshqw/MyPosts.html">我的随笔</a></li>
+	
+		<li><a id="SingleColumn1_ctl01_rptMainLinks_lnkLinkItem_1" href="http://www.cnblogs.com/shineshqw/MyComments.html">我的评论</a></li>
+	
+		<li><a id="SingleColumn1_ctl01_rptMainLinks_lnkLinkItem_2" title="我发表过评论的随笔" href="http://www.cnblogs.com/shineshqw/OtherPosts.html">我的参与</a></li>
+	
+		<li><a id="SingleColumn1_ctl01_rptMainLinks_lnkLinkItem_3" href="http://www.cnblogs.com/shineshqw/RecentComments.html">最新评论</a></li>
+	
+		<li><a id="SingleColumn1_ctl01_rptMainLinks_lnkLinkItem_4" href="http://www.cnblogs.com/shineshqw/tag/">我的标签</a></li>
+	
+<li><a id="itemListLink" onclick="this.blur();WarpClass('itemListLink', 'itemListLin_con');return false;" href="#">更多链接</a></li>
+</ul>
+<div id="itemListLin_con" style="display:none;">
+<ul>
+
+</ul>
+</div>
+</div>
+<!--done-->
+
+		<h1 class = "catListTitle">随笔档案<span style="font-size:11px;font-weight:normal">(1)</span></h1>
+		
+				<ul class = "catList">
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_0_Link_0" class="listitem" href="http://www.cnblogs.com/shineshqw/archive/2010/08.html">2010年8月 (1)</a></li>
+			
+				</ul>
+			
+	
+		<h1 class = "catListTitle">文章分类<span style="font-size:11px;font-weight:normal">(55)</span></h1>
+		
+				<ul class = "catList">
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_0" class="listitem" href="http://www.cnblogs.com/shineshqw/category/258815.html">CDN(4)</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_1" class="listitem" href="http://www.cnblogs.com/shineshqw/category/325897.html">english(1)</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_2" class="listitem" href="http://www.cnblogs.com/shineshqw/category/286950.html">linux命令(17)</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_3" class="listitem" href="http://www.cnblogs.com/shineshqw/category/258381.html">linux优化(10)</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_4" class="listitem" href="http://www.cnblogs.com/shineshqw/category/259104.html">LVS</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_5" class="listitem" href="http://www.cnblogs.com/shineshqw/category/261929.html">mysql(2)</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_6" class="listitem" href="http://www.cnblogs.com/shineshqw/category/258408.html">postfix(1)</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_7" class="listitem" href="http://www.cnblogs.com/shineshqw/category/358279.html">shell/perl(2)</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_8" class="listitem" href="http://www.cnblogs.com/shineshqw/category/261994.html">webserver(4)</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_9" class="listitem" href="http://www.cnblogs.com/shineshqw/category/258832.html">负载均衡</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_10" class="listitem" href="http://www.cnblogs.com/shineshqw/category/259030.html">泡MM(8)</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_11" class="listitem" href="http://www.cnblogs.com/shineshqw/category/258386.html">为人处事(2)</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_12" class="listitem" href="http://www.cnblogs.com/shineshqw/category/357764.html">新概念英语二(1)</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_13" class="listitem" href="http://www.cnblogs.com/shineshqw/category/259601.html">虚拟化(2)</a></li>
+			
+				<li class = "catListItem"> <a id="SingleColumn1_Categories_CatList_LinkList_1_Link_14" class="listitem" href="http://www.cnblogs.com/shineshqw/category/262716.html">营销(1)</a></li>
+			
+				</ul>
+			
+	
+
+
+<h3 class="catListTitle">最新评论</h3>
+<div class="RecentComment" id="RecentComments">
+	<div id="RecentCommentsBlock"></div>
+</div>
+
+				</DIV>
+			
+		</div>
+		<!-- //右侧工具部分 -->
+	</div>
+	<!-- left ends -->	
+	<div class="clear"></div>
+</div>
+
+<!--PageEndHtml Block Begin-->
+<div align="center"><script type="text/javascript"><!--
+google_ad_client = "pub-5874905001369626";
+/* 728x90, 创建于 10-8-19 */
+google_ad_slot = "6250327266";
+google_ad_width = 728;
+google_ad_height = 90;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script></div>
+<!--PageEndHtml Block End-->
+
+</form> 
+<script type="text/javascript">
+    if (!isSyntaxHighlighted) {
+        try {
+            SyntaxHighlighter.all();
+        } catch (e) { }
+    }
+</script>
+<script type="text/javascript" src="http://common.cnblogs.com/script/ShowHidden.js"></script>
+<script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-476124-1']);
+    _gaq.push(['_setDomainName', 'cnblogs.com']);
+    _gaq.push(['_trackPageview']);
+
+    (function () {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+</script>
+</body>
+</html>

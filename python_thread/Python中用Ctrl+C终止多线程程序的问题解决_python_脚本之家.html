@@ -1,0 +1,244 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-cn">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<title>Python中用Ctrl+C终止多线程程序的问题解决_python_脚本之家</title>
+<meta http-equiv="Content-Language" content="zh-CN" />
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+<meta name="keywords" content="Ctrl+C,终止多线程" />
+<meta name="description" content="花了一天时间用python为服务写了个压力测试。很简单，多线程向服务器发请求。但写完之后发现如果中途想停下来，按Ctrl+C达不到效果，自然想到要用信号处理函数捕捉信号，使线程都停下来，问题解决的方法请往下看：" />
+<script type="text/javascript" src="http://img.jb51.net/inc/content.js"></script>
+<link rel="stylesheet" href="http://img.jb51.net/skin/newblue/main.css" type="text/css" media="all" />
+<link rel="stylesheet" href="http://img.jb51.net/skin/newblue/content.css" type="text/css" media="all" />
+</head>
+<body>
+<DIV id=topnav>
+<DIV id=toptext>脚 本 之 家 www.jb51.net</DIV>
+<UL id=topnavlist>
+<script type="text/javascript" src="http://img.jb51.net/inc/top.js" charset="gb2312"></script>
+</UL>
+</DIV>
+<div id="dxy_logo">
+<div id="logo_l"><a href="http://www.jb51.net" title="脚本之家" target="_blank"><img src="/images/logo.gif" alt="脚本之家" /></a></div>
+<div id="logo_m"></div>
+<div id="logo_r"></div>
+</div><!--导航开始-->
+<div id="nav_top">
+<ul>
+<li><a href="http://www.jb51.net"><span>首页</span></a></li>
+<li><a href="http://www.jb51.net/web/" title="网页制作"><span>网页制作</span></a></li>
+<li><a href="http://www.jb51.net/list/index_96.htm" title="脚本专栏"><span>脚本专栏</span></a></li>
+<li><a href="http://www.jb51.net/list/index_1.htm" title="网络编程"><span>网络编程</span></a></li>
+<li><a href="http://www.jb51.net/list/index_104.htm" title="数据库"><span>数据库</span></a></li>
+<li><a href="http://www.jb51.net/jiaoben/" title="脚本下载"><span>脚本下载</span></a></li>
+<li><a href="http://www.jb51.net/cms/" title="cms使用教程"><span>CMS教程</span></a></li>
+<li><a href="http://www.jb51.net/books/" title="电子书籍"><span>电子书籍</span></a></li>
+<li><a href="http://www.jb51.net/pingmian/" title="平面设计"><span>平面设计</span></a></li>
+<li><a href="http://www.jb51.net/media/" title="媒体动画"><span>媒体动画</span></a></li>
+<li><a href="http://www.jb51.net/os/" title="操作系统"><span>操作系统</span></a></li>
+<li><a href="http://www.jb51.net/yunying/" title="网站运营"><span>网站运营</span></a></li>
+<li><a href="http://www.jb51.net/hack/" title="网络安全"><span>网络安全</span></a></li>
+</ul>
+</div><!--导航结束-->
+<div class=blank3></div>
+<div class="subnav">
+<ul><li><a href='/list/list_114_1.htm' title="vbs">vbs</a></li>
+<li><a href='/list/list_106_1.htm' title="DOS/BAT">DOS/BAT</a></li>
+<li><a href='/list/list_110_1.htm' title="hta">hta</a></li>
+<li><a href='/list/list_111_1.htm' title="htc">htc</a></li>
+<li><a href='/list/list_97_1.htm' title="python">python</a></li>
+<li><a href='/list/list_125_1.htm' title="perl">perl</a></li>
+<li><a href='/list/list_138_1.htm' title="游戏脚本">游戏脚本</a></li>
+<li><a href='/list/list_161_1.htm' title="VBA">VBA</a></li>
+<li><a href='/list/list_163_1.htm' title="远程脚本">远程脚本</a></li>
+<li><a href='/list/list_178_1.htm' title="ColdFusion">ColdFusion</a></li>
+<li><a href='/list/list_201_1.htm' title="ruby专题">ruby专题</a></li>
+<li><a href='/list/list_213_1.htm' title="autoit">autoit</a></li>
+<li><a href='/list/list_214_1.htm' title="seraphzone">seraphzone</a></li>
+<li><a href='/list/list_234_1.htm' title="PowerShell">PowerShell</a></li>
+<li><a href='/list/list_235_1.htm' title="linux shell">linux shell</a></li>
+<li><a href='/list/list_130_1.htm' title="其它">其它</a></li>
+</ul>
+</div>
+<div class=blank3></div>
+<DIV class="search">
+<UL><LI class=search-hot><SPAN>特色栏目：</SPAN>
+<A href="http://www.jb51.net/list/list_114_1.htm" target='_blank'>vbscript</A> 
+<A href="http://www.jb51.net/list/list_6_1.htm" target='_blank'>正则表达式</A> 
+<A href="http://www.jb51.net/list/list_3_1.htm" target='_blank'>javascript</A>
+<A href="http://www.jb51.net/list/list_106_1.htm" target='_blank'>批处理</A>
+<A href="http://s.jb51.net">服务器软件</A> 
+<A href="http://sc.jb51.net/?txt" target="_blank" style="color:red">素材下载</A> 
+</LI><LI class=search-box>
+<form action="http://so.jb51.net/cse/search" target="_blank">
+    <input type="hidden" name="s" value="10520733385329581432">
+    <input type="hidden" name="ie" value="gbk">
+    <input type="text" name="q" style="width:300px; height:20px">
+    <input type="submit" value="搜索">
+</form></LI></UL>
+</div>
+<div class=blank3></div>
+<DIV class="dxy_main">
+<script type="text/javascript">var lmname="python"; var cpro_id = 'u336546';</script><script src="http://cpro.baidu.com/cpro/ui/c.js" type="text/javascript"></script>
+</div>
+<div class=blank3></div>
+<div id="tonglan1"></div>
+<div class=blank3></div>
+<div class="dxy_main">
+<div class="dxy_main_l">
+<div id="art_con">
+<div id="daohang">页面导航：  <a href='/'>首页</a> → <a href="/list/index_96.htm" title="脚本专栏">脚本专栏</a> → <a href="/list/list_97_1.htm" title="python">python</a> → 正文内容 Ctrl+C终止多线程程序<div class="blank3"></div></div>
+<div class=blank3></div>
+<h1>Python中用Ctrl+C终止多线程程序的问题解决</h1>
+<div id="title_ad1"></div>
+<div id="art_info">
+发布：shangke  字体：[<a href="javascript:turnbig()">增加</a> <a href="javascript:turnsmall()">减小</a>] 类型：转载 
+</div><!--end art_info-->
+<div class=blank3></div>
+<div id="art_demo">花了一天时间用python为服务写了个压力测试。很简单，多线程向服务器发请求。但写完之后发现如果中途想停下来，按Ctrl+C达不到效果，自然想到要用信号处理函数捕捉信号，使线程都停下来，问题解决的方法请往下看：</div>
+<div class=blank3></div>
+<div id="con_all">
+<div id="con_da1"><script type="text/javascript" src="http://img.jb51.net/inc/bc_l.js"></script></div>
+<div id="con_da8"><script type="text/javascript" src="http://img.jb51.net/inc/bc_r.js"></script></div>
+</div>
+<div id="art_content">
+<!--NEWSZW_HZH_BEGIN-->
+<P><div class="codetitle"><span style="CURSOR: pointer"  onclick="doCopy('code18397')"><U>复制代码</U></span> 代码如下:</div><div class="codebody" id="code18397"><BR>#!/bin/env python<BR>&nbsp;# -*- coding: utf-8 -*-<BR>&nbsp;#filename: peartest.py<br><br>&nbsp;import threading, signal<br><br>&nbsp;is_exit = False<br><br>&nbsp;def doStress(i, cc):<BR>&nbsp;&nbsp;&nbsp;&nbsp; global is_exit<BR>&nbsp;&nbsp;&nbsp;&nbsp; idx = i<BR>&nbsp;&nbsp;&nbsp;&nbsp; while not is_exit:<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (idx &lt; 10000000):<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; print "thread[%d]: idx=%d"%(i, idx)<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; idx = idx + cc<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else:<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break<BR>&nbsp;&nbsp;&nbsp;&nbsp; print "thread[%d] complete."%i<br><br>&nbsp;def handler(signum, frame):<BR>&nbsp;&nbsp;&nbsp;&nbsp; global is_exit<BR>&nbsp;&nbsp;&nbsp;&nbsp; is_exit = True<BR>&nbsp;&nbsp;&nbsp;&nbsp; print "receive a signal %d, is_exit = %d"%(signum, is_exit)<br><br>&nbsp;if __name__ == "__main__":<BR>&nbsp;&nbsp;&nbsp;&nbsp; signal.signal(signal.SIGINT, handler)<BR>&nbsp;&nbsp;&nbsp;&nbsp; signal.signal(signal.SIGTERM, handler)<BR>&nbsp;&nbsp;&nbsp;&nbsp; cc = 5<BR>&nbsp;&nbsp;&nbsp;&nbsp; for i in range(cc):<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t = threading.Thread(target=doStress, args=(i,cc))<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t.start()<BR></div></P>
+<P>上面是一个模拟程序，并不真正向服务发送请求，而代之以在一千万以内，每个线程每隔并发数个（cc个）打印一个整数。很明显，当所有线程都完成自己的任务后，进程会正常退出。但如果我们中途想退出（试想一个压力测试程序，在中途已经发现了问题，需要停止测试），该肿么办？你当然可以用ps查找到进程号，然后kill -9杀掉，但这样太繁琐了，捕捉Ctrl+C是最自然的想法。上面示例程序中已经捕捉了这个信号，并修改全局变量is_exit，线程中会检测这个变量，及时退出。</P>
+<P>但事实上这个程序并不work，当你按下Ctrl+C时，程序照常运行，并无任何响应。网上搜了一些资料，明白是python的子线程如果不是daemon的话，主线程是不能响应任何中断的。但设为daemon后主线程会随之退出，接着整个进程很快就退出了，所以还需要在主线程中检测各个子线程的状态，直到所有子线程退出后自己才退出，因此上例29行之后的代码可以修改为：</P>
+<P><div class="codetitle"><span style="CURSOR: pointer"  onclick="doCopy('code10111')"><U>复制代码</U></span> 代码如下:</div><div class="codebody" id="code10111"><BR>threads=[]<BR>&nbsp;&nbsp;&nbsp;&nbsp; for i in range(cc):<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t = threading.Thread(target=doStress, args=(i, cc))<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t.setDaemon(True)<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; threads.append(t)<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t.start()<BR>&nbsp;&nbsp;&nbsp;&nbsp; for i in range(cc):<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; threads[i].join()<BR></div></P>
+<P>重新试一下，问题依然没有解决，进程还是没有响应Ctrl+C，这是因为join()函数同样会waiting在一个锁上，使主线程无法捕获信号。因此继续修改，调用线程的isAlive()函数判断线程是否完成：</P>
+<P><div class="codetitle"><span style="CURSOR: pointer"  onclick="doCopy('code88084')"><U>复制代码</U></span> 代码如下:</div><div class="codebody" id="code88084"><BR>while 1:<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; alive = False<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for i in range(cc):<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; alive = alive or threads[i].isAlive()<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if not alive:<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break<BR></div></P>
+<P>这样修改后，程序完全按照预想运行了：可以顺利的打印每个线程应该打印的所有数字，也可以中途用Ctrl+C终结整个进程。完整的代码如下：</P>
+<P><div class="codetitle"><span style="CURSOR: pointer"  onclick="doCopy('code27605')"><U>复制代码</U></span> 代码如下:</div><div class="codebody" id="code27605"><BR>#!/bin/env python<BR>&nbsp;# -*- coding: utf-8 -*-<BR>&nbsp;#filename: peartest.py<br><br>&nbsp;import threading, signal<br><br>&nbsp;is_exit = False<br><br>&nbsp;def doStress(i, cc):<BR>&nbsp;&nbsp;&nbsp;&nbsp; global is_exit<BR>&nbsp;&nbsp;&nbsp;&nbsp; idx = i<BR>&nbsp;&nbsp;&nbsp;&nbsp; while not is_exit:<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (idx &lt; 10000000):<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; print "thread[%d]: idx=%d"%(i, idx)<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; idx = idx + cc<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else:<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break<BR>&nbsp;&nbsp;&nbsp;&nbsp; if is_exit:<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; print "receive a signal to exit, thread[%d] stop."%i<BR>&nbsp;&nbsp;&nbsp;&nbsp; else:<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; print "thread[%d] complete."%i<br><br>&nbsp;def handler(signum, frame):<BR>&nbsp;&nbsp;&nbsp;&nbsp; global is_exit<BR>&nbsp;&nbsp;&nbsp;&nbsp; is_exit = True<BR>&nbsp;&nbsp;&nbsp;&nbsp; print "receive a signal %d, is_exit = %d"%(signum, is_exit)<br><br>&nbsp;if __name__ == "__main__":<BR>&nbsp;&nbsp;&nbsp;&nbsp; signal.signal(signal.SIGINT, handler)<BR>&nbsp;&nbsp;&nbsp;&nbsp; signal.signal(signal.SIGTERM, handler)<BR>&nbsp;&nbsp;&nbsp;&nbsp; cc = 5<BR>&nbsp;&nbsp;&nbsp;&nbsp; threads = []<BR>&nbsp;&nbsp;&nbsp;&nbsp; for i in range(cc):<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t = threading.Thread(target=doStress, args=(i,cc))<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t.setDaemon(True)<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; threads.append(t)<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t.start()<BR>&nbsp;&nbsp;&nbsp;&nbsp; while 1:<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; alive = False<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for i in range(cc):<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; alive = alive or threads[i].isAlive()<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if not alive:<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break<BR></div></P>
+<P>其实，如果用python写一个服务，也需要这样，因为负责服务的那个线程是永远在那里接收请求的，不会退出，而如果你想用Ctrl+C杀死整个服务，跟上面的压力测试程序是一个道理。总结一下，python多线程中要响应Ctrl+C的信号以杀死整个进程，需要：</P>
+<P>1.把所有子线程设为Daemon；<BR>2.使用isAlive()函数判断所有子线程是否完成，而不是在主线程中用join()函数等待完成；<BR>3.写一个响应Ctrl+C信号的函数，修改全局变量，使得各子线程能够检测到，并正常退出。</P>
+<!--NEWSZW_HZH_END-->
+<div id="numstyle"></div>
+<div id="art_xg">
+
+<div id="con_da2">
+<script type="text/javascript" src="http://img.jb51.net/inc/baidu580.js"></script>
+</div>
+</div>
+<div id="con_bo"></div>
+</div>
+<div class=blank3></div>
+<div id="shoucang">
+    <div id="bdshare" class="bdshare_t bds_tools get-codes-bdshare">
+        <a class="bds_qzone">QQ空间</a>
+        <a class="bds_tsina">新浪微博</a>
+        <a class="bds_tqq">腾讯微博</a>
+        <a class="bds_tsohu">搜狐微博</a>
+        <a class="bds_renren">人人网</a>
+        <a class="bds_kaixin001">开心网</a>
+        <a class="bds_baidu">百度搜藏</a>
+        <span class="bds_more">更多</span>
+		<a class="shareCount"></a>
+    </div>
+</div>
+<div class=blank3></div>
+<div class="tags">
+<strong>Tags：</strong><a href="http://img.jb51.net/tag/Ctrl%2BC/1.htm" target="_blank" title="搜索关于Ctrl+C的文章">Ctrl+C</a> <a href="http://img.jb51.net/tag/%D6%D5%D6%B9%B6%E0%CF%DF%B3%CC/1.htm" target="_blank" title="搜索关于终止多线程的文章">终止多线程</a> 
+</div>
+<div class=blank3></div>
+<div class="con_ff">
+<A title=复制本文链接发给你QQ/MSN上的好友 href="javascript: copyUserHomeToClipBoard()" 
+rel=nofollow class=button_link>复制链接</A><a href="javascript:addBookmark(document.title,document.location.href)" class=button_link>收藏本文</a><a href="javascript:doPrint();" class="button_link">打印本文</a><a href="javascript:closeWindow()" class="button_link">关闭本文</a><a href='/index.htm' class=button_link>返回首页</a>
+</div>
+<div id="prenext">
+<div id='prv'>上一篇：<a href='/article/35029.htm' title='python利用hook技术破解https的实例代码'>python利用hook技术破解https的实例代码</a></div><div id='next'>下一篇：<a href='/article/47817.htm'>pyqt4教程之messagebox使用示例分享</a></div>
+</div>
+<DIV class="bc_bot_ad">
+<div class="fl300"><script type="text/javascript" src="http://img.jb51.net/imgby/bot_l300.js"></script></div>
+<div class="fr300"><script type="text/javascript" src="http://img.jb51.net/imgby/bot_r300.js"></script></div>
+<div class="clear"></div>
+</DIV>
+<div class=blank3></div>
+<DIV id=relatedarticle>
+<H2>相关文章</H2>
+<ul><li><a href="/article/46260.htm" title="Python批量修改文件后缀的方法" target="_blank">Python批量修改文件后缀的方法</a></li><li><a href="/article/45936.htm" title="c++生成dll使用python调用dll的方法" target="_blank">c++生成dll使用python调用dll的方法</a></li><li><a href="/article/34002.htm" title="python类型强制转换long to int的代码" target="_blank">python类型强制转换long to int的代码</a></li><li><a href="/article/30502.htm" title="python 算法 排序实现快速排序" target="_blank">python 算法 排序实现快速排序</a></li><li><a href="/article/43754.htm" title="python自动化工具日志查询分析脚本代码实现" target="_blank">python自动化工具日志查询分析脚本代码实现</a></li><li><a href="/article/45606.htm" title="python调用cmd命令行制作刷博器" target="_blank">python调用cmd命令行制作刷博器</a></li><li><a href="/article/46836.htm" title="python定时器使用示例分享" target="_blank">python定时器使用示例分享</a></li><li><a href="/article/17190.htm" title="wxpython 学习笔记 第一天" target="_blank">wxpython 学习笔记 第一天</a></li></ul>
+<DIV class=clear></DIV></DIV>
+<div class="sm"><script type="text/javascript" src="http://img.jb51.net/inc/sm.js" charset="gb2312"></script></div>
+<DIV id=comments>
+<H2>文章评论</H2>
+<div id="commentList">
+<div class="ds-thread" data-category="" data-thread-key="art_35165" data-title="Python中用Ctrl+C终止多线程程序的问题解决" data-author-key="" data-url="http://www.jb51.net/article/35165.htm"></div>
+</div>
+</div>
+<div class=blank3></div>
+<div id="hm_t_3717"></div>
+<div class=blank3></div>
+</div>
+</div><!--end dxy_mainl-->
+<div class="dxy_main_r">
+<div class="rbg" id="art_1"><script src="http://img.jb51.net/imgby/r_1.js"></script></div>
+<div class=blank3></div>
+<DIV class="r_title"><H6>最 近 更 新</H6></div>
+<div class="rightContent">
+<ul><li><a href="/article/34093.htm" title="python的常见命令注入威胁" target="_blank">python的常见命令注入威胁</a></li><li><a href="/article/45436.htm" title="python抓取豆瓣图片并自动保存示例学习" target="_blank">python抓取豆瓣图片并自动保存示例学习</a></li><li><a href="/article/42988.htm" title="python正则分组的应用" target="_blank">python正则分组的应用</a></li><li><a href="/article/45771.htm" title="分析python服务器拒绝服务攻击代码" target="_blank">分析python服务器拒绝服务攻击代码</a></li><li><a href="/article/36167.htm" title="50行代码实现贪吃蛇(具体思路及代码)" target="_blank">50行代码实现贪吃蛇(具体思路及代码)</a></li><li><a href="/article/47816.htm" title="pyqt4教程之widget使用示例分享" target="_blank">pyqt4教程之widget使用示例分享</a></li><li><a href="/article/46597.htm" title="python基础教程之popen函数操作其它程序的输入和输出示例" target="_blank">python基础教程之popen函数操作其它程序的</a></li><li><a href="/article/16101.htm" title="wxPython 入门教程" target="_blank">wxPython 入门教程</a></li><li><a href="/article/6815.htm" title="简明 Python 基础学习教程" target="_blank">简明 Python 基础学习教程</a></li><li><a href="/article/28627.htm" title="python 不关闭控制台的实现方法" target="_blank">python 不关闭控制台的实现方法</a></li></ul>
+</div>
+<div class=blank3></div>
+<div id="art_2"><script src="http://img.jb51.net/imgby/r_2.js"></script></div>
+<div class=blank3></div>
+<DIV class="r_title"><H6>热 点 排 行</H6></div>
+<div class="hotContent">
+<ul class="topnum"><li class="top1"><a href="/article/926.htm" title="Python入门教程 超详细1小时学会Python" target="_blank">Python入门教程 超详细1小时学会</a></li><li class="top2"><a href="/article/26543.htm" title="python 中文乱码问题深入分析" target="_blank">python 中文乱码问题深入分析</a></li><li class="top3"><a href="/article/15707.htm" title="比较详细Python正则表达式操作指南(re使用)" target="_blank">比较详细Python正则表达式操作指</a></li><li class="top4"><a href="/article/17560.htm" title="Python字符串的encode与decode研究心得乱码问题解决方法" target="_blank">Python字符串的encode与decode研</a></li><li class="top5"><a href="/article/15715.htm" title="Python enumerate遍历数组示例应用" target="_blank">Python enumerate遍历数组示例应</a></li><li class="top6"><a href="/article/15709.htm" title="Python open读写文件实现脚本" target="_blank">Python open读写文件实现脚本</a></li><li class="top7"><a href="/article/15717.htm" title="Python 深入理解yield" target="_blank">Python 深入理解yield</a></li><li class="top8"><a href="/article/20855.htm" title="Python+Django在windows下的开发环境配置图解" target="_blank">Python+Django在windows下的开发</a></li><li class="top9"><a href="/article/6819.htm" title="Python入门" target="_blank">Python入门</a></li><li class="top10"><a href="/article/21007.htm" title="python 文件和路径操作函数小结" target="_blank">python 文件和路径操作函数小结</a></li></ul>
+</div>
+<div class=blank3></div>
+<div id="art_3"><script src="http://img.jb51.net/imgby/r_3.js"></script></div>
+<div class=blank3></div>
+<div id="baidu300"><script type="text/javascript" src="http://img.jb51.net/imgby/baidu300_2.js"></script></div>
+</DIV><!--end mainr-->
+<div class=clear></div>
+</div><!--end main2-->
+<div class="blank3"></div>
+<div id="footer">
+  <div id="footerinfo">
+   <div id="footercontent"><a href="http://www.jb51.net/about.htm" target="_blank">关于我们</a> - <a href="http://www.jb51.net/support.htm" target="_blank">广告合作</a> - <a href="http://www.jb51.net/linkus.htm" target="_blank">联系我们</a> -  <a href="http://www.jb51.net/sm.htm" target="_blank">免责声明</a> -  <a href="http://www.jb51.net/sitemap.htm" target="_blank">网站地图</a> - <a href="tencent://message/?uin=461478385&Site=http://www.jb51.net" target="_blank">投诉建议</a> - <a href="http://www.jb51.net/up.htm" target="_blank">在线投稿</a></div>
+    <div id="footercopyrights">CopyRight &copy; 2006-2014 <a href="http://www.jb51.net">脚本之家</a> JB51.Net , All Rights Reserved</div>
+  </div>
+</div>
+<script type="text/javascript">
+var tougao="shangke";
+document.body.oncopy = function () { 
+	setTimeout( function () { 
+		var text = getClipboard();
+		if (text) { 
+			text = text + "\r\n详细出处参考："+document.location.href; 
+copy2Clipboard(text);
+
+		} 
+				}, 100 ) 
+}
+</script>
+<div id="logo_m_tp"><script type="text/javascript" src="http://img.jb51.net/imgby/logo_m.js"></script></div>
+<div id="logo_r_tp"><script type="text/javascript" src="http://img.jb51.net/imgby/logo_r.js"></script></div>
+<div id="title_ad1_tp"><script type="text/javascript" src="http://img.jb51.net/imgby/bc_txt_1.js"></script></div>
+<div id="tonglan1_tp"><script type="text/javascript" src="http://img.jb51.net/imgby/tonglan1.js"></script></div>
+<script type="text/javascript" src="http://img.jb51.net/inc/con_ad.js"></script>
+<div class="tongji"><script type="text/javascript" src="http://img.jb51.net/inc/tongji.js"></script></div>
+<script type="text/javascript" src="http://img.jb51.net/pl_counts.asp?id=35165"></script>
+<!-- Baidu Button BEGIN -->
+<script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=50347" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+	document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?t=" + new Date().getHours();
+</script>
+<!-- Baidu Button END -->
+<!-- Duoshuo Comment BEGIN -->
+<script type="text/javascript">
+var duoshuoQuery = {short_name:"jb51"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = 'http://static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		|| document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+<!-- Duoshuo Comment END -->
+</body>
+</html>
+<!-- published at 2014-3-9 19:59:05By dxycms qq:461478385  -->

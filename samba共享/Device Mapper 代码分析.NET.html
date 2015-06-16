@@ -1,0 +1,568 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Device Mapper 代码分析 - SonicLing的专栏 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="Device Mapper（DM）是Linux 2.6全面引入的块设备新构架，通过DM可以灵活地管理系统中所有的真实或虚拟的块设备。DM以块设备的形式注册到Linux内核中，凡是挂载（或者说“映射”）于DM结构下的块设备，不管他们是如何组织，如何通讯，在Linux看来都是一个完整的DM块设备。因此DM让不同组织形式的块设备或者块设备集群在Linux内核面前有一个完整统一的DM表示。一、DM" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/light_blue/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/sonicling/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="/sonicling">SonicLing的专栏</a></h1>
+            <h2>用C++写通用编译器</h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="/sonicling?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="/sonicling?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="/sonicling/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "sonicling";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/sonicling";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://events.csdn.net/DR2013/roadshow/index.html" target="_blank">
+<font color=red>【免费】全新海外营销策论分享 
+   </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://bbs.csdn.net/topics/390422723" target="_blank"><font color=blue>CSDN社区4月技术大分享活动火爆开始
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8699892" target="_blank"><font color=blue>写“书评”赢下载分！ 
+
+
+</font></a>
+
+<br />
+
+
+
+
+
+<a href="http://blog.csdn.net/csdnproduct/article/details/8789396"target="_blank">
+<font color=blue>公告：CSDN新版首页上线 
+
+
+ </font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://e.weibo.com/csdnsupport
+"target="_blank">
+<font color=red>欢迎关注CSDN产品客服微博
+ </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2013-04-10/2814826"target="_blank">
+<font color=red>专访熊攀峰：HTML5时代 Flash仍是座宝藏
+
+ </font></a>
+
+
+
+
+
+
+</div>
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Original"></span>
+    <h3>
+        <span class="link_title"><a href="/sonicling/article/details/5460311">
+        Device Mapper 代码分析
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/sonicling/article/category/703678">Linux</a> 
+            <a href="/sonicling/article/category/552819">其他</a> 
+        </span>
+    <span class="link_postdate">2010-04-08 00:13</span>
+    <span class="link_view" title="阅读次数">3044人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(10)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('Device Mapper 代码分析','5460311');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(5460311,2);return false;" title="举报">举报</a></span>
+    
+</div>
+<div class="tag2box"><a href='http://blog.csdn.net/tag/details.html?tag=%e4%bb%a3%e7%a0%81%e5%88%86%e6%9e%90' target=_blank>代码分析</a><a href='http://blog.csdn.net/tag/details.html?tag=linux%e5%86%85%e6%a0%b8' target=_blank>linux内核</a><a href='http://blog.csdn.net/tag/details.html?tag=struct' target=_blank>struct</a><a href='http://blog.csdn.net/tag/details.html?tag=table' target=_blank>table</a><a href='http://blog.csdn.net/tag/details.html?tag=%e6%a1%86%e6%9e%b6' target=_blank>框架</a><a href='http://blog.csdn.net/tag/details.html?tag=linux' target=_blank>linux</a></div>
+
+
+    
+<div id="article_content" class="article_content">
+<p>Device Mapper（DM）是Linux 2.6全面引入的块设备新构架，通过DM可以灵活地管理系统中所有的真实或虚拟的块设备。</p>
+<p>DM以块设备的形式注册到Linux内核中，凡是挂载（或者说&ldquo;映射&rdquo;）于DM结构下的块设备，不管他们是如何组织，如何通讯，在Linux看来都是一个完整的DM块设备。因此DM让不同组织形式的块设备或者块设备集群在Linux内核面前有一个完整统一的DM表示。</p>
+<h3>一、DM与MD</h3>
+<p>在Linux内核代码中（本文以2.6.33内核代码为参照），DM指的是整个Device Mapper的设计框架。MD（Mapped Device）是框架所虚拟出来的各种设备。简而言之DM就是不同种类的MD经过特定的关系连接到块设备管理器上的大构架。</p>
+<p>DM的内核代码集中在drivers/md目录中。DM构架相关的代码在dm.c和dm-io.c文件中，各种抽象的MD虚拟设备代码分散在同目录的其他文件中，除了dm-ioctl.c是dm设置接口设备。</p>
+<h3>二、使用DMSetup</h3>
+<p>使用DM的工具是dmsetup。这个命令帮助我们&ldquo;组装&rdquo;、&ldquo;解散&rdquo;、&ldquo;监视&rdquo;我们自己的虚拟存储结构。具体的用法可以参照<a href="#[1]">[1]</a>
+
+，本文的目的是结合Linux内核源代码来窥视dm的运作机制。</p>
+<p>在dmsetup的子命令中，create、load、reload子命令都带有 --table &lt;table&gt; 的参数，&lt;table&gt;字符串是创建dm设备的关键，若非在命令行中以参数形式给出，则必然需要写在一个table文件中传给dmsetup。</p>
+<p>table字符串有如下形式：</p>
+<blockquote>
+<p>&lt;start&gt; &lt;length&gt; &lt;type&gt; &lt;arguments&gt;</p>
+</blockquote>
+<p>为了弄清楚这些参数，首先必须明白，create、load、reload子命令总是将一个或一组已经存在的块设备A的一部分或者全部虚拟称为块设备B。在内核代码中，块设备B（也是我们直接打交道的设备）称为mapped device，那一组块设备A中指定的那部分抽象（可以看作是我们将它交给dm来管理的那一部分）称为target device(s)，对应的驱动为target driver。我们并不要求设备A必须是一个真实的磁盘，它也可以是dm已经虚拟出来的另外一个mapped device。<a href="#[2]">[2]</a>
+
+详尽的解释了mapped device、target driver和target device之间的关系。但是这篇文章并没有着重分析源代码，而这是本文分析的重点。</p>
+<p>table字符串中的&lt;start&gt;和&lt;length&gt;是设备A中，交由dm管理的区域，单位是sector。也就是说，由此创建的mapped device刚好映射在源设备中偏移为start、长度为length的这些sectors中；&lt;type&gt;为target driver的类型，每一个type字符串都对应一个target driver；&lt;arguments&gt;是用来创建target device的参数，这些参数传递给target device的创建函数的形式就如同命令行参数传递给int main(int argc, char *argv[])一样。</p>
+<p>Linux内核自带的target driver有linear、stripe、mirror、multi-path、dm-crypt以及一组标准raid的驱动。接下来，我们以stripe的代码为例，来解释target driver是如何创建、运行target device的。</p>
+<h3>三、Target Driver</h3>
+<p>每一个target device在内核代码中体现为对应的驱动，这些驱动都必须符合DM构架，受DM的管理。有人可能会疑问，为什么DM构架中的驱动都是target驱动，而不是MD的驱动？因为DM的设计中，MD只是一个对外的统一接口，不同target driver的对外接口都是一样的，因此无需为不同的虚拟方式编写不同的MD，只用提供不同的target driver即可（PS:也许这里叫做mapped driver可以避免混淆，因为MD和target driver（<strong>以后简称driver</strong>
+）的实例之间是一对一的关系，而target driver同target device（<strong>以后简称target</strong>
+）之间是一对多的关系。将driver的概念融合进入md就变成md与target之间一对多的二元关系，而不是现在的md-driver-target三元关系。但md与driver毕竟一个是通用的，一个是特殊的，由此分解为三元关系也就不难理解）。</p>
+<p>再此统一一下术语的简称：我们将mapped device简称为md，target device简称为target。之所以这样简称是因为内核代码的命名规则也大致如此。另外的target driver简称为driver（源代码不会出现，因为DM框架管理的是target，不是driver。driver直接insmod就可以了）；源设备简称为device（源代码中只有通过名字包含bdev的变量来代表这些设备）。</p>
+<p>本文以dm-stripe.c为例，来分析一个target应该具备哪些基本的要素来完成设计好的设备抽象。stripe所要做的是将多个设备的等长区域合并起来组成一个完成的抽象设备，其重点在于寻址。假设有n个devices，每个的区域长度为m，那么第i个块应该存放在第 (i%n) 个target中的偏移量为 (i/n) 的块（要注意的是实际的偏移还得加上target相对于设备的偏移）。</p>
+<p>首先，每个driver需要有一个struct target_type结构向DM注册自己，并且这个结构在所有driver实例间共享，换句话说所有driver实例都可以看作从属于这种类型，因此这个target_type应该理解为driver type才对。dm-stripe的struct target_type结构如下</p>
+<p><textarea cols="50" rows="15" name="code" class="cpp:firstline[342]">static struct target_type stripe_target = {
+	.name   = &quot;striped&quot;,    // &lt;type&gt;名称
+	.version = {1, 3, 0},
+	.module = THIS_MODULE,
+	.ctr    = stripe_ctr,   // 创建器
+	.dtr    = stripe_dtr,   // 销毁器
+	.map    = stripe_map,   // 映射
+	.end_io = stripe_end_io,// IO结束通知
+	.status = stripe_status,
+	.iterate_devices = stripe_iterate_devices, // 迭代遍历源设备
+	.io_hints = stripe_io_hints,
+};</textarea>
+
+</p>
+<p>创建器、销毁器和映射是一般target driver都具备的功能。</p>
+<p>每个创建器都有如下函数原型：</p>
+<blockquote>
+<p>int xxx_ctr(struct dm_target *ti, unsigned int argc, char **argv);</p>
+</blockquote>
+<p>在设备创建时，DM框架会自动创建对应的struct dm_target结构，并力所能及地初始化了一些成员。现在创建器所要做的就是完成对该结构的初始化。那么先来看看DM框架初始化了哪些，需要ctr初始化另外那一些：</p>
+<p>&nbsp;</p>
+<p><textarea cols="50" rows="15" name="code" class="cpp:firstline[163]">struct dm_target {
+	struct dm_table *table;   // @driver 到 target device 的映射表，由DM框架维护
+	struct target_type *type; // @driver 所注册的那个type
+	/* target limits */
+	sector_t begin;           // @&lt;start&gt;
+	sector_t len;             // @&lt;length&gt;
+	/* Always a power of 2 */
+	sector_t split_io;        // 块大小（每个块的扇区数）
+	/*
+	 * A number of zero-length barrier requests that will be submitted
+	 * to the target for the purpose of flushing cache.
+	 *
+	 * The request number will be placed in union map_info-&gt;flush_request.
+	 * It is a responsibility of the target driver to remap these requests
+	 * to the real underlying devices.
+	 */
+	unsigned num_flush_requests;
+	/* target specific data */
+	void *private;            // 自定义的设备相关数据
+	/* Used to provide an error string from the ctr */
+	char *error;
+};
+</textarea>
+
+ </p>
+<p>带@标记的成员由DM初始化，或者部分初始化，其他初始化工作由ctr完成。一般来说ctr主要做两件事：</p>
+<blockquote>
+<p>1. 将源设备的dev信息记录到table中。</p>
+<p>2. 将target device(s)的信息初始化并记录在private中</p>
+</blockquote>
+<p>table成员就是driver实例到target(s)之间的映射表。DM框架提供了int dm_get_device(struct dm_target *ti, const char *path, sector_t start, sector_t len, fmode_t mode, struct dm_dev **result)函数将path所指定的设备的bdev以及对应的区间、权限、模式等填入ti-&gt;table中。stripe_ctr要做的就是将参数中对应的字符串传递给这个函数。</p>
+<p>同时，stripe_ctr创建了自定义的struct stripe_c结构sc，并记录在ti-&gt;private上。l利用dm_get_device的result出参填满sc-&gt;stripes数组（关键就是记住源设备的dev结构，DM中统一用struct dm_dev *指针来引用）。</p>
+<p>对应的销毁器stripe_dtr就是将stripe_ctr向内核申请的资源一一释放掉，在此不累述。</p>
+<p>最关键的是map函数。任何一个bio（块设备的io请求）都要映射到最终存储它的设备上的相应位置，map函数就是完成这一功能。该函数的原型如下：</p>
+<blockquote>
+<p>int xxx_map(struct dm_target *ti, struct bio *bio, union map_info *map_context);</p>
+</blockquote>
+<p>ti代表target，bio是发给这个target的io请求。一个bio有三个关键成员：bi_sector（位置）、bi_bdev（设备）、bi_io_vec（数据）。DM框架将bio发给map函数，使得target有机会来改变bio的这三个关键成员，从而实现两个目的：重定位和修改数据。map_context在许多情况下并没有许多作用。</p>
+<p>如果map函数将bio赋值后又分发出去，那么就返回DM_MAPIO_SUBMITTED告诉DM不要再处理了；如果map函数修改了bio的内容，希望DM将bio按照新内容再分发，那么就返回DM_MAPIO_REMAPPED即可；如果map函数将bio加入队列中等待后续处理，则返回DM_MAPIO_REQUEUE。DM相应的处理代码可以在dm.c中的__map_bio()函数中找到。</p>
+<p>stripe_map就很简单了，直接修改bio的bi_sector和bi_bdev，返回DM_MAPIO_REMAPPED通知DM再分发一次即可。stripe所扮演的角色就好比是一个邮件中转站，下辖N个子邮箱。所有邮件都按照规则被转发到对应子邮箱中，中转站的工作就是把每个邮件的地址和收件人改一改再让邮递员送一遍即可，接下来的bio传递路径分析将详细展示这一中转过程。</p>
+<h3>四、DM转发bio的过程<br />
+</h3>
+<p>DM为每一个driver的实例创建一个md作为对外的接口，每一个md在内核中注册成为一个块设备，因此每一个driver的实例就是一个虚拟的块设备。</p>
+<p>每一个md通过driver的实例管理一个或多个target，driver的主要工作就是把每个提交给md的bio请求进行数据转换并转发给对应的target。md实现了一个标准的块设备驱动，这里仅分析bio的转发过程。</p>
+<p>每个块设备都有一个请求队列，请求队列包含一个make_request_fn指针指向原型为int make_request(struct request_queue *q, struct bio *bio);的函数，Linux内核中的void generic_make_request(struct bio *bio);函数就是通过bio找到对应的bi_bdev，然后找到该bdev对应的request_queue，并调用其make_request_fn函数：</p>
+<blockquote>
+<p>block/blk_core.c 1484行：ret = q-&gt;make_request_fn(q, bio);</p>
+</blockquote>
+<p>这就是bio从内核进入DM的起点。为什么这么说？因为在md创建的时候（通过dm.c中alloc_dev()）将md-&gt;queue的make_request_fn指针设置为了dm_request：</p>
+<blockquote>
+<p>drivers/md/dm.c 1908行：blk_queue_make_request(md-&gt;queue, dm_request);</p>
+</blockquote>
+<p>dm_request接收到bio之后有两种选择：如果q-&gt;queue_flags被设置了QUEUE_FLAG_STACKABLE，则对request进行排队处理，否则直接分发。alloc_dev中创建queue的时候按照QUEUE_FLAG_DEFAULT创建，包含了QUEUE_FLAG_STACKABLE，但是接着该标志被清除了：</p>
+<blockquote>
+<p>drivers/md/dm.c 1889行：md-&gt;queue = blk_init_queue(dm_request_fn, NULL);</p>
+<p>...</p>
+<p>drivers/md/dm.c 1903行：queue_flag_clear_unlocked(QUEUE_FLAG_STACKABLE, md-&gt;queue);</p>
+</blockquote>
+<p>因此dm_request()函数将走_dm_request()分支。以下是bio所走过的流程：</p>
+<blockquote>
+<p>int dm_request(struct request_queue *q, struct bio *bio)</p>
+<p><span style="color: #999999;">`-&gt;</span>
+ _dm_request(q, bio);</p>
+<p style="padding-left: 30px;"><span style="color: #999999;">`-&gt;</span>
+ __split_and_process_bio(md, bio); // md 由 q-&gt;queue_data 获得</p>
+<p style="padding-left: 60px;"><span style="color: #999999;">`-&gt;</span>
+ __clone_and_map(&amp;ci);&nbsp; // md、bio等信息记录在 ci 结构体中</p>
+<p style="padding-left: 90px;"><span style="color: #999999;">`-&gt;</span>
+ __map_bio(ti, clone, tio);&nbsp; // ti 由 ci-&gt;md 查表获得，clone由ci-&gt;bio克隆获得</p>
+<p style="padding-left: 120px;"><span style="color: #999999;">`-&gt;</span>
+ ti-&gt;type-&gt;map(ti, clone, &amp;tio-&gt;info);</p>
+</blockquote>
+<p>最终，bio传递给了对应ti的map函数。</p>
+<p>要说明的是，DM构架及其驱动一般不会是真实设备的驱动，因此只会对bio进行处理之后再转发出去。转发的方法就是修改bio-&gt;bi_bdev和bio-&gt;bi_sector。其中bi_bdev必需是在内核中已注册的设备，这些块设备和dm的块设备一道在Linux内核中注册，在Linux看来是平等的。而一个md其实是将其他块设备的bdev记录在自己的映射表中，按照自身的逻辑规律对bio进行映射转发而已。</p>
+<hr style="width: 100%; border: 1px solid #cccccc; color: #ffffff;" noshade="noshade" />
+<h3>参考文献<br />
+
+</h3>
+<p><a name="[1]"></a>
+
+[1] <a href="http://linux.die.net/man/8/dmsetup">dmsetup(8) - Linux man page</a>
+
+</p>
+<p><a name="[2]"></a>
+
+ [2] <a href="http://www.ibm.com/developerworks/cn/linux/l-devmapper/index.html">Linux 内核中的 Device Mapper 机制</a>
+
+</p>
+<p>&nbsp;</p>
+</div>
+
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.1.237-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/sonicling/article/details/4532406">IIS7下的Web应用程序以“Windows集成安全性”方式连接到远程SQL Server</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/sonicling/article/details/5889585">我的词法分析器</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen">
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "117306";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<script type="text/javascript">
+    //new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '5460311';
+    var commentscount = 10;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/sonicling" target="_blank">
+    <img src="http://avatar.csdn.net/B/B/4/1_sonicling.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/sonicling" class="user_name" target="_blank">sonicling</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>32734次</span></li>
+    <li>积分：<span>624分</span></li>
+    <li>排名：<span>第17694名</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>21篇</span></li>
+    <li>转载：<span>0篇</span></li>
+    <li>译文：<span>0篇</span></li>
+    <li>评论：<span>61条</span></li>
+</ul>
+</ul>
+</div>
+
+
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/sonicling/article/category/703678">Linux</a><span>(3)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/sonicling/article/category/552819">其他</a><span>(6)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/sonicling/article/category/261126">编译器</a><span>(7)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/sonicling/article/category/575475">解释器</a><span>(6)</span>
+</li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/sonicling/article/month/2012/12">2012年12月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2012/09">2012年09月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2012/08">2012年08月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2011/08">2011年08月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2011/06">2011年06月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2011/03">2011年03月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2010/09">2010年09月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2010/04">2010年04月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2009/09">2009年09月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2009/08">2009年08月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2009/06">2009年06月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2009/05">2009年05月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2009/04">2009年04月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2008/07">2008年07月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2008/01">2008年01月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/sonicling/article/month/2006/12">2006年12月</a><span>(1)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/sonicling/article/details/4061026" title="LR 语法分析器">LR 语法分析器</a><span>(5014)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/2070026" title="我的脚本解释器">我的脚本解释器</a><span>(3234)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/6702031" title="GCC源码分析（一）——介绍与安装">GCC源码分析（一）——介绍与安装</a><span>(3181)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/5460311" title="Device Mapper 代码分析">Device Mapper 代码分析</a><span>(3044)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/6706152" title="GCC源码分析（二）——前端">GCC源码分析（二）——前端</a><span>(2243)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/6275898" title="Linux块设备加密之dm-crypt分析">Linux块设备加密之dm-crypt分析</a><span>(2087)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/2682080" title="对C的新感觉">对C的新感觉</a><span>(1332)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/4526398" title="FTP测试工具">FTP测试工具</a><span>(1316)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/1435813" title="C++编译器的预编译组件完工">C++编译器的预编译组件完工</a><span>(1192)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/4532406" title="IIS7下的Web应用程序以“Windows集成安全性”方式连接到远程SQL Server">IIS7下的Web应用程序以“Windows集成安全性”方式连接到远程SQL Server</a><span>(1040)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/sonicling/article/details/4061026" title="LR 语法分析器">LR 语法分析器</a><span>(16)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/6275898" title="Linux块设备加密之dm-crypt分析">Linux块设备加密之dm-crypt分析</a><span>(14)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/5460311" title="Device Mapper 代码分析">Device Mapper 代码分析</a><span>(10)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/8246231" title="GCC源码分析（五）——指令生成">GCC源码分析（五）——指令生成</a><span>(4)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/7916931" title="GCC源码分析（四）——优化">GCC源码分析（四）——优化</a><span>(4)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/5902182" title="Linux 下不经过BIOS重启（i386）">Linux 下不经过BIOS重启（i386）</a><span>(3)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/2682080" title="对C的新感觉">对C的新感觉</a><span>(2)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/2070026" title="我的脚本解释器">我的脚本解释器</a><span>(2)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/4408154" title=" 脚本解释器构架（四）"> 脚本解释器构架（四）</a><span>(2)</span>
+</li>
+<li>
+<a href="/sonicling/article/details/5889585" title="我的词法分析器">我的词法分析器</a><span>(1)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/sonicling/article/details/8246231#comments">GCC源码分析（五）——指令生成</a>
+    <p style="margin:0px;"><a href="/niuzai47" class="user_name">niuzai47</a>:
+你好，我是研一学生，发现你的文章写的很好，对我很有帮助，能加我qq吗316242157。另外发现一个...
+    </p>
+    </li>
+    <li>
+    <a href="/sonicling/article/details/8246231#comments">GCC源码分析（五）——指令生成</a>
+    <p style="margin:0px;"><a href="/ayading826" class="user_name">ayading826</a>:
+已收藏，谢谢博主分享
+    </p>
+    </li>
+    <li>
+    <a href="/sonicling/article/details/8246231#comments">GCC源码分析（五）——指令生成</a>
+    <p style="margin:0px;"><a href="/wenwang_mit" class="user_name">wenwang_mit</a>:
+学长，你是武大的吗？我现在弄GCC，能不能请教你一些问题啊？我的qq是 461539803
+    </p>
+    </li>
+    <li>
+    <a href="/sonicling/article/details/2682080#comments">对C的新感觉</a>
+    <p style="margin:0px;"><a href="/SonicLing" class="user_name">SonicLing</a>:
+@czxskell:这一点我写错了。已更正
+    </p>
+    </li>
+    <li>
+    <a href="/sonicling/article/details/2682080#comments">对C的新感觉</a>
+    <p style="margin:0px;"><a href="/czxskell" class="user_name">czxskell</a>:
+“同步模式下如果没有数据，recv一个非阻塞socket也会导致线程等待”没有数据，recv怎么会触...
+    </p>
+    </li>
+    <li>
+    <a href="/sonicling/article/details/8246231#comments">GCC源码分析（五）——指令生成</a>
+    <p style="margin:0px;"><a href="/TankTony" class="user_name">TankTony</a>:
+临时要普及编译器知识，5篇都已看完，帮助很大，博主思路清晰，言简意赅
+    </p>
+    </li>
+    <li>
+    <a href="/sonicling/article/details/7916931#comments">GCC源码分析（四）——优化</a>
+    <p style="margin:0px;"><a href="/SonicLing" class="user_name">SonicLing</a>:
+@warriorpaw:直接看很难看懂，如果有个目的的话，就好一些。GCC的官方资料是必须了解的，剩...
+    </p>
+    </li>
+    <li>
+    <a href="/sonicling/article/details/1435813#comments">C++编译器的预编译组件完工</a>
+    <p style="margin:0px;"><a href="/coolypf" class="user_name">coolypf</a>:
+想高效，看 Clang 。
+    </p>
+    </li>
+    <li>
+    <a href="/sonicling/article/details/7916931#comments">GCC源码分析（四）——优化</a>
+    <p style="margin:0px;"><a href="/warriorpaw" class="user_name">warriorpaw</a>:
+还有  LZ加油啊，，希望您能把这个系列写完，非常有用，感谢～
+    </p>
+    </li>
+    <li>
+    <a href="/sonicling/article/details/7916931#comments">GCC源码分析（四）——优化</a>
+    <p style="margin:0px;"><a href="/warriorpaw" class="user_name">warriorpaw</a>:
+LZ您好，我是研一新生，现在导师让我看看GCC相关的，想让我修改GCC实现通过修改过的GCC编译出的...
+    </p>
+    </li>
+</ul>
+</div>
+<div id="custom_column_957298" class="panel">
+<ul class="panel_head"><span>我的连接</span></ul>
+<ul class="panel_body">
+<ul><li><a href="http://sonicling.programfan.com" target=_blank>我在programfan上的blog</a> (<a href="http://blog.programfan.com/rss.asp?author=SonicLing" target=_blank>RSS</a>)</li></ul>
+</ul>
+</div></div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=67383"></script>
+
+<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js"></script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js?v=1"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+
+</div>
+</body>
+</html>

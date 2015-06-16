@@ -1,0 +1,406 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-cn">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>KMP算法学习&amp;总结 - GoAgent - 博客园</title>
+<link type="text/css" rel="stylesheet" href="/bundles/blog-common.css?v=VDh8zSH1vx51MDqRT7hK220akQ58FjlaaeGuWBPhfOA1"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="/skins/sea/bundle-sea.css?v=PPe3jt1rcXPno6kucw0iQU2MWF3DbrvubQHRM0FEMas1"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/goagent/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/goagent/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/goagent/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">var currentBlogApp = 'goagent', cb_enable_mathjax=false;</script>
+<script src="/bundles/blog-common.js?v=Lo_yNgOy3xSX4jFztznlaU-fp0VmAT5VQ5SPZYVI7BE1" type="text/javascript"></script>
+</head>
+<body>
+<a name="top"></a>
+
+<!--done-->
+<div id="header">
+	
+<!--done-->
+<div class="header">
+	<div class="headerText">
+		<a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/goagent/">GoAgent</a><br>
+		
+	</div>
+</div>
+
+</div>
+
+<div id="mytopmenu" >
+	
+		<div id="mylinks">
+<!--done-->
+<a id="MyLinks1_HomeLink" class="menu" href="http://www.cnblogs.com/">博客园</a> &nbsp;
+<a id="MyLinks1_MyHomeLink" class="menu" href="http://www.cnblogs.com/goagent/">首页</a> &nbsp;
+<a href="http://q.cnblogs.com" class="menu">博问</a> &nbsp;
+<a href="http://home.cnblogs.com/ing/" class="menu">闪存</a> &nbsp;
+<a id="MyLinks1_NewPostLink" class="menu" rel="nofollow" href="http://i.cnblogs.com/EditPosts.aspx?opt=1">新随笔</a> &nbsp;
+<a id="MyLinks1_ContactLink" class="menu" rel="nofollow" href="http://msg.cnblogs.com/send/GoAgent">联系</a> &nbsp;
+<a id="MyLinks1_Syndication" class="menu" href="http://www.cnblogs.com/goagent/rss">订阅</a><a id="MyLinks1_XMLLink" href="http://www.cnblogs.com/goagent/rss"><img src="http://www.cnblogs.com/images/xml.gif" alt="订阅" /></a>&nbsp;
+<a id="MyLinks1_Admin" class="menu" rel="nofollow" href="http://i.cnblogs.com/">管理</a>
+</div>
+		<DIV id="mystats">
+<!--done-->
+随笔-11&nbsp;
+评论-11&nbsp;
+文章-0&nbsp;
+trackbacks-0
+</DIV>
+	
+</div>
+<div id="centercontent" >
+	
+
+<div class = "post">
+	<h1 class = "postTitle"><a id="cb_post_title_url" class="postTitle2" href="http://www.cnblogs.com/goagent/archive/2013/05/16/3068442.html">KMP算法学习&amp;总结</a></h1>
+	<div id="cnblogs_post_body"><p><span style="font-size: 18pt;"><strong>0、废话</strong></span></p>
+<p>&nbsp;一直ym传说中的kmp算法能以最坏线性的时间复杂度搞定字符串匹配，</p>
+<p>开始动手看才知道kmp中的<strong>K</strong>居然是Donald.E.<strong>K</strong>nuth，《计算机程序设计艺术》的作者。</p>
+<p>好吧，继续ym&hellip;&hellip;</p>
+<p><strong><span style="font-size: 18pt;">1、传统的字符串匹配算法</span></strong></p>
+<div class="cnblogs_code">
+<pre><span style="color: #008000;">/*</span><span style="color: #008000;"> 
+ * 从s中第sIndex位置开始匹配p
+ * 若匹配成功，返回s中模式串p的起始index
+ * 若匹配失败，返回-1
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">int</span> index(<span style="color: #0000ff;">const</span> std::<span style="color: #0000ff;">string</span> &amp;s, <span style="color: #0000ff;">const</span> std::<span style="color: #0000ff;">string</span> &amp;p, <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> sIndex = <span style="color: #800080;">0</span><span style="color: #000000;">)
+{
+    </span><span style="color: #0000ff;">int</span> i = sIndex, j = <span style="color: #800080;">0</span><span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">if</span> (s.length() &lt; <span style="color: #800080;">1</span> || p.length() &lt; <span style="color: #800080;">1</span> || sIndex &lt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">return</span> -<span style="color: #800080;">1</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #0000ff;">while</span> (i != s.length() &amp;&amp; j !=<span style="color: #000000;"> p.length())
+    {
+        </span><span style="color: #0000ff;">if</span> (s[i] ==<span style="color: #000000;"> p[j])
+        {
+            </span>++<span style="color: #000000;">i;
+            </span>++<span style="color: #000000;">j;
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+        {
+            i </span>= i - j + <span style="color: #800080;">1</span><span style="color: #000000;">;
+            j </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+        }
+    }
+    </span><span style="color: #0000ff;">return</span> j == p.length() ? i - j: -<span style="color: #800080;">1</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p><strong><span style="line-height: 1.5; font-size: 18pt;">2、<strong><span>传统字符串匹配算法</span></strong>的性能问题</span></strong></p>
+<p>用模式串P去匹配字符串S，在i=6,j=4时发生失配：</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; i=6</p>
+<p>S: a &nbsp; b&nbsp; &nbsp;<span style="color: #3366ff;"><strong>a &nbsp; b&nbsp;&nbsp;&nbsp;c &nbsp; a</strong></span> &nbsp; <strong><span style="color: #ff0000;">d</span></strong> &nbsp; c &nbsp; a &nbsp; c &nbsp; b &nbsp; a &nbsp; b</p>
+<p>P: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<span style="color: #3366ff;">&nbsp;<strong>a &nbsp; b&nbsp;&nbsp;&nbsp;c &nbsp; a</strong></span> &nbsp; <span style="color: #ff0000;"><strong>c</strong></span></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; j=4</p>
+<p>此时，按照传统算法，应当将P的第 1 个字符<span style="color: #000000;">&nbsp;<strong>a</strong>(j=0)&nbsp;</span><span style="color: #ff0000;"><span style="color: #000000;">滑动到与S中第4个字符&nbsp;<strong>b</strong>(i=3) 对齐再进行匹配：</span></span>&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;i=3&nbsp;</p>
+<p>S:&nbsp;a &nbsp; b&nbsp; &nbsp;a &nbsp;&nbsp;<span style="color: #cc99ff;"><strong>b</strong></span>&nbsp;&nbsp;&nbsp;c &nbsp; a&nbsp;&nbsp; a &nbsp; d &nbsp; a &nbsp; c &nbsp; b &nbsp; a &nbsp; b&nbsp;</p>
+<p>P:&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<span style="color: #cc99ff;"><strong>a</strong></span>&nbsp;&nbsp; b&nbsp;&nbsp;&nbsp;c &nbsp; a&nbsp;&nbsp; c&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;j=0&nbsp;</p>
+<p><span style="color: #ff0000;"><span style="color: #000000;">这个过程中，对字符串S的访问发生了<strong>&ldquo;回朔&rdquo;</strong>（从 i=6 移回到 i=3）。</span></span></p>
+<p>我们不希望发生这样的回朔，而是试图通过尽可能的<strong>&ldquo;向右滑动&rdquo;</strong>模式串P，让P中index为 j 的字符对齐到S中 i=5 的字符，然后试图匹配S中&nbsp;i=6 的字符与P中index为 j+1 的字符。</p>
+<p>在这个测试用例中，我们直接将P向右滑动3个字符，使S中 i=5 的字符与P中 j=0 的字符对齐，再匹配S中 i=6 的字符与P中 j=1 的字符。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;i=6</p>
+<p>S:&nbsp;a &nbsp; b&nbsp; &nbsp;a &nbsp; b&nbsp;&nbsp;&nbsp;c &nbsp; <span style="color: #3366ff;"><strong>a</strong></span>&nbsp;&nbsp;&nbsp;<span style="color: #cc99ff;"><strong>d</strong></span>&nbsp;&nbsp; c &nbsp; a &nbsp; c &nbsp; b &nbsp; a &nbsp; b</p>
+<p>P: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<strong><span style="color: #3366ff;">a</span> &nbsp; <span style="color: #cc99ff;">b</span></strong>&nbsp;&nbsp;&nbsp;c &nbsp; a&nbsp;&nbsp;&nbsp;c</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; j=0</p>
+<p><strong><span style="font-size: 18pt;">3、kmp算法的一般性讨论</span></strong></p>
+<p>下面讨论在一般性的情况下，如何实现在<strong>&ldquo;不回朔&rdquo;</strong>访问S、仅依靠<strong>&ldquo;滑动&rdquo;</strong>P的前提下实现字符串匹配，即<strong>&ldquo;kmp算法&rdquo;</strong>。</p>
+<p><span style="line-height: 1.5;">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;i=6</span></p>
+<p>S:&nbsp;a &nbsp; b&nbsp; &nbsp;a &nbsp; b&nbsp;&nbsp;&nbsp;c &nbsp;&nbsp;<span style="color: #3366ff;"><strong>a</strong></span>&nbsp;&nbsp;&nbsp;<span style="color: #ff0000;"><strong>d</strong></span>&nbsp;&nbsp; c &nbsp; a &nbsp; c &nbsp; b &nbsp; a &nbsp; b</p>
+<p>P: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<strong><span style="color: #3366ff;">a</span>&nbsp;&nbsp;&nbsp;<span style="color: #ff0000;">b</span></strong>&nbsp;&nbsp;&nbsp;c &nbsp; a&nbsp;&nbsp;&nbsp;c</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; k=1</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; i=6</p>
+<p>S: a &nbsp; b&nbsp; &nbsp;<strong><span>a</span>&nbsp;&nbsp; b&nbsp;&nbsp;&nbsp;c &nbsp;&nbsp;<span style="color: #339966;">a</span></strong>&nbsp;&nbsp;&nbsp;<strong>d</strong>&nbsp;&nbsp; c &nbsp; a &nbsp; c &nbsp; b &nbsp; a &nbsp; b</p>
+<p>P: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<strong><span>a</span>&nbsp;&nbsp; b&nbsp;&nbsp;&nbsp;c &nbsp;&nbsp;<span style="color: #339966;">a</span></strong><span>&nbsp;</span>&nbsp;&nbsp;<strong>c</strong></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;j=4</p>
+<p>对于任意的S和P，当S中index为 i 的字符和P中index为 j 的字符失配时，我们假定应当滑动P使其index为 k 的字符与S中index为 i 的字符<strong>&ldquo;对齐&rdquo;</strong>并继续比较。</p>
+<p>那么，这个 k 是多少？</p>
+<p>我们知道，所谓的对齐，就是要让S和P满足以下条件（上图中的蓝色字符）：</p>
+<p><img src="http://images.cnitblog.com/blog/423151/201305/09142936-3895b5924bc741ddb8b40976754218cd.png" alt="" />&hellip;&hellip;（1）</p>
+<p>另一方面，在失配时我们已经有了一些部分匹配结果（上图中的绿色字符）：</p>
+<p><img src="http://images.cnitblog.com/blog/423151/201305/09143957-22d9647c5172436c963e0d67b1ccb32c.png" alt="" />&hellip;&hellip;（2）</p>
+<p>由（1）、（2）可以得到：</p>
+<p><img src="http://images.cnitblog.com/blog/423151/201305/09144202-082b2494dcdc45889c3e597dcda3b278.png" alt="" />&hellip;&hellip;（3）</p>
+<p>即如下图所示效果：</p>
+<p><img src="http://images.cnitblog.com/blog/423151/201305/10102900-2ee9dc1926af481386016b36991a51fe.png" alt="" /></p>
+<p>定义next[j]=k，k表示当模式串P中index为 j 的字符与主串S中index为 i 的字符发生失配时，应将P中index为 k 的字符继续与主串S中index为 i 的字符比较。</p>
+<p><img src="http://images.cnitblog.com/blog/423151/201305/09153726-f27981515b5c484aa0e2c2ecf761346d.png" alt="" />&hellip;&hellip;（4）</p>
+<p>按上述定义给出next数组的一个例子：</p>
+<p>&nbsp; &nbsp;j &nbsp; &nbsp; &nbsp; &nbsp; 0 &nbsp;1 &nbsp;2 &nbsp;3 &nbsp;4 &nbsp;5 &nbsp;6 &nbsp;7</p>
+<p>&nbsp; &nbsp;P &nbsp; &nbsp; &nbsp; &nbsp;a &nbsp; b &nbsp;a &nbsp;a &nbsp;b &nbsp;c &nbsp;a &nbsp; c</p>
+<p>next[j] &nbsp;-1 &nbsp;0 &nbsp;0 &nbsp;1 &nbsp;1 &nbsp;2 &nbsp;0 &nbsp;1</p>
+<p>在已知next数组的前提下，字符串匹配的步骤如下：</p>
+<p>i 和 j 分别表示在主串S和模式串P中当前正待比较的字符的index，i 的初始值为sIndex，j 的初始值为0。</p>
+<p>在匹配过程中的每一次循环，若<img src="http://images.cnitblog.com/blog/423151/201305/09171330-e895f99d072e490aa19f88a134553b9e.gif" alt="" />，i 和 j 分别增 1，</p>
+<p>else，j 退回到 next[j]的位置，此时下一次循环是<img src="http://images.cnitblog.com/blog/423151/201305/09171853-b3325c1e950a418b9cb5f709a22f0827.gif" alt="" />与<img src="http://images.cnitblog.com/blog/423151/201305/09171904-58fd9e2e26a042a69e5ede0f41454f4b.gif" alt="" />相比较。</p>
+<p><strong><span style="font-size: 18pt;">4、kmp算法的实现</span></strong></p>
+<p>&nbsp;在已知next函数的前提下，根据上面的步骤，kmp算法的实现如下：&nbsp;</p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">int</span> kmp(<span style="color: #0000ff;">const</span> std::<span style="color: #0000ff;">string</span>&amp; s, <span style="color: #0000ff;">const</span> std::<span style="color: #0000ff;">string</span>&amp; p, <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> sIndex = <span style="color: #800080;">0</span><span style="color: #000000;">)
+{
+    std::vector</span>&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">next(p.size());
+    getNext(p, next);</span><span style="color: #008000;">//</span><span style="color: #008000;">获取next数组，保存到vector中</span>
+
+    <span style="color: #0000ff;">int</span> i = sIndex, j = <span style="color: #800080;">0</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">while</span>(i != s.length() &amp;&amp; j !=<span style="color: #000000;"> p.length())
+    {
+        </span><span style="color: #0000ff;">if</span> (j == -<span style="color: #800080;">1</span> || s[i] ==<span style="color: #000000;"> p[j])
+        {
+            </span>++<span style="color: #000000;">i;
+            </span>++<span style="color: #000000;">j;
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+        {
+            j </span>=<span style="color: #000000;"> next[j];
+        }
+    }
+
+    </span><span style="color: #0000ff;">return</span> j == p.length() ? i - j: -<span style="color: #800080;">1</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>ok，下面的问题是怎么求模式串 P 的next数组。</p>
+<p>next数组的初始条件是next[0] = -1，设next[j] = k，则有：</p>
+<p><img src="http://images.cnitblog.com/blog/423151/201305/09144202-082b2494dcdc45889c3e597dcda3b278.png" alt="" /></p>
+<p>那么，next[j+1]有两种情况：</p>
+<p>①<img src="http://images.cnitblog.com/blog/423151/201305/10101259-20ca8dd4d0c14de19b218f9faf3a5615.png" alt="" />，则有：<img src="http://images.cnitblog.com/blog/423151/201305/10101446-ddd5e527c3d7490c8e73f48158de21d1.png" alt="" /></p>
+<p>&nbsp; &nbsp;此时next[j+1] = next[j] + 1 = k + 1</p>
+<p>②<img src="http://images.cnitblog.com/blog/423151/201305/10102053-bc6538ef5635453d93eddffa29670a5f.png" alt="" />， 如图所示：</p>
+<p><img src="http://images.cnitblog.com/blog/423151/201305/10134339-67123a1725a0491f90ace8a9dbc20d48.png" alt="" /></p>
+<p>此时需要将P向右滑动之后继续比较P中index为 j 的字符与index为 next[k] 的字符：</p>
+<p>&nbsp;<img src="http://images.cnitblog.com/blog/423151/201305/16131852-2317e44ecd9c495bb6008de17337458c.png" alt="" /></p>
+<p>值得注意的是，上面的&ldquo;向右滑动&rdquo;本身就是一个kmp在失配情况下的滑动过程，将这个过程看 P 的自我匹配，则有：</p>
+<p><img src="http://images.cnitblog.com/blog/423151/201305/10150433-add92b7a400a4c558926f51ba422d72b.png" alt="" /></p>
+<p>如果<img src="http://images.cnitblog.com/blog/423151/201305/10150606-00b35b40195140f09241dc5f14002785.png" alt="" />，则next[j+1] = next[k] + 1；</p>
+<p>否则，继续将 P 向右滑动，直至匹配成功，或者不存在这样的匹配，此时next[j+1] = 0。</p>
+<p>&nbsp;getNext函数的实现如下：</p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">void</span> getNext(<span style="color: #0000ff;">const</span> std::<span style="color: #0000ff;">string </span>&amp;p, std::vector&lt;<span style="color: #0000ff;">int</span>&gt; &amp;<span style="color: #000000;">next)
+{
+    next.resize(p.size());
+    next[</span><span style="color: #800080;">0</span>] = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>, j = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+    
+    </span><span style="color: #0000ff;">while</span> (i != p.size() - <span style="color: #800080;">1</span><span style="color: #000000;">)
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">这里注意，i==0的时候实际上求的是next[1]的值，以此类推</span>
+        <span style="color: #0000ff;">if</span> (j == -<span style="color: #800080;">1</span> || p[i] ==<span style="color: #000000;"> p[j])
+        {
+            </span>++<span style="color: #000000;">i;
+            </span>++<span style="color: #000000;">j;
+            next[i] </span>=<span style="color: #000000;"> j;
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+        {
+            j </span>=<span style="color: #000000;"> next[j];
+        }
+    }
+}</span></pre>
+</div>
+<p>&nbsp;至此，一个完整的kmp已经实现。</p>
+<p><strong><span style="font-size: 18pt;">5、getNext函数的进一步优化</span></strong></p>
+<p>注意到，上面的getNext函数还存在可以优化的地方，比如：</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;i=3</p>
+<p>S: <strong><span style="color: #3366ff;">a &nbsp; a&nbsp; &nbsp;a</span></strong> &nbsp; <strong><span style="color: #ff0000;">b</span></strong>&nbsp;&nbsp;&nbsp;a &nbsp; a&nbsp;&nbsp;&nbsp;a&nbsp;&nbsp; a &nbsp; b</p>
+<p>P:&nbsp;<strong><span style="color: #3366ff;">a &nbsp; a&nbsp;&nbsp;&nbsp;a</span></strong> &nbsp; <strong><span style="color: #ff0000;">a</span></strong>&nbsp;&nbsp;&nbsp;b</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;j=3</p>
+<p>此时，i=3、j=3时发生失配，next[3]=2，此时还需要进行 3 次比较：</p>
+<p>i=3, j=2; &nbsp;</p>
+<p>i=3, j=1; &nbsp;</p>
+<p>i=3, j=0。</p>
+<p>而实际上，因为i=3, j=3时就已经知道a!=b，而之后的三次依旧是拿 a 和 b 比较，因此这三次比较都是多余的。</p>
+<p>此时应当直接将P向右滑动4个字符，进行 i=4， j=0的比较。</p>
+<p>一般而言，在getNext函数中，next[i]=j，也就是说当p[i]与S中某个字符匹配失败的时候，用p[j]继续与S中的这个字符比较。</p>
+<p>如果p[i]==p[j]，那么这次比较是多余的（如同上面的例子），此时应该直接使next[i]=next[j]。</p>
+<p>完整的实现代码如下：</p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">void</span> getNextUpdate(<span style="color: #0000ff;">const</span> std::<span style="color: #0000ff;">string</span>&amp; p, std::vector&lt;<span style="color: #0000ff;">int</span>&gt;&amp;<span style="color: #000000;"> next)
+{
+    next.resize(p.size());
+    next[</span><span style="color: #800080;">0</span>] = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>, j = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">while</span> (i != p.size() - <span style="color: #800080;">1</span><span style="color: #000000;">)
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">这里注意，i==0的时候实际上求的是nextVector[1]的值，以此类推</span>
+        <span style="color: #0000ff;">if</span> (j == -<span style="color: #800080;">1</span> || p[i] ==<span style="color: #000000;"> p[j])
+        {
+            </span>++<span style="color: #000000;">i;
+            </span>++<span style="color: #000000;">j;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">update
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">next[i] = j;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">注意这里是++i和++j之后的p[i]、p[j]</span>
+            next[i] = p[i] != p[j] ?<span style="color: #000000;"> j : next[j];
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+        {
+            j </span>=<span style="color: #000000;"> next[j];
+        }
+    }
+}</span></pre>
+</div>
+<p>对应的，只需要在kmp算法中将&nbsp;getNext(p, next); 替换成&nbsp;getNextUpdate(p, next); 即可。</p>
+<p><strong><span style="font-size: 18pt;">6、时间复杂度分析</span></strong></p>
+<p>下面以getNext函数为例，分析kmp算法的时间复杂度。</p>
+<div class="cnblogs_code">
+<pre><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">void</span> getNext(<span style="color: #0000ff;">const</span> std::<span style="color: #0000ff;">string</span>&amp; p, std::vector&lt;<span style="color: #0000ff;">int</span>&gt;&amp;<span style="color: #000000;"> next)
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">    next.resize(p.size());
+</span><span style="color: #008080;"> 4</span>     next[<span style="color: #800080;">0</span>] = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>, j = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">while</span> (i != p.size() - <span style="color: #800080;">1</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">if</span> (j == -<span style="color: #800080;">1</span> || p[i] ==<span style="color: #000000;"> p[j])
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">12</span>             ++<span style="color: #000000;">i;
+</span><span style="color: #008080;">13</span>             ++<span style="color: #000000;">j;
+</span><span style="color: #008080;">14</span>             next[i] =<span style="color: #000000;"> j;
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">16</span>         <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">17</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">18</span>             j =<span style="color: #000000;"> next[j];
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">21</span> }</pre>
+</div>
+<p>假定p.size()为m，分析其时间复杂度的困惑在于，在while里面不是每次循环都执行 ++i 操作，所以整个while的执行次数不一定为m。</p>
+<p>换个角度，注意到在每次循环中，无论 if 还是 else 都会修改 j 的值且每次循环仅对 j 进行一次修改，所以在整个while中 j 被修改的次数即为getNext函数的时间复杂度。</p>
+<p>每次成功匹配时，++i; ++j; , 由于 ++i 最多执行 m-1 次，故++j也最多执行 m-1 次，即 j 最多增加m-1次；</p>
+<p>对应的，只有在 j=next[j]; 处 j 的值一定会变小，由于&nbsp;j 最多增加m-1次，故 j 最多减小m-1次。</p>
+<p>综上所述，getNext函数的时间复杂度为O(m)，若带匹配串S的长度为n，则kmp函数的时间负责度为O(m+n)。</p>
+<p><strong><span style="font-size: 18pt;">7、kmp的应用优势</span></strong></p>
+<p>①快，O(m+n)的线性最坏时间复杂度；</p>
+<p>②无需回朔访问待匹配字符串S，所以对处理从外设输入的庞大文件很有效，可以边读入边匹配。</p></div><div id="MySignature"></div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="BlogPostCategory"></div>
+<div id="EntryTag"></div>
+<div id="blog_post_info">
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"></div>
+</div>
+
+
+	<div class = "postDesc">posted on <span id="post-date">2013-05-16 15:34</span> <a href='http://www.cnblogs.com/goagent/'>GoAgent</a> 阅读(<span id="post_view_count">...</span>) 评论(<span id="post_comment_count">...</span>)  <a href ="http://i.cnblogs.com/EditPosts.aspx?postid=3068442" rel="nofollow">编辑</a> <a href="#" onclick="AddToWz(3068442);return false;">收藏</a></div>
+</div>
+<script type="text/javascript">var allowComments=true,isLogined=false,cb_blogId=131483,cb_entryId=3068442,cb_blogApp=currentBlogApp,cb_blogUserGuid='06591ea9-5ec2-e111-aa3f-842b2b196315',cb_entryCreatedDate='2013/5/16 15:34:00';loadViewCount(cb_entryId);</script>
+
+<a name="!comments"></a><div id="blog-comments-placeholder"></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="开发者的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="opt_under_post"></div>
+<script type="text/javascript">
+    var enableGoogleAd = canShowAdsense(); 
+    fixPostBodyFormat();
+</script>
+<script type='text/javascript'>
+  var googletag = googletag || {};
+  googletag.cmd = googletag.cmd || [];
+    (function () {
+        if (enableGoogleAd) {
+            var gads = document.createElement('script');
+            gads.async = true;
+            gads.type = 'text/javascript';
+            var useSSL = 'https:' == document.location.protocol;
+            gads.src = (useSSL ? 'https:' : 'http:') +
+              '//www.googletagservices.com/tag/js/gpt.js';
+            var node = document.getElementsByTagName('script')[0];
+            node.parentNode.insertBefore(gads, node);
+        }
+  })();
+</script>
+<script type='text/javascript'>
+    try {
+        if (enableGoogleAd) {
+            googletag.cmd.push(function() {
+            googletag.defineSlot('/1090369/cnblogs_blogpost_C2', [468, 60], 'div-gpt-ad-1433581717989-0').addService(googletag.pubads());
+            googletag.defineSlot('/1090369/cnblogs_blogpost_C1_sitehome', [300, 250], 'div-gpt-ad-1433581717989-1').addService(googletag.pubads());
+            googletag.pubads().enableSingleRequest();
+            googletag.pubads().collapseEmptyDivs();
+            googletag.enableServices();
+            });
+        };
+    } catch (e) { }
+</script>
+<div id="google_ad_c1" class="c_ad_block">
+    <div id='div-gpt-ad-1433581717989-1' style='height:250px; width:300px;'>
+    <script type='text/javascript'>
+        try {
+            if (enableGoogleAd) {
+                googletag.cmd.push(function () { googletag.display('div-gpt-ad-1433581717989-1'); });
+            } else {
+                $('#div-gpt-ad-1433581717989-1').hide();
+            }
+    } catch (e) { }
+    </script>
+    </div>
+</div>
+<div id="under_post_news"></div>
+<div id="google_ad_c2" class="c_ad_block">
+<div id='div-gpt-ad-1433581717989-0' style='height:60px; width:468px;'>
+<script type='text/javascript'>
+try {
+    if (enableGoogleAd) {
+        googletag.cmd.push(function () { googletag.display('div-gpt-ad-1433581717989-0'); });
+    } else {
+        $('#div-gpt-ad-1433581717989-0').hide();
+    }
+} catch (e) { }
+</script>
+</div>
+</div>
+<div id="under_post_kb"></div>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+$(function () {
+    loadNewsAndKb();
+    loadBlogSignature();
+    LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+    GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);
+    loadOptUnderPost();
+    GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+    setTimeout(function () { incrementViewCount(cb_entryId); }, 200);
+});
+</script>
+</div>
+
+</div>
+<div id="leftcontent">
+	
+		<DIV id="leftcontentcontainer">
+			
+<!--done-->
+<div class="newsItem">
+	<div id="blog-news"></div><script type="text/javascript">loadBlogNews();</script>
+</div>
+
+			<div id="blog-calendar" style="display:none"></div><script type="text/javascript">loadBlogDefaultCalendar();</script><br>
+			<div id="blog-sidecolumn"></div><script type="text/javascript">loadBlogSideColumn();</script></DIV>
+	
+</div>
+
+<!--done-->
+<div class="footer">
+	Powered by: <a href="http://www.cnblogs.com">博客园</a>	模板提供：<a href="http://blog.hjenglish.com">沪江博客</a>
+	Copyright &copy;2015 GoAgent
+</div>
+
+
+
+</body>
+</html>

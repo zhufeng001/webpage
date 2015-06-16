@@ -1,0 +1,188 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>9.4. Progress Bars</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-MiscellaneousWidgets.html" title="Chapter 9. Miscellaneous Widgets"><link rel="prev" href="sec-TooltipsObject.html" title="9.3. The Tooltips Object"><link rel="next" href="sec-Dialogs.html" title="9.5. Dialogs"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9.4. Progress Bars</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-TooltipsObject.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Miscellaneous Widgets</th><td width="20%" align="right"> <a accesskey="n" href="sec-Dialogs.html">Next</a></td></tr></table><hr></div><div class="sect1" title="9.4. Progress Bars"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-ProgressBars"></a>9.4. Progress Bars</h2></div></div></div><p>Progress bars are used to show the status of an operation. They
+are pretty easy to use, as you will see with the code below. But first lets
+start out with the call to create a new progress bar.</p><pre class="programlisting">
+  progressbar = gtk.ProgressBar(<strong class="parameter"><code>adjustment</code></strong>=None)
+</pre><p>The <em class="parameter"><code>adjustment</code></em> argument specifies an
+adjustment to use with the <em class="parameter"><code>progressbar</code></em>. If not
+specified an adjustment will be created. Now that the progress bar has been
+created we can use it.</p><pre class="programlisting">
+  progressbar.set_fraction(<strong class="parameter"><code>fraction</code></strong>) </pre><p>The <em class="parameter"><code>progressbar</code></em> object is the progress bar
+you wish to operate on, and the argument (<em class="parameter"><code>fraction</code></em>) is
+the amount "completed", meaning the amount the progress bar has been filled
+from 0-100%. This is passed to the method as a real number ranging from 0 to
+1.</p><p>A progress bar may be set to one of a number of orientations
+using the method:</p><pre class="programlisting">
+  progressbar.set_orientation(<strong class="parameter"><code>orientation</code></strong>) </pre><p>The <em class="parameter"><code>orientation</code></em> argument may take one of
+the following values to indicate the direction in which the progress bar
+moves:</p><pre class="programlisting">
+  PROGRESS_LEFT_TO_RIGHT
+  PROGRESS_RIGHT_TO_LEFT
+  PROGRESS_BOTTOM_TO_TOP
+  PROGRESS_TOP_TO_BOTTOM
+</pre><p>As well as indicating the amount of progress that has occurred,
+the progress bar may be set to just indicate that there is some activity.
+This can be useful in situations where progress cannot be measured against a
+value range. The following function indicates that some progress has been
+made.</p><pre class="programlisting">
+  progressbar.pulse()
+</pre><p>The step size of the activity indicator is set using the
+following function where fraction is between 0.0 and 1.0.</p><pre class="programlisting">
+  progressbar.set_pulse_step(<strong class="parameter"><code>fraction</code></strong>)
+</pre><p>When not in activity mode, the progress bar can also display a
+configurable text string within its trough, using the following
+method:</p><pre class="programlisting">
+  progressbar.set_text(<strong class="parameter"><code>text</code></strong>)
+</pre><div class="note" title="Note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>Note that <code class="methodname">set_text</code>() doesn't support
+the <code class="function">printf</code>()-like formatting of the GTK+ 1.2
+Progressbar.</p></div><p>You can turn off the display of the string by calling
+<code class="methodname">set_text</code>() again with no argument.</p><p>The current text setting of a progressbar can be retrieved with
+the following method:</p><pre class="programlisting">
+  text = progressbar.get_text()
+</pre><p>Progress Bars are usually used with timeouts or other such
+functions (see <a class="xref" href="ch-TimeoutsIOAndIdleFunctions.html" title="Chapter 19. Timeouts, IO and Idle Functions">Chapter 19, <i>Timeouts, IO and Idle Functions</i></a>) to
+give the illusion of multitasking. All will employ the
+<code class="methodname">set_fraction</code>() or <code class="methodname">pulse</code>()
+methods in the same manner.</p><p>The <a class="ulink" href="examples/progressbar.py" target="_top"><span class="command"><strong>progressbar.py</strong></span></a>
+program provides an example of the progress bar, updated using timeouts.
+This code also shows you how to reset the Progress Bar.
+<a class="xref" href="sec-ProgressBars.html#progressbarfig" title="Figure 9.4. ProgressBar Example">Figure 9.4, “ProgressBar Example”</a> illustrates the resulting display:</p><div class="figure"><a name="progressbarfig"></a><p class="title"><b>Figure 9.4. ProgressBar Example</b></p><div class="figure-contents"><div class="mediaobject" align="center"><img src="figures/progressbar.png" align="middle" alt="ProgressBar Example"></div></div></div><br class="figure-break"><p>The source code for <a class="ulink" href="examples/progressbar.py" target="_top"><span class="command"><strong>progressbar.py</strong></span></a>
+is:</p><pre class="programlisting">
+    1	#!/usr/bin/env python
+    2	
+    3	# example progressbar.py
+    4	
+    5	import pygtk
+    6	pygtk.require('2.0')
+    7	import gtk, gobject
+    8	
+    9	# Update the value of the progress bar so that we get
+   10	# some movement
+   11	def progress_timeout(pbobj):
+   12	    if pbobj.activity_check.get_active():
+   13	        pbobj.pbar.pulse()
+   14	    else:
+   15	        # Calculate the value of the progress bar using the
+   16	        # value range set in the adjustment object
+   17	        new_val = pbobj.pbar.get_fraction() + 0.01
+   18	        if new_val &gt; 1.0:
+   19	            new_val = 0.0
+   20	        # Set the new value
+   21	        pbobj.pbar.set_fraction(new_val)
+   22	
+   23	    # As this is a timeout function, return TRUE so that it
+   24	    # continues to get called
+   25	    return True
+   26	
+   27	class ProgressBar:
+   28	    # Callback that toggles the text display within the progress
+   29	    # bar trough
+   30	    def toggle_show_text(self, widget, data=None):
+   31	        if widget.get_active():
+   32	            self.pbar.set_text("some text")
+   33	        else:
+   34	            self.pbar.set_text("")
+   35	
+   36	    # Callback that toggles the activity mode of the progress
+   37	    # bar
+   38	    def toggle_activity_mode(self, widget, data=None):
+   39	        if widget.get_active():
+   40	            self.pbar.pulse()
+   41	        else:
+   42	            self.pbar.set_fraction(0.0)
+   43	
+   44	    # Callback that toggles the orientation of the progress bar
+   45	    def toggle_orientation(self, widget, data=None):
+   46	        if self.pbar.get_orientation() == gtk.PROGRESS_LEFT_TO_RIGHT:
+   47	            self.pbar.set_orientation(gtk.PROGRESS_RIGHT_TO_LEFT)
+   48	        elif self.pbar.get_orientation() == gtk.PROGRESS_RIGHT_TO_LEFT:
+   49	            self.pbar.set_orientation(gtk.PROGRESS_LEFT_TO_RIGHT)
+   50	
+   51	    # Clean up allocated memory and remove the timer
+   52	    def destroy_progress(self, widget, data=None):
+   53	        gobject.source_remove(self.timer)
+   54	        self.timer = 0
+   55	        gtk.main_quit()
+   56	
+   57	    def __init__(self):
+   58	        self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+   59	        self.window.set_resizable(True)
+   60	
+   61	        self.window.connect("destroy", self.destroy_progress)
+   62	        self.window.set_title("ProgressBar")
+   63	        self.window.set_border_width(0)
+   64	
+   65	        vbox = gtk.VBox(False, 5)
+   66	        vbox.set_border_width(10)
+   67	        self.window.add(vbox)
+   68	        vbox.show()
+   69	  
+   70	        # Create a centering alignment object
+   71	        align = gtk.Alignment(0.5, 0.5, 0, 0)
+   72	        vbox.pack_start(align, False, False, 5)
+   73	        align.show()
+   74	
+   75	        # Create the ProgressBar
+   76	        self.pbar = gtk.ProgressBar()
+   77	
+   78	        align.add(self.pbar)
+   79	        self.pbar.show()
+   80	
+   81	        # Add a timer callback to update the value of the progress bar
+   82	        self.timer = gobject.timeout_add (100, progress_timeout, self)
+   83	
+   84	        separator = gtk.HSeparator()
+   85	        vbox.pack_start(separator, False, False, 0)
+   86	        separator.show()
+   87	
+   88	        # rows, columns, homogeneous
+   89	        table = gtk.Table(2, 2, False)
+   90	        vbox.pack_start(table, False, True, 0)
+   91	        table.show()
+   92	
+   93	        # Add a check button to select displaying of the trough text
+   94	        check = gtk.CheckButton("Show text")
+   95	        table.attach(check, 0, 1, 0, 1,
+   96	                     gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL,
+   97	                     5, 5)
+   98	        check.connect("clicked", self.toggle_show_text)
+   99	        check.show()
+  100	
+  101	        # Add a check button to toggle activity mode
+  102	        self.activity_check = check = gtk.CheckButton("Activity mode")
+  103	        table.attach(check, 0, 1, 1, 2,
+  104	                     gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL,
+  105	                     5, 5)
+  106	        check.connect("clicked", self.toggle_activity_mode)
+  107	        check.show()
+  108	
+  109	        # Add a check button to toggle orientation
+  110	        check = gtk.CheckButton("Right to Left")
+  111	        table.attach(check, 0, 1, 2, 3,
+  112	                     gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL,
+  113	                     5, 5)
+  114	        check.connect("clicked", self.toggle_orientation)
+  115	        check.show()
+  116	
+  117	        # Add a button to exit the program
+  118	        button = gtk.Button("close")
+  119	        button.connect("clicked", self.destroy_progress)
+  120	        vbox.pack_start(button, False, False, 0)
+  121	
+  122	        # This makes it so the button is the default.
+  123	        button.set_flags(gtk.CAN_DEFAULT)
+  124	
+  125	        # This grabs this button to be the default button. Simply hitting
+  126	        # the "Enter" key will cause this button to activate.
+  127	        button.grab_default ()
+  128	        button.show()
+  129	
+  130	        self.window.show()
+  131	
+  132	def main():
+  133	    gtk.main()
+  134	    return 0
+  135	
+  136	if __name__ == "__main__":
+  137	    ProgressBar()
+  138	    main()
+</pre></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-TooltipsObject.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-MiscellaneousWidgets.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="sec-Dialogs.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">9.3. The Tooltips Object </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 9.5. Dialogs</td></tr></table></div></body></html>

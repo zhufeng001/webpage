@@ -1,0 +1,639 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>gluster安装,镜像卷配置，扩展，故障恢复，nfs挂载 - 小石头的专栏 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="Gluster 安装（镜像）&#160;1.&#160;&#160;&#160;环境准备机器名eth0说明server01192.168.100.30/24Centos 6.3 64bit ，多准备一块磁盘server02192.168.100.31/24Centos 6.3 64bit，多准备" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/robberboyboy/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="http://blog.csdn.net/robberboyboy">小石头的专栏</a></h1>
+            <h2></h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="http://blog.csdn.net/robberboyboy?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="http://blog.csdn.net/robberboyboy?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="http://blog.csdn.net/robberboyboy/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "robberboyboy";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/robberboyboy";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/9819385" target="_blank">
+<font color=red>《这些年，我们读过的技术经典图书》主题有奖征文</font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2013-08-06/2816471" target="_blank"><font color=blue>专访李铁军：从医生到金山首席安全专家的转变 
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+
+<a href="http://blog.csdn.net/adali/article/details/9813651"target="_blank">
+<font color=blue>独一无二的职位：开源社区经理 
+ </font></a>
+
+
+
+
+</div>
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Original"></span>
+    <h3>
+        <span class="link_title"><a href="/robberboyboy/article/details/8468508">
+        gluster安装,镜像卷配置，扩展，故障恢复，nfs挂载
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+    <span class="link_postdate">2013-01-05 14:09</span>
+    <span class="link_view" title="阅读次数">401人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('gluster安装,镜像卷配置，扩展，故障恢复，nfs挂载','8468508');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(8468508,2);return false;" title="举报">举报</a></span>
+    
+</div>
+
+
+    
+<div id="article_content" class="article_content">
+
+<h1 align="center">Gluster 安装</h1>
+<p align="center">（镜像）</p>
+<p>&nbsp;</p>
+<h2>1.&nbsp;&nbsp;&nbsp;环境准备</h2>
+<table border="0" cellpadding="0" cellspacing="0" width="583">
+<tbody>
+<tr>
+<td valign="top">
+<p>机器名</p>
+</td>
+<td valign="top">
+<p>eth0</p>
+</td>
+<td valign="top">
+<p>说明</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p>server01</p>
+</td>
+<td valign="top">
+<p>192.168.100.30/24</p>
+</td>
+<td valign="top">
+<p>Centos 6.3 64bit ，多准备一块磁盘</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p>server02</p>
+</td>
+<td valign="top">
+<p>192.168.100.31/24</p>
+</td>
+<td valign="top">
+<p>Centos 6.3 64bit，多准备一块磁盘</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p>Client</p>
+</td>
+<td valign="top">
+<p>192.168.100.60/24</p>
+</td>
+<td valign="top">
+<p>Centos 6.3 64bit</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<h2>2.&nbsp;&nbsp;&nbsp;&#26684;式磁盘并挂载（在两个节点上均做如下设置）</h2>
+<p>安装mkfs.xfs命令包</p>
+<pre style="background:silver">yum install xfsprogs&nbsp; </pre>
+<pre style="background:silver">mkfs.xfs -i size=512 /dev/sdb </pre>
+<pre style="background:silver">mkdir -p /export/brick1</pre>
+<p>修改分区表 vi /etc/fstab 末尾添加</p>
+<pre style="background:silver">/dev/sdb&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /export/brick1&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xfs&nbsp;&nbsp;&nbsp;&nbsp; defaults&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1 2</pre>
+<pre style="background:silver">mount –a &amp;&amp;mount</pre>
+<p>&nbsp;</p>
+<h2>3.&nbsp;&nbsp;&nbsp;安装gluster（所有节点均需安装）</h2>
+<p>添加源</p>
+<pre style="background:silver">wget -P /etc/yum.repos.d http://download.gluster.org/pub/gluster/glusterfs/LATEST/EPEL.repo/glusterfs-epel.repo</pre>
+<p>安装gluster</p>
+<pre style="background:silver">yum install glusterfs{-fuse,-server}</pre>
+<p>启动服务</p>
+<pre style="background:silver">service glusterd start</pre>
+<pre style="background:silver">service gluster status</pre>
+<p>&nbsp;</p>
+<h2>4.&nbsp;&nbsp;&nbsp;配置gluster</h2>
+<p>注：以下配置在一个节点上操作即可</p>
+<p>配置对端信任节点（即镜像服务器）</p>
+<p>gluster peer probe 192.168.100.31</p>
+<p>创建一个功能为镜像的集群卷（可以使用域名）</p>
+<pre style="background:silver">gluster volume create gv0 replica 2 192.168.100.30:/export/brick1 192.168.100.31:/export/brick1
+gluster volume start gv0</pre>
+<p>查看卷信息</p>
+<pre style="background:silver">&nbsp;[root@server01 brick1]# gluster volume info</pre>
+<pre style="background:silver">Volume Name: gv0</pre>
+<pre style="background:silver">Type: Replicate</pre>
+<pre style="background:silver">Volume ID: 3bf26a6a-63ce-44ed-bd57-fffd52352130</pre>
+<pre style="background:silver">Status: Started</pre>
+<pre style="background:silver">Number of Bricks: 1 x 2 = 2</pre>
+<pre style="background:silver">Transport-type: tcp</pre>
+<pre style="background:silver">Bricks:</pre>
+<pre style="background:silver">Brick1: 192.168.100.30:/export/brick1</pre>
+<pre style="background:silver">Brick2: 192.168.100.31:/export/brick1</pre>
+<p>&nbsp;</p>
+<h2>5.&nbsp;&nbsp;&nbsp;验证</h2>
+<p></p>
+<p>在客户端192.168.100.60上验证gluster，</p>
+<p>1.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;安装gluster也就是步骤3的server组件就包含了客户端</p>
+<p>2.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;只安装客户端组件</p>
+<p>yum -y install fuse fuse-libs</p>
+<p>yum install glusterfs glusterfs-fuse glusterfs-rdma</p>
+<p>自动挂载<br>
+修改/etc/fstab 文件<br>
+server1:/test-volume /mnt/glusterfs glusterfs defaults,_netdev 0 0<br>
+192.168.100.30:/gv0 /mnt glusterfs defaults,netdev 0 0 <br>
+<br>
+<br>
+</p>
+<pre style="background:silver">mount -t glusterfs 192.168.100.30:/gv0 /mnt</pre>
+<pre style="background:silver">[root@node mnt]#&nbsp; mount -l </pre>
+<pre style="background:silver">/dev/mapper/VolGroup-lv_root on / type ext4 (rw)</pre>
+<pre style="background:silver">proc on /proc type proc (rw)</pre>
+<pre style="background:silver">sysfs on /sys type sysfs (rw)</pre>
+<pre style="background:silver">devpts on /dev/pts type devpts (rw,gid=5,mode=620)</pre>
+<pre style="background:silver">tmpfs on /dev/shm type tmpfs (rw,rootcontext=&quot;system_u:object_r:tmpfs_t:s0&quot;)</pre>
+<pre style="background:silver">/dev/sda1 on /boot type ext4 (rw)</pre>
+<pre style="background:silver">none on /proc/sys/fs/binfmt_misc type binfmt_misc (rw)</pre>
+<pre style="background:silver">sunrpc on /var/lib/nfs/rpc_pipefs type rpc_pipefs (rw)</pre>
+<pre style="background:silver">/dev/sr0 on /media/CentOS_6.3_Final type iso9660 (ro,nosuid,nodev,uhelper=udisks,uid=500,gid=500,iocharset=utf8,mode=0400,dmode=0500) [CentOS_6.3_Final]</pre>
+<pre style="background:silver">/dev/sr0 on /media/cdrom type iso9660 (ro) [CentOS_6.3_Final]</pre>
+<pre style="background:silver">192.168.100.30:/gv0 on /mnt type fuse.glusterfs (rw,default_permissions,allow_other,max_read=131072)</pre>
+<p>&nbsp;</p>
+<p>已经将gv0挂载至/mnt目录，在客户端目录下创建100个文件</p>
+<pre style="background:silver">for i in `seq -w 1 100`; do cp -rp /var/log/messages &nbsp;/mnt/copy-test-$i; done</pre>
+<pre style="background:silver">[root@node mnt]# ls</pre>
+<pre style="background:silver">copy-test-001&nbsp; copy-test-013</pre>
+<pre style="background:silver">[root@node mnt]# ls -lA /mnt | wc -l</pre>
+<pre style="background:silver">101</pre>
+<p>到服务器192.168.100.30上查看验证</p>
+<pre style="background:silver">[root@server01 brick1]# ls</pre>
+<pre style="background:silver">copy-test-001&nbsp; copy-test-013</pre>
+<pre style="background:silver">[root@server01 brick1]# ls -l&nbsp; | wc -l</pre>
+<pre style="background:silver">101</pre>
+<p>服务器192.168.100.31上查看验证</p>
+<p></p>
+<pre style="background:silver">[root@server02 brick1]# ls</pre>
+<pre style="background:silver">copy-test-001&nbsp; copy-test-013&nbsp; </pre>
+<pre style="background:silver">[root@server02 brick1]#&nbsp; ls -l&nbsp; | wc -l</pre>
+<pre style="background:silver">101</pre>
+<br>
+<p></p>
+<p><a name="OLE_LINK13">说明：上述例子用2</a>台服务器上的一块硬盘做了镜像冗余，客户端上传文件会自动同步到2台服务器的gluster卷上。</p>
+<p>&nbsp;</p>
+<h2>1.&nbsp;&nbsp;&nbsp;故障恢复验证</h2>
+<p>查看当前挂载情况，挂载的是server01的地址</p>
+<pre style="background:silver">[root@node mnt]# mount </pre>
+<pre style="background:silver">192.168.100.30:/gv0 on /mnt type fuse.glusterfs (rw,default_permissions,allow_other,max_read=131072)</pre>
+<p>查看当前数据server01和server02里均为空</p>
+<p>在客户端创建测试数据，数据同步到2台服务器上</p>
+<pre style="background:silver">[root@server02 brick1]# ls</pre>
+<pre style="background:silver">copy-test-001&nbsp; copy-test-013&nbsp; copy-test-025</pre>
+<p>由于当前mount的地址为server01的地址，现在当server01断开网络后，验证客户端是否仍然可以与server02的卷交互保障业务不中断。</p>
+<pre style="background:silver">[root@node mnt]# ping 192.168.100.30</pre>
+<pre style="background:silver">PING 192.168.100.30 (192.168.100.30) 56(84) bytes of data.</pre>
+<pre style="background:silver">From 192.168.100.60 icmp_seq=1 Destination Host Unreachable</pre>
+<pre style="background:silver">^C</pre>
+<pre style="background:silver">--- 192.168.100.30 ping statistics ---</pre>
+<pre style="background:silver">3 packets transmitted, 0 received, &#43;1 errors, 100% packet loss, time 2423ms</pre>
+<pre style="background:silver">&nbsp;</pre>
+<pre style="background:silver">[root@node mnt]# ls</pre>
+<pre style="background:silver">copy-test-001&nbsp; copy-test-013&nbsp; copy-test-025</pre>
+<p>由此可见当server01断开网络后，客户端仍然可以与server02交互数据。</p>
+<p>此时在客户端删除并更新数据，server02仍然是断开前的数据，恢复后是否可以从server01同步回数据。</p>
+<p>在客户端删除创建的测试数据，并新建文件test，server01跟进同步了</p>
+<pre style="background:silver">[root@node mnt]# rm -rf * </pre>
+<pre style="background:silver">[root@node mnt]# touch test</pre>
+<pre style="background:silver">[root@node mnt]# ls</pre>
+<pre style="background:silver">Test</pre>
+<pre style="background:silver">[root@node mnt]# netstat -antulp |grep 192.168.*</pre>
+<pre style="background:silver">tcp 0 &nbsp;52 192.168.100.60:22&nbsp; 192.168.100.1:49994&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ESTABLISHED 2106/sshd&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </pre>
+<pre style="background:silver">tcp 0 1 192.168.100.60:1023&nbsp;&nbsp; 192.168.100.30:24009&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SYN_SENT&nbsp;&nbsp;&nbsp; 2358/glusterfs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </pre>
+<pre style="background:silver">tcp 0 1 192.168.100.60:1022&nbsp;&nbsp; 192.168.100.30:24007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SYN_SENT&nbsp;&nbsp;&nbsp; 2358/glusterfs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </pre>
+<pre style="background:silver">tcp 0 0 192.168.100.60:1021&nbsp; 192.168.100.31:24009&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ESTABLISHED 2358/glusterfs&nbsp;&nbsp; </pre>
+<pre style="background:silver">[root@server02 brick1]# ls</pre>
+<pre style="background:silver">Test</pre>
+<pre style="background:silver">server01里由于网络故障，导致数据无法更新</pre>
+<pre style="background:silver">[root@server01 brick1]# ls</pre>
+<pre style="background:silver">copy-test-001&nbsp; copy-test-013</pre>
+<pre style="background:silver">网络恢复后，间隔一段时间，发现server02同步了server01的数据</pre>
+<pre style="background:silver">[root@server01 brick1]# ls</pre>
+<pre style="background:silver">Test</pre>
+<pre style="background:silver">&nbsp;</pre>
+<pre style="background:silver">[root@node mnt]# netstat -antulp |grep 192.168.*</pre>
+<pre style="background:silver">tcp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp; 52 192.168.100.60:22&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 192.168.100.1:49994&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ESTABLISHED 2106/sshd&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </pre>
+<pre style="background:silver">tcp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0 192.168.100.60:1023&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 192.168.100.30:24009&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ESTABLISHED 2358/glusterfs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </pre>
+<pre style="background:silver">tcp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0 192.168.100.60:1022&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 192.168.100.30:24007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ESTABLISHED 2358/glusterfs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </pre>
+<pre style="background:silver">tcp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0 192.168.100.60:1021&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 192.168.100.31:24009&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ESTABLISHED 2358/glusterfs&nbsp; </pre>
+<p>&nbsp;</p>
+<p>由此可见当服务器中有一台故障后，客户端的业务仍然可以继续，不会受到影响，故障服务器恢复后，会从没有发生故障的服务器同步数据，来确保数据的一致性。</p>
+<p>&nbsp;</p>
+<h2>7 扩展gluster volume</h2>
+<p>Server01和server02均再增加一块10G大小的硬盘，原有的是20G的硬盘互相镜像，现在为gluster卷增加10G大小的空间</p>
+<pre style="background:silver">[root@server01 ~]# mkfs.xfs -i size=512 /dev/sdc</pre>
+<pre style="background:silver">mkdir -p /export/brick2</pre>
+<p>编辑vi/etc/fstab 末尾添加</p>
+<p>/dev/sdc&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /export/brick2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xfs&nbsp;&nbsp;&nbsp;&nbsp; defaults&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1 2</p>
+<p>原卷空间大小</p>
+<pre style="background:silver">[root@node /]# df -h /mnt</pre>
+<pre style="background:silver">Filesystem&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Size&nbsp; Used Avail Use% Mounted on</pre>
+<pre style="background:silver">192.168.100.30:/gv0&nbsp;&nbsp;&nbsp; 20G&nbsp;&nbsp; 33M&nbsp;&nbsp; 20G&nbsp;&nbsp; 1% /mnt</pre>
+<p>Gluster卷情况</p>
+<pre style="background:silver">[root@server01 ~]# gluster volume info</pre>
+<pre style="background:silver"> </pre>
+<pre style="background:silver">Volume Name: gv0</pre>
+<pre style="background:silver">Type: Replicate</pre>
+<pre style="background:silver">Volume ID: 3bf26a6a-63ce-44ed-bd57-fffd52352130</pre>
+<pre style="background:silver">Status: Started</pre>
+<pre style="background:silver">Number of Bricks: 1 x 2 = 2</pre>
+<pre style="background:silver">Transport-type: tcp</pre>
+<pre style="background:silver">Bricks:</pre>
+<pre style="background:silver">Brick1: 192.168.100.30:/export/brick1</pre>
+<pre style="background:silver">Brick2: 192.168.100.31:/export/brick1</pre>
+<p>增加新建的10G大小的卷</p>
+<pre style="background:silver"># gluster volume add-brick gv0 192.168.100.30:/export/brick2 192.168.100.31:/export/brick2</pre>
+<pre style="background:silver">[root@server01 brick1]# gluster volume info</pre>
+<pre style="background:silver">Volume Name: gv0</pre>
+<pre style="background:silver">Type: Distributed-Replicate</pre>
+<pre style="background:silver">Volume ID: 3bf26a6a-63ce-44ed-bd57-fffd52352130</pre>
+<pre style="background:silver">Status: Started</pre>
+<pre style="background:silver">Number of Bricks: 2 x 2 = 4</pre>
+<pre style="background:silver">Transport-type: tcp</pre>
+<pre style="background:silver">Bricks:</pre>
+<pre style="background:silver">Brick1: 192.168.100.30:/export/brick1</pre>
+<pre style="background:silver">Brick2: 192.168.100.31:/export/brick1</pre>
+<pre style="background:silver">Brick3: 192.168.100.30:/export/brick2</pre>
+<pre style="background:silver">Brick4: 192.168.100.31:/export/brick2</pre>
+<p>客户端查看扩容后的卷大小</p>
+<pre style="background:silver">[root@node /]# df -h /mnt</pre>
+<pre style="background:silver">Filesystem&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Size&nbsp; Used Avail Use% Mounted on</pre>
+<pre style="background:silver">192.168.100.30:/gv0&nbsp;&nbsp;&nbsp; 30G&nbsp;&nbsp; 65M&nbsp;&nbsp; 30G&nbsp;&nbsp; 1% /mnt</pre>
+<p>至此顺利的完成了对gluster镜像卷的扩容。</p>
+<h2>8.&nbsp;&nbsp;&nbsp;移除卷</h2>
+<p>移除卷会将卷上的数据迁移到其他可用的卷上</p>
+<p>gluster volume remove-brick gv0192.168.100.32:/export/brick1 192.168.100.33:/export/brick1 start</p>
+<p>gluster volume remove-brick gv0192.168.100.32:/export/brick1 192.168.100.33:/export/brick1 commit</p>
+<p>查看信息发现server3和server4的卷已经移除，并且卷上的数据未丢失,已迁移到可用的卷上。</p>
+<p>gluster&gt; volume info</p>
+<p>Volume Name: gv0</p>
+<p>Type: Distributed-Replicate</p>
+<p>Volume ID:3bf26a6a-63ce-44ed-bd57-fffd52352130</p>
+<p>Status: Started</p>
+<p>Number of Bricks: 2 x 2 = 4</p>
+<p>Transport-type: tcp</p>
+<p>Bricks:</p>
+<p>Brick1: 192.168.100.30:/export/brick1</p>
+<p>Brick2: 192.168.100.31:/export/brick1</p>
+<p>Brick3: 192.168.100.30:/export/brick2</p>
+<p>Brick4: 192.168.100.31:/export/brick2</p>
+<h2>9.&nbsp;&nbsp;&nbsp;访问限制</h2>
+<p>通过访问限制，允许某些特定主机访问存储，拒绝某些特定主机访问存储</p>
+<p>gluster volume set gv0 auth.allow192.168.100.32,192.168.100.60</p>
+<p>gluster volume set gv0 auth.reject &lt;ip-address&gt;</p>
+<p>gluster&gt; volume info</p>
+<p>Volume Name: gv0</p>
+<p>Type: Distributed-Replicate</p>
+<p>Volume ID:3bf26a6a-63ce-44ed-bd57-fffd52352130</p>
+<p>Status: Started</p>
+<p>Number of Bricks: 2 x 2 = 4</p>
+<p>Transport-type: tcp</p>
+<p>Bricks:</p>
+<p>Brick1: 192.168.100.30:/export/brick1</p>
+<p>Brick2: 192.168.100.31:/export/brick1</p>
+<p>Brick3: 192.168.100.30:/export/brick2</p>
+<p>Brick4: 192.168.100.31:/export/brick2</p>
+<p>Options Reconfigured:</p>
+<p>auth.reject: none</p>
+<p>auth.allow: 192.168.100.32,192.168.100.60</p>
+<p>diagnostics.latency-measurement: on</p>
+<p>diagnostics.count-fop-hits: on</p>
+<p>&nbsp;</p>
+<h2>10.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;单机做gluster</h2>
+<p>Server03 有2块硬盘sdb、sdc希望通过gluster在这两块硬盘之间做镜像备份</p>
+<p>&#26684;式化两块磁盘并挂载，如下：</p>
+<p>/dev/sdc on /export/brick2 type xfs (rw)</p>
+<p>/dev/sdb on /export/brick1 type xfs (rw)</p>
+<p>&nbsp;</p>
+<p>gluster volume create gv0 replica 2192.168.100.32:/export/brick1 192.168.100.32:/export/brick2</p>
+<p>Multiple bricks of a replicate volume arepresent on the same server. This setup is not optimal.</p>
+<p>Do you still want to continue creating thevolume?&nbsp; (y/n) y</p>
+<p>Creation of volume gv0 has been successful.Please start the volume to access data.</p>
+<p>[root@server03 /]# gluster volume start gv0</p>
+<p>Starting volume gv0 has been successful</p>
+<p>[root@server03 /]# gluster volume status</p>
+<p>Status of volume: gv0</p>
+<p>Gluster process&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Port&nbsp;&nbsp;&nbsp; Online&nbsp; Pid</p>
+<p>------------------------------------------------------------------------------</p>
+<p>Brick 192.168.100.32:/export/brick1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24009&nbsp;&nbsp; Y&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2252</p>
+<p>Brick 192.168.100.32:/export/brick2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24010&nbsp;&nbsp; Y&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2259</p>
+<p>NFS Server on localhost&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 38467&nbsp;&nbsp; Y&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2265</p>
+<p>Self-heal Daemon on localhost&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; N/A&nbsp;&nbsp;&nbsp;&nbsp; Y&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2271</p>
+<p>&nbsp;</p>
+<p>去客户端挂载测试</p>
+<p>[root@node /]# mount -t glusterfs192.168.100.32:/gv0 /volume/</p>
+<p>[root@node /]# mount </p>
+<p>192.168.100.32:/gv0 on /volume typefuse.glusterfs (rw,default_permissions,allow_other,max_read=131072)</p>
+<br>
+
+</div>
+
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.100.34-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/robberboyboy/article/details/8372932">python 安装升级</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/robberboyboy/article/details/8504077">keepalive+mysql 主主配置</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen">
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "117306";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<script type="text/javascript">
+    //new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '8468508';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/robberboyboy" target="_blank">
+    <img src="http://avatar.csdn.net/6/4/C/1_robberboyboy.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/robberboyboy" class="user_name" target="_blank">robberboyboy</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>5591次</span></li>
+    <li>积分：<span>418分</span></li>
+    <li>排名：<span>千里之外</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>37篇</span></li>
+    <li>转载：<span>3篇</span></li>
+    <li>译文：<span>1篇</span></li>
+    <li>评论：<span>1条</span></li>
+</ul>
+</ul>
+</div>
+
+<div class="panel">
+<ul class="panel_body" style="padding:0;">
+<script type="text/javascript" src="http://cbjs.baidu.com/js/m.js"></script> 
+<script type="text/javascript"> 
+BAIDU_CLB_preloadSlots("724643","117306"); 
+</script>
+<script type="text/javascript">BAIDU_CLB_fillSlot("724643");</script> 
+</ul>
+</div>
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/robberboyboy/article/category/1264834">shell脚本</a><span>(13)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/robberboyboy/article/category/1302079">openstack</a><span>(7)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/robberboyboy/article/category/1308496">python</a><span>(2)</span>
+</li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/robberboyboy/article/month/2013/07">2013年07月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/robberboyboy/article/month/2013/03">2013年03月</a><span>(9)</span></li><li><a href="http://blog.csdn.net/robberboyboy/article/month/2013/02">2013年02月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/robberboyboy/article/month/2013/01">2013年01月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/robberboyboy/article/month/2012/12">2012年12月</a><span>(9)</span></li><li><a href="http://blog.csdn.net/robberboyboy/article/month/2012/11">2012年11月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/robberboyboy/article/month/2012/10">2012年10月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/robberboyboy/article/month/2011/10">2011年10月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/robberboyboy/article/month/2010/01">2010年01月</a><span>(2)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/robberboyboy/article/details/5153837" title="关于Fedora 3D桌面特效显卡驱动问题">关于Fedora 3D桌面特效显卡驱动问题</a><span>(474)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8468508" title="gluster安装,镜像卷配置，扩展，故障恢复，nfs挂载">gluster安装,镜像卷配置，扩展，故障恢复，nfs挂载</a><span>(401)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/6909400" title="windows 远程RSH调用linux命令">windows 远程RSH调用linux命令</a><span>(256)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8289541" title="ubuntu12.04  安装桌面环境 及vnc配置">ubuntu12.04  安装桌面环境 及vnc配置</a><span>(236)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8107691" title="逐行读取文本内容 循环读取字符串内容">逐行读取文本内容 循环读取字符串内容</a><span>(206)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8594554" title="linux iscsi  tgtd的安装学习及问题">linux iscsi  tgtd的安装学习及问题</a><span>(202)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/5121953" title="关于fedora 3D 桌面">关于fedora 3D 桌面</a><span>(193)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8332715" title="ubuntu下用Pip安装python拓展包">ubuntu下用Pip安装python拓展包</a><span>(175)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8639021" title="swift proxy-server 安装">swift proxy-server 安装</a><span>(157)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8239810" title="单引号内引入变量 shell 命令输出赋值给变量，以及用变量替换命令">单引号内引入变量 shell 命令输出赋值给变量，以及用变量替换命令</a><span>(153)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/robberboyboy/article/details/6902555" title="python IDLE 第一个程序">python IDLE 第一个程序</a><span>(1)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/9249209" title="TCP 学习记录 (摘自tcp/ip卷一)">TCP 学习记录 (摘自tcp/ip卷一)</a><span>(0)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8594554" title="linux iscsi  tgtd的安装学习及问题">linux iscsi  tgtd的安装学习及问题</a><span>(0)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8588710" title="centos 添加epel源">centos 添加epel源</a><span>(0)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8588260" title="利用denyhosts防止ssh暴力破解+脚本防破解">利用denyhosts防止ssh暴力破解+脚本防破解</a><span>(0)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8549036" title="nagios安装配置笔记">nagios安装配置笔记</a><span>(0)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8510672" title="mysql二进制日志分析">mysql二进制日志分析</a><span>(0)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8504077" title="keepalive+mysql 主主配置">keepalive+mysql 主主配置</a><span>(0)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8468508" title="gluster安装,镜像卷配置，扩展，故障恢复，nfs挂载">gluster安装,镜像卷配置，扩展，故障恢复，nfs挂载</a><span>(0)</span>
+</li>
+<li>
+<a href="/robberboyboy/article/details/8372932" title="python 安装升级">python 安装升级</a><span>(0)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/robberboyboy/article/details/6902555#comments">python IDLE 第一个程序</a>
+    <p style="margin:0px;"><a href="/robberboyboy" class="user_name">robberboyboy</a>:
+在shell  &gt;&gt;&gt;下写代码是写一句解释一句。
+    </p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=761578"></script>
+
+<script type="text/javascript">
+document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date()/120000).toString(36) + '="></'+'script>');
+</script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js?v=1"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+
+<script type="text/javascript" src="http://zz.csdn.net/js/count.js"></script>
+
+</div>
+</body>
+</html>

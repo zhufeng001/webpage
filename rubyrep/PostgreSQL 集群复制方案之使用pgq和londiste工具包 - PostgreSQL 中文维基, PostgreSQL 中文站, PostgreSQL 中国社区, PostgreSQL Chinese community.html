@@ -1,0 +1,263 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-cn" lang="zh-cn" dir="ltr">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<meta name="keywords" content="PostgreSQL 集群复制方案之使用pgq和londiste工具包,25 高可用性，负载均衡和复制" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link rel="search" type="application/opensearchdescription+xml" href="/mwiki/opensearch_desc.php" title="PostgreSQL 中文维基, PostgreSQL 中文站, PostgreSQL 中国社区, PostgreSQL Chinese community (中文(简体))" />
+		<title>PostgreSQL 集群复制方案之使用pgq和londiste工具包 - PostgreSQL 中文维基, PostgreSQL 中文站, PostgreSQL 中国社区, PostgreSQL Chinese community</title>
+		<style type="text/css" media="screen,projection">/*<![CDATA[*/ @import "/mwiki/skins/monobook/main.css?42b"; /*]]>*/</style>
+		<link rel="stylesheet" type="text/css" media="print" href="/mwiki/skins/common/commonPrint.css?42b" />
+		<link rel="stylesheet" type="text/css" media="handheld" href="/mwiki/skins/monobook/handheld.css?42b" />
+		<!--[if lt IE 5.5000]><style type="text/css">@import "/mwiki/skins/monobook/IE50Fixes.css?42b";</style><![endif]-->
+		<!--[if IE 5.5000]><style type="text/css">@import "/mwiki/skins/monobook/IE55Fixes.css?42b";</style><![endif]-->
+		<!--[if IE 6]><style type="text/css">@import "/mwiki/skins/monobook/IE60Fixes.css?42b";</style><![endif]-->
+		<!--[if IE 7]><style type="text/css">@import "/mwiki/skins/monobook/IE70Fixes.css?42b";</style><![endif]-->
+		<!--[if lt IE 7]><script type="text/javascript" src="/mwiki/skins/common/IEFixes.js?42b"></script>
+		<meta http-equiv="imagetoolbar" content="no" /><![endif]-->
+		
+		<script type= "text/javascript">/*<![CDATA[*/
+var skin = "monobook";
+var stylepath = "/mwiki/skins";
+var wgArticlePath = "/mwiki/index.php/$1";
+var wgScriptPath = "/mwiki";
+var wgServer = "http://bbs.pgsqldb.com";
+var wgCanonicalNamespace = "";
+var wgCanonicalSpecialPageName = false;
+var wgNamespaceNumber = 0;
+var wgPageName = "PostgreSQL_集群复制方案之使用pgq和londiste工具包";
+var wgTitle = "PostgreSQL 集群复制方案之使用pgq和londiste工具包";
+var wgArticleId = "454";
+var wgIsArticle = true;
+var wgUserName = null;
+var wgUserLanguage = "zh-cn";
+var wgContentLanguage = "zh-cn";
+var wgBreakFrames = false;
+var wgCurRevisionId = "3107";
+/*]]>*/</script>
+                
+		<script type="text/javascript" src="/mwiki/skins/common/wikibits.js?42b"><!-- wikibits js --></script>
+		<script type="text/javascript" src="/mwiki/index.php?title=-&amp;action=raw&amp;gen=js"><!-- site js --></script>
+		<style type="text/css">/*<![CDATA[*/
+@import "/mwiki/index.php?title=MediaWiki:Common.css&usemsgcache=yes&action=raw&ctype=text/css&smaxage=18000";
+@import "/mwiki/index.php?title=MediaWiki:Monobook.css&usemsgcache=yes&action=raw&ctype=text/css&smaxage=18000";
+@import "/mwiki/index.php?title=-&action=raw&gen=css&maxage=18000";
+/*]]>*/</style>
+		<!-- Head Scripts -->
+			</head>
+<body  class="mediawiki ns-0 ltr page-PostgreSQL_集群复制方案之使用pgq和londiste工具包">
+	<div class="banner"></div>
+	<div id="globalWrapper">
+		<div id="column-content">
+	<div id="content">
+		<a name="top" id="top"></a>
+				<h1 class="firstHeading">PostgreSQL 集群复制方案之使用pgq和londiste工具包</h1>
+		<div id="bodyContent">
+			<h3 id="siteSub">From PostgreSQL 中文维基, PostgreSQL 中文站, PostgreSQL 中国社区, PostgreSQL Chinese community</h3>
+			<div id="contentSub"></div>
+									<div id="jump-to-nav">Jump to: <a href="#column-one">navigation</a>, <a href="#searchInput">search</a></div>			<!-- start content -->
+			<div style="float:right"><table id="toc" class="toc" summary="目录"><tr><td><div id="toctitle"><h2>目录</h2></div>
+<ul>
+<li class="toclevel-1"><a href="#.E5.85.B3.E4.BA.8EPostgreSQL.E9.9B.86.E7.BE.A4.E5.A4.8D.E5.88.B6.E6.96.B9.E6.A1.88"><span class="tocnumber">1</span> <span class="toctext">关于PostgreSQL集群复制方案</span></a></li>
+<li class="toclevel-1"><a href="#.E5.85.B3.E4.BA.8Epgq.E5.92.8Clondiste.E5.B7.A5.E5.85.B7"><span class="tocnumber">2</span> <span class="toctext">关于pgq和londiste工具</span></a></li>
+<li class="toclevel-1"><a href="#.E5.AE.89.E8.A3.85"><span class="tocnumber">3</span> <span class="toctext">安装</span></a></li>
+<li class="toclevel-1"><a href="#.E9.85.8D.E7.BD.AE"><span class="tocnumber">4</span> <span class="toctext">配置</span></a></li>
+<li class="toclevel-1"><a href="#.E5.90.AF.E5.8A.A8replication_daemon"><span class="tocnumber">5</span> <span class="toctext">启动replication daemon</span></a></li>
+<li class="toclevel-1"><a href="#.E6.B7.BB.E5.8A.A0.E4.B8.80.E4.B8.AA.E5.A4.8D.E5.88.B6.E9.9B.86"><span class="tocnumber">6</span> <span class="toctext">添加一个复制集</span></a></li>
+<li class="toclevel-1"><a href="#.E6.B5.8B.E8.AF.95.E7.BB.93.E8.AE.BA"><span class="tocnumber">7</span> <span class="toctext">测试结论</span></a></li>
+<li class="toclevel-1"><a href="#.E5.BA.94.E7.94.A8.E5.9C.BA.E5.90.88.E7.9A.84.E6.8E.A2.E7.B4.A2"><span class="tocnumber">8</span> <span class="toctext">应用场合的探索</span></a></li>
+</ul>
+</td></tr></table><script type="text/javascript"> if (window.showTocToggle) { var tocShowText = "显示"; var tocHideText = "隐藏"; showTocToggle(); } </script>
+</div>
+<a name=".E5.85.B3.E4.BA.8EPostgreSQL.E9.9B.86.E7.BE.A4.E5.A4.8D.E5.88.B6.E6.96.B9.E6.A1.88"></a><h3><span class="editsection">[<a href="/mwiki/index.php?title=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;action=edit&amp;section=1" title="Edit section: 关于PostgreSQL集群复制方案">编辑</a>]</span> <span class="mw-headline">关于PostgreSQL集群复制方案</span></h3>
+<p>可以参考<a href="/mwiki/index.php/25_%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7%EF%BC%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%A4%8D%E5%88%B6" title="25 高可用性，负载均衡和复制">25 高可用性，负载均衡和复制</a>这篇文章了解一些常规的复制方案。
+</p>
+<a name=".E5.85.B3.E4.BA.8Epgq.E5.92.8Clondiste.E5.B7.A5.E5.85.B7"></a><h3><span class="editsection">[<a href="/mwiki/index.php?title=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;action=edit&amp;section=2" title="Edit section: 关于pgq和londiste工具">编辑</a>]</span> <span class="mw-headline">关于pgq和londiste工具</span></h3>
+<p>来自于skype的工具包skytools，其中pgq是基于postgresql的通用队列实现。而londiste是基于pgq的复制工具。这两个工具的组合类似于slony，但相比二者，前者更简单一些。我们可以简单地把这种复制理解成producer(provider)/consumer(subscriber)类型。master产生数据在队列中，而slave从队列中取数据并且作用在自己身上。
+</p>
+<a name=".E5.AE.89.E8.A3.85"></a><h3><span class="editsection">[<a href="/mwiki/index.php?title=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;action=edit&amp;section=3" title="Edit section: 安装">编辑</a>]</span> <span class="mw-headline">安装</span></h3>
+<p>简单描述一下安装过程如下(假设两台机器，一台是master，一台是slave，都已经安装了数据库)
+</p>
+<ul><li> 安装psycopg2，到<a href="http://www.initd.org/pub/software/psycopg/psycopg2-2.0.10.tar.gz" class="external text" title="http://www.initd.org/pub/software/psycopg/psycopg2-2.0.10.tar.gz" rel="nofollow">这里</a>下载
+</li></ul>
+<pre>
+tar xzvf psycopg2-2.0.7.tar.gz
+cd psycopg2-2.0.7
+python setup.py build_ext -Rpgsql的安装目录/lib
+python setup.py install
+</pre>
+<ul><li> 安装skytools，到<a href="http://pgfoundry.org/frs/download.php/1813/skytools-2.1.7.tar.gz" class="external text" title="http://pgfoundry.org/frs/download.php/1813/skytools-2.1.7.tar.gz" rel="nofollow">这里</a>下载
+</li></ul>
+<pre>
+tar xzvf skytools-2.1.7.tar.gz
+cd skytools-2.1.7
+./configure
+make 
+make install
+python setup.py install
+</pre>
+<a name=".E9.85.8D.E7.BD.AE"></a><h3><span class="editsection">[<a href="/mwiki/index.php?title=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;action=edit&amp;section=4" title="Edit section: 配置">编辑</a>]</span> <span class="mw-headline">配置</span></h3>
+<ul><li> master-pgq
+</li></ul>
+<p>配置文件名：ticker.ini
+</p>
+<pre>
+[pgqadm]
+job_name = ticker
+db = dbname=foo host=127.0.0.1 port=5555 user=chry
+# how often to run maintenance [minutes]
+maint_delay_min = 1
+# how often to check for activity [secs]
+loop_delay = 0.1
+logfile = %(job_name)s.log
+pidfile = %(job_name)s.pid
+use_skylog = 0
+</pre>
+<ul><li> master-provider和slave-subscriber
+</li></ul>
+<p>配置文件名：replica.ini
+</p>
+<pre>
+[londiste]
+job_name = lmaster_to_slave
+provider_db = dbname=foo host=127.0.0.1 port=5555 user=chry
+subscriber_db = dbname=foo host=205.203.*.* port=5555 user=chry
+# it will be used as sql ident so no dots/spaces
+pgq_queue_name = londiste.write
+pidfile = %(job_name)s.pid
+logfile = %(job_name)s.log
+use_skylog = 0
+</pre>
+<a name=".E5.90.AF.E5.8A.A8replication_daemon"></a><h3><span class="editsection">[<a href="/mwiki/index.php?title=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;action=edit&amp;section=5" title="Edit section: 启动replication daemon">编辑</a>]</span> <span class="mw-headline">启动replication daemon</span></h3>
+<ul><li> master(producer)
+</li></ul>
+<pre>
+pgqadm.py ticker.ini ticker -d (启动pgq管理进程)
+londiste.py replica.ini provider install(安装londiste需要的schema)
+</pre>
+<ul><li> slave(consumer)
+</li></ul>
+<pre>
+londiste.py replica.ini subscriber install(安装londiste需要的schema)
+londiste.py replica.ini replay -d(启动数据复制，replica这个文件被部署了两次)
+</pre>
+<p>以上过程需要保证slave可以登录master的数据库。
+</p>
+<a name=".E6.B7.BB.E5.8A.A0.E4.B8.80.E4.B8.AA.E5.A4.8D.E5.88.B6.E9.9B.86"></a><h3><span class="editsection">[<a href="/mwiki/index.php?title=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;action=edit&amp;section=6" title="Edit section: 添加一个复制集">编辑</a>]</span> <span class="mw-headline">添加一个复制集</span></h3>
+<ul><li> 假设你要同步表entry, 其有两个字段：id(sequence, primary key), item text。那么我们还需要同步sequence：entry_id_seq
+</li></ul>
+<p>master
+</p>
+<pre>
+londiste.py replica.ini provider add entry
+londiste.py replica.ini provider add-seq entry_id_seq
+</pre>
+<p>slave
+</p>
+<pre>
+londiste.py replica.ini subscriber add entry
+londiste.py replica.ini subscriber add-seq entry_id_seq
+</pre>
+<p>添加完毕。
+</p>
+<a name=".E6.B5.8B.E8.AF.95.E7.BB.93.E8.AE.BA"></a><h3><span class="editsection">[<a href="/mwiki/index.php?title=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;action=edit&amp;section=7" title="Edit section: 测试结论">编辑</a>]</span> <span class="mw-headline">测试结论</span></h3>
+<ul><li> 同步的表对象需要有primary key
+</li><li> 在master操作insert/update/delete操作，可以正确同步到slave相应的表中。但不支持truncate。
+</li><li> 如果slave数据库down掉，在slave重新起来的这段时间内的master的数据变化可以同步到slave相应的表中，而旧数据不会被同步。
+</li><li> 如果slave上执行insert/update/delete的表操作，那么master是不会影响到的，与之相反，sequence在slave上的任何改变，在master变化时会重置。
+</li><li> 要强制旧数据同步，可以在slave上执行：
+</li></ul>
+<pre>
+londiste.py replica.ini subscriber resync -v --force
+</pre>
+<a name=".E5.BA.94.E7.94.A8.E5.9C.BA.E5.90.88.E7.9A.84.E6.8E.A2.E7.B4.A2"></a><h3><span class="editsection">[<a href="/mwiki/index.php?title=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;action=edit&amp;section=8" title="Edit section: 应用场合的探索">编辑</a>]</span> <span class="mw-headline">应用场合的探索</span></h3>
+<ul><li> 这个方案可以应用在读写可分离的场合，比如结合plproxy的如下应用：
+</li></ul>
+<p><a href="/mwiki/index.php/Image:Read_only_cluster.jpg" class="image" title="Image:Read_only_cluster.jpg"><img src="/mwiki/images/f/fa/Read_only_cluster.jpg" alt="Image:Read_only_cluster.jpg" width="238" height="250" longdesc="/mwiki/index.php/Image:Read_only_cluster.jpg" /></a>
+</p><p>一边是feed数据到write集群，一边不仅仅希望读写分开以提高性能，同时可以支持load balance，那么pgq/londiste无疑是比较好的方案。之前可能需要同时写两个节点的数据以保证数据同步，这样不仅性能打折，而且还必须保证事务，标准的plproxy是不支持事务的。
+</p><p>票务搜索就是这类应用，还有一些OLTP以及web应用可能也是合适的场合。
+</p>
+<!-- Saved in parser cache with key pgwiki:pcache:idhash:454-0!1!0!!zh-cn!2 and timestamp 20140509013803 -->
+<div class="printfooter">
+取自"<a href="http://bbs.pgsqldb.com/mwiki/index.php/PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85">http://bbs.pgsqldb.com/mwiki/index.php/PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85</a>"</div>
+			<div id="catlinks"><p class='catlinks'><a href="/mwiki/index.php/Special:Categories" title="Special:Categories">页面分类</a>: <span dir='ltr'><a href="/mwiki/index.php/Category:PostgreSQL%E9%9B%86%E7%BE%A4" title="Category:PostgreSQL集群">PostgreSQL集群</a></span> | <span dir='ltr'><a href="/mwiki/index.php/Category:PostgreSQL" title="Category:PostgreSQL">PostgreSQL</a></span></p></div>			<!-- end content -->
+			<div class="visualClear"></div>
+		</div>
+	</div>
+		</div>
+		<div id="column-one">
+	<div id="p-cactions" class="portlet">
+		<h5>Views</h5>
+		<div class="pBody">
+			<ul>
+						 <li id="ca-nstab-main" class="selected"><a href="/mwiki/index.php/PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85">条目</a></li>
+						 <li id="ca-talk" class="new"><a href="/mwiki/index.php?title=Talk:PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;action=edit">讨论</a></li>
+						 <li id="ca-edit"><a href="/mwiki/index.php?title=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;action=edit">编辑</a></li>
+						 <li id="ca-history"><a href="/mwiki/index.php?title=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;action=history">History</a></li>
+				</ul>
+		</div>
+	</div>
+	<div class="portlet" id="p-personal">
+		<h5>Personal tools</h5>
+		<div class="pBody">
+			<ul>
+				<li id="pt-login"><a href="/mwiki/index.php?title=Special:Userlogin&amp;returnto=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85">用户登录</a></li>
+			</ul>
+		</div>
+	</div>
+	<div class="portlet" id="p-logo">
+		<a style="background-image: url(http://www.pgsqldb.org/mwiki/postgresql.gif);" href="/mwiki/index.php/%E9%A6%96%E9%A1%B5" title="首页"></a>
+	</div>
+	<script type="text/javascript"> if (window.isMSIE55) fixalpha(); </script>
+		<div class='portlet' id='p-navigation'>
+		<h5>导航</h5>
+		<div class='pBody'>
+			<ul>
+				<li id="n-mainpage"><a href="/mwiki/index.php/%E9%A6%96%E9%A1%B5">首页</a></li>
+				<li id="n-portal"><a href="/mwiki/index.php/PostgreSQL_%E4%B8%AD%E6%96%87%E7%BB%B4%E5%9F%BA%2C_PostgreSQL_%E4%B8%AD%E6%96%87%E7%AB%99%2C_PostgreSQL_%E4%B8%AD%E5%9B%BD%E7%A4%BE%E5%8C%BA%2C_PostgreSQL_Chinese_community:Community_Portal">社区</a></li>
+				<li id="n-currentevents"><a href="/mwiki/index.php/Current_events">新闻动态</a></li>
+				<li id="n-recentchanges"><a href="/mwiki/index.php/Special:Recentchanges">最近更改</a></li>
+				<li id="n-randompage"><a href="/mwiki/index.php/Special:Random">随机页面</a></li>
+				<li id="n-help"><a href="/mwiki/index.php/PostgreSQL_%E4%B8%AD%E6%96%87%E7%BB%B4%E5%9F%BA%2C_PostgreSQL_%E4%B8%AD%E6%96%87%E7%AB%99%2C_PostgreSQL_%E4%B8%AD%E5%9B%BD%E7%A4%BE%E5%8C%BA%2C_PostgreSQL_Chinese_community:%E5%B8%AE%E5%8A%A9">帮助</a></li>
+				<li id="n-sitesupport"><a href="/mwiki/index.php/PostgreSQL_%E4%B8%AD%E6%96%87%E7%BB%B4%E5%9F%BA%2C_PostgreSQL_%E4%B8%AD%E6%96%87%E7%AB%99%2C_PostgreSQL_%E4%B8%AD%E5%9B%BD%E7%A4%BE%E5%8C%BA%2C_PostgreSQL_Chinese_community:Site_support">Donations</a></li>
+			</ul>
+		</div>
+	</div>
+		<div id="p-search" class="portlet">
+		<h5><label for="searchInput">搜索</label></h5>
+		<div id="searchBody" class="pBody">
+			<form action="/mwiki/index.php/Special:Search" id="searchform"><div>
+				<input id="searchInput" name="search" type="text" accesskey="f" value="" />
+				<input type='submit' name="go" class="searchButton" id="searchGoButton"	value="进入" />&nbsp;
+				<input type='submit' name="fulltext" class="searchButton" id="mw-searchButton" value="搜索" />
+			</div></form>
+		</div>
+	</div>
+	<div class="portlet" id="p-tb">
+		<h5>工具</h5>
+		<div class="pBody">
+			<ul>
+				<li id="t-whatlinkshere"><a href="/mwiki/index.php/Special:Whatlinkshere/PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85">链入页面</a></li>
+				<li id="t-recentchangeslinked"><a href="/mwiki/index.php/Special:Recentchangeslinked/PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85">链出更改</a></li>
+<li id="t-upload"><a href="/mwiki/index.php/Special:Upload">上载文件</a></li>
+<li id="t-specialpages"><a href="/mwiki/index.php/Special:Specialpages">特殊页面</a></li>
+				<li id="t-print"><a href="/mwiki/index.php?title=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;printable=yes">可打印版</a></li>				<li id="t-permalink"><a href="/mwiki/index.php?title=PostgreSQL_%E9%9B%86%E7%BE%A4%E5%A4%8D%E5%88%B6%E6%96%B9%E6%A1%88%E4%B9%8B%E4%BD%BF%E7%94%A8pgq%E5%92%8Clondiste%E5%B7%A5%E5%85%B7%E5%8C%85&amp;oldid=3107">Permanent link</a></li>			</ul>
+		</div>
+	</div>
+		</div><!-- end of the left (by default at least) column -->
+			<div class="visualClear"></div>
+			<div id="footer">
+				<div id="f-poweredbyico"><a href="http://www.mediawiki.org/"><img src="/mwiki/skins/common/images/poweredby_mediawiki_88x31.png" alt="Powered by MediaWiki" /></a></div>
+			<ul id="f-list">
+				<li id="lastmod"> 最后更改17:01, 2009年5月22日.</li>
+				<li id="viewcount">本页面已经被浏览31,212次。</li>
+				<li id="privacy"><a href="/mwiki/index.php/PostgreSQL_%E4%B8%AD%E6%96%87%E7%BB%B4%E5%9F%BA%2C_PostgreSQL_%E4%B8%AD%E6%96%87%E7%AB%99%2C_PostgreSQL_%E4%B8%AD%E5%9B%BD%E7%A4%BE%E5%8C%BA%2C_PostgreSQL_Chinese_community:Privacy_policy" title="PostgreSQL 中文维基, PostgreSQL 中文站, PostgreSQL 中国社区, PostgreSQL Chinese community:Privacy policy">Privacy policy</a></li>
+				<li id="about"><a href="/mwiki/index.php/PostgreSQL_%E4%B8%AD%E6%96%87%E7%BB%B4%E5%9F%BA%2C_PostgreSQL_%E4%B8%AD%E6%96%87%E7%AB%99%2C_PostgreSQL_%E4%B8%AD%E5%9B%BD%E7%A4%BE%E5%8C%BA%2C_PostgreSQL_Chinese_community:%E5%85%B3%E4%BA%8E" title="PostgreSQL 中文维基, PostgreSQL 中文站, PostgreSQL 中国社区, PostgreSQL Chinese community:关于">关于PostgreSQL 中文维基, PostgreSQL 中文站, PostgreSQL 中国社区, PostgreSQL Chinese community</a></li>
+				<li id="disclaimer"><a href="/mwiki/index.php/PostgreSQL_%E4%B8%AD%E6%96%87%E7%BB%B4%E5%9F%BA%2C_PostgreSQL_%E4%B8%AD%E6%96%87%E7%AB%99%2C_PostgreSQL_%E4%B8%AD%E5%9B%BD%E7%A4%BE%E5%8C%BA%2C_PostgreSQL_Chinese_community:General_disclaimer" title="PostgreSQL 中文维基, PostgreSQL 中文站, PostgreSQL 中国社区, PostgreSQL Chinese community:General disclaimer">Disclaimers</a></li>
+			</ul>
+		</div>
+		
+	
+		<script type="text/javascript">if (window.runOnloadHook) runOnloadHook();</script>
+</div>
+<!-- Served by beefball in 0.208 secs. --></body></html>

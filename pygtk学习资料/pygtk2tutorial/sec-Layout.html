@@ -1,0 +1,112 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>10.4. Layout Container</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-ContainerWidgets.html" title="Chapter 10. Container Widgets"><link rel="prev" href="sec-Fixed.html" title="10.3. Fixed Container"><link rel="next" href="sec-Frames.html" title="10.5. Frames"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">10.4. Layout Container</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-Fixed.html">Prev</a> </td><th width="60%" align="center">Chapter 10. Container Widgets</th><td width="20%" align="right"> <a accesskey="n" href="sec-Frames.html">Next</a></td></tr></table><hr></div><div class="sect1" title="10.4. Layout Container"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-Layout"></a>10.4. Layout Container</h2></div></div></div><p>The <code class="classname">Layout</code> container is similar to the
+<code class="classname">Fixed</code> container except that it implements an infinite
+(where infinity is less than 2^32) scrolling area. The X window system has a
+limitation where windows can be at most 32767 pixels wide or tall. The
+<code class="classname">Layout</code> container gets around this limitation by doing
+some exotic stuff using window and bit gravities, so that you can have
+smooth scrolling even when you have many child widgets in your scrolling
+area.</p><p>A <code class="classname">Layout</code> container is created
+using:</p><pre class="programlisting">
+  layout = gtk.Layout(<strong class="parameter"><code>hadjustment</code></strong>=None, <strong class="parameter"><code>vadjustment</code></strong>=None)
+</pre><p>As you can see, you can optionally specify the
+<code class="classname">Adjustment</code> objects (see <a class="xref" href="ch-Adjustments.html" title="Chapter 7. Adjustments">Chapter 7, <i>Adjustments</i></a>) that the <code class="classname">Layout</code>
+widget will use for its scrolling. If you don't specify the
+<code class="classname">Adjustment</code> objects, new ones will be created.</p><p>You can add and move widgets in the
+<code class="classname">Layout</code> container using the following two
+methods:</p><pre class="programlisting">
+  layout.put(<strong class="parameter"><code>child_widget</code></strong>, <strong class="parameter"><code>x</code></strong>, <strong class="parameter"><code>y</code></strong>)
+
+  layout.move(<strong class="parameter"><code>child_widget</code></strong>, <strong class="parameter"><code>x</code></strong>, <strong class="parameter"><code>y</code></strong>)
+</pre><p>The size of the <code class="classname">Layout</code> container can be
+set and retrieved using the next methods:</p><pre class="programlisting">
+  layout.set_size(<strong class="parameter"><code>width</code></strong>, <strong class="parameter"><code>height</code></strong>)
+
+  size = layout.get_size()
+</pre><p>The final four methods for use with
+<code class="classname">Layout</code> widgets are for manipulating the horizontal
+and vertical adjustment widgets:</p><pre class="programlisting">
+  hadj = layout.get_hadjustment()
+
+  vadj = layout.get_vadjustment()
+
+  layout.set_hadjustment(<strong class="parameter"><code>adjustment</code></strong>)
+
+  layout.set_vadjustment(<strong class="parameter"><code>adjustment</code></strong>)
+</pre><p>The <a class="ulink" href="examples/layout.py" target="_top"><span class="command"><strong>layout.py</strong></span></a> example
+program creates three buttons and puts them in a layout widget. when a
+button is clicked, it is moved to a random location in the layout.
+<a class="xref" href="sec-Layout.html#layoutfig" title="Figure 10.3. Layout Example">Figure 10.3, “Layout Example”</a> illustrates the starting display of the
+program:</p><div class="figure"><a name="layoutfig"></a><p class="title"><b>Figure 10.3. Layout Example</b></p><div class="figure-contents"><div class="mediaobject" align="center"><img src="figures/layout.png" align="middle" alt="Layout Example"></div></div></div><br class="figure-break"><p>The <a class="ulink" href="examples/layout.py" target="_top"><span class="command"><strong>layout.py</strong></span></a> source code
+is:</p><pre class="programlisting">
+    1	#!/usr/bin/env python
+    2	
+    3	# example layout.py
+    4	
+    5	import pygtk
+    6	pygtk.require('2.0')
+    7	import gtk
+    8	import random
+    9	
+   10	class LayoutExample:
+   11	    def WindowDeleteEvent(self, widget, event):
+   12	        # return false so that window will be destroyed
+   13	        return False
+   14	
+   15	    def WindowDestroy(self, widget, *data):
+   16	        # exit main loop
+   17	        gtk.main_quit()
+   18	
+   19	    def ButtonClicked(self, button):
+   20	        # move the button
+   21	        self.layout.move(button, random.randint(0,500),
+   22	                         random.randint(0,500))
+   23	
+   24	    def __init__(self):
+   25	        # create the top level window
+   26	        window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+   27	        window.set_title("Layout Example")
+   28	        window.set_default_size(300, 300)
+   29	        window.connect("delete-event", self.WindowDeleteEvent)
+   30	        window.connect("destroy", self.WindowDestroy)
+   31	        # create the table and pack into the window
+   32	        table = gtk.Table(2, 2, False)
+   33	        window.add(table)
+   34	        # create the layout widget and pack into the table
+   35	        self.layout = gtk.Layout(None, None)
+   36	        self.layout.set_size(600, 600)
+   37	        table.attach(self.layout, 0, 1, 0, 1, gtk.FILL|gtk.EXPAND,
+   38	                     gtk.FILL|gtk.EXPAND, 0, 0)
+   39	        # create the scrollbars and pack into the table
+   40	        vScrollbar = gtk.VScrollbar(None)
+   41	        table.attach(vScrollbar, 1, 2, 0, 1, gtk.FILL|gtk.SHRINK,
+   42	                     gtk.FILL|gtk.SHRINK, 0, 0)
+   43	        hScrollbar = gtk.HScrollbar(None)
+   44	        table.attach(hScrollbar, 0, 1, 1, 2, gtk.FILL|gtk.SHRINK,
+   45	                     gtk.FILL|gtk.SHRINK, 0, 0)	
+   46	        # tell the scrollbars to use the layout widget's adjustments
+   47	        vAdjust = self.layout.get_vadjustment()
+   48	        vScrollbar.set_adjustment(vAdjust)
+   49	        hAdjust = self.layout.get_hadjustment()
+   50	        hScrollbar.set_adjustment(hAdjust)
+   51	        # create 3 buttons and put them into the layout widget
+   52	        button = gtk.Button("Press Me")
+   53	        button.connect("clicked", self.ButtonClicked)
+   54	        self.layout.put(button, 0, 0)
+   55	        button = gtk.Button("Press Me")
+   56	        button.connect("clicked", self.ButtonClicked)
+   57	        self.layout.put(button, 100, 0)
+   58	        button = gtk.Button("Press Me")
+   59	        button.connect("clicked", self.ButtonClicked)
+   60	        self.layout.put(button, 200, 0)
+   61	        # show all the widgets
+   62	        window.show_all()
+   63	
+   64	def main():
+   65	    # enter the main loop
+   66	    gtk.main()
+   67	    return 0
+   68	
+   69	if __name__ == "__main__":
+   70	    LayoutExample()
+   71	    main()
+</pre></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-Fixed.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-ContainerWidgets.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="sec-Frames.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">10.3. Fixed Container </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 10.5. Frames</td></tr></table></div></body></html>

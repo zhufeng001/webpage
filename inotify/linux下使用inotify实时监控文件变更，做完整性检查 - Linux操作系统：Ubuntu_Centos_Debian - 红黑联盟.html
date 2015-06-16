@@ -1,0 +1,438 @@
+<!DOCTYPE html PUBliC "-//W3C//dtD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/dtD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<link rel="stylesheet" href="http://www.2cto.com/statics/css/article.css" type="text/css" />
+
+<link href="http://www.2cto.com/statics/css/dialog.css" rel="stylesheet" type="text/css" />
+<title>linux下使用inotify实时监控文件变更，做完整性检查 - Linux操作系统：Ubuntu_Centos_Debian - 红黑联盟</title>
+<meta name="keywords" content="linux下使用inotify实时监控文件变更，做完整性检查" />
+<meta name="description" content="完整性检查是HIDS的重要组成部分之一，linux下做完整性检查的思路有3个1、哈希对比2、签名校验3、inotify方法有2个：A、定期检测，例如通过cron或程序内置计时器B、实时检测，inotify1、2一般和A，3一般和B。用inotify做完" />
+<script type="text/javascript" src="http://www.2cto.com/statics/js/jquery.min.js"></script>
+<script type="text/javascript" src="http://www.2cto.com/statics/js/jquery.sgallery.js"></script>
+<script type="text/javascript" src="http://www.2cto.com/statics/js/search_common.js"></script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/m.js"></script>
+<script type="text/javascript" src="http://www.2cto.com/statics/js/json.js"></script>
+<script language="javascript" type="text/javascript" src="http://www.2cto.com/statics/js/dialog.js"></script>
+
+
+</head>
+
+<body>
+<div class="line_top_box">
+	<dl class="top_box_left">
+		<dd class="left_logo"><a href="http://www.2cto.com"></a></dd>
+		<dd class="left_menu_link">
+																<a class='Channel' href='/News/'>资讯</a>&nbsp;|&nbsp;
+													<a class='Channel' href='/Article/'>安全</a>&nbsp;|&nbsp;
+													<a class='Channel' href='http://bbs.2cto.com'>论坛</a>&nbsp;|&nbsp;
+													<a class='Channel' href='/Soft/'>下载</a>&nbsp;|&nbsp;
+													<a class='Channel' href='http://book.2cto.com'>读书</a>&nbsp;|&nbsp;
+													<a class='Channel' href='/kf/'>程序开发</a>&nbsp;|&nbsp;
+													<a class='Channel' href='/database/'>数据库</a>&nbsp;|&nbsp;
+													<a class='Channel' href='/os/'>系统</a>&nbsp;|&nbsp;
+													<a class='Channel' href='/net/'>网络</a>&nbsp;|&nbsp;
+													<a class='Channel' href='/ebook/'>电子书</a>&nbsp;|&nbsp;
+													<a class='Channel' href='http://zz.2cto.com/'>站长学院</a>&nbsp;|&nbsp;
+													<a class='Channel' href='/ym/'>源码</a>&nbsp;|&nbsp;
+													<a class='Channel' href='/QQ/'>QQ</a>&nbsp;|&nbsp;
+													<a class='Channel' href='http://space.2cto.com'>专栏</a>&nbsp;|&nbsp;
+													<a class='Channel' href='/px/'>考试</a>&nbsp;|&nbsp;
+													<a class='Channel' href='/shouce/'>手册</a>&nbsp;|&nbsp;
+														</dd>
+	</dl>
+</div>
+<div class="line_top_lmbox">
+	<dl class="lmpic"></dl>
+	<dl class="lmlinkbox"><dd>
+										<a class='Channel' href='http://www.2cto.com/os/linux/'>Linux</a>|
+							<a class='Channel' href='http://www.2cto.com/os/windows/'>Windows</a>|
+							<a class='Channel' href='http://www.2cto.com/os/dos/'>Dos命令行</a>|
+							<a class='Channel' href='http://www.2cto.com/os/liulanqi/'>浏览器</a>|
+							<a class='Channel' href='http://www.2cto.com/os/xuniji/'>虚拟机</a>|
+							<a class='Channel' href='http://www.2cto.com/os/qita/'>其他</a>|
+								</dd></dl>
+	<dl class="LoginBox"><dd><script type="text/javascript">document.write('<iframe src="http://www.2cto.com/index.php?m=member&c=index&a=mini&forward='+encodeURIComponent(location.href)+'&siteid=1" allowTransparency="true"  width="150" height="32" frameborder="0" scrolling="no"></iframe>')</script></dd></dl>
+</div>
+<div class="divline8"></div>
+<div class="tadv">
+
+<a target="_blank" href="http://vip.2cto.com/"><img src="http://www.2cto.com/adv/980-80.gif" width="980" height="90" /></a>
+<!-- 广告位：顶部banner -->
+<script type="text/javascript">BAIDU_CLB_fillSlot("298612");</script>
+
+</div>
+
+
+<div class="divline8"></div>
+<div class="it165_box">
+	<div class="box_left">
+		
+		<dl class="box_p">
+			<dd class="pRight"><a href="http://www.2cto.com">首页</a><span> > </span><a href="http://www.2cto.com/os/">系统</a> > <a href="http://www.2cto.com/os/linux/">Linux</a> >  正文</dd>
+			<script type="text/javascript">BAIDU_CLB_fillSlot("703722");</script>
+			</dl>
+		<dl class="box_t"><dd>linux下使用inotify实时监控文件变更，做完整性检查</dd></dl>
+																										<dl class="box_INFO">
+			<dd class="frinfo line_blue">2011-01-28 10:52:03  &nbsp;&nbsp;&nbsp;&nbsp;<a style="font-weight:bold;padding:5px 0px 5px 20px;background:url('http://www.2cto.com/statics/images/icon/user_comment.png') left center no-repeat" href="#comment_iframe">我来说两句&nbsp;</a>&nbsp;&nbsp;  &nbsp;&nbsp;  </dd>
+			<dd class="frsize line_blue">
+			<span id='favorite'>
+				<a href="javascript:;" onclick="add_favorite('linux下使用inotify实时监控文件变更，做完整性检查');" class="t6">收藏</a>
+			</span>&nbsp;&nbsp;
+				<a target="_blank" href="http://www.2cto.com/index.php?m=member&c=content&a=publish&modid=1&siteid=1"><img border="0" src="http://www.2cto.com/statics/images/dl.jpg" />我要投稿</a>
+			</dd>
+			
+		</dl>
+		<dl class="box_body" id="fontzoom"><dd id="Article">
+		<P>完整性检查是HIDS的重要组成部分之一，linux下做完整性检查的思路有3个</P>
+<P>1、哈希对比</P>
+<P>2、签名校验</P>
+<P>3、inotify</P>
+<P>方法有2个：</P>
+<P>A、定期检测，例如通过cron或程序内置计时器</P>
+<P>B、实时检测，inotify</P>
+<P>1、2一般和A，3一般和B。用inotify做完整性检查的程序现在貌似还没现成比较好用的，谁推荐一个。</P>
+<P>内核2.6.13以上，RHEL5默认支持inotify，RHEL4不确认这个功能是否有backport，查看英文原文：Inotify: Efficient, Real-Time Linux File System Event Monitoring。</P>
+<P><BR>作者 Michael Prokop 译者 张永利 发布于 2010年9月22日 上午12时0分</P>
+<P>概要 – 为什么需要监控文件系统？<BR>在日常工作中，人们往往需要知道在某些文件(夹)上都有那些变化，比如：</P>
+<P>通知配置文件的改变 <BR>跟踪某些关键的系统文件的变化 <BR>监控某个分区磁盘的整体使用情况 <BR>系统崩溃时进行自动清理 <BR>自动触发备份进程 <BR>向服务器上传文件结束时发出通知 <BR>通常使用文件轮询的通知机制，但是这种机制只适用于经常改变的文件(因为它可以确保每过x秒就可以得到i/o)，其他情况下都非常低效，并且有时候会丢失某些类型的变化，例如文件的修改时间没有改变。像Tripwire这样的数据完整性系统，它们基于时间调度来跟踪文件变化，但是如果想实时监控文件的变化的话，那么时间调度就束手无策了。Inotify就这样应运而生了。本文将简要介绍inotify，告诉我们如何监控文件夹，如何一有变化就报告相关消息事件，并介绍了一些相关工具， 我们可以把它们添加到自己的工具箱中。</P>
+<P>Inotify到底是什么？<BR>Inotify是一种文件变化通知机制，Linux内核从2.6.13开始引入。在BSD和Mac OS系统中比较有名的是kqueue，它可以高效地实时跟踪Linux文件系统的变化。近些年来，以fsnotify作为后端，几乎所有的主流Linux发行版都支持Inotify机制。如何知道你的Linux内核是否支持Inotify机制呢？很简单，执行下面这条命令：</P>
+<P>% grep INOTIFY_USER /boot/config-$(uname -r)<BR>CONFIG_INOTIFY_USER=y如果输出(‘CONFIG_INOTIFY_USER=y’)，那么你可以马上享受Inotify之旅了。</P>
+<P>简单的文件变化通知样例：<BR>好的开始是成功的一半，对于了解Inotify机制来说，让我们从使用inotifywait程序开始，它包含在inotify-tools工具包中。假如我们打算监控/srv/test文件夹上的操作，只需执行：</P>
+<P>% inotifywait -rme modify,attrib,move,close_write,create,delete,delete_self /srv/test<BR>Setting up watches.&nbsp; Beware: since -r was given, this may take a while!<BR>Watches established.上述任务运行的同时，我们在另一个shell里依次执行以下操作：创建文件夹，然后在新文件夹下创建文件，接着删除新创建的文件：</P>
+<P>% mkdir /srv/test/infoq<BR>% echo TODO &gt; /srv/test/infoq/article.txt<BR>% rm /srv/test/infoq/article.txt在运行inotifywait的shell中将会打印以下信息：</P>
+<P>/srv/test/ CREATE,ISDIR infoq<BR>/srv/test/infoq/ CREATE article.txt<BR>/srv/test/infoq/ MODIFY article.txt<BR>/srv/test/infoq/ CLOSE_WRITE,CLOSE article.txt<BR>/srv/test/infoq/ DELETE article.txt显而易见，只要有变化我们就会收到相关的通知。如果想了解关于Inotify提供的事件(如modify, atrrib等)的详细信息，请参考inotifywatch的manpage。实际使用时，如果并不想监控某个大文件夹，那么就可以使用inotifywait的exclude选项。例如：我们要忽略文件夹/srv/test/large，那么就可以这样来建立监控:</P>
+<P>% inotifywait --exclude ^/srv/test/(large|ignore)/ -rme modify,attrib,move,close_write,create,delete,delete_self /srv/test<BR>Setting up watches.&nbsp; Beware: since -r was given, this may take a while!<BR>Watches established.上面的例子中，在exclude选项的匹配串中我们使用了正则表达式，因为我们不想将名称中含有large或ignore的文件也排除掉。我们可以测试一下：</P>
+<P>% echo test &gt; /srv/test/action.txt<BR>% echo test &gt; /srv/test/large/no_action.txt<BR>% echo test &gt; /srv/test/ignore/no_action.txt<BR>% echo test &gt; /srv/test/large-name-but-action.txt这里inotifywait应该只会报告’action.txt’和’large-name-but-action.txt’两个文件的变化，而忽略子文件夹’large’和’ignore’下的文件，结果也确实如此；</P>
+<P>/srv/test/ CREATE action.txt<BR>/srv/test/ MODIFY action.txt<BR>/srv/test/ CLOSE_WRITE,CLOSE action.txt<BR>/srv/test/ CREATE large-name-but-action.txt<BR>/srv/test/ MODIFY large-name-but-action.txt<BR>/srv/test/ CLOSE_WRITE,CLOSE large-name-but-action.txt另外，通过使用-t选项我们还可以定义inotifywait的监控时间，既可以让它执行一段时间，也可以让它一直运行。util-linux-ng的logger命令也可以实现此功能，不过得先把相关的消息事件发送到syslog，然后从syslog服务器再分析整合。</P>
+<P>Inotifywatch – 使用inotify来统计文件系统访问信息<BR>Inotify-tools中还有一个工具叫inotifywatch，它会先监听文件系统的消息事件，然后统计每个被监听文件或文件夹的消息事件，之后输出统计信息。比如我们想知道某个文件夹上有那些操作：</P>
+<P>% inotifywatch -v -e access -e modify -t 120 -r ~/InfoQ<BR>Establishing watches...<BR>Setting up watch(es) on /home/mika/InfoQ<BR>OK, /home/mika/InfoQ is now being watched.<BR>Total of 58 watches.<BR>Finished establishing watches, now collecting statistics.<BR>Will listen for events for 120 seconds.<BR>total&nbsp; modify&nbsp; filename<BR>2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /home/mika/InfoQ/inotify/很显然，这里我们监控的是~/InfoQ文件夹，并且可以看到/home/mika/InfoQ/inotify上发生了两个事件。方法虽简单，但却很有效。</P>
+<P>Inotify的配置选项<BR>使用Inotify时，要特别注意内核中关于它的两个配置。首先/proc/sys/fs/inotify/max_user_instances 规定了每个用户所能创建的Inotify实例的上限；其次/proc/sys/fs/inotify/max_user_watches规定了每个Inotify实例最多能关联几个监控(watch)。你可以很容易地试验在运行过程中达到上限，如：</P>
+<P>% inotifywait -r /<BR>Setting up watches.&nbsp; Beware: since -r was given, this may take a while!<BR>Failed to watch /; upper limit on inotify watches reached!<BR>Please increase the amount of inotify watches allowed per user via `/proc/sys/fs/inotify/max_user_watches.如果要改变这些配置，只要向相应的文件写入新值即可，如下所示：</P>
+<P># cat /proc/sys/fs/inotify/max_user_watches<BR>8192<BR># echo 16000 &gt; /proc/sys/fs/inotify/max_user_watches<BR># cat /proc/sys/fs/inotify/max_user_watches<BR>16000使用Inotify的一些工具<BR>近一段时间出现了很多基于Inotify的超炫的工具，如incron，它是一个类似于cron的守护进程(daemon)，传统的cron守护进程都是在规定的某个时间段内执行，而incron由于使用了Inotify，可以由事件触发执行。同时incron的安装简单而直观，比如在debian上，首先在/etc/incron.allow中添加使用incron的用户(debian默认不允许用户使用incron，因为如果incron使用不慎的话，例如形成死循环，则会导致系统宕机)： </P>
+<P># echo username &gt; /etc/incron.allow然后调用”incrontab -e“, 在弹出的编辑器中插入我们自己的规则，例如下面的这条简单的规则，文件一变化incron就会发邮件通知我们：</P>
+<P>/srv/test/ IN_CLOSE_WRITE mail -s "<A>$@/$#
+</A>" root从现在开始，一旦/src/test文件夹中的文件被修改，就会发送一封邮件。但是注意不要让incron监控整个子目录树，因为Inotify只关注inodes，而不在乎是文件还是文件夹，所以基于Inotify的软件都需要自己来处理/预防递归问题。关于incontab详细使用，请参考incrontab的manpage。</P>
+<P>如果你还要处理incoming文件夹，那么你可能需要inoticoming。当有文件进入incoming文件夹时Inoticoming就会执行某些动作，从而可以用inoticoming来管理debian的软件仓库(例如软件仓库中一旦有上传<a href="http://www.2cto.com/ym" target="_blank" class="keylink">源码</a>包或是新添加的二进制包就立刻自动进行编译)，另外，还可以用它来监控系统是否有新上传文件，如果有就发送通知。类似的工具还有(它们都各有专长)：inosync(基于消息通知机制的文件夹同步服务)，iwatch(基于Inotify的程序，对文件系统进行实时监控)，以及lsyncd(一个守护进程(daemon)，使用rsync同步本地文件夹)。</P>
+<P>Inotify甚至对传统的Unix工具也进行了改进，例如tail。使用inotail，同时加上-f选项，就可以取代每秒轮询文件的做法。此外，GNU 的coreutils从版本7.5开始也支持Inotify了，我们可以运行下面的命令来确认：</P>
+<P># strace -e inotify_init,inotify_add_watch tail -f ~log/syslog<BR>[...]<BR>inotify_init()&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 4<BR>inotify_add_watch(4, "/var/log/syslog", IN_MODIFY|IN_ATTRIB|IN_DELETE_SELF|IN_MOVE_SELF) = 1从现在开始，通过轮询来确实文件是否需要重新读取的方法应该作为古董了。</P>
+<P>在脚本中使用Inotify<BR>Inotify机制并不局限于工具，在脚本语言中也完全可以享受Inotify的乐趣，如<a href="http://www.2cto.com/kf/web/Python/" target="_blank" class="keylink">Python</a>中可以使用pyinotify和inotifyx，Perl中有Filesys-Notify-Simple和<a href="http://www.2cto.com/os/linux/" target="_blank" class="keylink">Linux</a>-Inotify2，Inotify的Ruby版有ruby-inotifyrb-inoty和fssm。</P>
+<P>总结<BR>综上所述，						</dd></dl>
+		<script type="text/javascript">
+		<!--
+		$(function(){
+		  $('#Article img').LoadImage(true, 630, 560,'http://www.2cto.com/statics/images/s_nopic.gif');    
+		})
+		
+		//-->
+		</script>
+	<div id="pages" class="box_body" id="fontzoom">	</div>
+	<dl style="width:650px;height:100px;padding-top:10px;float:left;padding-left:10px">
+		<dd><script type="text/javascript">BAIDU_CLB_fillSlot("771048");</script></dd>
+	</dl>
+	<dl class="box_Nsc">
+		<dd class="lcopy"><a class="ckcopy" onclick="copyToClipBoard()">点击复制链接 与好友分享!</a><a class="ckhome" href="http://www.2cto.com/">回本站首页</a></dd>
+		<script> 
+		function copyToClipBoard(){ 
+		var clipBoardContent=document.title + '\r\n' + document.location; 
+		clipBoardContent+='\r\n'; 
+		window.clipboardData.setData("Text",clipBoardContent); 
+		alert("恭喜您！复制成功"); 
+		} 
+		</script>
+
+		<div class="Article-Tool">
+                               	  <!-- Baidu Button BEGIN -->
+<div id="bdshare" class="bdshare_t bds_tools get-codes-bdshare"> <span style="float:left">分享到：</span>
+
+<a class="bds_qzone"></a>
+<a class="bds_tsina"></a>
+<a class="bds_tqq"></a>
+<a class="bds_baidu"></a>
+<a class="bds_renren"></a>
+<a class="bds_kaixin001"></a>
+<a class="bds_tieba"></a>
+<span class="bds_more">更多</span>
+</div>
+<script type="text/javascript" id="bdshare_js" data="type=tools&uid=12732" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+var bds_config = {'snsKey':{'tsina':'2386826374','tqq':'5e544a8fdea646c5a5f3967871346eb8'}};
+document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date()/3600000)
+</script>
+<!-- Baidu Button END -->
+                                
+	  </div>
+
+		
+		</dd>
+		<dd class="bbstt">您对本文章有什么意见或着疑问吗？请到<a href="http://bbs.2cto.com/">论坛讨论</a>您的关注和建议是我们前行的参考和动力&nbsp;&nbsp; </dd>
+	</dl>
+	<dl class="box_NPre">
+		<dd class="TLineX"><strong>上一篇：</strong><a href="http://www.2cto.com/os/201101/82860.html">巧用escalations限制Nagios报警次数</a></dd>
+		<dd><strong>下一篇：</strong><a href="http://www.2cto.com/os/201101/82976.html">linux下用rinetd做端口转发</a></dd>
+	</dl>
+	<dl class="linetb"></dl>
+
+	<dl class="about"><dd>相关文章</dd></dl>
+				<dl class="linetb"></dl>
+	<dl style="width:650px;height:70px;padding-top:10px;float:left;padding-left:10px">
+		<dd><script type="text/javascript">BAIDU_CLB_fillSlot("182716");</script></dd>
+	</dl>
+
+	<dl style="width:650px;float:left;padding-left:10px">
+		<dd><script type="text/javascript">BAIDU_CLB_fillSlot("517916");</script></dd>
+	</dl>
+	<dl class="linetb"></dl>
+	<dl class="about"><dd>图文推荐</dd></dl>
+	<div class="picbox">
+						<dl class="wbox">
+			<dd class="npicbox"><a target="_blank" href="http://www.2cto.com/os/201311/255721.html"><img src='http://www.2cto.com/uploadfile/2013/1106/thumb_126_90_20131106025346380.png'  width='126' height='90' border='0' /></a></dd>
+			<dd class="npictext"><a href="http://www.2cto.com/os/201311/255721.html">ubuntu连接vpn失败的</a></dd>
+		</dl>
+				<dl class="wbox">
+			<dd class="npicbox"><a target="_blank" href="http://www.2cto.com/os/201311/255602.html"><img src='http://www.2cto.com/uploadfile/2013/1106/thumb_126_90_20131106091415826.jpeg'  width='126' height='90' border='0' /></a></dd>
+			<dd class="npictext"><a href="http://www.2cto.com/os/201311/255602.html">Ubuntu上的几个音频工</a></dd>
+		</dl>
+				<dl class="wbox">
+			<dd class="npicbox"><a target="_blank" href="http://www.2cto.com/os/201311/255349.html"><img src='http://www.2cto.com/uploadfile/2013/1105/thumb_126_90_20131105015221264.jpg'  width='126' height='90' border='0' /></a></dd>
+			<dd class="npictext"><a href="http://www.2cto.com/os/201311/255349.html">Linux的shell小脚本的</a></dd>
+		</dl>
+				<dl class="wbox">
+			<dd class="npicbox"><a target="_blank" href="http://www.2cto.com/os/201311/254963.html"><img src='http://www.2cto.com/uploadfile/2013/1104/thumb_126_90_20131104084028213.jpeg'  width='126' height='90' border='0' /></a></dd>
+			<dd class="npictext"><a href="http://www.2cto.com/os/201311/254963.html">Linux菜鸟学习笔记(一</a></dd>
+		</dl>
+					</div>
+		<dl class="linetb"></dl>
+		<div id="pl" style="float:left;width:650px;padding:10px 10px 0px 10px;overflow:hidden;background-color:white">
+		<iframe src="http://www.2cto.com/uapi.php?tid=82861&catid=268&title=bGludXjPwsq508Npbm90aWZ5yrXKsbzgv9jOxLz seS4/KOs1/bN6tX70NS87LLp&forward=http://www.2cto.com/os/201101/82861.html" width="100%" height="100%" id="comment_iframe" name="comment_iframe" frameborder="0" scrolling="no"></iframe>
+	</div>
+			<dl style="width:650px;float:left;padding-left:10px">
+		<dd><script type="text/javascript">BAIDU_CLB_fillSlot("771057");</script></dd>
+	</dl>
+	</div>
+	<div class="box_right">
+		<div style="float:left;width:300px;background:white;padding-left:10px;height:250px">
+			<a target="_blank" href="http://vip.2cto.com/"><img src="http://www.2cto.com/adv/300-250.gif" width="300" height="250" /></a></div>
+		<div class="box_right_line"><div class="xline"></div></div>
+		<div class="box_right_box">
+			<dl class="bTitle"><dd onmousemove="m_tab(1)" id="indexW" class="tablinkschecked">排行</dd><dd onmousemove="m_tab(2)" id="hotW" class="tablinkscheck">热门</dd></dl>
+		</div>
+		<div class="box_right_box">
+			<div class="paddingbox">
+				<dl class="index" id="index">
+					<dd class="picline"></dd>
+															<dd class="list">4,581 | <a target="_blank" title="Ubuntu 12.04中文输入法的安装" href="http://www.2cto.com/os/201207/144189.html">Ubuntu 12.04中文输入法的安装</a></dd>
+										<dd class="list">1,911 | <a target="_blank" title="linux系统时间修改及同步" href="http://www.2cto.com/os/201109/103909.html">linux系统时间修改及同步</a></dd>
+										<dd class="list">1,843 | <a target="_blank" title="linux下查看磁盘空间" href="http://www.2cto.com/os/201207/142116.html">linux下查看磁盘空间</a></dd>
+										<dd class="list">1,658 | <a target="_blank" title="Linux tar打包命令" href="http://www.2cto.com/os/201109/103833.html">Linux tar打包命令</a></dd>
+										<dd class="list">1,348 | <a target="_blank" title="linux 的date命令及系统时间设置" href="http://www.2cto.com/os/201108/102154.html">linux 的date命令及系统时间设置</a></dd>
+										<dd class="list">1,295 | <a target="_blank" title="LINUX下搭建FTP服务器" href="http://www.2cto.com/os/201107/98311.html">LINUX下搭建FTP服务器</a></dd>
+										<dd class="list">1,292 | <a target="_blank" title="Ubuntu 12.04下安装QQ 2012 Beta3" href="http://www.2cto.com/os/201207/144253.html">Ubuntu 12.04下安装QQ 2012 Beta3</a></dd>
+										<dd class="list">1,101 | <a target="_blank" title="Grub Rescue修复方法" href="http://www.2cto.com/os/201111/112327.html">Grub Rescue修复方法</a></dd>
+														</dl>
+				<dl class="index" id="hot" style="display:none">
+					<dd class="picline"></dd>
+															<dd class="list"><a target="_blank" title="Ubuntu 12.04中文输入法的安装" href="http://www.2cto.com/os/201207/144189.html">Ubuntu 12.04中文输入法的安装</a></dd>
+										<dd class="list"><a target="_blank" title="linux系统时间修改及同步" href="http://www.2cto.com/os/201109/103909.html">linux系统时间修改及同步</a></dd>
+										<dd class="list"><a target="_blank" title="Linux tar打包命令" href="http://www.2cto.com/os/201109/103833.html">Linux tar打包命令</a></dd>
+										<dd class="list"><a target="_blank" title="Ubuntu 12.04下安装QQ 2012 Beta3" href="http://www.2cto.com/os/201207/144253.html">Ubuntu 12.04下安装QQ 2012 Beta3</a></dd>
+										<dd class="list"><a target="_blank" title="linux下查看磁盘空间" href="http://www.2cto.com/os/201207/142116.html">linux下查看磁盘空间</a></dd>
+										<dd class="list"><a target="_blank" title="linux 的date命令及系统时间设置" href="http://www.2cto.com/os/201108/102154.html">linux 的date命令及系统时间设置</a></dd>
+										<dd class="list"><a target="_blank" title="Grub Rescue修复方法" href="http://www.2cto.com/os/201111/112327.html">Grub Rescue修复方法</a></dd>
+										<dd class="list"><a target="_blank" title="Linux tail 命令详解" href="http://www.2cto.com/os/201111/110143.html">Linux tail 命令详解</a></dd>
+														</dl>
+			</div>
+			<script type="text/javascript">
+			<!--
+				function m_tab(index)
+				{
+					if (index == 1){
+						document.getElementById("indexW").className = "tablinkschecked";
+						document.getElementById("hotW").className = "tablinkscheck";
+						document.getElementById("index").style.display = "block";
+						document.getElementById("hot").style.display = "none";
+					}
+					else{
+						document.getElementById("hotW").className = "tablinkschecked";
+						document.getElementById("indexW").className = "tablinkscheck";
+						document.getElementById("index").style.display = "none";
+						document.getElementById("hot").style.display = "block";
+					}
+				}
+			//-->
+			</script>
+		</div>
+		<div class="rightlineT"><div class="rxline"></div></div>
+		<div style="float:left;width:300px;background:white;padding-left:10px;height:60px">
+				<!-- 广告位：内容页右侧小广告位 -->
+			<script type="text/javascript">BAIDU_CLB_fillSlot("406189");</script>
+		</div>
+		<div class="rightlineT"><div class="rxline"></div></div>
+		<div style="float:left;width:300px;background:white;padding-left:10px;height:80px">
+				<!-- 广告位：内容页右侧小广告位 -->
+			<script type="text/javascript">BAIDU_CLB_fillSlot("703749");</script>
+		</div>
+		<div class="rightlineNo"></div>
+		<div class="box_right_box">
+			<dl class="bTitle borT"><dd class="newarc"></dd></dl>
+		</div>
+		<div class="box_right_box">
+			<div class="paddingbox">
+				<dl class="index">
+									<iframe frameborder="0" name="Iframe1" src="http://www.2cto.com/bbsdy/index.html" width="100%" height="200">	
+				您的浏览器不支持嵌入式框架，或者当前配置为不显示嵌入式框架。
+			</iframe>
+								</dl>
+			</div>
+		</div>
+                                <div class="rightlineT"><div class="rxline"></div></div>
+
+		<div style="float:left;width:300px;background:white;padding-left:10px;height:250px"><script type="text/javascript">BAIDU_CLB_fillSlot("182692");</script> </div>
+		<div class="box_right_line"><div class="xline"></div></div>
+		<div class="box_right_box">
+			<dl class="bTitle">
+				<dd onmousemove="m_tabs(1)" id="ArticlesW" class="tablinkschecked">文章</dd>
+				<dd onmousemove="m_tabs(2)" id="DownW" class="tablinkscheck">下载</dd>
+				<dd onmousemove="m_tabs(3)" id="BookW" class="tablinkscheck">读书</dd>
+			</dl>
+		</div>
+		<div class="box_right_box">
+			<div class="paddingbox">
+				<dl class="index" id="Articles">
+					<dd class="picline"></dd>
+															<dd class="list">·&nbsp;<a target="_blank" title="Win2000下关闭无用端口" href="http://www.2cto.com/Article/200410/1.html">Win2000下关闭无用端口</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="禁止非法用户登录综合设置 [win9x篇]" href="http://www.2cto.com/Article/200410/2.html">禁止非法用户登录综合设置 [win9x篇]</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="关上可恶的后门——消除NetBIOS隐患" href="http://www.2cto.com/Article/200410/3.html">关上可恶的后门——消除NetBIOS隐患</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="网络入侵检测系统" href="http://www.2cto.com/Article/200410/4.html">网络入侵检测系统</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="潜伏在Windows默认设置中的陷井" href="http://www.2cto.com/Article/200410/5.html">潜伏在Windows默认设置中的陷井</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="调制解调器的不安全" href="http://www.2cto.com/Article/200410/6.html">调制解调器的不安全</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="构建Windows 2000服务器的安全防护林" href="http://www.2cto.com/Article/200410/7.html">构建Windows 2000服务器的安全防护林</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="SQL Server 2000的安全配置" href="http://www.2cto.com/Article/200410/8.html">SQL Server 2000的安全配置</a></dd>
+														</dl>
+				<dl class="index" id="Down" style="display:none">
+					<dd class="picline"></dd>
+															<dd class="list">·&nbsp;<a target="_blank" title="Windows优化大师注册机源码" href="http://www.2cto.com/soft/200409/53.html">Windows优化大师注册机源码</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="Process Viewer 汉化版" href="http://www.2cto.com/soft/200409/62.html">Process Viewer 汉化版</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="Aspcode动画教程" href="http://www.2cto.com/soft/200409/79.html">Aspcode动画教程</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="WIN 2000服务器防止ICMP数据包攻击教程" href="http://www.2cto.com/soft/200409/128.html">WIN 2000服务器防止ICMP数据包攻击教程</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="实现网络隐身的简单方法" href="http://www.2cto.com/soft/200409/129.html">实现网络隐身的简单方法</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="手工进行克隆帐号" href="http://www.2cto.com/soft/200409/130.html">手工进行克隆帐号</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="用W32DASM破解网页合并器的密码" href="http://www.2cto.com/soft/200409/134.html">用W32DASM破解网页合并器的密码</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="注册表操作动画教程" href="http://www.2cto.com/soft/200409/138.html">注册表操作动画教程</a></dd>
+														</dl>
+				<dl class="index" id="Book" style="display:none">
+					<dd class="picline"></dd>
+															<dd class="list">·&nbsp;<a target="_blank" title="黑客攻防技术宝典：Web实战篇（第2版）" href="http://book.2cto.com/201206/20.html">黑客攻防技术宝典：Web实战篇（第2版）</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="超级网管员——网络安全" href="http://book.2cto.com/201207/43.html">超级网管员——网络安全</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="代码大全（第二版）" href="http://book.2cto.com/201207/64.html">代码大全（第二版）</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="软件之道:软件开发争议问题剖析" href="http://book.2cto.com/201207/68.html">软件之道:软件开发争议问题剖析</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="CSS插件工具箱" href="http://book.2cto.com/201207/78.html">CSS插件工具箱</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="CSS入门经典(第3版)" href="http://book.2cto.com/201207/139.html">CSS入门经典(第3版)</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="C#并行编程高级教程：精通.NET 4 Parallel Extension" href="http://book.2cto.com/201207/169.html">C#并行编程高级教程：精通.NET 4 Pa</a></dd>
+										<dd class="list">·&nbsp;<a target="_blank" title="CMMI+敏捷整合开发" href="http://book.2cto.com/201207/190.html">CMMI+敏捷整合开发</a></dd>
+														</dl>
+			</div>
+			<script type="text/javascript">
+			<!--
+				function m_tabs(index)
+				{
+					if (index == 1){
+						document.getElementById("ArticlesW").className = "tablinkschecked";
+						document.getElementById("DownW").className = "tablinkscheck";
+						document.getElementById("BookW").className = "tablinkscheck";
+						document.getElementById("Articles").style.display = "block";
+						document.getElementById("Down").style.display = "none";
+						document.getElementById("Book").style.display = "none";
+					}
+					else if (index == 2){
+						document.getElementById("ArticlesW").className = "tablinkscheck";
+						document.getElementById("DownW").className = "tablinkschecked";
+						document.getElementById("BookW").className = "tablinkscheck";
+						document.getElementById("Articles").style.display = "none";
+						document.getElementById("Down").style.display = "block";
+						document.getElementById("Book").style.display = "none";
+					}
+					else{
+						document.getElementById("ArticlesW").className = "tablinkscheck";
+						document.getElementById("DownW").className = "tablinkscheck";
+						document.getElementById("BookW").className = "tablinkschecked";
+						document.getElementById("Articles").style.display = "none";
+						document.getElementById("Down").style.display = "none";
+						document.getElementById("Book").style.display = "block";
+					}
+				}
+			//-->
+			</script>
+		</div>
+		<div class="rightlineNo"></div>
+		<div class="box_right_box">
+			<dl class="bTitle borT"><dd class="newdown"></dd></dl>
+		</div>
+		<div class="box_right_box">
+			<div class="paddingbox">
+				<dl class="index">
+															<dd class="picbox"><a target="_blank" class="plink" href="http://www.2cto.com/os/201110/109294.html"><img class='pic1' src='http://up.2cto.com/2011/1028/20111028121517768.png'  width='126' height='90' border='0' /></a><span><a href="http://www.2cto.com/os/201110/109294.html">Linux开启VNC桌面及加</a></span></dd>
+										<dd class="picbox"><a target="_blank" class="plink" href="http://www.2cto.com/os/201207/143614.html"><img class='pic1' src='http://up.2cto.com/2012/0726/20120726102655137.png'  width='126' height='90' border='0' /></a><span><a href="http://www.2cto.com/os/201207/143614.html">在U盘上安装Linux系统</a></span></dd>
+															<dd class="picline"></dd>
+															<dd class="list">&#9642;&nbsp;<a target="_blank" href="http://www.2cto.com/os/201110/109294.html">Linux开启VNC桌面及加密连接</a></dd>
+										<dd class="list">&#9642;&nbsp;<a target="_blank" href="http://www.2cto.com/os/201203/123708.html">BackTrack5完全配置</a></dd>
+										<dd class="list">&#9642;&nbsp;<a target="_blank" href="http://www.2cto.com/os/201207/141873.html">linux下开机启动DB2,WAS,TDS服务</a></dd>
+										<dd class="list">&#9642;&nbsp;<a target="_blank" href="http://www.2cto.com/os/201207/143614.html">在U盘上安装Linux系统解决方案</a></dd>
+										<dd class="list">&#9642;&nbsp;<a target="_blank" href="http://www.2cto.com/os/201207/144253.html">Ubuntu 12.04下安装QQ 2012 Beta3</a></dd>
+										<dd class="list">&#9642;&nbsp;<a target="_blank" href="http://www.2cto.com/os/201208/146522.html">CentOS 6.3安装nginx操作指南</a></dd>
+										<dd class="list">&#9642;&nbsp;<a target="_blank" href="http://www.2cto.com/os/201208/146986.html">CentOS 5.5安装图解</a></dd>
+										<dd class="list">&#9642;&nbsp;<a target="_blank" href="http://www.2cto.com/os/201210/163194.html">Ubuntu Server 12.04 LTS安装指引</a></dd>
+														</dl>
+			</div>
+			<div class="xline"></div>
+		</div>
+		<div class="box_right_line"><div class="xline"></div></div>
+		<div style="float:left;width:300px;background:white;padding-left:10px;height:250px">
+			<script type="text/javascript">BAIDU_CLB_fillSlot("771043");</script></div>
+		<div class="box_right_line"><div class="xline"></div></div>
+	</div>
+</div>
+<script type="text/javascript">
+<!--
+function showLogin(){
+	window.art.dialog({id:'Login',iframe:'http://www.2cto.com/index.php?m=member&c=index&a=login&tupe=mini', title:'快捷登陆', width:'450', height:'310', lock:true}, function(){var d = window.art.dialog({id:'Login'}).data.iframe;var form = d.document.getElementById('dosubmit');form.click();return false;}, function(){window.art.dialog({id:'Login'}).close()});void(0);
+}
+function add_favorite(title) {
+		$.getJSON('http://www.2cto.com/api.php?op=add_favorite&title='+encodeURIComponent(title)+'&url='+encodeURIComponent(location.href)+'&'+Math.random()+'&callback=?', function(data){
+			if(data.status==1)	{
+				$("#favorite").html('收藏成功');
+			} else {
+				alert('请登陆');
+				window.location.href='http://home.2cto.com/?forward='+encodeURIComponent(location.href);
+			}
+		});
+	}
+//-->
+</script>
+<script language="JavaScript" src="http://www.2cto.com/api.php?op=count&id=82861&modelid=1"></script>
+<!-- 广告位：右侧漂浮 -->
+<script type="text/javascript">BAIDU_CLB_fillSlot("137946");</script>
+
+<div style="width:980px;padding:8px 0px 8px 0px;margin:auto"><script type="text/javascript">BAIDU_CLB_fillSlot("333829");</script></div>
+<div class="foot">
+<p>
+<a target="_blank" href="http://www.2cto.com/about">关于我们</a> |
+<a target="_blank" href="http://www.2cto.com/about/contact.html">联系我们</a> |
+<a target="_blank" href="http://www.2cto.com/about/ads.html">广告服务</a> |
+<a target="_blank" href="http://www.2cto.com/about/touzi.html">投资合作</a> |
+<a target="_blank" href="http://www.2cto.com/about/Copyright.html">版权申明</a> |
+<a target="_blank" href="http://www.2cto.com/about/faq.html">在线帮助</a> |
+<a target="_blank" href="http://www.2cto.com/about/map.html">网站地图</a> |
+<a target="_blank" href="http://www.2cto.com/about/tg.html">作品发布</a> |
+<a target="_blank" href="http://vip.2cto.com/"><span style="COLOR: red">Vip技术培训</span></a>
+<br />
+<span class="style4">版权所有: <a href="http://www.2cto.com" target="_blank">红黑联盟</a>--致力于做最好的IT技术学习网站<script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F1898984a3d796e86ad73ad1f4bc9f240' type='text/javascript'%3E%3C/script%3E"));
+</script>    
+</span>
+</div></body>
+
+</html>

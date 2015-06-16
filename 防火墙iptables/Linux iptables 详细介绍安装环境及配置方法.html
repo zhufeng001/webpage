@@ -1,0 +1,851 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<title>Linux iptables 详细介绍安装环境及配置方法_Cisco技术 无忧网客联盟</title>
+<meta name="keywords" content="环境,配置,方法,安装,介绍,详细,iptables,规则," />
+<meta name="description" content="Firewall（防火墙）：组件，工作在网络边缘（主机边缘），对进出网络数据包基于一定的规则检查，并在匹配某规则时由规则定义的处理进行处理的一组功能的组件。 防火墙类型：根据工作的层次的不同来划分，常见的防火墙工作在OSI第三层，即网络层防火墙，工作在OSI第七层的称为应用层防火墙，或者代理服务器（代理网关）。 网络层防火墙又称包过滤防火墙，在网络层对数据包进行选择，选择的依据是系统内设置的过滤逻辑，被称为访问控制列表（ACL），通过检查数据流中每个数据的源地址，目的地址，" />
+<link href="/templets/style/dedecms.css" rel="stylesheet" media="screen" type="text/css" />
+<script language="javascript" type="text/javascript" src="/include/dedeajax2.js"></script>
+<script language="javascript" type="text/javascript">
+<!--
+function CheckLogin(){
+	  var taget_obj = document.getElementById('_ajax_feedback');
+	  myajax = new DedeAjax(taget_obj,false,false,'','','');
+	  myajax.SendGet2("/member/ajax_feedback.php");
+	  DedeXHTTP = null;
+}
+function postBadGood(ftype,fid)
+{
+	var taget_obj = document.getElementById(ftype+fid);
+	var saveid = GetCookie('badgoodid');
+	if(saveid != null)
+	{
+		var saveids = saveid.split(',');
+		var hasid = false;
+		saveid = '';
+		j = 1;
+		for(i=saveids.length-1;i>=0;i--)
+		{
+			if(saveids[i]==fid && hasid) continue;
+			else {
+				if(saveids[i]==fid && !hasid) hasid = true;
+				saveid += (saveid=='' ? saveids[i] : ','+saveids[i]);
+				j++;
+				if(j==10 && hasid) break;
+				if(j==9 && !hasid) break;
+			}
+		}
+		if(hasid) { alert('您刚才已表决过了喔！'); return false;}
+		else saveid += ','+fid;
+		SetCookie('badgoodid',saveid,1);
+	}
+	else
+	{
+		SetCookie('badgoodid',fid,1);
+	}
+	myajax = new DedeAjax(taget_obj,false,false,'','','');
+	myajax.SendGet2("/plus/feedback.php?aid="+fid+"&action="+ftype+"&fid="+fid);
+}
+function postDigg(ftype,aid)
+{
+	var taget_obj = document.getElementById('newdigg');
+	var saveid = GetCookie('diggid');
+	if(saveid != null)
+	{
+		var saveids = saveid.split(',');
+		var hasid = false;
+		saveid = '';
+		j = 1;
+		for(i=saveids.length-1;i>=0;i--)
+		{
+			if(saveids[i]==aid && hasid) continue;
+			else {
+				if(saveids[i]==aid && !hasid) hasid = true;
+				saveid += (saveid=='' ? saveids[i] : ','+saveids[i]);
+				j++;
+				if(j==20 && hasid) break;
+				if(j==19 && !hasid) break;
+			}
+		}
+		if(hasid) { alert("您已经顶过该帖，请不要重复顶帖 ！"); return; }
+		else saveid += ','+aid;
+		SetCookie('diggid',saveid,1);
+	}
+	else
+	{
+		SetCookie('diggid',aid,1);
+	}
+	myajax = new DedeAjax(taget_obj,false,false,'','','');
+	var url = "/plus/digg_ajax.php?action="+ftype+"&id="+aid;
+	myajax.SendGet2(url);
+}
+function getDigg(aid)
+{
+	var taget_obj = document.getElementById('newdigg');
+	myajax = new DedeAjax(taget_obj,false,false,'','','');
+	myajax.SendGet2("/plus/digg_ajax.php?id="+aid);
+	DedeXHTTP = null;
+}
+-->
+</script>
+</head>
+<body class="articleview">
+<div class="header">
+	<div class="top w960 center">
+      <div class="title">
+        <h1> <a href="http://www.net527.cn">Cisco技术 无忧网客联盟</a> </h1>
+      </div>
+      <div class="banner"><script src='/plus/ad_js.php?aid=1' language='javascript'></script></div>
+      <div class="rlink">
+        <ul>
+          <li class="r1"><a href="/member">会员中心</a></li>
+          <li class="r2"><a href="/tags.php">TAG标签</a></li>
+          <li class="r3"><a href="/data/sitemap.html">网站地图</a></li>
+          <li class="r4"><a href="/data/rssmap.html">RSS订阅</a></li>
+        </ul>
+      </div>
+	</div><!-- //top -->
+	<!-- //菜单 -->
+	<div class="module blue mT10 wrapper w963">
+  	<div class="top">
+    	<div class="t_l"></div>
+    	<div class="t_r"></div>
+    	<!-- //如果不使用currentstyle，可以在channel标签加入 cacheid='channeltoplist' 属性提升性能 -->
+    <div id="navMenu">
+    	<ul>
+      	<li><a href='/'>主页</a></li>
+      	
+      	<li><a href='/a/ITyejiepinglun/' >IT业界评论</a></li>
+      	
+      	<li><a href='/a/ITrenzheng/'  rel='dropmenu2'>IT认证</a></li>
+      	
+      	<li><a href='/a/Ciscomoniqi/'  rel='dropmenu10'>Cisco模拟器</a></li>
+      	
+      	<li><a href='/a/luyoujiaohuan/'  rel='dropmenu13'>路由交换</a></li>
+      	<li class='hover'><a href='/a/anquan/'  rel='dropmenu19'>安全</a></li>
+      	<li><a href='/a/caozuoxitong/'  rel='dropmenu25'>操作系统</a></li>
+      	
+      	<li><a href='http://www.net527.cn/special/' >专题</a></li>
+      	
+      	<li><a href='/ziliaoxiazai/'  rel='dropmenu171'>资料下载</a></li>
+      	
+      	<li><a href='/shujukuguanli/'  rel='dropmenu36'>数据库</a></li>
+      	
+      	<li><a href='http://bbs.net527.cn' >论坛</a></li>
+      	
+    	</ul>
+    </div>	
+    <div class="search">
+      <form action="/plus/search.php" name="formsearch">
+        <div class="form">
+          <h4>搜索</h4>
+           <input type="hidden" name="kwtype" value="0" />
+           <input name="keyword" type="text" class="search-keyword" id="search-keyword" />
+           <select name="searchtype" class="search-option" id="search-option">
+               <option value="titlekeyword" selected='1'>智能模糊搜索</option>
+               <option value="title">仅搜索标题</option>
+           </select>
+          <button type="submit" class="search-submit">搜索</button>
+        </div>
+        </form>
+        <div class="tags">
+          <h4>热门标签</h4>
+          <ul>
+          <li><a href='/tags.php?/Tcpdump/'>Tcpdump</a></li>
+          <li><a href='/tags.php?/VPN/'>VPN</a></li>
+          <li><a href='/tags.php?/vsftp+roftp/'>vsftp roftp</a></li>
+          <li><a href='/tags.php?/OSPF/'>OSPF</a></li>
+          <li><a href='/tags.php?/HSRP/'>HSRP</a></li>
+          <li><a href='/tags.php?/vtp/'>vtp</a></li>
+          <li><a href='/tags.php?/ppp/'>ppp</a></li>
+          <li><a href='/tags.php?/BGP/'>BGP</a></li>
+          
+          </ul>
+        </div>
+    </div><!-- //search -->
+		</div>
+	</div>
+</div><!-- //header -->
+
+<!-- /header -->
+<div class="w960 center clear"><script src='/plus/ad_js.php?aid=19' language='javascript'></script></div>
+<div class="channel-nav w960 center clear">
+	<div class='sonnav'>
+	
+		<span><a href='/a/anquan/Ciscoanquan/'>Cisco安全</a></span>
+		<span><a href='/a/anquan/Juniperanquan/'>Juniper安全</a></span>
+		<span><a href='/a/anquan/huaweianquan/'>华为安全</a></span><span><a href='/a/anquan/kaiyuanfanghuoqiang/' class='thisclass'>开源防火墙</a></span>
+		<span><a href='/a/anquan/dianzishu/'>电子书</a></span>
+		<span><a href='/a/anquan/xitonganquan/'>系统安全</a></span>
+	</div>
+	<span class="back">
+		<a href="/">返回首页</a>
+	</span>
+</div><!-- /channel-nav -->
+
+<div class="w960 center clear mt1">
+	<div class="pleft">
+		<div class="place">
+			<strong>当前位置:</strong> <a href='http://www.net527.cn/'>无忧网客联盟</a> > <a href='/a/anquan/'>安全</a> > <a href='/a/anquan/kaiyuanfanghuoqiang/'>开源防火墙</a> > 
+		</div><!-- /place -->
+		<div class="viewbox">
+			<div class="title">
+				<h2>Linux iptables 详细介绍安装环境及配置方法</h2>
+			</div><!-- /title -->
+			<div class="info">
+				<small>时间:</small>2011-06-17 21:59<small>来源:</small>未知 <small>作者:</small>admin <small>点击:</small><script src="/plus/count.php?view=yes&aid=18329&mid=1" type='text/javascript' language="javascript"></script>次</div><!-- /info -->
+
+            	<div class="intro">Firewall（防火墙）：组件，工作在网络边缘（主机边缘），对进出网络数据包基于一定的规则检查，并在匹配某规则时由规则定义的处理进行处理的一组功能的组件。 防火墙类型：根据工作的层次的不同来划分，常见的防火墙工作在OSI第三层，即网络层防火墙，工作在OSI第七层的称为应用层防火墙，或者代理服务器（代理网关）。 网络层防火墙又称包过滤防火墙，在网络层对数据包进行选择，选择的依据是系统内设置的过滤逻辑，被称为访问控制列表（ACL），通过检查数据流中每个数据的源地址，目的地址，</div>
+			<div class="intro">
+
+			<table width='100%'>
+				<tr><td><SPAN style="FLOAT: right">
+<script src='/plus/ad_js.php?aid=6' language='javascript'></script> 
+</SPAN><p>Firewall（防火墙）：组件，工作在网络边缘（主机边缘），对进出网络数据包基于一定的规则检查，并在匹配某规则时由规则定义的处理进行处理的一组功能的组件。</p>
+<p>防火墙类型：根据工作的层次的不同来划分，常见的防火墙工作在OSI第三层，即网络层防火墙，工作在OSI第七层的称为应用层防火墙，或者代理服务器（代理网关）。</p>
+<p>网络层防火墙又称包过滤防火墙，在网络层对数据包进行选择，选择的依据是系统内设置的过滤逻辑，被称为访问控制列表（ACL），通过检查数据流中每个数据的源地址，目的地址，所用端口号和协议状态等因素，或他们的咋喝来确定是否允许该数据包通过。</p>
+<p>优点：对用户来说透明，处理速度快且易于维护。</p>
+<p>缺点：一旦黑客突破防火墙，就可以轻易地伪造数据包的源地址，目的地址和IP的端口号，即&ldquo;IP地址伪造&rdquo;。</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549867znuL.png"><img height="216" style="border: 0px none;" src="/uploads/allimg/110617/22002BN1-0.jpg" alt="" /></a></p>
+<p>包过滤防火墙图示</p>
+<p>代理服务型防火墙（Proxy  Service）将所有跨越防火墙的网络通信链路分为两段。当代理服务器接收到用户对某个站点的访问请求后会检查该请求是否符合控制规则。如果规则允许， 则代理服务器会替用户去那个站点取回所需要的信息，转发给用户。内外网用户的访问都是通过代理服务器上的&ldquo;链接&rdquo;来实现的，从而起到了隔离防火墙内外计算 机系统的作用。特点：在应用层对数据进行检查，比较安全。但是会增加防火墙的负载。</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549870oXqT.png"><img height="146" style="border: 0px none;" src="/uploads/allimg/110617/22002A416-1.jpg" alt="" /></a></p>
+<p>代理服务型防火墙图示</p>
+<p>现实生产<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>环境</u></a>中所使用的防火墙一般都是二者结合体。即先检查网络数据，通过之后再送到应用层去检查。</p>
+<p>netfilter组件称为内核空间，它被集成在linux内核中。netfilter是一种内核中用于扩展各种网络服务的结构化底层框架。它是在 内核中选取五个位置放了五个hook function，而这五个hook  function向用户开放，用户可以通过一个工具（iptables）向其写规则。</p>
+<p>netfilter  主要由信息过滤表（table）组成，包含了控制IP包处理的规则集（rules）。根据规则所处理的IP包的类型，规则被分组放在链（chain）中， 从而使内核对来自某些源，前往某些目的地或具有某些协议类型的信息包处置<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>方法</u></a>，如完成信息包的处理、控制和过滤等工作。</p>
+<p>iptables也称为用户空间，是一个工作在用户层用来写规则的工具，写好的规则被送往netfilter。这些规则告诉内核中的netfilter组件如何去处理信息包。</p>
+<p>五个hook function（规则链）：Input ，Output，Forward，prerouting，postrouting。</p>
+<p>filter：Input，Output，Forward</p>
+<p>四种处理机制（表）：过滤（filter） 主要用于过滤数据包，该表根据管理员预定义的一组规则过滤符&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 合条件的数据包。filter表是iptables默认的表。</p>
+<p>l INPUT：主要与想要进入我们 Linux 本机的数据包有关；</p>
+<p>l OUTPUT：主要与我们 Linux 本机所要送出的数据包有关；</p>
+<p>l FORWARD：与 Linux 本机比较没有关系， 他可以传递数据包到后台的计算机中，与下列 nat table 相关性较高。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 地址转换（NAT） 主要用于网络地址转换，该表可实现一对一。一对多，多对多&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 等工作，iptables就是使用该表实现共享上网功能。</p>
+<p>l PREROUTING：在进行路由判断之前所要进行的规则(DNAT/REDIRECT)</p>
+<p>l POSTROUTING：在进行路由判断之后所要进行的规则(SNAT/MASQUERADE)</p>
+<p>l OUTPUT：与发送出去的数据包包有关</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 包重构（mangle）对指定的数据包进行修改，例如更改TTL和TOS等，实际中很</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 少使用。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; RAW&nbsp; 很少使用</p>
+<p>一条链可以包含一条或者数条规则。</p>
+<p>nat：prerouting，postrouting，output</p>
+<p>mangle：Input ，Output，Forward，prerouting，postrouting。</p>
+<p>RAW：prerouting，output</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549873L0JU.png"><img height="320" style="border: 0px none;" src="/uploads/allimg/110617/2200262413-2.jpg" alt="" /></a></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; iptables传输数据包的过程</p>
+<p>&nbsp; 1&nbsp;&nbsp; 当一个数据包进入网卡时，数据包首先进入PREROUTING链，内核根据数据包目的IP判断是否需要转送出去。</p>
+<p>&nbsp; 2&nbsp;&nbsp; 如果数据包就是进入本机的，数据包就会沿着图向下移动，到达INPUT链。数据包到达INPUT链后，任何进程都会收到它。本机上运行的程序可以发送数据包，这些数据包经过OUTPUT链，然后到达POSTROTING链输出。</p>
+<p>&nbsp; 3&nbsp; 如果数据包是要转发出去的，且内核允许转发，数据包就会向右移动，经过FORWARD链，然后到达POSTROUTING链输出。</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549878SHiS.png"><img height="268" style="border: 0px none;" src="/uploads/allimg/110617/22002B550-3.jpg" alt="" /></a></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; iptables中各表与链的相互关系&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 《鸟哥的私房菜》</p>
+<p>书写规则：</p>
+<p>iptables [-t table] command CHAIN [NUM ]&nbsp;&nbsp; match criteria -j TARGET</p>
+<p>CHAIN:&nbsp; 对链进行的操作</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -N：new&nbsp;&nbsp;&nbsp;&nbsp; 新建一条链</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 删除一条用户自定义链（空链）</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -F：flush&nbsp;&nbsp; 清空一条链，默认清空表中所有链</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -Z：zero&nbsp;&nbsp;&nbsp; 清空计数器，iptables中每条规则默认有两个计数器，用于记录本条规则所匹配到的数据包的个数和本条规则所匹配到的数据包的总大小</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -P：policy&nbsp; 定义链的默认处理策略</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -E&nbsp; 重命名链</p>
+<p>RULE：对规则进行的操作</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -A:append&nbsp;&nbsp; 追加，在链的最后加一条规则</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -I:insert&nbsp; 插入一条规则&nbsp; 一般使用-I CHAIN NUM 给规则加一个编号。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -R:replace 替换某条规则，规则被替换并不会改变顺序，必须要指定替换的规则编号：-R CHAIN NUM。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -D:delete&nbsp; 删除一条规则，可以输入完整规则，或者直接指定标号加以删除：-D CHAIN NUM。</p>
+<p>LIST：查看</p>
+<p>&nbsp;&nbsp;&nbsp; -L：list 列出链中的所有规则</p>
+<p>辅助性子命令：-n&nbsp; numeric 以数字的形式来显示地址，默认显示主机名称</p>
+<p>-v&nbsp; verbose 显示<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>详细</u></a>信息 ，支持-vv&nbsp; -vvv格式，v越多，信息越<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>详细</u></a>。</p>
+<p>-x&nbsp; 显示原有信息，不要做单位换算</p>
+<p>--line-numbers&nbsp; 显示规则的行号</p>
+<p>Match Creteria（匹配规则）：</p>
+<p>基本匹配</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; -s，--src，--source&nbsp; 匹配数据包的源地址</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; -d，--dst，--destination 匹配数据包的目标地址</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; -i， 指定数据包的流入接口（逻辑接口）</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; -o， 指定数据包的流出接口</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; -p， 做协议匹配 protocol，（tcp|udp|icmp）</p>
+<p>扩展匹配：对某一种功能的扩展</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 隐含扩展 ：对某一种协议的扩展</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -p tcp</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --sport 指定源端口</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --dport 指定目的端口</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --tcp-flags（SYN，ACK，FIN，PSH，URG，RST，ALL，NONE）指定TCP的标志位</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 需要跟两个标志位列表，如：SYN，ACK，FIN，RST SYN 第一个列表表示要检查的位，第二个&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 列表表示第一个列表中出现的位必须为1，未出现的必须为0</p>
+<p>--syn&nbsp; 只允许新连接</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; -p&nbsp; udp&nbsp; 无连接协议</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --sport&nbsp;&nbsp; 指定源端口</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --dport&nbsp;&nbsp; 指定目的端口</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -p&nbsp; icmp</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --icmp-type&nbsp; echo-request，8（ping出去，请求回应，） echo-reply，0（给予回应）</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 显式扩展 ：额外附加的更多的匹配规则,功能性地扩展</p>
+<p>-m state&nbsp;&nbsp; 状态检测扩展</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NEW&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用户发起一个全新的请求</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ESTABLISHED 对一个全新的请求进行回应</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; RELATED&nbsp;&nbsp; 两个完整连接之间的相互关系，一个完整的连接，需要依赖于另一个完整的连接</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; INVALID&nbsp;&nbsp; 无法识别的状态</p>
+<p>-m multiport&nbsp;&nbsp; --sports&nbsp; 22,80,443 指定多个源端口</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --dports&nbsp; 22，80,443 指定多个目标端口</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --ports&nbsp;&nbsp;&nbsp; 非连续端口</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; -m connlimit&nbsp;&nbsp; 限定并发连接速率</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ！--connlimit-above 5&nbsp; 高于五个将拒绝</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; -m string&nbsp;&nbsp; 字符串匹配</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --algo bm|kmp 指定算法&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --string pattern</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; -m time&nbsp; 基于时间的匹配</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --timestart</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --timestop</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --days</p>
+<p>-j&nbsp; TARGET&nbsp;&nbsp;&nbsp; 处理动作</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; ACCEPT&nbsp;&nbsp;&nbsp; 接受</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; DROP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 悄悄丢弃，请求端没有任何回应</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; REJECT&nbsp;&nbsp;&nbsp; 明确拒绝</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; SNAT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 源地址转换</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; DNAT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 目标地址转换</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; REDIRECT&nbsp; 端口重定向</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; LOG&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 将访问记录下来</p>
+<p>[root@server27 ~]# iptables -L -n</p>
+<p>Chain INPUT (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>Chain FORWARD (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>Chain OUTPUT (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination</p>
+<p>下面我们写两条规则：</p>
+<p>只允许192.168.0.0网段的主机通过SSH访问该主机</p>
+<p>允许本机通过SSH连接192.168.0.0网段的其他主机</p>
+<p>[root@server27 ~]# iptables -A INPUT -s 192.168.0.0/24 -d 192.168.0.127 -p tcp --dport 22 -j ACCEPT</p>
+<p>[root@server27 ~]# iptables -A OUTPUT -s 192.168.0.127 -d 192.168.0.0/24 -p tcp --sport 22 -j ACCEPT</p>
+<p>[root@server27 ~]# iptables -L -n</p>
+<p>Chain INPUT (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>ACCEPT&nbsp;&nbsp;&nbsp;&nbsp; tcp&nbsp; --&nbsp; 192.168.0.0/24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 192.168.0.127&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tcp dpt:22</p>
+<p>Chain FORWARD (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>Chain OUTPUT (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>ACCEPT&nbsp;&nbsp;&nbsp;&nbsp; tcp&nbsp; --&nbsp; 192.168.0.127&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 192.168.0.0/24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tcp spt:22</p>
+<p>定义默认策略</p>
+<p>[root@server27 ~]# iptables -t filter -P INPUT DROP</p>
+<p>[root@server27 ~]# iptables -t filter -P OUTPUT DROP</p>
+<p>PS：上面规则一定不要写错了，否则你将会把自己拒之门外。</p>
+<p>允许本机PING本网段任何主机</p>
+<p>[root@server27 ~]# iptables -t filter -A OUTPUT -s 192.168.0.127 -d 0.0.0.0/0.0.0.0 -p icmp --icmp-type 8 -j ACCEPT&nbsp;&nbsp; //**出去的数据包</p>
+<p>[root@server27 ~]# iptables -t filter -A INPUT -s 0.0.0.0/0.0.0.0 -d 192.168.0.127 -p icmp --icmp-type 0 -j ACCEPT&nbsp;&nbsp; //** 回来的数据包</p>
+<p>[root@server27 ~]# ping 192.168.0.236 -c 4</p>
+<p>PING 192.168.0.236 (192.168.0.236) 56(84) bytes of data.</p>
+<p>64 bytes from 192.168.0.236: icmp_seq=1 ttl=64 time=0.242 ms</p>
+<p>64 bytes from 192.168.0.236: icmp_seq=2 ttl=64 time=0.249 ms</p>
+<p>64 bytes from 192.168.0.236: icmp_seq=3 ttl=64 time=0.437 ms</p>
+<p>64 bytes from 192.168.0.236: icmp_seq=4 ttl=64 time=0.204 ms</p>
+<p>允许本网段任何主机PING本机</p>
+<p>[root@server27 ~]# iptables -t filter -A OUTPUT -s 192.168.0.127 -d 0.0.0.0/0.0.0.0 -p icmp --icmp-type 0 -j ACCEPT&nbsp;</p>
+<p>[root@server27 ~]# iptables -t filter -A INPUT -d 192.168.0.127 -s 0.0.0.0/0.0.0.0 -p icmp --icmp-type 8 -j ACCEPT</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549881oazS.png"><img height="120" style="border: 0px none;" src="/uploads/allimg/110617/22002AG1-4.jpg" alt="" /></a></p>
+<p>PS：当目标网络指定为任意主机时，应该为0.0.0.0/0.0.0.0</p>
+<p>凡是来自192.168.0.0/24网段的主机均使用一个自定义的新链</p>
+<p>先开启http服务</p>
+<p>自定义一条链，拒绝192.168.0.0/24网段的主机对http服务的访问</p>
+<p>[root@server27 ~]# iptables -N attach-input</p>
+<p>[root@server27 ~]# iptables -A attach-input -s 192.168.0.0/24 -d 192.168.0.127 -p tcp --dport 80 -j DROP</p>
+<p>[root@server27 ~]# iptables -L -n</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549882IrP0.png"><img height="57" style="border: 0px none;" src="/uploads/allimg/110617/22002AR1-5.jpg" alt="" /></a></p>
+<p>此时，自定义链依旧无法使用，我们只能在固定链上做转发请求数据包到自定义链上，才能实现自定义链的功能。</p>
+<p>[root@server27 ~]# iptables -A INPUT -s 192.168.0.0/24 -j attach-input</p>
+<p>[root@server27 ~]# iptables -L -n</p>
+<p>Chain INPUT (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>attach-input&nbsp; all&nbsp; --&nbsp; 192.168.0.0/24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.0.0.0/0&nbsp;</p>
+<p>此时已经无法访问到网页。</p>
+<p>将INPUT链删除之后，马上又可以访问了。</p>
+<p>[root@server27 ~]# iptables -F INPUT</p>
+<p>删除自定义链，先清空链，再清空规则</p>
+<p>[root@server27 ~]# iptables -F attach-input</p>
+<p>[root@server27 ~]# iptables -X attach-input</p>
+<p>PS：每条规则都可以使用&ldquo;！&rdquo;取反。如： -s '!' 192.168.0.0/24，加单引号防止被识别成其他字符。</p>
+<p>下面我们来实现显式扩展状态检测的功能：</p>
+<p>先将默认策略置为DROP</p>
+<p>[root@server27 ~]# iptables -P INPUT DROP</p>
+<p>[root@server27 ~]# iptables -P OUTPUT DROP</p>
+<p>[root@server27 ~]# iptables -P FORWARD DROP</p>
+<p>[root@server27 ~]# iptables -A INPUT -d 192.168.0.127 -p tcp --dport 80 -j ACCEPT&nbsp;&nbsp; //*进来的数据包</p>
+<p>[root@server27 ~]# iptables -A OUTPUT -s 192.168.0.127 -p tcp --sport 80 -j ACCEPT&nbsp; //*出去的数据包</p>
+<p>但是这两条规则对于反弹式木马是无效的。</p>
+<p>我们可以基于显式扩展写这样两条规则：</p>
+<p>[root@server27 ~]# iptables -I INPUT 1 -d 192.168.0.127 -p tcp  --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT&nbsp;&nbsp; //**进来的数据包</p>
+<p>[root@server27 ~]# iptables -I OUTPUT&nbsp; -s 192.168.0.127 -p tcp --sport 80 -m state --state ESTABLISHED -j ACCEPT&nbsp;&nbsp;&nbsp;&nbsp; //**出去的数据包</p>
+<p>删除我们之前建立的那两条规则：</p>
+<p>[root@server27 ~]# iptables -D INPUT 2</p>
+<p>[root@server27 ~]# iptables -D OUTPUT 2</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549884o5p0.png"><img height="205" style="border: 0px none;" src="/uploads/allimg/110617/22002B5H-6.jpg" alt="" /></a></p>
+<p>此时，已经可以正常访问http服务。</p>
+<p>我们试一下ftp服务：</p>
+<p>先开启ftp服务</p>
+<p>先建立这样四条规则，看看能不能达到效果，</p>
+<p>[root@server27 ~]# iptables -A INPUT -d 192.168.0.127 -p tcp --dport 21 -j ACCEPT</p>
+<p>[root@server27 ~]# iptables -A INPUT -d 192.168.0.127 -p tcp --dport 20 -j ACCEPT</p>
+<p>[root@server27 ~]# iptables -A OUTPUT -s 192.168.0.127 -p tcp --sport 21 -j ACCEPT</p>
+<p>[root@server27 ~]# iptables -A OUTPUT -s 192.168.0.127 -p tcp --sport 20 -j ACCEPT</p>
+<p>客户端请求是被动模式，实验证明，我们仅仅开始21 20端口无法达到效果。这样我们就得用到状态检测的RELATED机制。</p>
+<p>PS：要想实现FTP的访问需先手动加载额外的模块：ip_conntrack_ftp，ip_conntrack_tftp，ip_nat_ftp,，ip_nat_tftp（and others）</p>
+<p>[root@server27 ~]# modprobe ip_conntrack_ftp</p>
+<p>[root@server27 ~]# modprobe ip_nat_ftp</p>
+<p>[root@server27 ~]# modprobe ip_nat_tftp</p>
+<p>[root@server27 ~]# modprobe ip_conntrack_tftp</p>
+<p>实现自动加载的功能：编辑/etc/sysconfig/iptables-config文件，在&ldquo;IPTABLES_MODULES=&rdquo;后面写上要添加的模块就可以了。</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549885oNeX.png"><img height="73" style="border: 0px none;" src="/uploads/allimg/110617/2200264021-7.jpg" alt="" /></a></p>
+<p>[root@server27 ~]# iptables -A INPUT -d 192.168.0.127 -p tcp --dport 21 -j ACCEPT</p>
+<p>[root@server27 ~]# iptables -A OUTPUT -m state --state ESTABLISHED -j ACCEPT</p>
+<p>[root@server27 ~]# iptables -A INPUT -d 192.168.0.127 -p tcp -m state --state RELATED -j ACCEPT</p>
+<p>[root@server27 ~]# iptables -R OUTPUT 2 -m state --state ESTABLISHED,RELATED -j ACCEPT&nbsp; //**修改上一条规则，增加RELATED状态</p>
+<p>[root@server27 ~]# iptables -R INPUT 3 -d 192.168.0.127 -p tcp&nbsp; -m  state --state NEW,ESTABLISHED,RELATED -j ACCEPT&nbsp;&nbsp;&nbsp;  //**修改INPUT第三条规则，增加NEW,ESTABLISHED状态</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549888sMlu.png"><img height="272" style="border: 0px none;" src="/uploads/allimg/110617/2200264064-8.jpg" alt="" /></a></p>
+<p>此时ftp已经可以访问了，要保证所有的规则能够永久有效需要使用：service iptables save来保存。</p>
+<p>基于字符串匹配的显式扩展功能：</p>
+<p>[root@server27 ~]# iptables -A&nbsp; INTPUT&nbsp; -d 192.168.0.127&nbsp; -p&nbsp; tcp&nbsp;  --dport 80 -m string&nbsp; --algo&nbsp; kmp&nbsp; --string&nbsp; 'qq.com'&nbsp;&nbsp; -j&nbsp; REJECT&nbsp;</p>
+<p>PS：iptables工作在OSI第三层，第四层。默认情况下，iptables无法限定第七层的应用程序，要想实现限制七层某些应用程序的功能，需要重编译内核，在内核上打上补丁 layer7。.</p>
+<p>源地址换换和目标地址转换：</p>
+<p>PS：源地址转换必须在POSTROUTING链上做。</p>
+<p>&nbsp;&nbsp;&nbsp; 目标地址转换必须在PREROUTING链上做。</p>
+<p>下面我们来实现源地址的功能：</p>
+<p>我们假设这样一种场景：</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549890MWW8.png"><img height="157" style="border: 0px none;" src="/uploads/allimg/110617/2200261526-9.jpg" alt="" /></a></p>
+<p>192.168.0.254是工作在外网的一台WEB服务器，中间的那台是企业里的NAT服务器，我们在上面添加iptables的规则，使其实现 地址转换的功能，PC机是工作在企业内部。我们的最终目的是192.168.80.30这台计算机通过NAT服务器可以访问到192.168.0.254 的WEB服务。</p>
+<p>实验环境搭建：192.168.0.254&nbsp; 192.168.0.127使用虚拟机网卡的桥接功能；</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 192.168.80.129&nbsp; 192.168.080.130使用虚拟机网卡的仅主机功能；</p>
+<p>为PC机设置网关：</p>
+<p>[root@station39 ~]# route add default gw 192.168.80.129</p>
+<p>下面开始来<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>配置</u></a>NAT服务器：</p>
+<p>首先要开启NAT服务器的内核路由功能：</p>
+<p>[root@server27 ~]# echo 1 &gt; /proc/sys/net/ipv4/ip_forward</p>
+<p>[root@server27 ~]# cat /proc/sys/net/ipv4/ip_forward</p>
+<p>1</p>
+<p>设置规则：</p>
+<p>[root@server27 ~]# iptables -t nat -A POSTROUTING -s 192.168.80.0/24 -d 192.168.0.0/24 -j SNAT --to-source 192.168.0.127</p>
+<p>[root@server27 ~]# iptables -t nat -L -n</p>
+<p>Chain PREROUTING (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>Chain POSTROUTING (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>SNAT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; all&nbsp; --&nbsp; 192.168.80.0/24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 192.168.0.0/24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; to:192.168.0.127</p>
+<p>Chain OUTPUT (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>OK，我们用192.168.80.130这台主机访问一下192.168.0.254，看，已经可以了！</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549891Mgvm.png"><img height="275" style="border: 0px none;" src="/uploads/allimg/110617/22002A047-10.jpg" alt="" /></a></p>
+<p>只需一条规则就可以搞定，很方便吧！</p>
+<p>PS：如果我们使用路由功能来访问254这台主机的话，WEB服务器的访问日志将记录的访问地址是192.168.80.130，而如果我们使用地址转换的功能来访问的话，访问日志记录的访问地址则是192.168.0.127。.</p>
+<p>一般我们上网的时候，所获得的IP都是动态的，怎么办？</p>
+<p>做源地址转换的时候，还有一个小功能MASQUERADE（地址伪装），使用这个功能，我们不需要</p>
+<p>指定目标地址，它会自动探测能够上互联网的地址，并自动将内网地址转换过来。缺陷：比较耗费资源。</p>
+<p>iptables -t nat -A POSTROUTING -o ppp0 -j MASQUERADE</p>
+<p>接下来开始实现目标地址转换功能：</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549892Vu5H.png"><img height="146" style="border: 0px none;" src="/uploads/allimg/110617/22002B948-11.jpg" alt="" /></a></p>
+<p>场景：假设192.168.80网段为一个提供WEB服务的网站的内网，中间的为网站的NAT服务器，远端的客户端192.168.0.26想通过中间的NAT服务器来访问内部的192.168.80.130提供的WEB服务，这里就要用到目标地址转换了。</p>
+<p>环境搭设：192.168.80.130&nbsp; 192.168.80.129使用虚拟机网卡的仅主机功能</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 192.168.0.26&nbsp; 192.168.0.127使用虚拟机网卡的桥接功能</p>
+<p>设置192.168.80.130的网关：</p>
+<p>[root@station39 ~]# route add default gw 192.168.80.129</p>
+<p>开始在NAT服务器上设置规则：</p>
+<p>这里依然要打开内核的路由功能。</p>
+<p>开始之前先将刚才做的源地址转换实验的规则给清除了</p>
+<p>[root@server27 ~]# iptables -t nat -F</p>
+<p>开始写规则：</p>
+<p>[root@server27 ~]# iptables -t nat -A PREROUTING -s 192.168.0.0/24 -d  192.168.0.127 -p tcp --dport 80 -j DNAT --to-destination 192.168.80.130</p>
+<p>[root@server27 ~]# iptables -t nat -L -n</p>
+<p>Chain PREROUTING (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>DNAT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tcp&nbsp; --&nbsp; 192.168.0.0/24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 192.168.0.127&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tcp dpt:80 to:192.168.80.130</p>
+<p>Chain POSTROUTING (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>Chain OUTPUT (policy ACCEPT)</p>
+<p>target&nbsp;&nbsp;&nbsp;&nbsp; prot opt source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; destination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>OK！规则已经写好了，我们使用192.168.0.26来访问一下192.168.0.127试试，已经可以访问了，其实提供WEB服务的是192.168..80.130这台主机，这就是目标地址转换的功能。</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_12995498948hHe.png"><img height="228" style="border: 0px none;" src="/uploads/allimg/110617/2200264Z0-12.jpg" alt="" /></a></p>
+<p>我们再查看一下192.168.80.130这台WEB服务器的访问日志：</p>
+<p><a target="\&quot;_blank\&quot;" href="http://img1.51cto.com/attachment/201103/8/508999_1299549895J7bx.png"><img height="65" style="border: 0px none;" src="/uploads/allimg/110617/2200264427-13.jpg" alt="" /></a></p>
+<p>看，源地址并没有发生改变！只是访问的目标地址被转换到192.168.80.130上来了，这就是目标地址转换。</p>
+<p>l7-filter 七层过滤，对内核打补丁之后，能够支持对应用层数据的过滤。</p>
+<p>编译过程相对繁琐一些，也不是本文主要讲述内容，所以就不在此详细说明，有兴趣的朋友可以去网上查找相关教程。</p>
+<p>编译完成并启用内核之后，就可以使用l7filter的过滤功能了。</p>
+<p>我们添加这样两条规则：</p>
+<p>[root@server27 ~]# iptables -t nat -A POSTROUTING -s 192.168.80.0/24 -d 192.168.0.0/24 -j SNAT --to-source 192.168.0.127</p>
+<p>[root@server27 ~]# iptables -t nat -A FORWARD -m layer7 --l7proto qq -j REJECT</p>
+<p>这里就不再演示效果了。</p>
+<p>保存iptables规则：</p>
+<p>/etc/init.d/iptables save</p>
+<p>service iptables save</p>
+<p>保存位置：在/etc/sysconfig/iptables文件内：</p>
+<p># Generated by iptables-save v1.3.5 on Fri Mar&nbsp; 4 19:44:47 2011</p>
+<p>*filter</p>
+<p>:INPUT DROP [33:2399]</p>
+<p>:FORWARD DROP [0:0]</p>
+<p>:OUTPUT DROP [7:540]</p>
+<p>-A INPUT -d 192.168.0.127 -p tcp -m tcp --dport 21 -j ACCEPT</p>
+<p>-A INPUT -d 192.168.0.127 -p tcp -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT</p>
+<p>-A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT</p>
+<p>COMMIT</p>
+<p># Completed on Fri Mar&nbsp; 4 19:44:47 2011&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>指定规则保存位置：</p>
+<p>iptables-save &gt; /etc/sysconfig/iptables/iptables.20110307</p>
+<p>生效保存的规则</p>
+<p>iptables-restore &lt; /etc/sysconfig/iptables/iptables.20110307</p>
+<p>避免在远程连接写规则的时候一不小心自己被防火墙拒之门外，可以写一个小脚本：</p>
+<p>#！/bin/bash</p>
+<p>iptables -F</p>
+<p>iptables -P&nbsp; INPUT&nbsp;&nbsp; ACCEPT</p>
+<p>iptables -P&nbsp; OUTPUT&nbsp; ACCEPT</p>
+<p>at now+10min</p>
+<p>测试完成之后停掉脚本就可以了。</p>(责任编辑：admin)</td></tr>
+			</table>
+
+			</div><!-- /content -->
+<div align="center" style="padding-bottom:0px; padding-top:10px;">
+
+<script src='/plus/ad_js.php?aid=3' language='javascript'></script> </div>
+			<div class="dede_pages">
+				<ul class="pagelist">
+          
+				</ul>
+			</div><!-- /pages -->
+
+			<!-- //顶踩 -->
+			<div class="newdigg" id="newdigg">
+				<div class="diggbox digg_good" onmousemove="this.style.backgroundPosition='left bottom';" onmouseout="this.style.backgroundPosition='left top';" onclick="javascript:postDigg('good',18329)">
+					<div class="digg_act">顶一下</div>
+					<div class="digg_num">(0)</div>
+					<div class="digg_percent">
+						<div class="digg_percent_bar"><span style="width:0%"></span></div>
+						<div class="digg_percent_num">0%</div>
+					</div>
+				</div>
+				<div class="diggbox digg_bad" onmousemove="this.style.backgroundPosition='right bottom';" onmouseout="this.style.backgroundPosition='right top';" onclick="javascript:postDigg('bad',18329)">
+					<div class="digg_act">踩一下</div>
+					<div class="digg_num">(0)</div>
+					<div class="digg_percent">
+						<div class="digg_percent_bar"><span style="width:0%"></span></div>
+						<div class="digg_percent_num">0%</div>
+					</div>
+				</div>
+			</div>
+			<script language="javascript" type="text/javascript">getDigg(18329);</script>
+			<!-- //顶踩部份的源码结束 -->
+			
+			<div class="boxoff">
+				<strong>------分隔线----------------------------</strong>
+			</div>
+			<div class="handle">
+				<div class="context">
+					<ul>
+						<li>上一篇：<a href='/a/anquan/kaiyuanfanghuoqiang/2011/0613/18246.html'>Linux iptables l7 封QQ</a> </li>
+						<li>下一篇：<a href='/a/anquan/kaiyuanfanghuoqiang/2011/0713/18732.html'>Linux iptables 防火墙设置</a> </li>
+					</ul>
+				</div><!-- /context -->
+				<div class="actbox">
+					<ul>
+						<li id="act-fav"><a href="/plus/stow.php?aid=18329" target="_blank">收藏</a></li>
+						<li id="act-err"><a href="/plus/erraddsave.php?aid=18329&title=Linux iptables 详细介绍安装环境及配置方法" target="_blank">挑错</a></li>
+						<li id="act-pus"><a href="/plus/recommend.php?aid=18329" target="_blank">推荐</a></li>
+						<li id="act-pnt"><a href="#" onClick="window.print();">打印</a></li>
+					</ul>
+				</div><!-- /actbox -->
+			</div><!-- /handle -->
+		</div><!-- /viewbox -->
+
+<!-- //AJAX评论区 -->
+<!-- //主模板必须要引入/include/dedeajax2.js -->
+<a name='postform'></a>
+<div class="mt1">
+		<dl class="tbox">
+			<dt>
+				<strong>发表评论</strong>
+				<span class="more"></span>
+			</dt>
+			<dd>
+				<div class="dede_comment_post">
+          <form action="#" method="post" name="feedback">
+          <input type="hidden" name="dopost" value="send" />
+          <input type="hidden" name="comtype" value="comments">
+          <input type="hidden" name="aid" value="18329" />
+          <input type="hidden" name="fid" id='feedbackfid' value="0" />
+          <div class="dcmp-title">
+						<small>请自觉遵守互联网相关的政策法规，严禁发布色情、暴力、反动的言论。</small>
+					</div><!-- /dcmp-title -->
+					<div class="dcmp-stand">
+						<strong>评价:</strong>
+							<input type="radio" name="feedbacktype" checked="1" value="feedback" id="dcmp-stand-neu" /><label for="dcmp-stand-neu"><img src="/templets/images/cmt-neu.gif" />中立</label>
+							<input type="radio" name="feedbacktype" value="good" id="dcmp-stand-good" /><label for="dcmp-stand-good"><img src="/templets/images/cmt-good.gif" />好评</label>
+							<input type="radio" name="feedbacktype" value="bad" id="dcmp-stand-bad" /><label for="dcmp-stand-bad"><img src="/templets/images/cmt-bad.gif" />差评</label>
+					</div><!-- /dcmp-stand -->
+					<div class="dcmp-content">
+						<textarea cols="60" name="msg" rows="5" class="ipt-txt"></textarea>
+					</div><!-- /dcmp-content -->
+					<div class="dcmp-mood">
+						<strong>表情:</strong>
+						<ul>
+								<li><input type="radio" name='face' value='6' checked="1" /><img src="/templets/images/mood/ico-mood-6.gif" /></li>
+								<li><input type="radio" name='face' value='4'/><img src="/templets/images/mood/ico-mood-4.gif" /></li>
+								<li><input type="radio" name='face' value='3'/><img src="/templets/images/mood/ico-mood-3.gif" /></li>
+								<li><input type="radio" name='face' value='5'/><img src="/templets/images/mood/ico-mood-5.gif" /></li>
+								<li><input type="radio" name='face' value='2'/><img src="/templets/images/mood/ico-mood-2.gif" /></li>
+								<li><input type="radio" name='face' value='1'/><img src="/templets/images/mood/ico-mood-1.gif" /></li>
+								<li><input type="radio" name='face' value='7'/><img src="/templets/images/mood/ico-mood-7.gif" /></li>
+						</ul>
+					</div><!-- /dcmp-mood -->
+					<div class="dcmp-post"><!--未登陆-->
+							<div class="dcmp-userinfo" id="_ajax_feedback">
+								
+								验证码:<input type='text' name='validate' size='4' class='ipt-txt' /><img src="/include/vdimgck.php" id="validateimg" style="cursor:pointer" onclick="this.src=this.src+'?'" title="点击我更换图片" alt="点击我更换图片" />
+                <input type="checkbox" name="notuser" id="dcmp-submit-guest" /><label for="dcmp-submit-guest" />匿名? </label>
+							</div>
+              
+							<div class="dcmp-submit">
+								<button type="button" onClick='PostComment()'>发表评论</button>
+							</div>
+						</div>
+        </form>
+				</div>
+			</dd>
+		</dl>
+	</div><!-- //评论表单区结束 -->
+
+<!-- //评论内容区 -->
+	<a name='commettop'></a>
+	<div class="mt1">
+			<dl class="tbox">
+				<dt>
+					<strong>最新评论</strong>
+					<span class="more"><a href="/plus/feedback.php?aid=18329">进入详细评论页&gt;&gt;</a></span>
+				</dt>
+				<!-- //这两个ID的区块必须存在，否则JS会出错 -->
+				<dd id='commetcontentNew'></dd>
+				<dd id='commetcontent'></dd>
+			</dl>
+	</div>
+<!--
+//由于评论载入时使用异步传输，因此必须在最后一步加载（DIGG和评论框须放在评论内容前面）
+//如果一定需要提前的把myajax.SendGet改为myajax.SendGet2，但可能会引起页面阻滞
+-->
+<script language='javascript'>
+function LoadCommets(page)
+{
+		var taget_obj = document.getElementById('commetcontent');
+		var waithtml = "<div style='line-height:50px'><img src='/images/loadinglit.gif' />评论加载中...</div>";
+		var myajax = new DedeAjax(taget_obj, true, true, '', 'x', waithtml);
+		myajax.SendGet2("/plus/feedback_ajax.php?dopost=getlist&aid=18329&page="+page);
+		DedeXHTTP = null;
+}
+function PostComment()
+{
+		var f = document.feedback;
+		var nface = '6';
+		var nfeedbacktype = 'feedback';
+		var nvalidate = '';
+		var nnotuser = '';
+		var nusername = '';
+		var npwd = '';
+		var taget_obj = $DE('commetcontentNew');
+		var waithtml = "<div style='line-height:30px'><img src='/images/loadinglit.gif' />正在发送中...</div>";
+		if(f.msg.value=='')
+		{
+			alert("评论内容不能为空！");
+			return;
+		}
+		if(f.validate)
+		{
+			if(f.validate.value=='') {
+				alert("请填写验证码！");
+				return;
+			}
+			else {
+				nvalidate = f.validate.value;
+			}
+		}
+		if(f.msg.value.length > 500)
+		{
+			alert("你的评论是不是太长了？请填写500字以内的评论。");
+			return;
+		}
+		if(f.feedbacktype) {
+			for(var i=0; i < f.feedbacktype.length; i++)
+				if(f.feedbacktype[i].checked) nfeedbacktype = f.feedbacktype[i].value;
+		}
+		if(f.face) {
+			for(var j=0; j < f.face.length; j++)
+				if(f.face[j].checked) nface = f.face[j].value;
+		}
+		if(f.notuser.checked) nnotuser = '1';
+		if(f.username) nusername = f.username.value;
+		if(f.pwd) npwd = f.pwd.value;
+		
+		var myajax = new DedeAjax(taget_obj, false, true, '', '', waithtml);
+		myajax.sendlang = 'gb2312';
+		myajax.AddKeyN('dopost', 'send');
+		myajax.AddKeyN('aid', '18329');
+		myajax.AddKeyN('fid', f.fid.value);
+		myajax.AddKeyN('face', nface);
+		myajax.AddKeyN('feedbacktype', nfeedbacktype);
+		myajax.AddKeyN('validate', nvalidate);
+		myajax.AddKeyN('notuser', nnotuser);
+		myajax.AddKeyN('username', nusername);
+		myajax.AddKeyN('pwd', npwd);
+		myajax.AddKeyN('msg', f.msg.value);
+		myajax.SendPost2('/plus/feedback_ajax.php');
+		f.msg.value = '';
+		f.fid.value = 0;
+		if(f.validate)
+		{
+			if($DE('validateimg')) $DE('validateimg').src = "/include/vdimgck.php?"+f.validate.value;
+			f.validate.value = '';
+		}
+}
+function quoteCommet(fid)
+{
+	document.feedback.fid.value = fid;
+}
+LoadCommets(1);
+</script><!-- //评论内容区结束 -->
+
+
+</div><!-- //左边内容结束 -->
+
+<!-- //右边内容开始 -->
+<div class="pright">
+ 		
+		<div class="commend mt1">
+			<dl class="tbox light">
+<script src='/plus/ad_js.php?aid=5' language='javascript'></script>
+				<dt class='light'><strong>推荐内容</strong></dt>
+				<dd class='light'>
+					<ul class="d4">
+           <li><a href="/a/anquan/kaiyuanfanghuoqiang/2011/0617/18329.html">Linux iptables 详细介绍安装环境及配置方法</a>
+            	<p>Firewall（防火墙）：组件，工作在网络边缘（主机边缘），对进出网络数据包基于一定的规则检查，并在匹配某规则时由规则定义的处理进行处理的一组功能的组件。 防...</p>
+            </li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1119/367.html">FREEBSD中使用IPFW来过滤ICMP服务</a>
+            	<p>FREEBSD中可以使用IPFW来停止PING的响应，即可以调制内核和使用IPFW来拒绝 ICMP服务，这样别人用PING就看不到任何信息了。 先介绍下IPFW...</p>
+            </li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1116/112.html">FreeBSD7.0+opengate+ipfw(网页网关认证)Captive Po</a>
+            	<p>介绍 如果用过 [url=javascript:;] m0n0wall [/url] 这个东西的朋友应该知道里面有个Captive [url=javascrip...</p>
+            </li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1116/111.html">NETBSD+ADSL+IPF+QDNS</a>
+            	<p>配置网卡的IP地址： # vi /etc/ifconfig.rtk0 inet 192.168.0.1 netmask 255.255.255.0 # vi /...</p>
+            </li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1116/110.html">OpenBSD下PF防火墙典型应用(针对FTP环境)</a>
+            	<p>PF防火墙起源于OPENBSD项目。近年来FREEBSD/NETBSD也开始支持PF防火墙了，在BSD系统中PF防火墙变得越来越流行了。这里我们重点结合 [ur...</p>
+            </li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1116/108.html">pf防火墙防止ssh、ftp暴力攻擊</a>
+            	<p>用pf防止ssh、ftp暴力攻击 1.在/etc/pf.conf加入底下規則 tablepersist tablepersist block quick fro...</p>
+            </li>
+
+					</ul>
+				</dd>
+			</dl>
+		</div><!-- /commend -->
+
+
+<script src='/plus/ad_js.php?aid=20' language='javascript'></script>
+
+
+		<div class="hot mt1">
+			<dl class="tbox light">
+				<dt class='light'><strong>热点内容</strong></dt>
+				<dd class='light'>
+					<ul class="c1 ico2">
+             <li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0401/8964.html">Linux防火墙 配置文件 iptables详解</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0225/6467.html">linux iptables限速及限制每IP连接数</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0106/2647.html">Ubuntu iptables详细教程-基本命令</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1214/1526.html">Linux iptables配置FTP的主动和被动模式</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0311/7526.html">Ubuntu iptables 入门 设置静态防火墙</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0225/6463.html">常用的 iptables配置脚本</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0225/6428.html">iptables 学习总结 收藏</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0311/7515.html">Ubuntu iptables 入门 教程</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0126/4569.html">iptables 限速Shell无需TC(限制NAT机器上I</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1119/372.html">VMWare上实现FreeBSD的PPPoE网关（IPFW+</a></li>
+
+					</ul>
+				</dd>
+			</dl>
+		</div>
+
+
+
+
+	</div><!-- /pright -->
+</div>
+
+<!-- //二级子类下拉菜单，考虑SEO原因放置于底部  -->
+<script type='text/javascript' src='/images/js/dropdown.js'></script>
+<ul id="dropmenu1" class="dropMenu">
+  
+</ul><ul id="dropmenu2" class="dropMenu">
+    <li><a href="/a/ITrenzheng/sikekaoshizhanbao/">思科考试战报</a></li>
+    <li><a href="/a/ITrenzheng/CCNAdianzishu/">CCNA电子书</a></li>
+    <li><a href="/a/ITrenzheng/CCSPdianzishu/">CCSP电子书</a></li>
+    <li><a href="/a/ITrenzheng/CCNPdianzishu/">CCNP电子书</a></li>
+    <li><a href="/a/ITrenzheng/CCIEdianzishu/">CCIE电子书</a></li>
+    <li><a href="/a/ITrenzheng/ITwangluoshiyanshi/">IT网络实验室</a></li>
+    <li><a href="/a/ITrenzheng/luntanzixun/">论坛咨询</a></li>
+  
+</ul><ul id="dropmenu10" class="dropMenu">
+    <li><a href="/a/Ciscomoniqi/Cisco_ios_xiazai/">Cisco ios 下载</a></li>
+    <li><a href="/a/Ciscomoniqi/Ciscomoniqiruanjian/">Cisco模拟器软件</a></li>
+  
+</ul><ul id="dropmenu13" class="dropMenu">
+    <li><a href="/a/luyoujiaohuan/Ciscojishu/">Cisco技术</a></li>
+    <li><a href="/a/luyoujiaohuan/huaweijishu/">华为技术</a></li>
+    <li><a href="/a/luyoujiaohuan/Juniperjishu/">Juniper技术</a></li>
+    <li><a href="/a/luyoujiaohuan/dianzishu/">电子书</a></li>
+    <li><a href="/a/luyoujiaohuan/peizhishili/">配置实例</a></li>
+  
+</ul><ul id="dropmenu19" class="dropMenu">
+    <li><a href="/a/anquan/Ciscoanquan/">Cisco安全</a></li>
+    <li><a href="/a/anquan/Juniperanquan/">Juniper安全</a></li>
+    <li><a href="/a/anquan/huaweianquan/">华为安全</a></li>
+    <li><a href="/a/anquan/kaiyuanfanghuoqiang/">开源防火墙</a></li>
+    <li><a href="/a/anquan/dianzishu/">电子书</a></li>
+    <li><a href="/a/anquan/xitonganquan/">系统安全</a></li>
+  
+</ul><ul id="dropmenu25" class="dropMenu">
+    <li><a href="/a/caozuoxitong/Linux/">Linux</a></li>
+    <li><a href="/a/caozuoxitong/Unix/">Unix</a></li>
+    <li><a href="/a/caozuoxitong/windows/">windows</a></li>
+    <li><a href="/a/anquan/Backtrack/">Backtrack</a></li>
+  
+</ul><ul id="dropmenu171" class="dropMenu">
+    <li><a href="/ziliaoxiazai/sikeziliaoxiazai/">思科</a></li>
+    <li><a href="/ziliaoxiazai/Linux/">Linux</a></li>
+    <li><a href="/ziliaoxiazai/ITdianzishuxiazai/">IT电子书下载</a></li>
+    <li><a href="/ziliaoxiazai/shujukuziliaoxiazai/">数据库资料下载</a></li>
+    <li><a href="/ziliaoxiazai/weiruanziliaoxiazai/">微软下载</a></li>
+    <li><a href="/ziliaoxiazai/shipinxiazai/">视频下载</a></li>
+  
+</ul><ul id="dropmenu36" class="dropMenu">
+    <li><a href="/shujukuguanli/Oracle/">Oracle</a></li>
+    <li><a href="/shujukuguanli/Mysql/">Mysql</a></li>
+    <li><a href="/shujukuguanli/Mssql/">Mssql</a></li>
+  
+</ul>
+<script type="text/javascript">cssdropdown.startchrome("navMenu")</script>
+
+<!-- //底部模板 -->
+<div class="footer w960 center mt1 clear">
+	<!-- 
+		为了支持织梦团队的发展,请您保留织梦内容管理系统的链接信息.
+		我们对支持织梦团队发展的朋友表示真心的感谢!织梦因您更精彩!
+	-->
+	<p class="copyright">
+		本站为了方便大家学习，资料全部都是从网络上搜集来的，如果作者觉得侵犯了自己的利益，请和我们联系。Powered by  &#169; 2004-2009 </p>
+
+<!-- /powered -->
+	<p class="copyright">
+		Copyright &copy; 2002-2011 <b><a href="http://www.net527.cn/">Cisco 论坛</a></b><script language="javascript" type="text/javascript" src="http://js.users.51.la/3434535.js"></script><br />
+  </p>
+</div>
+<!-- /footer -->
+
+</body>
+</html>

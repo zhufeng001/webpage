@@ -1,0 +1,246 @@
+<html><head><title>DM6446_prevew_engine_examples.rar display.c</title>
+<LINK href="/inc/read_style.css" type=text/css rel=stylesheet></head>
+<body>
+<p><a href=http://www.pudn.com>www.pudn.com</a> &gt; <a href="http://www.pudn.com/downloads188/sourcecode/unix_linux/detail881479.html">DM6446_prevew_engine_examples.rar</a> &gt display.c, change:2007-05-04,size:5735b</p><!-- saved from http://www.pudn.com -->
+<script src="/inc/gg_read1.js"></script><BR>
+<pre name="code" class="c">
+#include &lt;stdio.h> 
+#include &lt;stdlib.h> 
+#include &lt;string.h> 
+#include &lt;fcntl.h>		/* low-level i/o */ 
+#include &lt;unistd.h> 
+#include &lt;sys/types.h> 
+#include &lt;sys/time.h> 
+#include &lt;sys/mman.h> 
+#include &lt;sys/ioctl.h> 
+#include &lt;fcntl.h> 
+#include &lt;linux/fb.h> 
+#include &lt;asm/types.h>		/* for videodev2.h */ 
+#include &lt;pthread.h> 
+#include &lt;time.h> 
+#include &lt;linux/videodev.h> 
+#include &lt;media/davinci_vpfe.h>	/*kernel header file, prefix path comes from 
+				   makefile */ 
+#include &lt;video/davincifb.h> 
+#include "prev_example.h" 
+#include "display.h" 
+ 
+static int fdDisplay = -1; 
+ 
+static struct fb_var_screeninfo prev_var; 
+static char *ptrFbbuf[DISPLAY_BUFS]; 
+ 
+ 
+static void disable_all_window(); 
+static int FlipVideoBuffers(int nBufIndex); 
+static struct fb_fix_screeninfo vid1_fixInfo; 
+ 
+ 
+void restore_display_config() 
+{ 
+	if (ioctl(fdDisplay, FBIOPUT_VSCREENINFO, &prev_var)) { 
+		perror("InitDsiplayDevice:ioctl:FBIOGET_VSCREENINFO:"); 
+		printf("\n"); 
+		exit(0); 
+	} 
+	close(fdDisplay); 
+} 
+ 
+int InitDisplayDevice(void) 
+{ 
+	int *ptrDispalyBuf = NULL; 
+	struct fb_var_screeninfo var; 
+	int i; 
+	unsigned int nFrameSize; 
+	int nIndex = 0; 
+	int nWidthFinal = 0; 
+	int nHeightFinal = 0; 
+ 
+	disable_all_window(); 
+ 
+	fdDisplay = open(DISPLAY_DEVICE, O_RDWR, 0); 
+	if (fdDisplay &lt; 0) { 
+		perror("InitDisplayDevice:open"); 
+		exit(0); 
+	} 
+	if (ioctl(fdDisplay, FBIOGET_FSCREENINFO, &vid1_fixInfo)) { 
+		perror("InitDsiplayDevice:ioctl:FBIOGET_VSCREENINFO:"); 
+		printf("\n"); 
+		exit(0); 
+	} 
+ 
+	/* Get variable screen information */ 
+	if (ioctl(fdDisplay, FBIOGET_VSCREENINFO, &var)) { 
+		perror("InitDsiplayDevice:ioctl:FBIOGET_VSCREENINFO:"); 
+		printf("\n"); 
+		exit(0); 
+	} 
+	prev_var = var; 
+	nWidthFinal = D1_WIDTH; 
+	nHeightFinal = D1_HEIGHT; 
+ 
+	if (ioctl(fdDisplay, FBIO_ENABLE_DISABLE_WIN, VPBE_ENABLE) &lt; 0) { 
+		printf("cannot enable window\n"); 
+		exit(0); 
+	} 
+ 
+	var.xres = nWidthFinal; 
+	var.yres = nHeightFinal; 
+	var.bits_per_pixel = IMAGE_BPP; 
+ 
+	printf 
+	 ("InitDisplayDevice:Setting output screen info,width:%d height:%d\n", 
+	     var.xres, var.yres); 
+	if (ioctl(fdDisplay, FBIOPUT_VSCREENINFO, &var) == -1) { 
+		perror("InitDisplayDevice:ioctl:FBIOPUT_VSCREENINFO"); 
+		printf("\n"); 
+		exit(0); 
+	} 
+ 
+ 
+	if (var.xres != nWidthFinal || 
+	    var.yres != nHeightFinal || var.bits_per_pixel != IMAGE_BPP) { 
+		printf 
+		    ("InitDisplayDevice:can not set output screen info to \ 
+		    desired values\n"); 
+		printf("InitDisplayDevice: reports width:%d height:%d\n", 
+		       var.xres, var.yres); 
+		exit(0); 
+	} 
+ 
+	nFrameSize = vid1_fixInfo.line_length * nHeightFinal; 
+ 
+	/* Map the device to memory */ 
+	ptrFbbuf[0] = 
+	    (char *) mmap(0, nFrameSize * DISPLAY_BUFS, 
+			  PROT_READ | PROT_WRITE, MAP_SHARED, fdDisplay, 
+			  0); 
+ 
+	for (nIndex = 0; nIndex &lt; (DISPLAY_BUFS - 1); nIndex++) { 
+		ptrFbbuf[nIndex + 1] = 
+		    (char *) ((char *) ptrFbbuf[nIndex] + nFrameSize); 
+	} 
+ 
+	printf("ptrFbbuf[0] :%x \t\t ptrFbbuf[1] :%x \n", (int)ptrFbbuf[0], 
+	       (int)ptrFbbuf[1]); 
+ 
+	if (ptrFbbuf[0] == MAP_FAILED) { 
+		perror("InitDsiplayDevice:mmap:"); 
+		exit(0); 
+	} 
+ 
+	for (nIndex = 0; nIndex &lt; (DISPLAY_BUFS - 1); nIndex++) { 
+		ptrDispalyBuf = (int *) ptrFbbuf[nIndex]; 
+		for (i = 0; i &lt; nFrameSize * 2 / sizeof(unsigned int); i++) { 
+			ptrDispalyBuf[i] = UYVY_BLACK; 
+		} 
+	} 
+ 
+	return 0; 
+} 
+ 
+static void disable_all_window() 
+{ 
+	int fd; 
+ 
+	fd = open("/dev/fb/0", O_RDWR); 
+ 
+	if (ioctl(fd, FBIO_ENABLE_DISABLE_WIN, VPBE_DISABLE) &lt; 0) { 
+		printf("cannot disable fb/0\n"); 
+		exit(0); 
+	} 
+ 
+	close(fd); 
+ 
+	fd = open("/dev/fb/1", O_RDWR); 
+ 
+	if (ioctl(fd, FBIO_ENABLE_DISABLE_WIN, VPBE_DISABLE) &lt; 0) { 
+		printf("cannot disable fb/1\n"); 
+		exit(0); 
+	} 
+ 
+	close(fd); 
+	fd = open("/dev/fb/2", O_RDWR); 
+ 
+	if (ioctl(fd, FBIO_ENABLE_DISABLE_WIN, VPBE_DISABLE) &lt; 0) { 
+		printf("cannot disable fb/2\n"); 
+		exit(0); 
+	} 
+ 
+	close(fd); 
+	fd = open("/dev/fb/3", O_RDWR); 
+ 
+	if (ioctl(fd, FBIO_ENABLE_DISABLE_WIN, VPBE_DISABLE) &lt; 0) { 
+		printf("cannot disable fb/3\n"); 
+		exit(0); 
+	} 
+ 
+	close(fd); 
+} 
+ 
+int DisplayFrame(void *ptrBuffer,int src_width, int src_height) 
+{ 
+	static unsigned int nDisplayIdx = 0; 
+	static unsigned int nWorkingIndex = 1; 
+	static int xoffset = 0; 
+	static int yoffset = 0; 
+	int i; 
+	char *dst; 
+	char *src; 
+ 
+	int width = src_width > D1_WIDTH ? D1_WIDTH : src_width; 
+	int height = src_height > D1_HEIGHT ? D1_HEIGHT : src_height; 
+ 
+	src = ptrBuffer + xoffset * 2  + yoffset * ((src_width * 2 + 31 ) & (~31)); 
+	dst = (char *) ptrFbbuf[nWorkingIndex]; 
+ 
+	for (i = 0; i &lt; height; i++) { 
+		memcpy(dst, src, width * 2); 
+		dst += vid1_fixInfo.line_length; 
+		src +=  (src_width * 2 + 31 ) & (~31); 
+	} 
+	if(src_width > width) { 
+		xoffset = (xoffset + 8) % (src_width - width); 
+	} 
+	if(xoffset == 0 && src_height > height) { 
+		yoffset = (yoffset + 8) % (src_height - height); 
+	} 
+ 
+	msync(ptrFbbuf[nWorkingIndex], D1_WIDTH * D1_HEIGHT, MS_SYNC); 
+	nWorkingIndex = (nWorkingIndex + 1) % DISPLAY_BUFS; 
+	nDisplayIdx = (nDisplayIdx + 1) % DISPLAY_BUFS; 
+	FlipVideoBuffers(nDisplayIdx); 
+	/* Wait for vertical sync */ 
+	if (ioctl(fdDisplay, FBIO_WAITFORVSYNC, &i) &lt; -1) { 
+		printf("Failed FBIO_WAITFORVSYNC\n"); 
+		return -1; 
+	} 
+ 
+	return 0; 
+} 
+ 
+static int FlipVideoBuffers(int nBufIndex) 
+{ 
+	struct fb_var_screeninfo vInfo; 
+	if (ioctl(fdDisplay, FBIOGET_VSCREENINFO, &vInfo) == -1) { 
+		perror("FlipVideoBuffers:FBIOGET_VSCREENINFO"); 
+		printf("\n"); 
+		exit(0); 
+	} 
+ 
+	vInfo.yoffset = vInfo.yres * nBufIndex; 
+	/* Swap the working buffer for the displayed buffer */ 
+	if (ioctl(fdDisplay, FBIOPAN_DISPLAY, &vInfo) == -1) { 
+		perror("FlipVideoBuffers:FBIOPAN_DISPLAY"); 
+		printf("\n"); 
+		exit(0); 
+	} 
+ 
+	return 0; 
+} 
+ 
+ 
+</pre>
+<script src="/inc/gg_read2.js"></script><BR>
+<script src="http://s117.cnzz.com/stat.php?id=1236358&web_id=1236358&show=pic" language="JavaScript" charset="gb2312"></script>
+</body></html>

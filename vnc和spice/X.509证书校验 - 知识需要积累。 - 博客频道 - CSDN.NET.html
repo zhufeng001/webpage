@@ -1,0 +1,422 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>X.509证书校验 - 知识需要积累。 - 博客频道 - CSDN.NET</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="description" content="X.509证书校验这里讨论openssl中如何应用CRLs和来自证书体系的其他证书来进行证书校验。为此需要使用X.509包的功能函数。SSL协议实现已经处理了很多这里将要讨论的东西，即使如此，一些工作还是需要我们亲历亲为，特别是当我们希望在证书校验过程中使用CRLs的校验，大部分情况我们确实应该如此。通常讲，证书可以通过其他证书体系一系列的证书来验证是合法的，比如CA证书和CRLs。Openssl使用X509_STORE对象来表示证书和废止证书的集合来完成此校验目的。除此之外，Openssl使用类型X509" />
+<script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+<link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/default/css/style.css?v=1.1" />
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/shareyao/rss/list" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+</head>
+<body>
+<script src="http://csdnimg.cn/pubnav/js/pub_topnav_2011.js"type="text/javascript"></script>
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="http://blog.csdn.net/shareyao">知识需要积累。</a></h1>
+            <h2>一起探讨和学习</h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="http://blog.csdn.net/shareyao?viewmode=contents"><span><img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="http://blog.csdn.net/shareyao?viewmode=list"><span><img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="http://blog.csdn.net/shareyao/rss/list"><span><img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "shareyao";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/shareyao";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/9819385" target="_blank">
+<font color=red>《这些年，我们读过的技术经典图书》主题有奖征文</font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://www.csdn.net/article/2013-08-06/2816471" target="_blank"><font color=blue>专访李铁军：从医生到金山首席安全专家的转变 
+</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+
+<a href="http://blog.csdn.net/adali/article/details/9813651"target="_blank">
+<font color=blue>独一无二的职位：开源社区经理 
+ </font></a>
+
+
+
+
+</div>
+<div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Translated"></span>
+    <h3>
+        <span class="link_title"><a href="/shareyao/article/details/5802793">
+        X.509证书校验
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/shareyao/article/category/639477">OpenSSL</a> 
+        </span>
+    <span class="link_postdate">2010-08-10 23:31</span>
+    <span class="link_view" title="阅读次数">588人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle('X.509证书校验','5802793');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:report(5802793,2);return false;" title="举报">举报</a></span>
+    
+</div>
+<div class="tag2box"><a href='http://blog.csdn.net/tag/details.html?tag=ssl' target=_blank>ssl</a><a href='http://blog.csdn.net/tag/details.html?tag=%e7%bb%88%e7%ab%af' target=_blank>终端</a><a href='http://blog.csdn.net/tag/details.html?tag=file' target=_blank>file</a><a href='http://blog.csdn.net/tag/details.html?tag=%e5%b7%a5%e4%bd%9c' target=_blank>工作</a></div>
+
+
+    
+<div id="article_content" class="article_content">
+<p>&nbsp;</p>
+<p class="p0"><span>X.509<span style="font-family: 宋体;">证书校验</span></span></p>
+<p class="p0"><span>这里讨论<span style="font-family: 'Times New Roman';">openssl</span><span style="font-family: 宋体;">中如何应用</span><span style="font-family: 'Times New Roman';">CRLs</span><span style="font-family: 宋体;">和来自证书体系的其他证书来进行证书校验。为此需要使用</span><span style="font-family: 'Times New Roman';">X.509</span><span style="font-family: 宋体;">包的功能函数。</span><span style="font-family: 'Times New Roman';">SSL</span><span style="font-family: 宋体;">协议实现已经处理了很多这里将要讨论的东西，即使如此，一些工作还是需要我们亲历亲为，特别是当我们希望在证书校验过程中使用</span><span style="font-family: 'Times New Roman';">CRLs</span><span style="font-family: 宋体;">的校验，大部分情况我们确实应该如此。</span></span></p>
+<p class="p0"><span><span style="font-family: 宋体;"><br /></span></span></p>
+<p class="p0">&nbsp;</p>
+<p class="p0"><span>通常讲，证书可以通过其他证书体系一系列的证书来验证是合法的，比如<span style="font-family: 'Times New Roman';">CA</span><span style="font-family: 宋体;">证书和</span><span style="font-family: 'Times New Roman';">CRLs</span><span style="font-family: 宋体;">。</span><span style="font-family: 'Times New Roman';">Openssl</span><span style="font-family: 宋体;">使用</span><span style="font-family: 'Times New Roman';">X509_STORE</span><span style="font-family: 宋体;">对象来表示证书和废止证书的集合来完成此校验目的。除此之外，</span><span style="font-family: 'Times New Roman';">Openssl</span><span style="font-family: 宋体;">使用类型</span><span style="font-family: 'Times New Roman';">X509_STORE&nbsp;_CTX</span><span style="font-family: 宋体;">承载实际校验证书用到的数据。为了</span></span>校验<span style="font-family: 宋体;">证书，我们首先创建一个</span><span style="font-family: 'Times New Roman';">X509_STORE</span><span style="font-family: 宋体;">，并且包含了所有可用证书和废止证书链信息。当需要校验终端证书时，我们将创建一个</span><span style="font-family: 'Times New Roman';">X509_STORE_CTX&nbsp;</span><span style="font-family: 宋体;">来进行实际地校验。</span></p>
+<p class="p0"><span><span style="font-family: 宋体;"><br /></span></span></p>
+<p class="p0">&nbsp;</p>
+<p class="p0"><span>与证书商店（<span style="font-family: 'Times New Roman';">X509_STORE</span><span style="font-family: 宋体;">）及其相关的上下文同样重要的一个对象是</span><span style="font-family: 'Times New Roman';">X509_LOOKUP_METHOD</span><span style="font-family: 宋体;">。此类型对象代表了查找证书或者废止证书的通用方法。比如</span><span style="font-family: 'Times New Roman';">X509_LOOKUP_file</span><span style="font-family: 宋体;">函数返回方法是专用于查找单个文件内证书相关的对象，而</span><span style="font-family: 'Times New Roman';">X509_LOOKUP_hash_dir</span><span style="font-family: 宋体;">函数返回方法用于在正确设置的</span><span style="font-family: 'Times New Roman';">Openssl&nbsp;CA</span><span style="font-family: 宋体;">目录中查找对象。</span><span style="font-family: 'Times New Roman';">X509_LOOKUP_METHOND</span><span style="font-family: 宋体;">对于创建</span><span style="font-family: 'Times New Roman';">X509_LOOKUP</span><span style="font-family: 宋体;">对象来说非常重要。这些对象聚集了其内部可以访问的证书集合。比如有一个证书目录，我们可以创建来自</span><span style="font-family: 'Times New Roman';">X509_STORE</span><span style="font-family: 宋体;">的</span><span style="font-family: 'Times New Roman';">X509_LOOKUP</span><span style="font-family: 宋体;">对象，并且返回值为</span><span style="font-family: 'Times New Roman';">X509_LOOKUP_hash_dir</span><span style="font-family: 宋体;">；然后这个</span><span style="font-family: 'Times New Roman';">X509_LOOKUP</span><span style="font-family: 宋体;">对象可以赋值给一个目录，这样</span><span style="font-family: 'Times New Roman';">X509_STORE&nbsp;</span><span style="font-family: 宋体;">对象就可以访问由</span><span style="font-family: 'Times New Roman';">lookup</span><span style="font-family: 宋体;">聚集起来的所有证书和</span><span style="font-family: 'Times New Roman';">CRLs</span><span style="font-family: 宋体;">证书了。</span></span></p>
+<p class="p0"><span><span style="font-family: 宋体;"><br /></span></span></p>
+<p class="p0">&nbsp;</p>
+<p class="p0"><span>简单回顾：一个<span style="font-family: 'Times New Roman';">X509_STORE&nbsp;</span><span style="font-family: 宋体;">对象包含了</span><span style="font-family: 'Times New Roman';">X509_LOOKUP</span><span style="font-family: 宋体;">对象（多份），而</span><span style="font-family: 'Times New Roman';">X509_LOOKUP</span><span style="font-family: 宋体;">又是基于</span><span style="font-family: 'Times New Roman';">X509_LOOKUP_METHOND</span><span style="font-family: 宋体;">方法之上的。这就是证书商店可以访问证书和</span><span style="font-family: 'Times New Roman';">CRL</span><span style="font-family: 宋体;">数据了。因此</span><span style="font-family: 'Times New Roman';">store</span><span style="font-family: 宋体;">可以被用来创建</span><span style="font-family: 'Times New Roman';">X509_STORE_CTX&nbsp;</span><span style="font-family: 宋体;">来执行验证操作了。</span></span></p>
+<p>&nbsp;</p>
+</div>
+
+<div class="share_buttons" id="sharePanel"></div>
+<!--192.168.100.33-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="/shareyao/article/details/5800086">证书制作</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="/shareyao/article/details/7798654">POCO NotificationQueue Sample疑问</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen">
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "117306";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<script type="text/javascript">
+    //new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"></div>
+<div id="comment_bar"></div>
+<div id="comment_form"></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '5802793';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+<div id="ad_bot"></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display:none;">
+<a id="d-top-a" href="#" title="回到顶部">
+<img src="http://static.blog.csdn.net/images/top.png" alt="TOP" /></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/shareyao" target="_blank">
+    <img src="http://avatar.csdn.net/D/8/C/1_shareyao.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/shareyao" class="user_name" target="_blank">shareyao</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+<div id="blog_medal">
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>25575次</span></li>
+    <li>积分：<span>476分</span></li>
+    <li>排名：<span>千里之外</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>14篇</span></li>
+    <li>转载：<span>8篇</span></li>
+    <li>译文：<span>6篇</span></li>
+    <li>评论：<span>7条</span></li>
+</ul>
+</ul>
+</div>
+
+<div class="panel">
+<ul class="panel_body" style="padding:0;">
+<script type="text/javascript" src="http://cbjs.baidu.com/js/m.js"></script> 
+<script type="text/javascript"> 
+BAIDU_CLB_preloadSlots("724643","117306"); 
+</script>
+<script type="text/javascript">BAIDU_CLB_fillSlot("724643");</script> 
+</ul>
+</div>
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+<li>
+<a href="http://blog.csdn.net/shareyao/article/category/209283">C/C++/MFC</a><span>(7)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/shareyao/article/category/312489">COM</a><span>(0)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/shareyao/article/category/312500">Java/JSP</a><span>(0)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/shareyao/article/category/209279">Linux/Unix</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/shareyao/article/category/639477">OpenSSL</a><span>(8)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/shareyao/article/category/209362">技术共享</a><span>(2)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/shareyao/article/category/209363">网络编程</a><span>(1)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/shareyao/article/category/314299">设计模式</a><span>(4)</span>
+</li>
+<li>
+<a href="http://blog.csdn.net/shareyao/article/category/1198309">POCO</a><span>(1)</span>
+</li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/shareyao/article/month/2012/07">2012年07月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2010/08">2010年08月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2010/05">2010年05月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2010/03">2010年03月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2010/02">2010年02月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2010/01">2010年01月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2008/04">2008年04月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2007/11">2007年11月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2007/10">2007年10月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2007/09">2007年09月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2007/08">2007年08月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2007/06">2007年06月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2006/10">2006年10月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/shareyao/article/month/2006/06">2006年06月</a><span>(3)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head"><span>阅读排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/shareyao/article/details/1831059" title="TCP连接的状态转换图深度剖析">TCP连接的状态转换图深度剖析</a><span>(2925)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/5362642" title="编译错误undefined reference to `dlsym&#39; ">编译错误undefined reference to `dlsym&#39; </a><span>(1857)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/5338127" title="[读书笔记]openssl证书制作">[读书笔记]openssl证书制作</a><span>(1673)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/771402" title="Host Byte Order &amp; Network Byte Order">Host Byte Order &amp; Network Byte Order</a><span>(1672)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/1843801" title="C++构造和析构顺序">C++构造和析构顺序</a><span>(1669)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/771079" title="深浅MFC学习笔记总结－MFC程序的执行过程">深浅MFC学习笔记总结－MFC程序的执行过程</a><span>(1586)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/5610638" title="makefile .d的解释">makefile .d的解释</a><span>(1537)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/5294538" title="openssl证书链的校验过程">openssl证书链的校验过程</a><span>(1327)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/5796742" title="如何创建证书请求">如何创建证书请求</a><span>(1317)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/5124800" title="openssl中证书加载过程">openssl中证书加载过程</a><span>(1098)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/shareyao/article/details/5124800" title="openssl中证书加载过程">openssl中证书加载过程</a><span>(2)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/771079" title="深浅MFC学习笔记总结－MFC程序的执行过程">深浅MFC学习笔记总结－MFC程序的执行过程</a><span>(1)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/5610638" title="makefile .d的解释">makefile .d的解释</a><span>(1)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/7798654" title="POCO NotificationQueue Sample疑问">POCO NotificationQueue Sample疑问</a><span>(1)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/1831059" title="TCP连接的状态转换图深度剖析">TCP连接的状态转换图深度剖析</a><span>(1)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/771402" title="Host Byte Order &amp; Network Byte Order">Host Byte Order &amp; Network Byte Order</a><span>(1)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/5126039" title="ASN1编码笔记100103">ASN1编码笔记100103</a><span>(0)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/5294538" title="openssl证书链的校验过程">openssl证书链的校验过程</a><span>(0)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/5337992" title="证书配置文件">证书配置文件</a><span>(0)</span>
+</li>
+<li>
+<a href="/shareyao/article/details/5338127" title="[读书笔记]openssl证书制作">[读书笔记]openssl证书制作</a><span>(0)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="/shareyao/article/details/7798654#comments">POCO NotificationQueue Sample疑问</a>
+    <p style="margin:0px;"><a href="/yangcf99" class="user_name">yangcf99</a>:
+应该是防止多线程下， cout 输出的控制
+    </p>
+    </li>
+    <li>
+    <a href="/shareyao/article/details/771079#comments">深浅MFC学习笔记总结－MFC程序的执行过程</a>
+    <p style="margin:0px;"><a href="/weima007" class="user_name">weima007</a>:
+初步学习！谢谢！
+    </p>
+    </li>
+    <li>
+    <a href="/shareyao/article/details/5610638#comments">makefile .d的解释</a>
+    <p style="margin:0px;"><a href="/xiaodao1986" class="user_name">xiaodao1986</a>:
+不错不错，《跟我一起写Makefile》中这段讲得不是很清楚，没有给出完整的示例代码，我搞了半天没搞...
+    </p>
+    </li>
+    <li>
+    <a href="/shareyao/article/details/1831059#comments">TCP连接的状态转换图深度剖析</a>
+    <p style="margin:0px;"><a href="/fanzhengqi" class="user_name">fanzhengqi</a>:
+我的理解太肤浅了
+    </p>
+    </li>
+    <li>
+    <a href="/shareyao/article/details/5124800#comments">openssl中证书加载过程</a>
+    <p style="margin:0px;"><a href="/shareyao" class="user_name">shareyao</a>:
+回复 qihuanfengyun：安装了openssl后，x509_vfy.h头文件中即有定义。
+    </p>
+    </li>
+    <li>
+    <a href="/shareyao/article/details/5124800#comments">openssl中证书加载过程</a>
+    <p style="margin:0px;"><a href="/qihuanfengyun" class="user_name">qihuanfengyun</a>:
+这些结构在什么地方啊！ 我找了很久了还是没发现，请问你在什么地方找到的定义啊？？？
+    </p>
+    </li>
+    <li>
+    <a href="/shareyao/article/details/771402#comments">Host Byte Order &amp; Network Byte Order</a>
+    <p style="margin:0px;"><a href="/nara" class="user_name">nara</a>:
+can u tell me what is the meaning of host byte ord...
+    </p>
+    </li>
+</ul>
+</div>
+<div id="custom_column_968741" class="panel">
+<ul class="panel_head"><span>我的链接</span></ul>
+<ul class="panel_body">
+<ul><li><a href="http://blog.csdn.net/chenlies" target=_blank>可甜鼠王</a> (<a href="http://blog.csdn.net/chenlies/rss.aspx" target=_blank>RSS</a>)</li></ul>
+</ul>
+</div></div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js?v=1.1"></script>
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=133785"></script>
+
+<script type="text/javascript">
+document.write('<script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/publib_footer.js?' + Math.floor(new Date()/120000).toString(36) + '="></'+'script>');
+</script>
+
+<script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js?v=1"></script>
+
+
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+
+<script type="text/javascript" src="http://zz.csdn.net/js/count.js"></script>
+
+</div>
+</body>
+</html>

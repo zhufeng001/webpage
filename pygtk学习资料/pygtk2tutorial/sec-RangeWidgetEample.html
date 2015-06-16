@@ -1,0 +1,248 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>8.5. Range Widget Example</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-RangeWidgets.html" title="Chapter 8. Range Widgets"><link rel="prev" href="sec-KeyAndMouseBindings.html" title="8.4. Key and Mouse Bindings"><link rel="next" href="ch-MiscellaneousWidgets.html" title="Chapter 9. Miscellaneous Widgets"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">8.5. Range Widget Example</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-KeyAndMouseBindings.html">Prev</a> </td><th width="60%" align="center">Chapter 8. Range Widgets</th><td width="20%" align="right"> <a accesskey="n" href="ch-MiscellaneousWidgets.html">Next</a></td></tr></table><hr></div><div class="sect1" title="8.5. Range Widget Example"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-RangeWidgetEample"></a>8.5. Range Widget Example</h2></div></div></div><p>The example program (<a class="ulink" href="examples/rangewidgets.py" target="_top"><span class="command"><strong>rangewidgets.py</strong></span></a>)
+puts up a window with three range widgets all connected to the same
+adjustment, and a couple of controls for adjusting some of the parameters
+mentioned above and in the section on adjustments, so you can see how they
+affect the way these widgets work for the user.  <a class="xref" href="sec-RangeWidgetEample.html#rangefig" title="Figure 8.1. Range Widgets Example">Figure 8.1, “Range Widgets Example”</a>
+illustrates the result of running the program:</p><div class="figure"><a name="rangefig"></a><p class="title"><b>Figure 8.1. Range Widgets Example</b></p><div class="figure-contents"><div class="mediaobject" align="center"><img src="figures/rangewidgets.png" align="middle" alt="Range Widgets Example"></div></div></div><br class="figure-break"><p>The <a class="ulink" href="examples/rangewidgets.py" target="_top"><span class="command"><strong>rangewidgets.py</strong></span></a>
+source code is:</p><pre class="programlisting">
+    1	#!/usr/bin/env python
+    2	
+    3	# example rangewidgets.py
+    4	
+    5	import pygtk
+    6	pygtk.require('2.0')
+    7	import gtk
+    8	
+    9	# Convenience functions
+   10	
+   11	def make_menu_item(name, callback, data=None):
+   12	    item = gtk.MenuItem(name)
+   13	    item.connect("activate", callback, data)
+   14	    item.show()
+   15	    return item
+   16	
+   17	def scale_set_default_values(scale):
+   18	    scale.set_update_policy(gtk.UPDATE_CONTINUOUS)
+   19	    scale.set_digits(1)
+   20	    scale.set_value_pos(gtk.POS_TOP)
+   21	    scale.set_draw_value(True)
+   22	
+   23	class RangeWidgets:
+   24	    def cb_pos_menu_select(self, item, pos):
+   25	        # Set the value position on both scale widgets
+   26	        self.hscale.set_value_pos(pos)
+   27	        self.vscale.set_value_pos(pos)
+   28	
+   29	    def cb_update_menu_select(self, item, policy):
+   30	        # Set the update policy for both scale widgets
+   31	        self.hscale.set_update_policy(policy)
+   32	        self.vscale.set_update_policy(policy)
+   33	
+   34	    def cb_digits_scale(self, adj):
+   35	        # Set the number of decimal places to which adj-&gt;value is rounded
+   36	        self.hscale.set_digits(adj.value)
+   37	        self.vscale.set_digits(adj.value)
+   38	
+   39	    def cb_page_size(self, get, set):
+   40	        # Set the page size and page increment size of the sample
+   41	        # adjustment to the value specified by the "Page Size" scale
+   42	        set.page_size = get.value
+   43	        set.page_incr = get.value
+   44	        # Now emit the "changed" signal to reconfigure all the widgets that
+   45	        # are attached to this adjustment
+   46	        set.emit("changed")
+   47	
+   48	    def cb_draw_value(self, button):
+   49	        # Turn the value display on the scale widgets off or on depending
+   50	        # on the state of the checkbutton
+   51	        self.hscale.set_draw_value(button.get_active())
+   52	        self.vscale.set_draw_value(button.get_active())  
+   53	
+   54	    # makes the sample window
+   55	
+   56	    def __init__(self):
+   57	        # Standard window-creating stuff
+   58	        self.window = gtk.Window (gtk.WINDOW_TOPLEVEL)
+   59	        self.window.connect("destroy", lambda w: gtk.main_quit())
+   60	        self.window.set_title("range controls")
+   61	
+   62	        box1 = gtk.VBox(False, 0)
+   63	        self.window.add(box1)
+   64	        box1.show()
+   65	
+   66	        box2 = gtk.HBox(False, 10)
+   67	        box2.set_border_width(10)
+   68	        box1.pack_start(box2, True, True, 0)
+   69	        box2.show()
+   70	
+   71	        # value, lower, upper, step_increment, page_increment, page_size
+   72	        # Note that the page_size value only makes a difference for
+   73	        # scrollbar widgets, and the highest value you'll get is actually
+   74	        # (upper - page_size).
+   75	        adj1 = gtk.Adjustment(0.0, 0.0, 101.0, 0.1, 1.0, 1.0)
+   76	  
+   77	        self.vscale = gtk.VScale(adj1)
+   78	        scale_set_default_values(self.vscale)
+   79	        box2.pack_start(self.vscale, True, True, 0)
+   80	        self.vscale.show()
+   81	
+   82	        box3 = gtk.VBox(False, 10)
+   83	        box2.pack_start(box3, True, True, 0)
+   84	        box3.show()
+   85	
+   86	        # Reuse the same adjustment
+   87	        self.hscale = gtk.HScale(adj1)
+   88	        self.hscale.set_size_request(200, 30)
+   89	        scale_set_default_values(self.hscale)
+   90	        box3.pack_start(self.hscale, True, True, 0)
+   91	        self.hscale.show()
+   92	
+   93	        # Reuse the same adjustment again
+   94	        scrollbar = gtk.HScrollbar(adj1)
+   95	        # Notice how this causes the scales to always be updated
+   96	        # continuously when the scrollbar is moved
+   97	        scrollbar.set_update_policy(gtk.UPDATE_CONTINUOUS)
+   98	        box3.pack_start(scrollbar, True, True, 0)
+   99	        scrollbar.show()
+  100	
+  101	        box2 = gtk.HBox(False, 10)
+  102	        box2.set_border_width(10)
+  103	        box1.pack_start(box2, True, True, 0)
+  104	        box2.show()
+  105	
+  106	        # A checkbutton to control whether the value is displayed or not
+  107	        button = gtk.CheckButton("Display value on scale widgets")
+  108	        button.set_active(True)
+  109	        button.connect("toggled", self.cb_draw_value)
+  110	        box2.pack_start(button, True, True, 0)
+  111	        button.show()
+  112	  
+  113	        box2 = gtk.HBox(False, 10)
+  114	        box2.set_border_width(10)
+  115	
+  116	        # An option menu to change the position of the value
+  117	        label = gtk.Label("Scale Value Position:")
+  118	        box2.pack_start(label, False, False, 0)
+  119	        label.show()
+  120	  
+  121	        opt = gtk.OptionMenu()
+  122	        menu = gtk.Menu()
+  123	
+  124	        item = make_menu_item ("Top", self.cb_pos_menu_select, gtk.POS_TOP)
+  125	        menu.append(item)
+  126	  
+  127	        item = make_menu_item ("Bottom", self.cb_pos_menu_select,
+  128	                               gtk.POS_BOTTOM)
+  129	        menu.append(item)
+  130	  
+  131	        item = make_menu_item ("Left", self.cb_pos_menu_select, gtk.POS_LEFT)
+  132	        menu.append(item)
+  133	  
+  134	        item = make_menu_item ("Right", self.cb_pos_menu_select, gtk.POS_RIGHT)
+  135	        menu.append(item)
+  136	  
+  137	        opt.set_menu(menu)
+  138	        box2.pack_start(opt, True, True, 0)
+  139	        opt.show()
+  140	
+  141	        box1.pack_start(box2, True, True, 0)
+  142	        box2.show()
+  143	
+  144	        box2 = gtk.HBox(False, 10)
+  145	        box2.set_border_width(10)
+  146	
+  147	        # Yet another option menu, this time for the update policy of the
+  148	        # scale widgets
+  149	        label = gtk.Label("Scale Update Policy:")
+  150	        box2.pack_start(label, False, False, 0)
+  151	        label.show()
+  152	  
+  153	        opt = gtk.OptionMenu()
+  154	        menu = gtk.Menu()
+  155	  
+  156	        item = make_menu_item("Continuous", self.cb_update_menu_select,
+  157	                              gtk.UPDATE_CONTINUOUS)
+  158	        menu.append(item)
+  159	  
+  160	        item = make_menu_item ("Discontinuous", self.cb_update_menu_select,
+  161	                               gtk.UPDATE_DISCONTINUOUS)
+  162	        menu.append(item)
+  163	  
+  164	        item = make_menu_item ("Delayed", self.cb_update_menu_select,
+  165	                               gtk.UPDATE_DELAYED)
+  166	        menu.append(item)
+  167	  
+  168	        opt.set_menu(menu)
+  169	        box2.pack_start(opt, True, True, 0)
+  170	        opt.show()
+  171	  
+  172	        box1.pack_start(box2, True, True, 0)
+  173	        box2.show()
+  174	
+  175	        box2 = gtk.HBox(False, 10)
+  176	        box2.set_border_width(10)
+  177	  
+  178	        # An HScale widget for adjusting the number of digits on the
+  179	        # sample scales.
+  180	        label = gtk.Label("Scale Digits:")
+  181	        box2.pack_start(label, False, False, 0)
+  182	        label.show()
+  183	
+  184	        adj2 = gtk.Adjustment(1.0, 0.0, 5.0, 1.0, 1.0, 0.0)
+  185	        adj2.connect("value_changed", self.cb_digits_scale)
+  186	        scale = gtk.HScale(adj2)
+  187	        scale.set_digits(0)
+  188	        box2.pack_start(scale, True, True, 0)
+  189	        scale.show()
+  190	
+  191	        box1.pack_start(box2, True, True, 0)
+  192	        box2.show()
+  193	  
+  194	        box2 = gtk.HBox(False, 10)
+  195	        box2.set_border_width(10)
+  196	  
+  197	        # And, one last HScale widget for adjusting the page size of the
+  198	        # scrollbar.
+  199	        label = gtk.Label("Scrollbar Page Size:")
+  200	        box2.pack_start(label, False, False, 0)
+  201	        label.show()
+  202	
+  203	        adj2 = gtk.Adjustment(1.0, 1.0, 101.0, 1.0, 1.0, 0.0)
+  204	        adj2.connect("value_changed", self.cb_page_size, adj1)
+  205	        scale = gtk.HScale(adj2)
+  206	        scale.set_digits(0)
+  207	        box2.pack_start(scale, True, True, 0)
+  208	        scale.show()
+  209	
+  210	        box1.pack_start(box2, True, True, 0)
+  211	        box2.show()
+  212	
+  213	        separator = gtk.HSeparator()
+  214	        box1.pack_start(separator, False, True, 0)
+  215	        separator.show()
+  216	
+  217	        box2 = gtk.VBox(False, 10)
+  218	        box2.set_border_width(10)
+  219	        box1.pack_start(box2, False, True, 0)
+  220	        box2.show()
+  221	
+  222	        button = gtk.Button("Quit")
+  223	        button.connect("clicked", lambda w: gtk.main_quit())
+  224	        box2.pack_start(button, True, True, 0)
+  225	        button.set_flags(gtk.CAN_DEFAULT)
+  226	        button.grab_default()
+  227	        button.show()
+  228	        self.window.show()
+  229	
+  230	def main():
+  231	    gtk.main()
+  232	    return 0            
+  233	
+  234	if __name__ == "__main__":
+  235	    RangeWidgets()
+  236	    main()
+</pre><p>You will notice that the program does not call the
+<code class="methodname">connect</code>() method for the "delete_event", but only for
+the "destroy" signal. This will still perform the desired operation, because
+an unhandled "delete_event" will result in a "destroy" signal being given to
+the window.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-KeyAndMouseBindings.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-RangeWidgets.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch-MiscellaneousWidgets.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8.4. Key and Mouse Bindings </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 9. Miscellaneous Widgets</td></tr></table></div></body></html>

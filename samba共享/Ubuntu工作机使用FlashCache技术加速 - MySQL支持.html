@@ -1,0 +1,324 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head profile="http://gmpg.org/xfn/11">
+<meta name="google-site-verification" content="0op5fBZoBWI9MpybIZKXTtL94YBkXAlpPAYUewNyf84" />
+<meta http-equiv="Content-Type" content="MySQL技术文章、深入探讨,案例分析,数据恢复,MySQL优化,Innodb性能调优,MySQL培训,MySQL咨询,MySQL迁移服务; charset=utf-8" />
+  <title>  Ubuntu工作机使用FlashCache技术加速 - MySQL支持 </title>
+<style type="text/css" media="screen">
+	@import url( http://www.mysqlsupport.cn/wp-content/themes/boxy-but-gold-10/style.css);
+
+/* Theme switcher css */
+.sub-sidebar #themes ul li select {
+	width: 175px;
+	font-size: 90%;
+	color: #000;
+	background-color: #fff8df;
+}
+</style>
+
+<link rel="alternate" type="application/rss+xml" title="RSS 2.0" href="http://www.mysqlsupport.cn/feed/" />
+<link rel="alternate" type="text/xml" title="RSS .92" href="http://www.mysqlsupport.cn/feed/rss/" />
+<link rel="alternate" type="application/atom+xml" title="Atom 0.3" href="http://www.mysqlsupport.cn/feed/atom/" />
+<link rel="pingback" href="http://www.mysqlsupport.cn/xmlrpc.php" />
+<link rel="alternate" type="application/rss+xml" title="MySQL支持 &raquo; Ubuntu工作机使用FlashCache技术加速 评论 Feed" href="http://www.mysqlsupport.cn/ubuntu-flashcache/feed/" />
+<link rel='stylesheet' id='wp-syntax-css-css'  href='http://www.mysqlsupport.cn/wp-content/plugins/wp-syntax/css/wp-syntax.css?ver=1.0' type='text/css' media='all' />
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://www.mysqlsupport.cn/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://www.mysqlsupport.cn/wp-includes/wlwmanifest.xml" /> 
+<link rel='prev' title='尝试mysqlbinlog的flashback功能' href='http://www.mysqlsupport.cn/mysqlbinlog-flashback/' />
+<link rel='next' title='内存表在同步环境注意事项' href='http://www.mysqlsupport.cn/memory-in-replication/' />
+<meta name="generator" content="WordPress 3.5" />
+<link rel='canonical' href='http://www.mysqlsupport.cn/ubuntu-flashcache/' />
+<link rel='shortlink' href='http://www.mysqlsupport.cn/?p=243' />
+<!-- wp thread comment 1.4.9.4.002 -->
+<style type="text/css" media="screen">
+.editComment, .editableComment, .textComment{
+	display: inline;
+}
+.comment-childs{
+	border: 1px solid #999;
+	margin: 5px 2px 2px 4px;
+	padding: 4px 2px 2px 4px;
+	background-color: white;
+}
+.chalt{
+	background-color: #E2E2E2;
+}
+#newcomment{
+	border:1px dashed #777;width:90%;
+}
+#newcommentsubmit{
+	color:red;
+}
+.adminreplycomment{
+	border:1px dashed #777;
+	width:99%;
+	margin:4px;
+	padding:4px;
+}
+.mvccls{
+	color: #999;
+}
+			
+</style>
+</head>
+
+<body>
+
+<div id="header">
+	<div id="pages-menu">
+	<ul>
+		<li class="page_item page-item-62"><a href="http://www.mysqlsupport.cn/about-me/">about me</a></li>
+</ul>
+	</div>
+	<div id="name">
+	<h1><a href="http://www.mysqlsupport.cn">MySQL支持</a></h1>
+	<div id="tag">MySQL支持，提供专业技术支持性能调优，架构设计</div>
+	</div>
+</div>
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-8994496-2");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+
+<div id="sidebar">
+
+	<div class="sub-sidebar">
+	<ul>
+		<li id="calendar">
+		<table id="wp-calendar">
+	<caption>2013 年三月</caption>
+	<thead>
+	<tr>
+		<th scope="col" title="星期一">一</th>
+		<th scope="col" title="星期二">二</th>
+		<th scope="col" title="星期三">三</th>
+		<th scope="col" title="星期四">四</th>
+		<th scope="col" title="星期五">五</th>
+		<th scope="col" title="星期六">六</th>
+		<th scope="col" title="星期日">日</th>
+	</tr>
+	</thead>
+
+	<tfoot>
+	<tr>
+		<td colspan="3" id="prev"><a href="http://www.mysqlsupport.cn/2013/02/" title="查看 2013 年二月的文章">&laquo; 二</a></td>
+		<td class="pad">&nbsp;</td>
+		<td colspan="3" id="next" class="pad">&nbsp;</td>
+	</tr>
+	</tfoot>
+
+	<tbody>
+	<tr>
+		<td colspan="4" class="pad">&nbsp;</td><td>1</td><td>2</td><td>3</td>
+	</tr>
+	<tr>
+		<td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>
+	</tr>
+	<tr>
+		<td>11</td><td>12</td><td>13</td><td>14</td><td>15</td><td>16</td><td>17</td>
+	</tr>
+	<tr>
+		<td>18</td><td>19</td><td id="today">20</td><td>21</td><td>22</td><td>23</td><td>24</td>
+	</tr>
+	<tr>
+		<td>25</td><td>26</td><td>27</td><td>28</td><td>29</td><td>30</td><td>31</td>
+	</tr>
+	</tbody>
+	</table></li>
+	</ul>
+</div>
+
+
+
+
+<div class="sub-sidebar">
+<ul><li id="meta"><h2>搜索</h2></li>
+<form id="searchform" method="get" action="/index.php">
+	<div>
+	<input type="text" name="s" id="s" size="10" /> <input type="submit" id="submit" value="搜索" />
+	</div>
+</form>
+</ul>
+</div>
+
+<div class="sub-sidebar">
+
+<ul><h2>订阅</h2></ul>
+<ul class="links">
+<!-- Feedsky FEED发布代码开始 -->
+<!-- FEED自动发现标记开始 -->
+
+<link title="RSS 2.0" type="application/rss+xml" href="http://feed.feedsky.com/wubx" rel="alternate" />
+<!-- FEED自动发现标记结束 -->
+<script language="javascript"><!-- 
+main_sub="";
+more_subs="google_01,qq_01,zhuaxia_02,yahoo_02,xianguo_02,nazha_02,youdao_02";
+is_new="no";
+--> </script>
+<script language="javascript" src="http://www.feedsky.com/jsout/publishlist_v2.js?burl=wubx&out_html=true"></script>
+<!-- Feedsky FEED发布代码结束 -->
+</ul>
+</div>
+
+
+</div>
+<div id="content">
+<div class="post-header"><h2>2012年11月22日</h2></div><div class="post">
+	<h3 class="post-title" id="post-243"><a href="http://www.mysqlsupport.cn/ubuntu-flashcache/" rel="bookmark">Ubuntu工作机使用FlashCache技术加速</a></h3>
+		<div class="post-content">
+		<p><strong>作者：吴炳锡　来源：http://www.mysqlsupport.cn/ 联系方式： wubingxi#gmail.com 转载请注明作/译者和出处，并且不能用于商业用途，违者必究.</strong></p>
+<p>Flashcache是facebook的一个开源项目，用于数据库加速中．大致结构，在传统磁盘前面放置一个ssd装置，充当缓存，把热的数据保持在缓存中，写的过程也是在先写ssd然后由ssd同步到传统磁盘．真正的数据最终还是保持在传统磁盘中．这样ssd杯掉也不用担心数据丢失．同时又可以有大容量，高性能的体验．</p>
+<p>现在ssd也挺便宜的，新一点的笔记本里都有ssd磁盘．那么这里简介绍一下，怎么用ssd加速home及其它分区，引导这块不涉及．缺点：　ssd只是用来做cache不能存入实质的东西．</p>
+<p>前提：<br />
+ssd有空余的分区或是有个ssd盘不使用．操作系统是ubuntu或是其它linux</p>
+<p>大致步骤：<br />
+１.　安装git</p>
+
+<div class="wp_syntax"><table><tr><td class="code"><pre class="shell" style="font-family:monospace;">$sudo apt-get install git-core</pre></td></tr></table></div>
+
+<p>2. 下载flashcache源码：</p>
+
+<div class="wp_syntax"><table><tr><td class="code"><pre class="shell" style="font-family:monospace;">#git clone https://github.com/facebook/flashcache.git</pre></td></tr></table></div>
+
+<p>3. 进入目录编辑</p>
+
+<div class="wp_syntax"><table><tr><td class="code"><pre class="shell" style="font-family:monospace;">#make
+#make install</pre></td></tr></table></div>
+
+<p>//如果失败看提示，一般是内核源码没安装的原因<br />
+4. 加载flashcache模块</p>
+
+<div class="wp_syntax"><table><tr><td class="code"><pre class="shell" style="font-family:monospace;">#modprobe flashcache</pre></td></tr></table></div>
+
+<p>确定加载完成：</p>
+
+<div class="wp_syntax"><table><tr><td class="code"><pre class="shell" style="font-family:monospace;">#dmesg |tail
+......flashcache: flashcache-1.0 initialized</pre></td></tr></table></div>
+
+<p>表示成功<br />
+另外还可以：</p>
+
+<div class="wp_syntax"><table><tr><td class="code"><pre class="shell" style="font-family:monospace;">lsmod |grep flashcache</pre></td></tr></table></div>
+
+<p>看到相应的信息即成功．</p>
+<p>为了开机能加载这个模块，需要这个模块名写入/etc/modules中</p>
+
+<div class="wp_syntax"><table><tr><td class="code"><pre class="shell" style="font-family:monospace;">#echo &quot;flashcache&quot; &gt;&gt; /etc/modules</pre></td></tr></table></div>
+
+<p>好这里完成了基本环境的安装．下面以/home分区加速设制为，其它一样．<br />
+我的ssd分了/dev/sda1 用于/ , /dev/sda2用于了swap 还有/dev/sda3 ,/dev/sda4分区出没使用．我在传统磁盘里划出来100G　/dev/sdb1用于/home目前还没挂载．<br />
+5. 格式化/dev/sdb1 如果原来/home节点已经划分有分区，　只用umount掉即可，然后在fstab去掉自动挂载(flashcache目前不能自动挂载）<br />
+#mkfs.ext4 /dev/sdb1<br />
+把原来/home的数据复制或是移到动/dev/sdb1上．<br />
+#mount /dev/sdb1 /mnt<br />
+#cp -r /home/* /mnt<br />
+#umount /mnt<br />
+需在注意cp过去后权限是不是和原来的一样．</p>
+<p>6. 初始化flashcache<br />
+#ls -la /dev/disk/by-uuid/<br />
+找到/dev/sdb1 对应的uuid</p>
+
+<div class="wp_syntax"><table><tr><td class="code"><pre class="shell" style="font-family:monospace;">#flashcache_create -v -p back home_flashcache /dev/sda3 /dev/disk/by-uuid/4b75b04e-5930-4042-89b8-40894067dac6</pre></td></tr></table></div>
+
+<p>这样即创建完毕．<br />
+7. 挂载那个flash设备</p>
+
+<div class="wp_syntax"><table><tr><td class="code"><pre class="shell" style="font-family:monospace;">#mount /dev/mapper/home_flashcache /home</pre></td></tr></table></div>
+
+<p>即可以体验flashcache加载的东西了．<br />
+8. 收尾工作,开机自动挂载flashcache加速的设备，利用rc.local完成<br />
+在rc.local里添加：</p>
+
+<div class="wp_syntax"><table><tr><td class="code"><pre class="shell" style="font-family:monospace;">flashcache_load /dev/sda3
+mount /dev/mapper/home_flashcache /home</pre></td></tr></table></div>
+
+<p>这样即可开始挂载/home节点了．</p>
+<p>如果不想使用flashcache技术，可以通过如下命令删除该功能：<br />
+umount /home<br />
+dmsetup remove cachedev<br />
+flashcache_destory<br />
+mount 相应的节点即可</p>
+<p>说明：　以# 开头的操作表示以root权限进行的操作，以$开头的表始以普通用做的操作．</p>
+</div>
+
+		<div class="post-meta">
+		作者 :: wubx@ 17:30:: <a href="http://www.mysqlsupport.cn/category/%e6%9c%aa%e5%88%86%e7%b1%bb/" title="查看 未分类 中的全部文章" rel="category tag">未分类</a><br />
+		<a href="http://www.mysqlsupport.cn/ubuntu-flashcache/feed/" title="RSS 2.0 feed for comments to this post.">RSS内容</a>
+		:: <a href="http://www.mysqlsupport.cn/ubuntu-flashcache/trackback/" title="Copy link to send Trackback to this post.">Trackback URI</a>
+		</div>
+
+<!--
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+			xmlns:dc="http://purl.org/dc/elements/1.1/"
+			xmlns:trackback="http://madskills.com/public/xml/rss/module/trackback/">
+		<rdf:Description rdf:about="http://www.mysqlsupport.cn/ubuntu-flashcache/"
+    dc:identifier="http://www.mysqlsupport.cn/ubuntu-flashcache/"
+    dc:title="Ubuntu工作机使用FlashCache技术加速"
+    trackback:ping="http://www.mysqlsupport.cn/ubuntu-flashcache/trackback/" />
+</rdf:RDF>-->
+	<h3 id="comments">没有评论<span class="meta-comment"><a href="#postcomment" title="留下评论">&#187;</a></span>
+</h3>
+
+<p id="postcomment">&#160;</p>
+
+<form action="http://www.mysqlsupport.cn/wp-comments-post.php" method="post" id="commentform">
+<b>注意</b>: 评论者允许使用<b>'@user空格'</b>的方式将自己的评论通知另外评论者。例如， ABC是本文的评论者之一，则使用'@ABC '(不包括单引号)将会自动将您的评论发送给ABC。使用'@all '，将会将评论发送给之前所有其它评论者。请务必注意user必须和评论者名相匹配(大小写一致)。<p>
+<img src="/wp-content/plugins/wp-imgcode/imgcode.php" border="0" /><br />
+<input type="text" name="imgcode" id="imgcode" size="22" tabindex="1" />
+<label for="ImgCode"><sup>输入验证码(*)</sup></label>
+</p><p><input type="hidden" id="comment_reply_ID" name="comment_reply_ID" value="0" /><input type="hidden" id="comment_reply_dp" name="comment_reply_dp" value="0" /></p><div id="cancel_reply" style="display:none;"><a href="javascript:void(0)" onclick="movecfm(null,0,1,null);" style="color:red;">点击取消回复</a></div><script type="text/javascript">
+/* <![CDATA[ */
+var commentformid = "commentform";
+var USERINFO = false;
+var atreply = "author";
+/* ]]> */
+</script>
+<script type="text/javascript" src="http://www.mysqlsupport.cn/wp-content/plugins/wp-thread-comment/wp-thread-comment.js.php?jsver=common"></script>
+<p><input type="text" name="author" id="author" value="" size="22" tabindex="1" />
+<label for="author"><sup>您的名字(*)</sup></label></p>
+
+<p><input type="text" name="email" id="email" value="" size="22" tabindex="2" />
+<label for="email"><sup>电子邮件(*)</sup></label></p>
+
+<p><input type="text" name="url" id="url" value="" size="22" tabindex="3" />
+<label for="url"><sup>主页</sup></label></p>
+
+<!--<p><small><strong>XHTML:</strong> You can use these tags: &lt;a href=&quot;&quot; title=&quot;&quot;&gt; &lt;abbr title=&quot;&quot;&gt; &lt;acronym title=&quot;&quot;&gt; &lt;b&gt; &lt;blockquote cite=&quot;&quot;&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=&quot;&quot;&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=&quot;&quot;&gt; &lt;strike&gt; &lt;strong&gt; </small></p>-->
+
+<p><textarea name="comment" id="comment" cols="100%" rows="10" tabindex="4"></textarea></p>
+
+<p><input name="submit" type="submit" id="submit" tabindex="5" value="我写好了" />
+<input type="hidden" name="comment_post_ID" value="243" />
+</p>
+</form>
+
+</div>
+
+<div id="nav">
+		<div id="nav-forward">
+		<a href="http://www.mysqlsupport.cn/mysqlbinlog-flashback/">下一篇 &#187;</a></div>
+		<div id="nav-backward">
+		<a href="http://www.mysqlsupport.cn/memory-in-replication/">&#171; 上一篇</a></div>
+	</div>
+
+</div>
+
+<div id="footer">
+<p>
+Copyright&#169; 2008-2009  wubx<br />Boxy But Goldtheme design by wordpress</p></div>
+<div id="footer">
+<a href='http://www.miibeian.gov.cn'>京ICP备09083857号</a>
+<!-- 22queries. 1.863seconds. -->
+</p></div>
+</body>
+</html>
+
+<!-- Dynamic page generated in 1.768 seconds. -->
+<!-- Cached page generated by WP-Super-Cache on 2013-03-20 21:12:49 -->
+
+<!-- Compression = gzip -->

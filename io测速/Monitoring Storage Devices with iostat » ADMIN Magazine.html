@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US" xmlns:fb="http://www.facebook.com/2008/fbml">
+<head>    
+<!--  --> 
+<style type="text/css">
+.limitdisplay-user { display: none; }.limitdisplay-user-10 { display: inline; }.limitdisplay-user-block-10 { display: block; }</style>    
+    
+
+
+
+                        	            <meta name="author" content="Jeff Layton" />
+
+    
+
+
+
+
+
+<title>Monitoring Storage Devices with iostat &raquo; ADMIN Magazine</title>
+                
+    <link rel="canonical" href="http://www.admin-magazine.com/HPC/Articles/Monitoring-Storage-with-iostat" />
+<meta name="description" content="One tool you can use to monitor the performance of storage devices is iostat. In this article, we talk a bit about iostat, introduce a Python scrip..." />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+
+<meta name="revisit-after" content="1 days">
+
+<meta property="og:description" content="One tool you can use to monitor the performance of storage devices is iostat. In this article, we talk a bit about iostat, introduce a Python scrip..." />
+<meta property="og:title" content="Monitoring Storage Devices with iostat &raquo; ADMIN Magazine" />
+<meta property="og:url" content="http://www.admin-magazine.com/HPC/Articles/Monitoring-Storage-with-iostat" />
+<meta property="og:site_name" content="ADMIN Magazine" />
+
+
+        	        	            <meta property="og:image" content="http://www.admin-magazine.com/HPC/var/ezflow_site/storage/images/hpc/articles/monitoring-storage-with-iostat/72036-1-eng-US/Monitoring-storage-with-iostat_opengraph_w.jpg" />
+    <meta property="og:image:width" content="200" />
+    <meta property="og:image:height" content="238" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <link rel="image_src" href="http://www.admin-magazine.com/HPC/var/ezflow_site/storage/images/hpc/articles/monitoring-storage-with-iostat/72036-1-eng-US/Monitoring-storage-with-iostat_opengraph_w.jpg" />
+        
+
+<!--[if lt IE 9 ]>
+    <meta http-equiv="X-UA-Compatible" content="IE=8,chrome=1" />
+<![endif]-->
+
+<link rel="Alternate" type="application/rss+xml" title="RSS" href="/HPC/rss/feed/news" />
+<link rel="Shortcut icon" href="/extension/adminmag/design/hpc/images/favicon.ico" type="image/x-icon" />
+
+
+        <link rel="stylesheet" type="text/css" href="/var/ezflow_site/cache/public/stylesheets/b6351818b672c8e2db662a0bd7f7c409_all.css" />
+
+<link rel="stylesheet" type="text/css" href="/var/storage/packages/eZ-systems/ezflow_design/files/default/file/classes-colors.css" />
+<link rel="stylesheet" type="text/css" href="/var/storage/packages/eZ-systems/ezflow_design/files/default/file/site-colors.css" />
+
+<script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/e0f83bb91e4dc40a565293fb65cc729f.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+
+  _gaq.push(['_setAccount', 'UA-18608701-1']);
+
+  _gaq.push(['_trackPageview']);
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+  $(document).ready(function() {
+    $('a.track').click( function(e) {
+    _gaq.push(['_trackEvent', 'Link', 'Click', $(this).attr("href")])
+    })();
+  });
+</script>
+
+<script type="text/javascript">
+
+
+$(document).ready(function() {
+    $('.block-type-feed-reader').each(function() {
+        var category = 'Feed-Block: ' + $(this).find('h2').text().replace(/^\s+|\s+$/g, '');
+        $(this).find('a').each( function() {
+            $(this).click(function(event) { // when someone clicks these links
+                event.preventDefault(); // don't open the link yet
+                var label=$(this).attr('href');
+                //var label=$(this).text();
+                var target = $(this).attr("target");
+                var href = $(this).attr("href");
+                _gaq.push(["_trackEvent", category, 'click', label, 0, true]); // create a custom event
+                setTimeout(function() { // now wait 300 milliseconds...
+                    window.open(href,(!target?"_self":target)); // ...and open the link as usual
+                    },300);
+            });
+        });
+    });
+});
+
+</script>
+
+<script type='text/javascript'><!--//<![CDATA[
+    
+	var ados_keywords = ados_keywords || [];
+	if( location.protocol=='https:' ) {
+	    ados_keywords.push('T:SSL');
+	}
+	else {
+	    ados_keywords.push('T:HTTP');
+	}
+    
+
+    	ados_keywords.push('S:Subpage');
+    
+        		    				    					    				    				    					    			    		    				    					    				    				    					    			    	    
+    
+//]]>--></script>
+<script type='text/javascript'><!--//<![CDATA[
+    
+    function browserWidth() {
+	var myWidth = 0;
+	if( typeof( window.innerWidth ) == 'number' ) {
+	    //Non-IE
+	    myWidth = window.innerWidth;
+	}
+	else if( document.documentElement && document.documentElement.clientWidth ) {
+	    //IE 6+ in 'standards compliant mode'
+	    myWidth = document.documentElement.clientWidth;
+	}
+	else if( document.body && document.body.clientWidth ) {
+	    //IE 4 compatible
+	    myWidth = document.body.clientWidth;
+	}
+	return myWidth;
+    }
+    
+//]]>--></script>
+
+    
+	<script type="text/javascript">
+	    var p="http",d="static";
+	    if(document.location.protocol=="https:"){p+="s";d="engine";}
+	    var z=document.createElement("script");
+	    z.type="text/javascript";
+	    z.async=true;
+	    z.src=p+"://"+d+".adzerk.net/ados.js";
+	    var s=document.getElementsByTagName("script")[0];
+	    s.parentNode.insertBefore(z,s);
+	</script>
+    
+
+                <script type='text/javascript'><!--//<![CDATA[
+
+	
+	    var ados = ados || {};
+	    ados.run = ados.run || [];
+	    ados.run.push(function() {
+	
+
+	ados_setKeywords(ados_keywords.join(', '));
+
+	
+            
+            if (browserWidth() >= 768)
+            {
+                ados_add_placement(
+                    4669,
+                    20939,
+                    "zerkbanner_leaderboard",
+                    4).setZone(15993);
+            }            
+            else {
+                ados_add_placement(
+                    4669,
+                    20939,
+                    "zerkbanner_mobile_top",
+                    23).setZone();
+            }                    
+            
+            if (browserWidth() >= 979)
+            {
+                ados_add_placement(
+                    4669,
+                    20939,
+                    "zerkbanner_skyscraper",
+                    6).setZone(15995);
+            }                    
+    
+	ados_load();
+    
+	});
+    
+    //]]>--></script>
+</head>
+<body>
+<div id="Body">
+                <div id="zerkbanner_leaderboard" class="leaderboard span12 hidden-phone">
+        
+    
+</div>            <div id="zerkbanner_skyscraper" class="skyscraper hidden-phone hidden-tablet">
+        
+    
+</div>            
+    <div id="Stage">
+	<header>
+	    <div class="container">
+		<div class="row">
+		    <div class="span12">
+			<div class="row" id="HeaderTop">
+
+			    <div class="span3" id="Logo">
+				<a href="/HPC"><img src="/extension/adminmag/design/hpc/images/logo.png" title="HPC - Admin Magazine" alt="HPC - Admin Magazine" /></a>			    </div>
+			    <div class="span9" id="HeaderRight">
+				<div class="row">
+				    <div class="span3" id="Claim">
+					    <p></p>				    </div>
+				    <div class="span3" id="Newsletter">
+					&nbsp;				    </div>
+				    <div class="span3" id="Search">
+					<div id="searchbox">
+    <form action="/HPC/content/search">
+	<label>search:</label>
+        <input  onfocus="if (value == 'search') {value=''}" onblur="if (value== '') {value='search'}"  name="SearchText" value="search" id="searchtext" class="input_top" type="text" />
+	<input onclick="_gaq.push(['_trackEvent', 'header-search', 'search', 'image-link'])" type="image" class="searchimage" src="/extension/bootstrap/design/bootstrap/images/icons/pfeil_schwarz.gif" alt="search:" />
+	<div id="header-autocomplete-rs"></div>
+    </form>
+</div>
+
+<script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/f15ea6ba467ddf0de5d5722f8750cb0c.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+jQuery('#header-autocomplete-rs').css('width', jQuery('input#searchtext').width() + 60);
+var autocomplete = new eZAJAXAutoComplete({    url: '/HPC/ezjscore/call/ezfind::autocomplete',
+    inputid: 'searchtext',
+    containerid: 'header-autocomplete-rs',
+    minquerylength: 2,
+    resultlimit: 10});
+</script>
+				    </div>
+				</div>
+				<div class="row">
+				    <div class="span9" id="Menue">
+					<ul>
+    </ul>
+
+
+				    </div>
+				</div>
+				<div class="row" id="Tagmenue">
+				    <div class="span9">
+					<div id="topmenu-firstlevel-position">
+    <ul id="topmenu-firstlevel">
+                                                           		    			                                		    			                                		    			                                                                    <li id="node_id_4346"><a href="/HPC" title="Home" class="menu-item-link" rel="/HPC/Home"><span>Home</span></a></li>
+                                                            		    		                                    <li id="node_id_4255"><a href="/HPC/Articles"><span>Articles</span></a></li>
+                                                            		    		                                    <li id="node_id_4252"><a href="/HPC/News"><span>News</span></a></li>
+                                                            		    		                                    <li id="node_id_4527"><a href="/HPC/Newsletter"><span>Newsletter</span></a></li>
+                                                            		    		                                    <li id="node_id_5439"><a href="/HPC/Webinars"><span>Webinars</span></a></li>
+                                                                                                <li id="node_id_4347"><a href="http://www.admin-magazine.com" target="_blank" title="ADMIN" class="menu-item-link" rel="/HPC/ADMIN"><span>ADMIN</span></a></li>
+                                                                                                <li id="node_id_4348"><a href="http://shop.linuxnewmedia.com/us/magazines/admin-magazine.html?utm_source=AMUK&utm_medium=Link&utm_campaign=SHOP" target="_blank" title="Shop" class="menu-item-link" rel="/HPC/Shop"><span>Shop</span></a></li>
+                                                                                                <li id="node_id_4349"><a href="/HPC/About-Us"><span>About Us</span></a></li>
+                                                                    	                </ul>
+</div>
+				    </div>
+				</div>
+			    </div>
+			</div>
+			<div class="row">
+			    <div class="span12" id="Breadcrumb">
+				<div itemscope itemtype="http://data-vocabulary.org/Breadcrumb">
+
+    
+                	    	    
+	    
+	    	    	    	    	        	        <span class="path" itemprop="url"><span itemprop="title">    Home</span></span>
+	    		            	    		&nbsp;<span class="separator">&#187;</span>&nbsp;
+	    	        	    	    
+	    
+	    	    	    	    	        	        <span class="path" itemprop="url"><span itemprop="title">    HPC</span></span>
+	    		            	    		&nbsp;<span class="separator">&#187;</span>&nbsp;
+	    	        	    	    
+	    
+	    	    	    	    	        	        <span class="path" itemprop="url"><span itemprop="title">        <a onclick="_gaq.push(['_trackEvent', 'breadcrumb', '[3] Articles', 'text-link'])" href="/HPC/Articles">Articles</a></span></span>
+	    		            	    		&nbsp;<span class="separator">&#187;</span>&nbsp;
+	    	        	    	    
+	    
+	    	    	    	    	        <span class="path" itemprop="url"><span itemprop="title">        <a onclick="_gaq.push(['_trackEvent', 'breadcrumb', '[4] Monitoring Storage with iostat', 'text-link'])" href="#">Monitoring Stor...</a></span></span>
+	    		                </div>
+			    </div>
+			</div>
+		    </div>
+		</div>
+	    </div>
+	</header>
+	<div class="container" id="mainContent">
+	    <div class="row">		<div id="ContentRight" class="span3">
+		    <div id="vertnav">
+  	<div style="background-color: #ec1c24; color: white; text-align: center; padding: 0px 0px 8px 0px; margin-bottom: 15px;">
+<div class="newsletter_single_block">
+	<div id="mc_embed_signup">
+		<p style="font-weight: bold; font-size: 16px;padding: 3px 0px;">Sign up for our Newsletter</p>
+		<form action="http://linuxnewmedia.us2.list-manage.com/subscribe/post?u=1c76cb37f73773b4962ae429b&amp;id=6820c9c211" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate">
+			<input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL">
+			<label for="mce-EMAIL" style="display: block; font-size: 12px; padding-right: 0px;">Email Address</label>
+			<input type="hidden" value="2" name="group[4377][2]" id="mce-group[4377]-4377-1">
+			<div class="response" id="mce-error-response" style="display:none"></div>
+			<div class="response" id="mce-success-response" style="display:none"></div>
+			<input type="submit" value="Subscribe" name="subscribe" id="mc-embedded-subscribe" class="button" />
+		</form>
+
+<script type="text/javascript">
+var fnames = new Array();var ftypes = new Array();fnames[0]='EMAIL';ftypes[0]='email';fnames[1]='FNAME';ftypes[1]='text';fnames[2]='LNAME';ftypes[2]='text';
+try {
+    var jqueryLoaded=jQuery;
+    jqueryLoaded=true;
+} catch(err) {
+    var jqueryLoaded=false;
+}
+var head= document.getElementsByTagName('head')[0];
+if (!jqueryLoaded) {
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js';
+    head.appendChild(script);
+    if (script.readyState && script.onload!==null){
+        script.onreadystatechange= function () {
+              if (this.readyState == 'complete') mce_preload_check();
+        }    
+    }
+}
+var script = document.createElement('script');
+script.type = 'text/javascript';
+script.src = 'http://downloads.mailchimp.com/js/jquery.form-n-validate.js';
+head.appendChild(script);
+var err_style = '';
+try{
+    err_style = mc_custom_error_style;
+} catch(e){
+    err_style = '#mc_embed_signup input.mce_inline_error{border-color:red;} #mc_embed_signup div.mce_inline_error{margin: 0 0 1em 0; padding: 5px 10px; z-index: 1; color:red;}';
+}
+var head= document.getElementsByTagName('head')[0];
+var style= document.createElement('style');
+style.type= 'text/css';
+if (style.styleSheet) {
+  style.styleSheet.cssText = err_style;
+} else {
+  style.appendChild(document.createTextNode(err_style));
+}
+head.appendChild(style);
+setTimeout('mce_preload_check();', 250);
+
+var mce_preload_checks = 0;
+function mce_preload_check(){
+    if (mce_preload_checks>40) return;
+    mce_preload_checks++;
+    try {
+        var jqueryLoaded=jQuery;
+    } catch(err) {
+        setTimeout('mce_preload_check();', 250);
+        return;
+    }
+    try {
+        var validatorLoaded=jQuery("#fake-form").validate({});
+    } catch(err) {
+        setTimeout('mce_preload_check();', 250);
+        return;
+    }
+    mce_init_form();
+}
+function mce_init_form(){
+    jQuery(document).ready( function($) {
+      var options = { errorClass: 'mce_inline_error', errorElement: 'div', onkeyup: function(){}, onfocusout:function(){}, onblur:function(){}  };
+      var mce_validator = $("#mc-embedded-subscribe-form").validate(options);
+      $("#mc-embedded-subscribe-form").unbind('submit');//remove the validator so we can get into beforeSubmit on the ajaxform, which then calls the validator
+      options = { url: 'http://linuxnewmedia.us2.list-manage1.com/subscribe/post-json?u=1c76cb37f73773b4962ae429b&id=6820c9c211&c=?', type: 'GET', dataType: 'json', contentType: "application/json; charset=utf-8",
+                    beforeSubmit: function(){
+                        $('#mce_tmp_error_msg').remove();
+                        $('.datefield','#mc_embed_signup').each(
+                            function(){
+                                var txt = 'filled';
+                                var fields = new Array();
+                                var i = 0;
+                                $(':text', this).each(
+                                    function(){
+                                        fields[i] = this;
+                                        i++;
+                                    });
+                                $(':hidden', this).each(
+                                    function(){
+                                        var bday = false;
+                                        if (fields.length == 2){
+                                            bday = true;
+                                            fields[2] = {'value':1970};//trick birthdays into having years
+                                        }
+                                    	if ( fields[0].value=='MM' && fields[1].value=='DD' && (fields[2].value=='YYYY' || (bday && fields[2].value==1970) ) ){
+                                    		this.value = '';
+									    } else if ( fields[0].value=='' && fields[1].value=='' && (fields[2].value=='' || (bday && fields[2].value==1970) ) ){
+                                    		this.value = '';
+									    } else {
+	                                        this.value = fields[0].value+'/'+fields[1].value+'/'+fields[2].value;
+	                                    }
+                                    });
+                            });
+                        return mce_validator.form();
+                    }, 
+                    success: mce_success_cb
+                };
+      $('#mc-embedded-subscribe-form').ajaxForm(options);      
+      
+    });
+}
+function mce_success_cb(resp){
+    $('#mce-success-response').hide();
+    $('#mce-error-response').hide();
+    if (resp.result=="success"){
+        $('#mce-'+resp.result+'-response').show();
+        $('#mce-'+resp.result+'-response').html(resp.msg);
+        $('#mc-embedded-subscribe-form').each(function(){
+            this.reset();
+    	});
+    } else {
+        var index = -1;
+        var msg;
+        try {
+            var parts = resp.msg.split(' - ',2);
+            if (parts[1]==undefined){
+                msg = resp.msg;
+            } else {
+                i = parseInt(parts[0]);
+                if (i.toString() == parts[0]){
+                    index = parts[0];
+                    msg = parts[1];
+                } else {
+                    index = -1;
+                    msg = resp.msg;
+                }
+            }
+        } catch(e){
+            index = -1;
+            msg = resp.msg;
+        }
+        try{
+            if (index== -1){
+                $('#mce-'+resp.result+'-response').show();
+                $('#mce-'+resp.result+'-response').html(msg);            
+            } else {
+                err_id = 'mce_tmp_error_msg';
+                html = '<div id="'+err_id+'" style="'+err_style+'"> '+msg+'</div>';
+                
+                var input_id = '#mc_embed_signup';
+                var f = $(input_id);
+                if (ftypes[index]=='address'){
+                    input_id = '#mce-'+fnames[index]+'-addr1';
+                    f = $(input_id).parent().parent().get(0);
+                } else if (ftypes[index]=='date'){
+                    input_id = '#mce-'+fnames[index]+'-month';
+                    f = $(input_id).parent().parent().get(0);
+                } else {
+                    input_id = '#mce-'+fnames[index];
+                    f = $().parent(input_id).get(0);
+                }
+                if (f){
+                    $(f).append(html);
+                    $(input_id).focus();
+                } else {
+                    $('#mce-'+resp.result+'-response').show();
+                    $('#mce-'+resp.result+'-response').html(msg);
+                }
+            }
+        } catch(e){
+            $('#mce-'+resp.result+'-response').show();
+            $('#mce-'+resp.result+'-response').html(msg);
+        }
+    }
+}
+
+</script>
+
+	</div>
+</div>
+</div>
+  	<h2><a href="/HPC/Articles">Articles</a></h2>
+  	<h2><a href="/HPC/News">News</a></h2>
+  	
+	<div class="sidbarmenublock">
+  		<h2>Vendors</h2>
+	  	<ul>	<li><a href="/HPC/Vendors/AMD">AMD</a></li>	<li><a href="/HPC/Vendors/Cray">Cray</a></li>	<li><a href="/HPC/Vendors/SGI">SGI</a></li>	<li><a href="/HPC/Vendors/Dell">Dell</a></li></ul>	</div>
+	
+  	<h2><a href="/HPC/Whitepapers">Whitepapers</a></h2>
+  	<h2><a href="/HPC/Write-for-Us">Write for Us</a></h2>
+  	<h2><a href="/HPC/About-Us">About Us</a></h2>
+</div>		</div>
+		<div id="ContentLeft" class="span9">
+		    
+<div class="full article">
+    <div class="addthis_toolbox addthis_default_style">
+	    </div>
+    		    <div class="attribute-image lead-image">
+		
+
+
+
+
+            
+     
+    
+    
+
+
+
+
+        	<img src="/var/ezflow_site/storage/images/hpc/articles/monitoring-storage-with-iostat/72036-1-eng-US/Monitoring-storage-with-iostat_medium.jpg" alt="">
+        		<div class="attribute-caption">    	    <p>One tool you can use to monitor the performance of storage devices is&nbsp;<i>iostat</i>. In this article, we talk a bit about iostat, introduce a Python script that takes iostat data and creates an HTML report with charts, and look at a simple example of using iostat to examine storage device behavior while running IOzone.</p>
+
+</div>
+	    </div>
+	                        <h2></h2>
+    <h1>    Monitoring Storage Devices with iostat</h1>
+    		<div class="attribute-image"></div>
+	<div class="attribute-caption"></div>
+		<div class="attribute-author">
+	    
+    	        	            <div class="author">
+		    	    	    	    	    	    			    	    
+
+	    	    		<span class="author" itemprop="author">Jeff Layton</span>
+	    	    	    </div>
+	</div>
+        <div class="attribute-body">
+	<p>If you are a system administrator of many systems, or even of just a desktop or laptop, you are likely monitoring your system in some fashion. This is particularly true in high-performance computing because the focus is on squeezing every little bit of performance from the system. Unfortunately, one of the system aspects routinely ignored is storage.</p><p>A few years ago I wrote an article introducing <u><a href="http://sebastien.godard.pagesperso-orange.fr/man_iostat.html" target="_blank">iostat</a></u>. I started the article with a rant about the poor state of storage monitoring tools. The current state isn't much better than when I wrote the article, but I still see a large number of people who do not monitor their storage at all. (At a minimum, you should be using <u><a href="http://members.dslextreme.com/users/billw/gkrellm/gkrellm.html" target="_blank">GKrellM</a></u> to monitor the storage in your desktop.) However, a few tools can help you monitor or understand your storage. Plus, some simple scripts can easily be written that take the output from these tools and create a graphical view of various aspects of the system.</p><p>In this article, I want to review iostat, a tool for monitoring your storage devices, and briefly show you how to use it. Then, I want to present a simple Python script I wrote to parse the data, plot it, and create an HTML report. This script illustrates what can be done to add graphical analysis capabilities to command-line-based tools. Finally, I want to use iostat and this script to examine the behavior of a storage device while running <u><a href="http://www.iozone.org/" target="_blank">IOzone</a></u>.</p><p><b>iostat</b></p><p>The <i>iostat</i> command-line tool is part of the <u><a href="http://sebastien.godard.pagesperso-orange.fr/" target="_blank"><i>sysstat</i></a></u> family of tools that comes with virtually every distribution of Linux. If you are not familiar with the <i>sysstat</i> tools, they are a collection of tools for monitoring various aspects of your system. They consist of:</p>
+<ul>
+
+<li><u><a href="http://sebastien.godard.pagesperso-orange.fr/man_sar.html" target="_blank"><i>sar</i></a></u></li>
+
+<li><u><a href="http://sebastien.godard.pagesperso-orange.fr/man_sadf.html" target="_blank"><i>sadf</i></a></u></li>
+
+<li><u><a href="http://sebastien.godard.pagesperso-orange.fr/man_mpstat.html" target="_blank"><i>mpstat</i></a></u></li>
+
+<li><i>iostat</i></li>
+
+<li><u><a href="http://sebastien.godard.pagesperso-orange.fr/man_nfsiostat.html" target="_blank"><i>nfsiostat</i></a></u></li>
+
+<li><u><a href="http://sebastien.godard.pagesperso-orange.fr/man_cifsiostat.html" target="_blank"><i>cifsiostat</i></a></u></li>
+
+<li><u><a href="http://sebastien.godard.pagesperso-orange.fr/man_pidstat.html" target="_blank"><i>pidstart</i></a></u></li>
+
+<li><u><a href="http://sebastien.godard.pagesperso-orange.fr/documentation.html" target="_blank"><i>sa</i>&nbsp;tools</a></u></li>
+
+</ul>
+<p>The output from iostat can vary depending on the options you chose, but some sample output is shown in Listing 1.</p><p><b>Listing 1: Sample iostat Output</b></p>
+<pre>[laytonj@home8 IOSTAT]$ iostat -c -d -x -t -m /dev/md1 2 100
+Linux 2.6.18-308.16.1.el5.centos.plus (home8)
+
+01/31/2013      _i686_  (1 CPU)01/31/2013 09:56:01 AM
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+          14.78    0.38    3.47    2.16    0.00   79.21
+
+Device:         rrqm/s   wrqm/s     r/s     w/s    rMB/s    wMB/s avgrq-sz avgqu-sz   await r_await  w_await  svctm  %util
+md1               0.00     0.00    0.04    0.05     0.00     0.00     8.17     0.00    0.00    0.00     0.00   0.00   0.00
+
+01/31/2013 09:56:03 AM
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           6.00    0.00    2.00    0.50    0.00   91.50
+
+Device:         rrqm/s   wrqm/s     r/s     w/s    rMB/s    wMB/s avgrq-sz avgqu-sz   await r_await  w_await  svctm  %util
+md1               0.00     0.00    0.00    0.00     0.00     0.00     0.00     0.00    0.00    0.00     0.00   0.00   0.00
+
+01/31/2013 09:56:05 AM
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+          55.00    0.00   13.50    0.00    0.00   31.50
+
+Device:         rrqm/s   wrqm/s     r/s     w/s    rMB/s    wMB/s avgrq-sz avgqu-sz   await r_await  w_await  svctm  %util
+md1               0.00     0.00    0.00    0.00     0.00     0.00     0.00     0.00    0.00    0.00     0.00   0.00   0.00</pre><p>The command I used takes a snapshot of the status of the device <i>/dev/md1</i>, which is a software RAID-1 device I use for the home directory on my desktop. I told iostat to capture the data every two seconds (this is the <i>2</i> after the device) and do it 100 times (this is the <i>100</i> at the end of the command). This means I captured 200 seconds of data in two-second intervals. The <i>-c</i> option displays the CPU report, <i>-d</i> displays the device utilization report, <i>-x</i> displays extended statistics, <i>-t</i> prints the time for each report displayed (good for getting a time history), and <i>-m</i> displays the statistics in megabytes per second (MB/s in the output).</p><p>To begin, iostat prints some basic output about the system (first line in the output file) and then starts writing the status of the device. Using the options of the previous example, each status has three parts: (1) the time stamp, (2) the CPU status, and (3) the device status. Each status has a set of column labels corresponding to the measurement (they are wrapped in the output above).</p><p>The CPU status line has just a few columns of output (the man pages for iostat were used for the list below):</p>
+<ul>
+
+<li><b>%user:</b> The percentage of CPU utilization that occurred while executing at the user level (this is the application usage).</li>
+
+<li><b>%nice:</b> The percentage of CPU utilization that occurred while executing at the user level with <i>nice</i> priority.</li>
+
+<li><b>%system:</b> The percentage of CPU utilization that occurred while executing at the system level (kernel).</li>
+
+<li><b>%iowait:</b> The percentage of time that the CPU or CPUs were idle during which the system had an outstanding disk I/O request.</li>
+
+<li><b>%steal:</b> The percentage of time spent in involuntary wait by the virtual CPU or CPUs while the hypervisor was servicing another virtual processor.</li>
+
+<li><b>%idle:</b> The percentage of time that the CPU or CPUs were idle and the systems did not have an outstanding disk I/O request.</li>
+
+</ul>
+<p>Note that the CPU values are system-wide averages for all processors when your system has more than one core (which is pretty much everything today, except for my old desktop). Device status output is a bit more extensive and is listed in Table 1 (again, using the man pages for iostat).</p><p><b>Table 1: Device Status Output</b></p><table class="renderedtable" cellpadding="2" cellspacing="0" width="100%" style="width: 100%"><tr><td width="11%" valign="top" style="vertical-align: top">  <b>Units</b>
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  <b>Definition</b>
+  </td>
+</tr><tr class="bglight"><td width="11%" valign="top" style="vertical-align: top">  rrqm/s
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  The number of read requests merged per second queued to the device.
+  </td>
+</tr><tr class="bgdark"><td width="11%" valign="top" style="vertical-align: top">  wrqm/s
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  The number of write requests merged per second queued to the device.
+  </td>
+</tr><tr class="bglight"><td width="11%" valign="top" style="vertical-align: top">  r/s
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  The number of read requests issued to the device per second.
+  </td>
+</tr><tr class="bgdark"><td width="11%" valign="top" style="vertical-align: top">  w/s
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  The number of write requests issued to the device per second.
+  </td>
+</tr><tr class="bglight"><td width="11%" valign="top" style="vertical-align: top">  rMB/s
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  The number of megabytes read from the device per second. (I chose to used MB/s for the output.)
+  </td>
+</tr><tr class="bgdark"><td width="11%" valign="top" style="vertical-align: top">  wMB/s
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  The number of megabytes written to the device per second. (I chose to use MB/s for the output.)
+  </td>
+</tr><tr class="bglight"><td width="11%" valign="top" style="vertical-align: top">  avgrq-sz
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  The average size (in sectors) of the requests issued to the device.
+  </td>
+</tr><tr class="bgdark"><td width="11%" valign="top" style="vertical-align: top">  avgqu-sz
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  The average queue length of the requests issued to the device.
+  </td>
+</tr><tr class="bglight"><td width="11%" valign="top" style="vertical-align: top">  await
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  The average time (milliseconds) for I/O requests issued to the device to be served. This includes the time spent by the requests in queue and the time spent servicing them.
+  </td>
+</tr><tr class="bgdark"><td width="11%" valign="top" style="vertical-align: top">  r_await
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  The average time (in milliseconds) for read requests issued to the device to be served. This includes the time spent by the requests in queue and the time spent servicing them.
+  </td>
+</tr><tr class="bglight"><td width="11%" valign="top" style="vertical-align: top">  w_await
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  The average time (in milliseconds) for write requests issued to the device to be served. This includes the time spent by the requests in queue and the time spent servicing them.
+  </td>
+</tr><tr class="bgdark"><td width="11%" valign="top" style="vertical-align: top">  svctm
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  The average service time (in milliseconds) for I/O requests issued to the device. Warning! Do not trust this field; it will be removed in a future version of sysstat.
+  </td>
+</tr><tr class="bglight"><td width="11%" valign="top" style="vertical-align: top">  %util
+  </td>
+<td width="89%" valign="top" style="vertical-align: top">  Percentage of CPU time during which I/O requests were issued to the device (bandwidth utilization for the device). Device saturation occurs when this values is close to 100%.
+  </td>
+</tr>
+</table>
+<p>These fields are specific to the set of options used, as well as the device. A simple example of this is that I used the <i>-m</i> option, which outputs the measurements in units of MB/s instead of KB/s.</p><p><b>Reporting iostat Output with Plots</b></p><p>Many of us have been using the command line for many years and are adept at interpreting the results. However, as an experiment, try looking at the time history output from a long-running command. It's impossible, even with eidetic memory. Moreover, I like to look at various parameters relative to each other, so I can get a better feel for how things are interacting within the system. Consequently, I decided to write a simple Python script that parses through the iostat output and creates the plots I like to see. Taking things a little further, the script creates HTML so I can see the plots all in one document (and either convert it to pdf or to Word).</p><p>The script, <u><a href="http://clusterbuffer.wordpress.com/file-system-tools/iostat_plot/" target="_blank">IOstat_plotter</a></u>, can be downloaded and run easily. It uses a few Python modules: <u><a href="http://docs.python.org/2/library/shlex.html" target="_blank">shlex</a></u>, <u><a href="http://docs.python.org/2/library/time.html" target="_blank">time</a></u>, <u><a href="http://matplotlib.org/" target="_blank">matplotlib</a></u>, and <u><a href="http://docs.python.org/2/library/os.html" target="_blank">os</a></u>.</p><p>I tested IOstat_plotter with Matplotlib 0.91 and a few others to make sure it worked correctly. I tested on a couple versions of Python – 2.6.x and 2.7.x – but not on Python 3.x. I tried to keep the script simple and basic, so it should just work (famous last words), but I offer no guarantees. One last comment about the script: I know lots of people won't like my style or that say I’m not “Pythonic” enough. My answer is that I totally agree. My goal was to create something that easily allowed me to view iostat data. If you have suggestions on making the code better, I would dearly love to hear them – if they are accompanied by some code and not just general comments. (As I hold up the Vulcan greeting with my right hand, just let me say, “talk to the hand because the ears aren't listening.”)</p><p>I did hard code some aspects in the script to look for some specific output. The specific <i>iostat</i> command I used is:</p>
+<pre>[laytonj@home8 IOSTAT]$ iostat -c -d -x -t -m /dev/md1 2 100 &gt; iostat.out</pre><p>The number of samples and the sampling rate (last two numbers) can be anything. Also the device, which in this case is <i>/dev/md1</i> (a software RAID-1 device consisting of two SATA disks), can be any disk device or disk partition you want. The output file, <i>iostat.out</i> in the command line above, is also arbitrary. Other than that, I suggest leaving the options as they are. However, if you feel industrious, it’s pretty easy to change the script to allow output in KB/s or other units or even to allow it to “autodetect.”</p><p>Once iostat is done gathering data, running the script is simple:</p>
+<pre>[laytonj@home8 IOSTAT]$ ./iostat_plotter.py iostat.out</pre><p>The command line argument is the iostat output file (in this example, <i>iostat.out</i>). The script will print some basic information about what it is doing as it runs. It creates a subdirectory, <i>HTML_REPORT</i>, from the current working directory and puts the plots along with a file named <i>report.html</i> in that subdirectory. Once the script is done, just open <i>report.html</i> in a browser or a word processor (e.g., LibreOffice). The HTML is simple, so any browser should work (if it does barf on the HTML, you have a seriously broken browser).</p><p>Note that all plots use time as the <i>x</i>-axis data. This data is also normalized by the start time of the iostat run; therefore, all plots will start with 0 on the x-axis. This can be changed in the script if you like.</p><p><b>Example</b></p><p>To illustrate what iostat can do, I ran it while I was doing a write/rewrite test with IOzone. The listing below is the set of commands I used:</p>
+<pre>date
+iostat -c -d -x -t -m /dev/sda1 1 250 &gt; iozone_w_iostat_sda1.out&amp;
+sleep 10
+./iozone -i 0 -r 64k -s -3g -e -w &gt; iozone.out
+sleep 10
+date</pre><p>I put the two <i>sleep</i> commands in the script so I could get some “quiet” data before and after the run. (Note: Sometimes it’s good to look at what the device is doing for some time before and after the critical time period to better understand the state of the device(s) before the time of interest.) The output from iostat is sent to a file, <i>iozone_w_iostat_sda1.out</i>. This is the file used by <i>iostat_plotter</i> to parse the data and plot it. I am also using iostat to monitor the device <i>/dev/sda1</i>, which is one of the disks in a RAID-1 group of two disks. I did this to get more information on what the storage devices are doing because running iostat against <i>/dev/md1</i> doesn't show as much detail as running it against a physical device.</p><p>Next, I ran <i>iostat_plotter</i> against the iostat output file. The generated HTML report is listed below.</p><p>********************* Begin report *********************</p><a name="eztoc0_0_1" id="eztoc0_0_1"></a><h4>Introduction</h4><p>This report plots the iostat output contained in file: iozone_w_iostat_sda1.out. It contains a series of plots of the output from iostat that was captured. The report is contained in a subdirectory HTML_REPORT. In that directory you will find a file name report.html. Just open that file in a browser and you will see the plots. Please note that all plots are referenced to the beginning time of the iostat run.</p><p>IOstat outputs a number of basic system parameters when it creates the output. These parameters are listed below.</p>
+<ul>
+
+<li>System Name: home8</li>
+
+<li>OS: Linux</li>
+
+<li>Kernel: 2.6.18-308.16.1.el5.centos.plus</li>
+
+<li>Number of Cores 1</li>
+
+<li>Core Type _i686_</li>
+
+</ul>
+<p>The iostat run was started on 02/03/2013 at 15:59:00 PM.</p><p>Below are hyperlinks to various plots within the report.</p>
+<ol>
+
+<li><u>CPU Utilization</u></li>
+
+<li><u>IOwait Percentage Time</u></li>
+
+<li><u>Steal Percentage Time</u></li>
+
+<li><u>Idle Percentage Time</u></li>
+
+<li><u>Read Throughput and Total CPU Utilization</u></li>
+
+<li><u>Write Throughput and Total CPU Utilization</u></li>
+
+<li><u>Read Requests Complete Rate, Write Requests Complete Rate, and Total CPU Utilization</u></li>
+
+<li><u>Read Requests Merged Rate, Write Requests Merged Rate, and Total CPU Utilization</u></li>
+
+<li><u>Average Request Size, Average Queue Length, and Total CPU Utilization Percentage</u></li>
+
+<li><u>Average Read Request Time, Average Write Request Time, and Total CPU Utilization</u></li>
+
+<li><u>Percentage CPU Time for IO Requests and Total CPU Utilization</u></li>
+
+</ol>
+<a name="eztoc0_0_1_1" id="eztoc0_0_1_1"></a><h5>1. Percentage CPU Time (CPU Utilization)</h5><p>This figure plots three types of CPU Utilization: (1) User, (2) System, and (3) Nice. The User utilization is the percentage of CPU utilization that occurred while executing at the user level (applications).The System utilization is the percentage of CPU utilization that occurred while executing at the system level (kernel). The third time is the Nice utilization which is the percentage of CPU utilization that occurred while executing at the user level with nice priority.</p>
+<div class="" id="">    
+    <script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/cdc910e7f1ca624e818c5c8c9ebc6e8d.js" charset="utf-8"></script>
+
+    
+    
+        	                		        
+
+	<a href="http://www.admin-magazine.com/var/ezflow_site/storage/images/media/images/iostat-f012/72096-1-eng-US/iostat-F01_reference.jpg" rel="lightbox[image]" title="iostat-F01">
+	    <img src="/var/ezflow_site/storage/images/media/images/iostat-f012/72096-1-eng-US/iostat-F01_reference.jpg" alt="">
+	</a>
+	    </div><p class=" text-center"><b>&nbsp;</b></p><p class=" text-left"><b>Figure 1 - Percentage CPU Utilization (User, System, and Nice)</b></p><p><b>2. IOWait Percentage Time</b></p><p>This is the percentage of time that the CPU or CPUs were idle during which the system had an outstanding disk device I/O request.</p>
+<div class="" id="">    
+    <script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/cdc910e7f1ca624e818c5c8c9ebc6e8d.js" charset="utf-8"></script>
+
+    
+    
+        	                		        
+
+	<a href="http://www.admin-magazine.com/var/ezflow_site/storage/images/media/images/iostat-f022/72100-1-eng-US/iostat-F02_reference.jpg" rel="lightbox[image]" title="iostat-F02">
+	    <img src="/var/ezflow_site/storage/images/media/images/iostat-f022/72100-1-eng-US/iostat-F02_reference.jpg" alt="">
+	</a>
+	    </div><p class=" text-left"><b>Figure 2 - Percentage CPU Time waiting to process disk requests</b></p><a name="eztoc0_0_1_2" id="eztoc0_0_1_2"></a><h5>3. Steal Percentage Time</h5><p>This is the percentage of time spent in involuntary wait by the virtual CPU or CPUs while the hypervisor was servicing another virtual processor.</p>
+<div class="" id="">    
+    <script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/cdc910e7f1ca624e818c5c8c9ebc6e8d.js" charset="utf-8"></script>
+
+    
+    
+        	                		        
+
+	<a href="http://www.admin-magazine.com/var/ezflow_site/storage/images/media/images/iostat-f032/72104-1-eng-US/iostat-F03_reference.jpg" rel="lightbox[image]" title="iostat-F03">
+	    <img src="/var/ezflow_site/storage/images/media/images/iostat-f032/72104-1-eng-US/iostat-F03_reference.jpg" alt="">
+	</a>
+	    </div><p class=" text-left"><b>Figure 3 - Percentage CPU Time in involuntary waiting</b></p><a name="eztoc0_0_1_3" id="eztoc0_0_1_3"></a><h5>4. Idle Percentage Time</h5><p>This is the percentage of time that the CPU or CPUs were idle and the system did not have an outstanding disk I/O request.</p>
+<div class="" id="">    
+    <script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/cdc910e7f1ca624e818c5c8c9ebc6e8d.js" charset="utf-8"></script>
+
+    
+    
+        	                		        
+
+	<a href="http://www.admin-magazine.com/var/ezflow_site/storage/images/media/images/iostat-f042/72108-1-eng-US/iostat-F04_reference.jpg" rel="lightbox[image]" title="iostat-F04">
+	    <img src="/var/ezflow_site/storage/images/media/images/iostat-f042/72108-1-eng-US/iostat-F04_reference.jpg" alt="">
+	</a>
+	    </div><p class=" text-left"><b>Figure 4 - Percentage CPU Time in idle activities with no IO requests</b></p><a name="eztoc0_0_1_4" id="eztoc0_0_1_4"></a><h5>5. Read Throughput and Total CPU Utilization</h5><p>This figure has two parts. The top graph plots the Read Rate in MB/s versus time and the bottom graph plots the Total CPU Utilization percentage (User Time + System Time).</p>
+<div class="" id="">    
+    <script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/cdc910e7f1ca624e818c5c8c9ebc6e8d.js" charset="utf-8"></script>
+
+    
+    
+        	                		        
+
+	<a href="http://www.admin-magazine.com/var/ezflow_site/storage/images/media/images/iostat-f052/72112-1-eng-US/iostat-F05_reference.jpg" rel="lightbox[image]" title="iostat-F05">
+	    <img src="/var/ezflow_site/storage/images/media/images/iostat-f052/72112-1-eng-US/iostat-F05_reference.jpg" alt="">
+	</a>
+	    </div><p class=" text-left"><b>Figure 5 - Read Throughput (MB/s) and Total CPU Utilization Percentage</b></p><a name="eztoc0_0_1_5" id="eztoc0_0_1_5"></a><h5>6. Write Throughput and Total CPU Utilization</h5><p>This figure has two parts. The top graph plots the Write Rate in MB/s versus time and the bottom graph plots the Total CPU Utilization percentage (User Time + System Time).</p>
+<div class="" id="">    
+    <script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/cdc910e7f1ca624e818c5c8c9ebc6e8d.js" charset="utf-8"></script>
+
+    
+    
+        	                		        
+
+	<a href="http://www.admin-magazine.com/var/ezflow_site/storage/images/media/images/iostat-f062/72116-1-eng-US/iostat-F06_reference.jpg" rel="lightbox[image]" title="iostat-F06">
+	    <img src="/var/ezflow_site/storage/images/media/images/iostat-f062/72116-1-eng-US/iostat-F06_reference.jpg" alt="">
+	</a>
+	    </div><p class=" text-left"><b>Figure 6 - Write Throughput (MB/s) and Total CPU Utilization Percentage</b></p><a name="eztoc0_0_1_6" id="eztoc0_0_1_6"></a><h5>7. Read Requests Complete, Write Requests Complete, and Total CPU Utilization</h5><p>This figure has three parts. The top graph plots the number (after merges) of read requests completed per second for the device versus time. The middle graph plots the number (after merges) of write requests completed per second for the device versus time. The bottom graph plots the Total CPU Utilization percentage (User Time + System Time).</p>
+<div class="" id="">    
+    <script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/cdc910e7f1ca624e818c5c8c9ebc6e8d.js" charset="utf-8"></script>
+
+    
+    
+        	                		        
+
+	<a href="http://www.admin-magazine.com/var/ezflow_site/storage/images/media/images/iostat-f072/72120-1-eng-US/iostat-F07_reference.jpg" rel="lightbox[image]" title="iostat-F07">
+	    <img src="/var/ezflow_site/storage/images/media/images/iostat-f072/72120-1-eng-US/iostat-F07_reference.jpg" alt="">
+	</a>
+	    </div><p class=" text-left"><b>Figure 7 - Read Requests Completed Rate (requests/s), Write Requests Completed Rate (requests/s), and Total CPU Utilization Percentage</b></p><a name="eztoc0_0_1_7" id="eztoc0_0_1_7"></a><h5>8. Read Requests Merged rate, Write Requests Merged rate, and Total CPU Utilization</h5><p>This figure has three parts. The top graph plots the number of read requests merged per second that were queued to the device. The middle graph plots the number of write requests merged per second that were queued to the device. The bottom graph plots the Total CPU Utilization percentage (User Time + System Time).</p>
+<div class="" id="">    
+    <script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/cdc910e7f1ca624e818c5c8c9ebc6e8d.js" charset="utf-8"></script>
+
+    
+    
+        	                		        
+
+	<a href="http://www.admin-magazine.com/var/ezflow_site/storage/images/media/images/iostat-f083/72124-1-eng-US/iostat-F08_reference.jpg" rel="lightbox[image]" title="iostat-F08">
+	    <img src="/var/ezflow_site/storage/images/media/images/iostat-f083/72124-1-eng-US/iostat-F08_reference.jpg" alt="">
+	</a>
+	    </div><p class=" text-left"><b>Figure 8 - Read Requests Merged Rate (requests/s), Write Requests Merged Rate (requests/s), and Total CPU Utilization Percentage</b></p><a name="eztoc0_0_1_8" id="eztoc0_0_1_8"></a><h5>9. Average Request Size, Average Queue Length, and Total CPU Utilization</h5><p>This figure has three parts. The top graph plots the average size (in sectors) of the requests that were issued to the device. The middle graph plots the average queue length of the requests that were issued to the device. The bottom graph plots the Total CPU Utilization percentage (User Time + System Time).</p>
+<div class="" id="">    
+    <script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/cdc910e7f1ca624e818c5c8c9ebc6e8d.js" charset="utf-8"></script>
+
+    
+    
+        	                		        
+
+	<a href="http://www.admin-magazine.com/var/ezflow_site/storage/images/media/images/iostat-f09new2/72444-1-eng-US/iostat-F09NEW_reference.jpg" rel="lightbox[image]" title="iostat-F09NEW">
+	    <img src="/var/ezflow_site/storage/images/media/images/iostat-f09new2/72444-1-eng-US/iostat-F09NEW_reference.jpg" alt="">
+	</a>
+	    </div><p class=" text-left"><b>Figure 9 - Average Request Size (sectors), Average Queue Length, and Total CPU Utilization Percentage</b></p><a name="eztoc0_0_1_9" id="eztoc0_0_1_9"></a><h5>10. Average Read Request Time (ms), Average Write Request Time (ms), and Total CPU Utilization</h5><p>This figure has three parts. The top graph plots the average time (in milliseconds) for read requests issued to the device to be served. This includes the time spent by the requests in queue and the time spent servicing them. The middle graph plots the average time (in milliseconds) for write requests issued to the device to be served. This includes the time spent by the requests in queue and the time spent servicing them. The bottom graph plots the Total CPU Utilization percentage (User Time + System Time).</p>
+<div class="" id="">    
+    <script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/cdc910e7f1ca624e818c5c8c9ebc6e8d.js" charset="utf-8"></script>
+
+    
+    
+        	                		        
+
+	<a href="http://www.admin-magazine.com/var/ezflow_site/storage/images/media/images/iostat-f102/72132-1-eng-US/iostat-F10_reference.jpg" rel="lightbox[image]" title="iostat-F10">
+	    <img src="/var/ezflow_site/storage/images/media/images/iostat-f102/72132-1-eng-US/iostat-F10_reference.jpg" alt="">
+	</a>
+	    </div><p class=" text-left"><b>Figure 10 - Average Read Request Time (ms), Average Write Request Time (ms), and Total CPU Utilization</b></p><a name="eztoc0_0_1_10" id="eztoc0_0_1_10"></a><h5>11. Percentage CPU Time for IO Requests and Total CPU Utilization</h5><p>This figure has two parts. The top graph plots the percentage of CPU time during which I/O requests were issued to the device (bandwidth utilization for the device). Device saturation occurs when this value is close to 100%. The bottom graph plots the Total CPU Utilization percentage (User Time + System Time).</p>
+<div class="" id="">    
+    <script type="text/javascript" src="/var/ezflow_site/cache/public/javascript/cdc910e7f1ca624e818c5c8c9ebc6e8d.js" charset="utf-8"></script>
+
+    
+    
+        	                		        
+
+	<a href="http://www.admin-magazine.com/var/ezflow_site/storage/images/media/images/iostat-f112/72136-1-eng-US/iostat-F11_reference.jpg" rel="lightbox[image]" title="iostat-F11">
+	    <img src="/var/ezflow_site/storage/images/media/images/iostat-f112/72136-1-eng-US/iostat-F11_reference.jpg" alt="">
+	</a>
+	    </div><p class=" text-left"><b>Figure 11 - Percentage CPU Time for IO Requests and Total CPU Utilization</b></p><p>&nbsp;</p><p>********************* End report *********************</p><p>To understand what iostat is communicating, I’ll walk you through the report.</p><p><b>1. Percent CPU Time (CPU Utilization)</b></p><p>The first plot is about CPU utilization (Figure 1). The three graphs plot the user CPU percentage, the percentage of CPU utilization that occurs while executing at the user level (applications); the system CPU percentage, the percentage of CPU utilization that occurs while executing at the system level; and the <i>nice</i> CPU percentage, the percentage of CPU utilization that occurs while executing at the user level with <i>nice</i> priority. In the figure, you can see that the user CPU utilization isn’t too high, but it is definitely noticeable. However, you can see that the system CPU percentage (i.e., the kernel) is greater than 60% during most of the run. In fact, it is close to 100% during the write test in IOzone and around 60%–80% during the rewrite test. Also notice that at around 90 seconds or so, a <i>nice</i> task uses about 1.6% of the CPU. Although this is pretty low, it illustrates that you shouldn’t ignore CPU utilization by <i>nice</i> tasks.</p><p><b>2. <b>Percent&nbsp;</b>IOWait Time</b></p><p>The second plot (Figure 2), plots the <i>iowait</i> CPU percent time. Recall that <i>iowait</i> is the percentage of time that the CPU or CPUs are idle while the system has an outstanding disk I/O request; that is, the percentage of time the CPUs have to wait on the disk. This is a useful plot for illustrating what is happening with the device. For this particular example, once IOzone starts running, this number increases to the 40%–50% range. This means that there are some outstanding I/O requests during which the system is idle (i.e., it’s waiting for the I/O requests to complete). This indicates that applications are hitting this storage device reasonably hard.</p><p><b>3. <b>Percent&nbsp;</b>Steal Time</b></p><p>The third plot (Figure 3) shows the steal CPU percentage versus time, which is the percentage of time spent in involuntary wait by the virtual CPU or CPUs while the hypervisor services another virtual processor. You can see by the metrics (zero) that I’m not running a virtualized system, so this plot isn’t that useful in this case.</p><p><b>4. Percent Time Idle</b></p><p>Figure 4 plots the percentage of CPU time that is idle and without I/O requests, which is a good measure of system idleness. While applications are running, the CPU(s) are not idle or waiting with no I/O requests, meaning the device(s) were very busy during. After the run is complete, this metric jumps to close to 100%, indicating that there is idle CPU time and no outstanding I/O requests.</p><p><b>5. Read Throughput and Total CPU Utilization</b></p><p>Figure 5, is the first of the I/O device metrics plots. The top part of the plot is the read throughput (MB/s) versus time, and the bottom chart is the percent total CPU utilization, which is the sum of user utilization and system utilization (see Figure 1). I like to plot these two metrics together so I can see whether the CPU is busy at the same time as the read throughput. From this plot, it is pretty easy to see that almost no read operations are happening. However, a very small amount occurs during the rewrite phase of IOzone.</p><p><b>6. Write Throughput and Total CPU Utilization</b></p><p>Figure 6 is very similar to Figure 5, but it plots the write throughput versus time as well as the total CPU percent utilization. I didn’t put the read and the write throughput on the same plot, so I could better see how each I/O function was behaving. (Maybe I need to add another chart that has both read and write throughput?) Figure 6 matches the IOzone run because you can see the large peaks in write throughput. The top graph plots the write rate (MB/s) versus time, and the bottom graph plots the total CPU utilization percentage (user time + system time). The device I’m measuring, <i>/dev/sda1</i>, is a disk that is part of a software RAID-1 group, so I don't expect much from it in terms of performance. What I like about Figure 6 is that I can see the write throughput greatly increase about the same time the CPU percent utilization increases. Sometimes I also like to see a plot of write throughput versus <i>iowait</i>, so I can see how write performance corresponds to the percentage of time waiting on I/O requests.</p><p><b>7. Read Requests Completed, Write Requests Completed, and Total CPU Utilization</b></p><p>The next set of plots present some deeper device metrics and might be a little more difficult to interpret. Figure 7 plots the read and write requests that have been completed, along with the CPU utilization. The top graph plots the number (after merges) of read requests completed per second for the device versus time, the middle graph plots the number (after merges) of write requests completed per second for the device versus time, and the bottom graph plots the total CPU utilization percentage (user time + system time). These metrics are given in requests completed per second. If this number is large, you know the system is processing the I/O requests quickly (which is good). It is good to compare Figures 5 and 6 to Figure 7 so you can see whether the system is completing I/O requests and how it relates to throughput. For example, if you are seeing lots of requests completed but throughput is low, it might mean that the device is busy servicing small I/O requests.</p><p><b>8. Read Requests Merged Rate, Write Requests Merged Rate, and Total CPU Utilization</b></p><p>Current disk drives are capable of taking multiple I/O requests and merging them together into a single request. Although this can sometimes improve throughput, it can also increase latency. In Figure 8, the top graph plots the number of read requests merged per second that were queued to the device, the middle graph plots the number of write requests merged per second that were queued to the device, and the bottom graph plots the total CPU utilization percentage (user time + system time). In the case of read requests merging, nothing is really happening because almost no read operations are happening. However, the write merge requests (middle graph) are fairly high. [Note: The <i>y</i>-axis labels are truncated because of the large <i>y</i>-axis values. It should read “Write request merged rate (requests/s).”] You can see that a large number of write requests are merged, but this is to be expected because it is a sequential I/O test with a 64KB transfer size. Because this transfer size is fairly small, I fully expect the device to merge requests (as seen in the middle graph).</p><p><b>9. Average Request Size, Average Queue Length, and Total CPU Utilization</b></p><p>Figure 9 plots the average size of the I/O requests to the device (top graph), the average queue length for I/O requests (middle graph), and the total CPU percent utilization (user time + system time; bottom graph). Interestingly, the average I/O request size (in sectors) is essentially zero (I’m not sure why); however, the middle graph, which plots the average queue length of requests, is definitely non-zero. You can see that the queue depth gets fairly large as the IOzone test continues.</p><p><b>10. Average Read Request Time (ms), Average Write Request Time (ms), and Total CPU Utilization</b></p><p>Figure 10 is a companion to Figure 9 and plots the average read time request in milliseconds (top graph), including the time spent by the requests in queue and the time spent servicing them; the average write request time in milliseconds (middle graph), including the time spent by the requests in queue and the time spent servicing them; and the total CPU utilization percentage (user time + system time; bottom graph). A few read requests are made as part of the <i>rewrite</i> test, and the top chart shows that the average time for a read request is fairly small. However, the middle graph, which plots the average write request time in milliseconds, has some reasonably large values, approaching 900ms.</p><p><b>11. Percent CPU Time for I/O Requests and Total CPU Utilization</b></p><p>The last plot, Figure 11, plots in the top graph the percentage of CPU time during which I/O requests were issued to the device (bandwidth utilization for the device). The bottom graph plots the total CPU utilization percentage (user time + system time). In essence it is a plot of the bandwidth utilization of the device. If this value approaches 100% then the device is saturated. If the value is low, the device has remaining capability. For this test, notice that some of the values go just above 100%, illustrating that the device is saturated at those points and cannot deliver any more performance.</p><p><b>Observations and Comments</b></p><p>Iostat is a popular tool that is part of the <i>sysstat</i> tool set that comes with virtually all Linux distributions, as well as other distributions. Consequently, I think it is a good starter tool for examining storage device performance. In this article, I wanted to show how you could use iostat to monitor storage devices by using a simple example of running a write/rewrite IOzone test. Although I will always be dedicated to the command line, I like to be able to look at time histories of device data to get a better understanding of how the device is handling I/O requests. To create these plots, I wrote a simple Python script, <i>iostat_plotter</i>, that allows me to plot the data and create an HTML report.</p><p>As with all tools, you should realize that there is no uber-tool, so you should understand the limitations and goals of each tool. Iostat might not be the best overall tool for monitoring storage systems because it really focuses on the devices. It does not include any information about the filesystem, and perhaps more importantly, it does not allow you to tie the data back to a specific application. Therefore, the iostat data includes the effect of all applications on the storage device. However, iostat should be used for what it is intended – monitoring storage devices. In this regard, it can be very useful.</p><p>Alternatives to iostat, such as collectl, might be better in some situations, but given the ubiquity of iostat, it is difficult to ignore. At the same time, I wanted to give iostat a little help and have a convenient way to plot the data. Although it’s not real-time plotting, which would be even better (hint: a nice project for someone to tackle), it is better than staring at numbers scrolling off the screen. Give it a try on your desktop or laptop and see what you can discover.</p>
+    </div>
+    <div class="addthis_toolbox addthis_default_style">
+	    </div>
+    
+</div>
+
+		</div>	    </div>
+	</div>
+	<div>
+	    <div class="container">
+		<div class="row">
+		    <div class="span12" id="Footer">
+			<footer>
+    <div class="footer row">
+	<div class="span1"></div>
+	<div class="span10 claim-wrapper">
+	    <div id="footer-topics" class="container">
+		    			            	        
+<div class="footer-sitemap">
+    </div>
+
+		    		    		    			    
+<div class="footer-topics">
+                    </div>
+
+
+		    	    </div>
+	</div>
+	<div class="span1"></div>
+    </div>
+    <div class="row">
+						    <div id="copyright">
+				&copy; 2014 <a href="http://www.linuxnewmedia.com/" target="_blank">Linux New Media USA, LLC</a>
+	    </div>
+	    </div>
+</footer>		    </div>
+		</div>
+	    </div>
+	</div>
+<div class="clear"></div>
+</div>
+
+
+
+</body>
+</html>
+

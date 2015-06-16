@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-cn">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Linux Cgroups详解(一) - lisperl - 博客园</title>
+<link type="text/css" rel="stylesheet" href="/bundles/blog-common.css?v=5bITb1XmtieJKhNy3HCsng1mgkC1fjWAtqCxIQA888c1"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="http://common.cnblogs.com/Skins/jeolee/style.css?id=20131027"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/lisperl/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/lisperl/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/lisperl/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">var currentBlogApp = 'lisperl';</script>
+<script src="/bundles/blog-common.js?v=T6Oc14lZG9JOkS67b_zm3VOW-dQWdhBri2GI6Au5mCo1" type="text/javascript"></script>
+</head>
+<body>
+<a name="top"></a>
+
+<div id="wrap">
+	<div id="notetop"></div>
+	<div id="notemiddle">
+	<div id="content">
+			
+
+	<div class="post">
+		<h2>
+			<a id="cb_post_title_url" href="http://www.cnblogs.com/lisperl/archive/2012/04/17/2453838.html">Linux Cgroups详解(一)</a>
+		</h2>
+		<div id="cnblogs_post_body"><h2>Cgroups<span style="font-family: 宋体;">是什么？</span></h2>
+<p class="p0">Cgroups是<span style="font-family: Calibri;">control&nbsp;groups</span><span style="font-family: 宋体;">的缩写，是</span><span style="font-family: Calibri;">Linux</span><span style="font-family: 宋体;">内核提供的一种可以限制、记录、隔离进程组（</span><span style="font-family: Calibri;">process&nbsp;groups</span><span style="font-family: 宋体;">）所使用的物理资源（如：</span><span style="font-family: Calibri;">cpu,memory,IO</span><span style="font-family: 宋体;">等等）的机制。最初由</span><span style="font-family: Calibri;">google</span><span style="font-family: 宋体;">的工程师提出，后来被整合进</span><span style="font-family: Calibri;">Linux</span><span style="font-family: 宋体;">内核。</span><span style="font-family: Calibri;">Cgroups</span><span style="font-family: 宋体;">也是</span><span style="font-family: Calibri;">LXC</span><span style="font-family: 宋体;">为实现虚拟化所使用的资源管理手段，可以说没有</span><span style="font-family: Calibri;">cgroups</span><span style="font-family: 宋体;">就没有</span><span style="font-family: Calibri;">LXC</span><span style="font-family: 宋体;">。</span></p>
+<h2>Cgroups<span style="font-family: 宋体;">可以做什么？</span></h2>
+<p class="p0">Cgroups<span style="font-family: 宋体;">最初的目标是为资源管理提供的一个统一的框架，既整合现有的</span><span style="font-family: Calibri;">cpuset</span><span style="font-family: 宋体;">等子系统，也为未来开发新的子系统提供接口。现在的</span><span style="font-family: Calibri;">cgroups</span><span style="font-family: 宋体;">适用于多种应用场景，从单个进程的资源控制，到实现操作系统层次的虚拟化（</span>OS&nbsp;Level&nbsp;Virtualization）。<span style="font-family: Calibri;">Cgroups</span><span style="font-family: 宋体;">提供了一下功能：</span></p>
+<p class="p0">1.限制进程组可以使用的资源数量（Resource&nbsp;limiting&nbsp;）。比如：<span style="font-family: Calibri;">memory</span><span style="font-family: 宋体;">子系统可以为进程组设定一个</span><span style="font-family: Calibri;">memory</span><span style="font-family: 宋体;">使用上限，一旦进程组使用的内存达到限额再申请内存，就会出发</span><span style="font-family: Calibri;">OOM</span><span style="font-family: 宋体;">（</span><span style="font-family: Calibri;">out&nbsp;of&nbsp;memory</span><span style="font-family: 宋体;">）。</span></p>
+<p class="p0">2.进程组的优先级控制（Prioritization&nbsp;）。比如：可以使用<span style="font-family: Calibri;">cpu</span><span style="font-family: 宋体;">子系统为某个进程组分配特定</span><span style="font-family: Calibri;">cpu&nbsp;share</span><span style="font-family: 宋体;">。</span></p>
+<p class="p0">3.记录进程组使用的资源数量（Accounting&nbsp;）。比如：可以使用<span style="font-family: Calibri;">cpuacct</span><span style="font-family: 宋体;">子系统记录某个进程组使用的</span><span style="font-family: Calibri;">cpu</span><span style="font-family: 宋体;">时间</span></p>
+<p class="p0">4.进程组隔离（I<span style="font-family: Calibri;">solation</span><span style="font-family: 宋体;">）。比如：使用</span><span style="font-family: Calibri;">ns</span><span style="font-family: 宋体;">子系统可以使不同的进程组使用不同的</span><span style="font-family: Calibri;">namespace</span><span style="font-family: 宋体;">，以达到隔离的目的，不同的进程组有各自的进程、网络、文件系统挂载空间。</span></p>
+<p class="p0">5.进程组控制（C<span style="font-family: Calibri;">ontrol</span><span style="font-family: 宋体;">）。比如：使用</span><span style="font-family: Calibri;">freezer</span><span style="font-family: 宋体;">子系统可以将进程组挂起和恢复。</span></p>
+<h2>Cgroups<span style="font-family: 宋体;">相关概念及其关系</span></h2>
+<h3>相关概念</h3>
+<p class="p0">1.<span style="font-family: 宋体;">任务（</span><span style="font-family: Calibri;">task</span><span style="font-family: 宋体;">）。在</span><span style="font-family: Calibri;">cgroups</span><span style="font-family: 宋体;">中，任务就是系统的一个进程。</span></p>
+<p class="p0">2.<span style="font-family: 宋体;">控制族群（</span><span style="font-family: Calibri;">control&nbsp;group</span><span style="font-family: 宋体;">）。控制族群就是一组按照某种标准划分的进程。</span><span style="font-family: Calibri;">Cgroups</span><span style="font-family: 宋体;">中的资源控制都是以控制族群为单位实现。一个进程可以加入到某个控制族群，也从一个进程组迁移到另一个控制族群。一个进程组的进程可以使用</span><span style="font-family: Calibri;">cgroups</span><span style="font-family: 宋体;">以控制族群为单位分配的资源，同时受到</span><span style="font-family: Calibri;">cgroups</span><span style="font-family: 宋体;">以控制族群为单位设定的限制。</span></p>
+<p class="p0">3.<span style="font-family: 宋体;">层级（</span><span style="font-family: Calibri;">hierarchy</span><span style="font-family: 宋体;">）。控制族群可以组织成</span><span style="font-family: Calibri;">hierarchical</span><span style="font-family: 宋体;">的形式，既一颗控制族群树。控制族群树上的子节点控制族群是父节点控制族群的孩子，继承父控制族群的特定的属性。</span></p>
+<p class="p0">4.<span style="font-family: 宋体;">子系统（</span><span style="font-family: Calibri;">subsytem</span><span style="font-family: 宋体;">）。一个子系统就是一个资源控制器，比如</span><span style="font-family: Calibri;">cpu</span><span style="font-family: 宋体;">子系统就是控制</span><span style="font-family: Calibri;">cpu</span><span style="font-family: 宋体;">时间分配的一个控制器。子系统必须附加（</span><span style="font-family: Calibri;">attach</span><span style="font-family: 宋体;">）到一个层级上才能起作用，一个子系统附加到某个层级以后，这个层级上的所有控制族群都受到这个子系统的控制。</span></p>
+<h3>相互关系</h3>
+<p class="p0">1.每次在系统中创建新层级时，该系统中的所有任务都是那个层级的默认&nbsp;<span style="font-family: Calibri;">cgroup</span><span style="font-family: 宋体;">（我们称之为&nbsp;</span><span style="font-family: Calibri;">root&nbsp;cgroup&nbsp;</span><span style="font-family: 宋体;">，此</span><span style="font-family: Calibri;">cgroup</span><span style="font-family: 宋体;">在创建层级时自动创建，后面在该层级中创建的</span><span style="font-family: Calibri;">cgroup</span><span style="font-family: 宋体;">都是此</span><span style="font-family: Calibri;">cgroup</span><span style="font-family: 宋体;">的后代）的初始成员。</span></p>
+<p class="p0">2.一个子系统最多只能附加到一个层级。</p>
+<p class="p0">3.一个层级可以附加多个子系统</p>
+<p class="p0">4.一个任务可以是多个<span style="font-family: Calibri;">cgroup</span><span style="font-family: 宋体;">的成员，但是这些</span><span style="font-family: Calibri;">cgroup</span><span style="font-family: 宋体;">必须在不同的层级。</span></p>
+<p class="p0">5.<span style="font-family: 宋体;">系统中的进程（任务）创建子进程（任务）时，该子任务自动成为其父进程所在&nbsp;</span><span style="font-family: Calibri;">cgroup&nbsp;</span><span style="font-family: 宋体;">的成员。然后可根据需要将该子任务移动到不同的&nbsp;</span><span style="font-family: Calibri;">cgroup&nbsp;</span><span style="font-family: 宋体;">中，但开始时它总是继承其父任务</span>的<span style="font-family: Calibri;">cgroup</span><span style="font-family: 宋体;">。</span></p>
+<h2>Cgroups<span style="font-family: 宋体;">子系统介绍</span></h2>
+<p class="p0">blkio&nbsp;--&nbsp;<span style="font-family: 宋体;">这个子系统为块设备设定输入</span><span style="font-family: Calibri;">/</span><span style="font-family: 宋体;">输出限制，比如物理设备（磁盘，固态硬盘，</span><span style="font-family: Calibri;">USB&nbsp;</span><span style="font-family: 宋体;">等等）。</span></p>
+<p class="p0">cpu&nbsp;--&nbsp;<span style="font-family: 宋体;">这个子系统使用调度程序提供对&nbsp;</span><span style="font-family: Calibri;">CPU&nbsp;</span><span style="font-family: 宋体;">的&nbsp;</span><span style="font-family: Calibri;">cgroup&nbsp;</span><span style="font-family: 宋体;">任务访问。</span></p>
+<p class="p0">cpuacct&nbsp;--&nbsp;<span style="font-family: 宋体;">这个子系统自动生成&nbsp;</span><span style="font-family: Calibri;">cgroup&nbsp;</span><span style="font-family: 宋体;">中任务所使用的&nbsp;</span><span style="font-family: Calibri;">CPU&nbsp;</span><span style="font-family: 宋体;">报告。</span></p>
+<p class="p0">cpuset&nbsp;--&nbsp;<span style="font-family: 宋体;">这个子系统为&nbsp;</span><span style="font-family: Calibri;">cgroup&nbsp;</span><span style="font-family: 宋体;">中的任务分配独立&nbsp;</span><span style="font-family: Calibri;">CPU</span><span style="font-family: 宋体;">（在多核系统）和内存节点。</span></p>
+<p class="p0">devices&nbsp;--&nbsp;<span style="font-family: 宋体;">这个子系统可允许或者拒绝&nbsp;</span><span style="font-family: Calibri;">cgroup&nbsp;</span><span style="font-family: 宋体;">中的任务访问设备。</span></p>
+<p class="p0">freezer&nbsp;--&nbsp;<span style="font-family: 宋体;">这个子系统挂起或者恢复&nbsp;</span><span style="font-family: Calibri;">cgroup&nbsp;</span><span style="font-family: 宋体;">中的任务。</span></p>
+<p class="p0">memory&nbsp;--&nbsp;<span style="font-family: 宋体;">这个子系统设定&nbsp;</span><span style="font-family: Calibri;">cgroup&nbsp;</span><span style="font-family: 宋体;">中任务使用的内存限制，并自动生成由那些任务使用的内存资源报告。</span></p>
+<p class="p0">net_cls&nbsp;--&nbsp;<span style="font-family: 宋体;">这个子系统使用等级识别符（</span><span style="font-family: Calibri;">classid</span><span style="font-family: 宋体;">）标记网络数据包，可允许&nbsp;</span><span style="font-family: Calibri;">Linux&nbsp;</span><span style="font-family: 宋体;">流量控制程序（</span><span style="font-family: Calibri;">tc</span><span style="font-family: 宋体;">）识别从具体&nbsp;</span><span style="font-family: Calibri;">cgroup&nbsp;</span><span style="font-family: 宋体;">中生成的数据包。</span></p>
+<p class="p0">ns&nbsp;--&nbsp;<span style="font-family: 宋体;">名称空间子系统。</span></p>
+<p class="p0"><span style="font-family: 宋体;">PS：Linux cgroups详解系列是本人毕业论文部分章节的草稿，算是为论文打前站，欢迎方家斧正。</span></p></div><div id="MySignature"></div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="blog_post_info">
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"></div>
+</div>
+
+
+		<div class="author">
+			posted on <span id="post-date">2012-04-17 16:05</span> <a href='http://www.cnblogs.com/lisperl/'>lisperl</a> 阅读(<span id="post_view_count">...</span>) 评论(<span id="post_comment_count">...</span>)  <a href ="http://www.cnblogs.com/lisperl/admin/EditPosts.aspx?postid=2453838" rel="nofollow">编辑</a> <a href="#" onclick="AddToWz(2453838);return false;">收藏</a>
+		</div>
+		<div class=linex></div>
+	</div>
+	<script type="text/javascript">var allowComments=true,isLogined=false,cb_blogId=101821,cb_entryId=2453838,cb_blogApp=currentBlogApp,cb_blogUserGuid='c0ea6bce-470f-e111-b422-842b2b196315',cb_entryCreatedDate='2012/4/17 16:05:00';loadViewCount(cb_entryId);</script>
+	
+	<a name="!comments"></a><div id="blog-comments-placeholder"></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="程序员的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="ad_under_post_holder"></div>
+<script type="text/javascript">
+var enableGoogleAd = true;
+var googletag = googletag || {};
+googletag.cmd = googletag.cmd || [];
+fixPostBodyFormat();
+loadAdUnderPost();
+</script>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+loadBlogSignature();
+LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);
+GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+</script>
+<script type="text/javascript">
+    $.ajax({ url: 'http://counter.cnblogs.com/blog/post/' + cb_entryId, type: 'get', dataType: 'script', cache: true });
+</script>
+</div>
+
+	</div>
+	<div id="menu">
+			
+<div id="header">
+<h1><a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/lisperl/">芥子须弥</a></h1>
+
+</div>
+
+			<div id="menutop"></div>
+			<div id="menumiddle">
+				
+					
+<h3>公告</h3>
+	<div id="blog-news"></div><script type="text/javascript">loadBlogNews();</script>
+
+					
+<h3>导航</h3>
+<ul>
+			<li><a id="MyLinks1_HomeLink" href="http://www.cnblogs.com/">博客园</a></li>
+			<li><a id="MyLinks1_MyHomeLink" href="http://www.cnblogs.com/lisperl/">首页</a></li>
+			<li><a id="MyLinks1_NewPostLink" rel="nofollow" href="http://www.cnblogs.com/lisperl/admin/EditPosts.aspx?opt=1">新随笔</a></li>
+			<li><a id="MyLinks1_ContactLink" accesskey="9" rel="nofollow" href="http://space.cnblogs.com/msg/send/lisperl">联系</a></li>
+			<li><a id="MyLinks1_Syndication" href="http://www.cnblogs.com/lisperl/rss">订阅</a><a id="MyLinks1_XMLLink" href="http://www.cnblogs.com/lisperl/rss"><img src="http://www.cnblogs.com/images/xml.gif" alt="订阅" /></a>
+			<li><a id="MyLinks1_Admin" rel="nofollow" href="http://www.cnblogs.com/lisperl/admin/EditPosts.aspx">管理</a></li>
+</ul>
+					
+<h3>统计</h3>
+	<ul>
+		<li>随笔 - 42
+		<li>文章 - 1
+		<li>评论 - 132
+		<li>引用 - 0
+	</li>
+</ul>
+					<div id="blog-sidecolumn"></div><script type="text/javascript">loadBlogSideColumn();</script>
+				
+			</div>
+		</div>
+		
+	</div>
+	<div class=linex></div>
+	
+<div id="footer">
+<div class=linex></div>
+	Powered by: 
+	
+	<a id="Footer1_Hyperlink3" NAME="Hyperlink1" href="http://www.cnblogs.com/" style="font-family:Verdana;font-size:12px;">博客园</a>
+	Copyright &copy; lisperl
+</div>
+	<div id="notebottom"></div>
+</div>
+
+<script type="text/javascript" src="http://common.cnblogs.com/script/google-analytics.js"></script>
+</body>
+</html>

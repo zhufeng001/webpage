@@ -1,0 +1,1490 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+
+<meta http-equiv="Content-Type"	content="text/html;	charset=gb2312">
+<title>网卡软中断调优 - deven的博客 - 51CTO技术博客</title>
+<meta name="description" content="smp_affinity值计算：在前阵子看到HelloDB的一篇文章“MySQL单机多实例方案”中提到：因为单机运行多个实例，必须对网络进行优化，我们通过多个的IP的方式，将多个MySQL实例绑定在不同的网卡上，从而提高整体的网..">
+<meta name="keywords" content="irqbalance、affinity,网卡软中断">
+<meta http-equiv="Cache-Control" content="private">
+<base href="http://wwdhks.blog.51cto.com/"></base>
+<script src="/js/def.js"></script>
+<SCRIPT language=javascript src="http://blog.51cto.com/js/message.js" type=text/javascript></SCRIPT>
+<SCRIPT language=javascript src="http://blog.51cto.com/js/user_comment.js" type=text/javascript></SCRIPT>
+<SCRIPT language=javascript src="http://blog.51cto.com/js/base2.js" type=text/javascript></SCRIPT>
+<SCRIPT language=javascript src="http://blog.51cto.com/js/dialog_utf8.js" type=text/javascript></SCRIPT>
+<link href="/css/skin/30.css" rel="stylesheet" type="text/css">
+<link rel="alternate" href="../rss.php?uid=839773" type="application/rss+xml" title="RSS 2.0">
+<link rel="edituri" type="application/rsd+xml" title="rsd" href="xmlrpc.php?rsd=1" />
+<link href="http://blog.51cto.com/group/css/header_master_top.css" rel="stylesheet" type="text/css" />
+<link href="http://blog.51cto.com/css/skin/base.css" rel="stylesheet" type="text/css" />
+<script src="http://blog.51cto.com/js/poptop.js"></script>
+<style type="text/css">
+	.mainNav li a{display:inline-block}
+</style>
+<script>
+var myid = "";
+function add_flink(){
+	if(myid==""){
+
+        var refurlk = "http://wwdhks.blog.51cto.com/839773/1218785";
+
+				//commentSubmit("",refurlk);
+				location.href="http://home.51cto.com/index.php?reback="+encodeURIComponent(encodeURIComponent(refurlk));
+				return false;
+	}else{
+      		var url='/mod/edit_flink.php?type=addflink&uid=839773&flink=http://wwdhks.blog.51cto.com';
+		var ajax = InitAjax1();
+		ajax.open("GET", url, true);
+		ajax.onreadystatechange = function() {
+			if (ajax.readyState == 4 && ajax.status == 200) {
+				if(ajax.responseText==""){
+					alert("添加成功。");
+				}
+				if(ajax.responseText=="1"){
+				alert("链接指向自己。");
+				}
+				if(ajax.responseText=="2"){
+				alert("友情链接已存在。")
+				}
+			}
+		}
+		ajax.send(null);
+	}
+
+
+
+}
+function sendmessage(){
+
+	var refurlk = "http://wwdhks.blog.51cto.com/839773/1218785";
+
+	if(myid){
+		return true;
+	}else{
+		commentSubmit("",refurlk);
+		return false;
+	}
+}
+function copylink(ourl){
+	if(!ourl){
+		var clipBoardContent = "http://wwdhks.blog.51cto.com";
+	}else{
+		var clipBoardContent = ourl;
+	}
+	window.clipboardData.setData("Text",clipBoardContent);
+	alert("复制成功!");
+	return false;
+}
+function correctPNG() {
+if (document.getElementById('blog_touxian'))
+{
+var img = document.getElementById('blog_touxian');
+      var imgName = img.src.toUpperCase()
+      var imgID = (img.id) ? "id='" + img.id + "' " : ""
+      var imgClass = (img.className) ? "class='" + img.className + "' " : ""
+      var imgTitle = (img.title) ? "title='" + img.title + "' " : "title='" + img.alt + "' "
+      var imgStyle = "display:inline-block;" + img.style.cssText
+      if (img.align == "left") imgStyle = "float:left;" + imgStyle
+      if (img.align == "right") imgStyle = "float:right;" + imgStyle
+      if (img.parentElement.href) imgStyle = "cursor:hand;" + imgStyle
+      var strNewHTML = "<span " + imgID + imgClass + imgTitle
+         + " style=\"" + "width:" + img.width + "px; height:" + img.height + "px;" + imgStyle + ";"
+         + "filter:progid:DXImageTransform.Microsoft.AlphaImageLoader"
+         + "(src=\'" + img.src + "\', sizingMethod='scale');\"></span>" ;
+      img.outerHTML = strNewHTML;
+}
+}
+//window.attachEvent("onload", correctPNG);
+window.onload=correctPNG;
+
+function copy(){
+var text=document.getElementById("txtUser").value;
+if(copy2Clipboard(text)!=false){ 
+alert("复制成功了！ "); 
+} 
+}
+function copy2Clipboard(txt){ 
+if(window.clipboardData){ 
+window.clipboardData.clearData(); 
+window.clipboardData.setData("Text",txt); 
+}else if(navigator.userAgent.indexOf("Opera")!=-1){ 
+window.location=txt; 
+}else if(window.netscape){ 
+try{ 
+netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect"); 
+} 
+catch(e){ 
+alert("您使用的浏览器不支持此复制功能，请使用Ctrl+C或鼠标右键。"); 
+return false; 
+} 
+var clip=Components.classes['@mozilla.org/widget/clipboard;1'].createInstance(Components.interfaces.nsIClipboard); 
+if(!clip)return; 
+var trans=Components.classes['@mozilla.org/widget/transferable;1'].createInstance(Components.interfaces.nsITransferable); 
+if(!trans)return; 
+trans.addDataFlavor('text/unicode'); 
+var str=new Object(); 
+var len=new Object(); 
+var str=Components.classes["@mozilla.org/supports-string;1"].createInstance(Components.interfaces.nsISupportsString); 
+var copytext=txt;str.data=copytext; 
+trans.setTransferData("text/unicode",str,copytext.length*2); 
+var clipid=Components.interfaces.nsIClipboard; 
+if(!clip)return false; 
+clip.setData(trans,null,clipid.kGlobalClipboard); 
+return true;
+} 
+}
+
+function mod_close(){
+  document.getElementById('mod_tg').style.display="none";
+}
+
+function match_invite(uid) {
+    var url='/mod/match_invite.php';
+	var ajax = InitAjax();
+    var re = 'uid=' + uid;
+	ajax.open("POST", url, true);
+    ajax.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+	ajax.send(re);
+    ajax.onreadystatechange = function() {
+        if (ajax.readyState == 4 && ajax.status == 200) {
+            if(ajax.responseText == 1){
+                alert("邀请信息已经发送成功。");
+            } else if(ajax.responseText=="-1"){
+                alert("邀请失败，请稍候再试。");
+            } else if(ajax.responseText=="2"){
+                alert("该用户已经报名了。")
+            }
+        }
+    }
+}
+
+</script>
+<style type="text/css">
+/*
+.artContent img {max-width:450px !important;}
+.showContent img{max-width:650px!important;}
+*/
+
+.artContent img{max-width: 450px; width:expression(this.width > 450 ? "450px" : this.width)}
+/*
+.showContent img{max-width: 450px; width:expression(this.width > 650 ? "650px" : this.width)}
+*/
+
+
+</style>
+</head>
+
+<body >
+
+<div id="home_top">
+<div class="top_nav" style="width:990px;">
+<div class="left"  style="margin-top:10px; width:440px;"><a href="http://blog.51cto.com/" target="_blank"><img src="images/head_blog_sibebar_logo.gif" align="absmiddle" style="margin-top:-4px;" /></a><a target="_blank" href="http://www.51cto.com">51CTO首页</a><img height="25" align="absmiddle" width="16" src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif" style="margin-top:-4px;" ><a href="http://blog.51cto.com/" target="_blank">51CTO博客</a><img height="25" align="absmiddle" width="16" src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif" style="margin-top:-4px;" ><a href="http://home.51cto.com?reback=http%253A%252F%252Fwwdhks.blog.51cto.com%252F839773%252F1218785" >我的博客</a><img height="25" align="absmiddle" width="16" src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif" style="margin-top:-4px;" >
+
+<a target="_blank" href="http://blog.51cto.com/search.php">搜索</a>
+<a href="javascript:void(0);" style="color:#FF0000; text-decoration:underline; display:none" id="showMessagerDim">每日博报</a>
+</div>
+
+<div class="right" style="width:550px;">
+<div class="more"><img height="16" align="absmiddle" width="27" src="http://home.51cto.com/public/themes/blue/images/top_shequ.gif">社区：<a target="_blank" href="http://edu.51cto.com/">学院</a><a target="_blank" href="http://bbs.51cto.com">论坛</a><a target="_blank" href="http://blog.51cto.com">博客</a><a target="_blank" href="http://down.51cto.com">下载</a><a href="javascript:viod(0);" onmouseout="popupClose()" onmouseover="show(3,this)">更多<img align="absmiddle" style="padding-left: 4px;" src="http://images.51cto.com/images/art/top_images/nav_ico1.gif"></a>            </div>            <span id="login_status"><div class="login" id="login_status"></div>    </span>                </div>    </div></div>
+
+
+
+<div class="subMenu3" id="s3" onmouseover="popupNoClose()" onmouseout="popupClose()">
+<ul>
+<li><a href="http://home.51cto.com" target="_blank">家园</a></li>
+<li><a href="http://edu.51cto.com" target="_blank">学院</a></li>
+<li><a href="http://blog.51cto.com" target="_blank">博客</a></li>
+<li><a href="http://bbs.51cto.com" target="_blank">论坛</a></li>
+<li><a href="http://down.51cto.com" target="_blank">下载</a></li>
+
+<li><a href="http://selftest.51cto.com" target="_blank">自测</a></li>
+<li><a href="http://doctor.51cto.com" target="_blank">门诊</a></li>
+<li><a href="http://blog.51cto.com/newsletter/" target="_blank">周刊</a></li>
+<li><a href="http://book.51cto.com" target="_blank">读书</a></li>
+<li><a href="http://g.51cto.com" target="_blank">技术圈</a></li>
+</ul>
+</div>
+<!--简导航end-->
+
+
+
+<div class="headerBox">
+<div class="header">
+<div class="header_l">
+<div class="logo_blogname">
+
+
+
+<div class="blogName">
+<a href="http://wwdhks.blog.51cto.com"><h1>deven的博客</h1></a>
+</div>
+</div><!--logo_blogname end-->
+<div class="blogLink">
+
+<a href="http://wwdhks.blog.51cto.com">http://wwdhks.blog.51cto.com</a> <input id="txtUser" type="hidden" size=32 value="http://wwdhks.blog.51cto.com" />   <a href="javascript:void(0);" onclick="copy();">【复制】</a> <a href='/rss.php?uid=839773' target='_blank'><a href='/rss.php?uid=839773' target='_blank'>【订阅】</a>
+
+</div>
+
+
+
+</div><!--header_l end-->
+<div class="header_r">
+<div class="blogInfo"><span><a href="http://wwdhks.blog.51cto.com/839773/o" title="察看wwdhks所有原创文章">原创</a>:30</span><span><a href="http://wwdhks.blog.51cto.com/839773/t" title="察看wwdhks所有翻译文章">翻译</a>:0</span><span><a href="http://wwdhks.blog.51cto.com/839773/c" title="察看wwdhks所有转载文章">转载</a>:66</span></div>
+<div class="blogNav"><a href="/">博 客</a>|<a href="http://home.51cto.com/apps/photo/index.php?s=/Index/photos/uid/839773">图库</a>|<a href="/addblog.php">写博文</a>|<a href="http://51ctoblog.blog.51cto.com/all/26414/4" target="_blank">帮 助</a></div>
+</div>
+</div>
+<!--header end-->
+</div><!--headerBox end-->
+<div class="mainNav">
+<span class="mainNavT"></span>
+<ul>
+<li><a href="/">首页</a></li>|<li><a href="/839773/d-1">负载均衡</a></li>|<li><a href="/839773/d-2">故障排查</a></li>|<li><a href="/839773/d-3">Mysql</a></li>|<li><a href="/839773/d-4">虚拟化</a></li>|<li><a href="/839773/d-5">linux授权管理</a></li>|<li><a href="/839773/d-6">LVM</a></li>|<li><a href="/839773/d-7">Linux</a></li>|<li><a href="/839773/d-8">Postfix</a></li>|<li><a href="/839773/d-9">运维自动化</a></li>|<li><a href="/839773/d-10">Apache</a></li>|<li><a href="/839773/d-11">Nginx</a></li>|<li><a href="/839773/d-12">Mongodb</a></li>|<li><a href="/839773/d-13">其他</a></li>|<li><a href="/839773/d-14">安全方面</a></li>|<li><a href="/839773/d-15">TT&Redis</a></li>|<li><a href="/839773/d-16">SWAP</a></li>|<li><a href="/839773/d-17">IO</a></li>|<li><a href="/839773/d-18">LVS</a></li>
+</ul>
+<span class="mainNavB"></span>
+</div>
+<!--mainNav end-->
+
+<script type="text/javascript" src="http://blog.51cto.com/js/jquery-1.7.1.min.js"></script>
+<!--[if IE 6]>
+  <script type="text/javascript" src="http://images.watchstor.com/newhomes/png.js"></script>
+  <script>
+    DD_belatedPNG.fix('img,input,ul,li, .get-box, div, .add, .sub, .ui-slider-handle, .footer-chopper');
+  </script>
+<![endif]-->
+<link type="text/css" rel="stylesheet" href="/neweditor/editor/css/fck_editorarea.css"></link>
+<script type="text/javascript" charset="gbk" src="/e/u/third-party/SyntaxHighlighter/shCores.js"></script>
+<link rel="stylesheet" type="text/css" href="/e/u/third-party/SyntaxHighlighter/shCoreDefault.css"/>
+<script type="text/javascript" charset="gbk" src="/e/u/uparse.js"></script>
+<script type="text/javascript">
+	uParse('.showContent');
+	$(function(){
+		//SyntaxHighlighter.config.clipboardSwf = 'http://bbs.51cto.com/plugins/syntaxhighlighter/scripts/clipboard.swf'; 
+		//为了在编辑器之外能展示高亮代码
+		SyntaxHighlighter.highlight();
+	}); 
+</script>
+<script type="text/javascript">
+/**
+ * 回复评论需要用的js
+ * 2012-5-14
+ * by:chengtao
+ */
+ jQuery(function(){
+	blogpost.init();//初始化博客回复功能
+ })
+ /**
+  * 处理博文评论功能优化
+  */
+ blogpost={
+	abstruct_list:null,
+	init:function(){
+		blogpost.bind();//绑定一些时间
+		this.abstruct_list=new Array();//初始化保存评论信息的数组
+	},
+	/**
+	 * 博客回复需要绑定的一些事件
+	 */
+	bind:function(){
+		/**
+		 * 点击回复的事件
+		 */
+		jQuery('.repost').live('click',function(){
+			blogpost.repost(jQuery(this).attr('user_name'),jQuery(this).attr('parentid'));
+			return false;
+		});
+		/**
+		 * 点击楼层进行翻页且找到锚点
+		 */
+		jQuery('.anchor_page').live('click',function(){
+			var parentid = $(this).attr('parentid');
+			var tid=$(this).attr('tid');
+			$.get('/comments.php?tid='+tid+'&parentid='+parentid,function(data){
+				$('#artcomment').html(data);
+				window.location.hash=''+parentid;
+			})
+			return false;
+		}),
+		jQuery('.anchor_page').live('mouseover',function(){
+			var parentid = $(this).attr('parentid');
+			if(!blogpost.abstruct_list[parentid]){
+				var this_t = $(this);
+				$.get('/comments.php?cid='+parentid,function(data,textStatus){
+					blogpost.abstruct_list[parentid]=data;
+					this_t.attr('title',this_t.text()+':'+ blogpost.abstruct_list[parentid]);
+				});
+			}else{
+				$(this).attr('title',$(this).text()+':'+blogpost.abstruct_list[parentid]);
+			}
+		})
+	},
+	/**
+	 * @param user_name 用户名
+	 * @param parentid  父评论id
+	 */
+	repost:function(user_name,parentid){
+		window.location.hash='comment';
+		jQuery('#parentid').val(parentid);
+		jQuery('#commentcontent').val('回复 '+user_name+":\n").focus();
+		if(!$.browser.mozilla){
+			var elem = jQuery('#commentcontent')[0];		
+			var caretPos = elem.value.length;
+			if (elem.createTextRange) {
+				var range = elem.createTextRange();
+				range.move('character', caretPos);
+				range.select();
+			}else{
+				elem.setSelectionRange(caretPos, caretPos);	
+			}
+		}
+	},
+	/**
+	 * 发送完毕之后清理表单数据 不是ajax可能用不到
+	 */
+	clean:function(){
+		
+	}
+ }
+</script>
+<script type="text/javascript">
+jQuery(function(){
+	var anchor = document.location.hash;
+	var comment_id=anchor.split('#')[1];
+	if(!isNaN(parseInt(comment_id))){//是整形
+		jQuery.get('/comments.php?tid=1218785&parentid='+comment_id,function(data){
+			jQuery('#artcomment').html(data);
+			window.location.hash=''+comment_id;
+		})
+	}
+});
+</script>
+
+
+
+<script type="text/javascript">
+jQuery(function() {
+	jQuery('#favourdiv').mouseover(function(){
+		if(jQuery(this).attr('className') == 'support01')
+		{
+			jQuery(this).attr('className', "support02");
+			jQuery(this).html('+1人');
+			jQuery(this).attr('title', "赞一个，我支持TA");
+		}
+		else if(jQuery(this).attr('className') == 'support03')
+		{
+			jQuery(this).attr('title', "你已经赞了这篇博文！");
+		}
+		
+	});
+	jQuery('#favourdiv').mouseout(function(){
+		if(jQuery(this).attr('className') == 'support02')
+		{
+			jQuery(this).attr('className', "support01");
+			jQuery(this).html("0人");
+		}
+	});
+	jQuery('.blog_match_yq').click(function(){
+		var wind_uid = '';
+		if(!wind_uid){
+			alert("请先登录！");
+			return false;
+		}
+		jQuery.ajax({
+			   type: "POST",
+			   url:"/contest2012/index.php?mod=sendmsg",
+			   dataType: "html",
+			   data: "vuid=" + 839773,
+			   success: function(data) {
+					if(data == 0)
+					{
+						alert("查无此人！");
+						return false;
+					}else if(data == 1){
+						alert("请先登录！");
+						return false;
+					}else if(data == 2){
+						alert("不能邀请自己！");
+						return false;
+					}else if(data == 22){  
+						alert("邀请信息已发出！");
+						return false;
+					}
+			   }
+		  });
+	});
+	jQuery('#favourdiv').click(function(){
+			jQuery.ajax({
+			   type: "POST",
+			   url:"/mod/favour.php",
+			   dataType: "html",
+			   data: "tid=" + 1218785,
+			   success: function(data) {
+					if(data == 0)
+					{
+						alert("您还未登录或者已过期，请重新登录");
+						location.href = "http://home.51cto.com/index.php?reback=http%253A%252F%252Fwwdhks.blog.51cto.com%252F839773%252F1218785";
+						return false;
+					}
+					else if(data == '-1')
+					{
+						alert("参数传递错误！");
+						return false;
+					}
+					else if(data == '-2')
+					{
+						alert("该博文已被删除或者不存在！");
+						return false;
+					}
+					else if(data == '-3')
+					{
+						alert("您已经赞过了！");
+						return false;
+					}
+					else if(data == '-4')
+					{
+						alert("赞操作失败！");
+						return false;
+					}
+					else
+					{  
+						//alert("操作成功，你已经赞了这篇博文！");
+						jQuery('#favourdiv').attr('className', "support03");
+
+						var num = 0 + 1 + "人";
+						jQuery('#favourdiv').html(num);
+						jQuery('#favourer').html(data);
+						return false;
+					}
+			   }
+		  });
+	});
+	//Jaydar http://blog.51cto.com/js/header.php?uid=blogdb[uid]&tid=tid
+	jQuery.post('/js/header.php',{uid:839773,tid:1218785},function(data){
+		jQuery('#readNum').html(data[0]);
+		jQuery('#cmtNum').html(data[1]);
+	},'json');
+	
+
+})
+
+jQuery(function(){
+	jQuery('#darid').bind('click',function(){
+		if(confirm("你确定删除此篇文章？")){
+			jQuery.ajax({
+				'type':'post',
+				'url':'user_index.php?action=delarticle',
+				'data':{'job':'del', 'selid':'1218785'},
+				'dataType':'html',
+				'success':function(res){
+					if('ok' == res){
+						location.href="http://.blog.51cto.com";
+					}
+				
+				}
+			});
+		}
+	});
+});
+</script>
+
+
+
+
+<style type="text/css">
+.m_sharelinks{ 
+	line-height:36px; 
+	text-align:left; 
+	padding-left:20px; 
+	background:url(http://img1.51cto.com/images/share/ico_lb.gif) no-repeat left center;
+	float:left; 
+	width:600px; 
+	height:36px;
+}
+.m_sharelinks a{ margin-left:10px;}
+.m_sharebtn{ height:50px; width:726px; margin:0 auto;}
+.m_sharebtn01{width:520px; float:left;}
+.weibo_51cto{ background:url(http://img1.51cto.com/images/share/ico_mweibo.gif) no-repeat center center; display:block; width:33px; height:33px; float:left; margin:3px 3px 0 0;cursor:pointer;}
+.shareMored {
+    line-height: 36px;
+	float:right; 
+	text-align:right; 
+	width:100px; 
+	height:36px;
+}
+
+.showContent {
+	margin:20px 15px 8px;
+}
+.userImage img {
+    text-align: center;
+	border:0;
+	padding:0;
+}
+.photo_links{ line-height:30px; padding-top:5px; font-size:13px;width:170px; margin:0 auto;}
+.photo_links_blue{ text-align:center;}
+.photo_links_blue a:link,.photo_links_blue a:visited,.photo_links_blue a:hover,.photo_links_blue a:active{ color:#015F91; text-decoration: underline;}
+.photo_links_red{ text-align:left;}
+.photo_links_red a:link,.photo_links_red a:visited,.photo_links_red a:hover,.photo_links_red a:active{ color:#fc4343; text-decoration:underline;}
+.photo_links_red02{ text-align:center;}
+
+.vlist{ margin:10px 10px; height:65px;}
+.vlist img{ float:left; margin-right:10px;}
+.vlist dl{ text-align:left;}
+.vlist dl dt{ height:40px;line-height: 20px; overflow:hidden; padding-top:5px;}
+.vlist dl dt,.vlist dl dt a{ color:#262626;}
+.vlist dl dd,.vlist dl dd a{ color:#777;}
+
+.video-icon{
+    position: relative;
+}
+.video-icon a.i_video {
+    background: url("http://www.51cto.com/images/homepage/Images/eduplay.png") repeat scroll 0 0 rgba(0, 0, 0, 0);
+    display: block;
+    height: 25px;
+    left:31px;
+    position: absolute;
+    top:22px;
+    width: 25px;
+    z-index: 10;
+}
+</style>
+<script language="JavaScript" type="text/javascript" src="http://g.51cto.com/js/group.js"></script>
+<div id="add_sys_type_div" style="width:600px;border:1px #58B0DD solid; background-color:#FFF; position:absolute;left:30%;top:300px;display:none;z-index:255"></div>
+<div id="add_sys_type_divs" style="width:550px;border:1px #58B0DD solid; background-color:#FFF; position:absolute;left:30%;top:300px;display:none;z-index:255"></div>
+
+<!--3245-->
+
+<div class="blogMain">
+<div class="blogLeft">
+
+
+<div class="box moduleUser">
+<div class="title">
+<h2><strong>wwdhks</strong> 的BLOG  </h2>
+</div>
+<div class="modCon">
+
+<div class="userImage" style="margin: 10px auto 5px;text-align: center;width: 130px;border: 1px solid #D4D4D4;">
+	<table width="100%" cellpadding="0" cellspacing="0">
+		<tr>
+			<td valign="middle" align="center" height="130"><script src="http://blog.51cto.com/mod/userface.php?useruid=839773"></script></td>
+		</tr>
+	</table>
+</div>
+<div class="photo_links">
+</div>
+
+
+
+
+
+
+
+
+
+<div class="crumbs">
+<a href="http://home.51cto.com/index.php?s=/space/839773#message" class="writeMessage" target="_blank">写留言</a><a href="http://g.51cto.com/addgroup.php?uid=" class="inCircle" target="_blank">邀请进圈子</a><a href="http://home.51cto.com/index.php?s=/Notify/write/uid/839773" class="message"  target="_blank">发消息</a> <a href='/' onclick='add_flink(839773);return false' class="joinLinks">加友情链接</a><a href="http://home.51cto.com/index.php?s=/space/839773" class="joinFriends"  target="_blank">进家园 加好友</a>
+</div>
+
+<div style="width:239px;height:64px;display:none;">
+
+
+<div style="float:left;"><p style="padding:15px 0 0 28px; line-height:20px;">2012年度IT博客大赛<br><a target="_blank" href="http://blog.51cto.com/contest2012/#top10000" style="color:#F00; text-decoration:underline;">十大杰出IT博客诞生</a></p></div>
+<div style="float:right;"><a target="_blank" href="http://blog.51cto.com/contest2012/"><img width="57" height="27" src="http://img1.51cto.com/images/blog_match_endlook.jpg" style="margin:23px 20px 0 0;"></a></div>
+<!-- <div style="float:left;"><p style="padding:15px 0 0 28px; line-height:20px;">星光评委正在评选<br><a target="_blank" href="http://blog.51cto.com/contest2012/index.php?mod=userlist_sec" style="color:#F00; text-decoration:underline;">2012年度IT博客大赛50强</a></p></div>
+<div style="float:right;"><img class="blog_match_yq" width="57" height="27" src="http://img1.51cto.com/images/blog_match_invite.jpg" style="margin:23px 20px 0 0;"></div> -->
+
+
+
+<div class="clear"></div>
+</div>
+
+
+</div><!--modCon end-->
+<span class="modBot"></span>
+</div>
+
+
+<div class="infoList box">
+<div class="title">
+<h2>博客统计信息</h2>
+</div>
+<div class="modCon">
+<p>
+<span class="infoListHead"></span>
+用户名：wwdhks<br />
+文章数：104<br />
+评论数：1<br />
+访问量：59315<br />
+<a href="http://home.51cto.com/index.php?s=/Account/credit" target="_blank">无忧币</a>：428<br />
+<a href="http://51ctoblog.blog.51cto.com/26414/5591" target="_blank">博客积分</a>：566<br />
+<a href="http://51ctoblog.blog.51cto.com/26414/5591" target="_blank">博客等级</a>：3<br />
+注册日期：2009-06-26<br />
+<script src="http://blog.51cto.com/active/no1/blogno1countdown.php"></script> 
+</p>
+</div>
+<span class="modBot"></span>
+</div>
+
+
+<div class="infoList box">
+	<div class="title">
+		<h2 class="fl">热门专题</h2>
+		<a target="_blank" class="fr" href="http://blog.51cto.com/zt">更多&gt;&gt;</a>
+	</div>
+	<div class="modCon">
+
+	
+		<div class="vlist">
+		  <a href="http://blog.51cto.com/zt/546" target="_blank"><img width="63" height="63" src="http://blog.51cto.com//images/special/1384245877_index.jpg" /></a>
+		<dl>
+		<dt>
+		  <a href="http://blog.51cto.com/zt/546" target="_blank" title="RHEL6从零基础到熟练使用">RHEL6从零基础到熟练使用</a></dt>
+		<dd>阅读量：6647</dd>
+		</dl>
+		</div>
+	
+		<div class="vlist">
+		  <a href="http://blog.51cto.com/zt/545" target="_blank"><img width="63" height="63" src="http://blog.51cto.com//images/special/1383894104_index.jpg" /></a>
+		<dl>
+		<dt>
+		  <a href="http://blog.51cto.com/zt/545" target="_blank" title="IDC机房-服务器故障处理方案">IDC机房-服务器故障处理方案</a></dt>
+		<dd>阅读量：2928</dd>
+		</dl>
+		</div>
+	
+		<div class="vlist">
+		  <a href="http://blog.51cto.com/zt/549" target="_blank"><img width="63" height="63" src="http://blog.51cto.com//images/special/1385434349_index.jpg" /></a>
+		<dl>
+		<dt>
+		  <a href="http://blog.51cto.com/zt/549" target="_blank" title="VMware5.5从零开始学起">VMware5.5从零开始学起</a></dt>
+		<dd>阅读量：2004</dd>
+		</dl>
+		</div>
+	
+		<div class="vlist">
+		  <a href="http://blog.51cto.com/zt/547" target="_blank"><img width="63" height="63" src="http://blog.51cto.com//images/special/1384498337_index.jpg" /></a>
+		<dl>
+		<dt>
+		  <a href="http://blog.51cto.com/zt/547" target="_blank" title=" Hyper-V 3.0功能部署"> Hyper-V 3.0功能部署</a></dt>
+		<dd>阅读量：1244</dd>
+		</dl>
+		</div>
+		
+		
+	</div>
+	<span class="modBot"></span>
+</div>
+
+
+<div class="hotArt box">
+<div class="title">
+<h2>热门文章</h2>
+</div>
+<div class="modCon">
+<ul>
+<li><a href="/839773/869605">Linux sed 批量替换字符..</a></li>
+<li><a href="/839773/803727">mysqld_safe无法启动的解..</a></li>
+<li><a href="/839773/844943">Dell R510,R610/710服务..</a></li>
+<li><a href="/839773/901623">shell笔试题汇总</a></li>
+<li><a href="/839773/933014">Mongodb安装配置、主从同步</a></li>
+<li><a href="/839773/875101">利用vmstat、sar、iostat..</a></li>
+<li><a href="/839773/1218785">网卡软中断调优</a></li>
+<li><a href="/839773/871694">Apache的prefork模式和wo..</a></li>
+
+</ul>
+</div>
+<span class="modBot"></span>
+</div>
+<div class="search box">
+<div class="title"><h2>搜索BLOG文章</h2></div>
+<div class="modCon">
+<form method=post action="search.php?" tabindex="99">
+<input type="hidden" name="step" value="2">
+<input type="hidden" name="authorid" value="839773">
+<input type="hidden" name="sch_area" value="S">
+<input type="text" value="" name="keyword"  class="searchInput" />
+<input type="submit" value="搜 索" class="searchBtn" />
+</form>
+</div><!--modCon end-->
+<span class="modBot"></span>
+</div>
+
+
+<div class="myHome box">
+<div class="title"><h2 class="fl">我的技术圈(<a href="/mygroup.php" target="_blank"><b>1</b></a>)</h2>
+<a href="http://home.51cto.com/apps/group/index.php?s=/Index/index/" class="fr" target="_blank">更多&gt;&gt;</a></div>
+<div class="modCon">
+<ul>
+
+<li><a href="http://g.51cto.com/linuxengineers" target="_blank">Linux运维工程师</a>&nbsp;&nbsp;
+
+<img src="http://img1.51cto.com/image/skin/def/3.gif" alt=有新成员加入>
+
+</li>
+
+</ul>
+</div><!--modCon end-->
+<span class="modBot"></span>
+</div>
+
+
+<div class="box recentGuests">
+<div class="title">
+<h2>最近访客</h2>
+</div>
+<div class="modCon">
+<ul>
+
+<li><a href="http://kingcraft.blog.51cto.com"><img src="http://ucenter.51cto.com/avatar.php?uid=2776630&size=middle" /></a>
+<p><a href="http://kingcraft.blog.51cto.com">卍伪装卍</a></p>
+
+<li><a href="http://jingshengsun888.blog.51cto.com"><img src="http://ucenter.51cto.com/avatar.php?uid=1767811&size=middle" /></a>
+<p><a href="http://jingshengsun888.blog.51cto.com">jings..</a></p>
+
+<li><a href="http://4238704.blog.51cto.com"><img src="http://ucenter.51cto.com/avatar.php?uid=4228704&size=middle" /></a>
+<p><a href="http://4238704.blog.51cto.com">zlx1318</a></p>
+
+<li><a href="http://104088.blog.51cto.com"><img src="http://ucenter.51cto.com/avatar.php?uid=94088&size=middle" /></a>
+<p><a href="http://104088.blog.51cto.com">hongd..</a></p>
+
+<li><a href="http://648184.blog.51cto.com"><img src="http://ucenter.51cto.com/avatar.php?uid=638184&size=middle" /></a>
+<p><a href="http://648184.blog.51cto.com">gzgaff</a></p>
+
+<li><a href="http://7979856.blog.51cto.com"><img src="http://ucenter.51cto.com/avatar.php?uid=7969856&size=middle" /></a>
+<p><a href="http://7979856.blog.51cto.com">jhm633</a></p>
+
+<li><a href="http://2441296.blog.51cto.com"><img src="http://ucenter.51cto.com/avatar.php?uid=2431296&size=middle" /></a>
+<p><a href="http://2441296.blog.51cto.com">hbpro..</a></p>
+
+<li><a href="http://sunnychan.blog.51cto.com"><img src="http://ucenter.51cto.com/avatar.php?uid=1558822&size=middle" /></a>
+<p><a href="http://sunnychan.blog.51cto.com">piaoyu_</a></p>
+
+<li><a href="http://252784.blog.51cto.com"><img src="http://ucenter.51cto.com/avatar.php?uid=242784&size=middle" /></a>
+<p><a href="http://252784.blog.51cto.com">sbwenss</a></p>
+
+<li><a href="http://1548671.blog.51cto.com"><img src="http://ucenter.51cto.com/avatar.php?uid=1538671&size=middle" /></a>
+<p><a href="http://1548671.blog.51cto.com">hxw910</a></p>
+
+<li><a href="http://marvelyu.blog.51cto.com"><img src="http://ucenter.51cto.com/avatar.php?uid=471030&size=middle" /></a>
+<p><a href="http://marvelyu.blog.51cto.com">marvelyu</a></p>
+
+<li><a href="http://2989864.blog.51cto.com"><img src="http://ucenter.51cto.com/avatar.php?uid=2979864&size=middle" /></a>
+<p><a href="http://2989864.blog.51cto.com">xiaox..</a></p>
+
+</ul>
+<span class="clear"></span>
+</div>
+<span class="modBot"></span>
+</div>
+
+
+<div class="newComments box">
+<div class="title">
+<h2>最新评论 
+
+</h2>
+
+
+
+</div>
+<div class="modCon">
+<ul>
+
+<li><a href='http://brala61.blog.51cto.com/' class='operlink' target=_blank><b>brala61</b></a>：<a href="/839773/812915" target=_blank>我是因为administrator不在sudoers..</a></li>
+
+
+</ul>
+</div>
+<span class="modBot"></span>
+</div>
+
+
+<div class="hotBlogArt box">
+<div class="title">
+  <h2 class="fl">51CTO推荐博文</h2>
+  <a href="http://blog.51cto.com/artcommend" class="fr">更多&gt;&gt;</a></div>
+<div class="modCon">
+<ul>
+<li><a href="http://20101218.blog.51cto.com/283611/1335220" title="Vcenter5.1安装详解" target="_blank">Vcenter5.1安装详解</a></li>
+<li><a href="http://cuimk.blog.51cto.com/6649029/1335770" title="实现Nginx通过反代对Java环境和Perl环境的支持（附Tomcat）" target="_blank">实现Nginx通过反代对Java环境和Pe..</a></li>
+<li><a href="http://clovemfong.blog.51cto.com/3297559/1335808" title="KVM虚拟化主机HA功能实践" target="_blank">KVM虚拟化主机HA功能实践</a></li>
+<li><a href="http://zhaisj.blog.51cto.com/219066/1335502" title="解密国内信息安全服务市场的“怪圈”" target="_blank">解密国内信息安全服务市场的“怪圈”</a></li>
+<li><a href="http://qiufengsong.blog.51cto.com/7520243/1335276" title="自动构建平台jenkins使用" target="_blank">自动构建平台jenkins使用</a></li>
+<li><a href="http://xuqiangqiang.blog.51cto.com/8290140/1335321" title="zabbix-2.2.0 vmware esxi之简单监控" target="_blank">zabbix-2.2.0 vmware esxi之简单监控</a></li>
+<li><a href="http://going.blog.51cto.com/7876557/1335469" title="Linux运维比较实用的工具" target="_blank">Linux运维比较实用的工具</a></li>
+<li><a href="http://clovemfong.blog.51cto.com/3297559/1335635" title="Windows Server 2008 R2上VCenter5安装手册" target="_blank">Windows Server 2008 R2上VCenter..</a></li>
+<li><a href="http://yuebaibai222.blog.51cto.com/2535988/1335654" title="CentOS --kickstart服务器搭建(二)" target="_blank">CentOS --kickstart服务器搭建(二)</a></li>
+<li><a href="http://chenguang.blog.51cto.com/350944/1335750" title="Linux下搭建Lotus Domino集群" target="_blank">Linux下搭建Lotus Domino集群</a></li>
+<li><a href="http://chenguang.blog.51cto.com/350944/1335268" title="Lotus防病毒与数据备份案例" target="_blank">Lotus防病毒与数据备份案例</a></li>
+
+</ul>
+</div><!--modCon end-->
+<span class="modBot"></span>
+</div>
+
+
+<div class="friendLink box">
+<div class="title">
+  <h2>友情链接</h2>
+</div>
+<div class="modCon">
+<ul>
+
+<li><a href="http://51ctoblog.blog.51cto.com" title="51CTO博客开发" target="_blank">51CTO博客开发</a> <img src='http://img1.51cto.com/images/tubiao1.gif' alt='本日内更新'></li>
+
+</ul>
+</div><!--modCon end-->
+<span class="modBot"></span>
+</div>
+
+
+
+</div>
+<!--left end-->
+
+<script type="text/javascript">
+    var favor_url = "http://wwdhks.blog.51cto.com/839773/1218785";
+    var favor_title = "网卡软中断调优";
+    var favor_fuid = "839773";
+</script>
+<script type="text/javascript" src="http://home.51cto.com/apps/favorite/Tpl/default/Public/js/favorbox.js"></script>
+<div class="blogRight">
+
+	
+	<div class="relatedArt box">
+	<a href="http://blog.51cto.com/contest2013/index.php?mod=userlist_sec#dianping" target="_blank" target="_blank"><img src="http://blog.51cto.com/attachment/201311/144337547.jpg" /></a>
+<!-- <a href="http://blog.51cto.com/contest2013/839773" target="_blank" target="_blank"><img src="http://blog.51cto.com/attachment/201311/144337547.jpg" /></a> -->
+</div>
+
+
+	<div class="artShow box">
+   	  <div class="share" id="share">
+
+    <div class="shareItem">
+		<div class="m_sharelinks"><a target="_blank" href="" style="color:blue;"></a><a target="_blank" href="http://blog.51cto.com/newsletter/229/" style="color:blue;">周刊：技术路上难以忘记的“囧”与“惑”</a><a target="_blank" href="http://blog.51cto.com/contest2013/index.php?mod=userlist_sec" style="color:red;">星光评委正在评选50强...</a></div>
+		<p class="shareMored"><a href="/all/839773">博主的更多文章>></a></p>
+	</div>
+      </div>
+       <div class="modCon">
+   	  <div class="showBox" style="margin:0 0 10px;">
+      <div class="line_hd_r"></div>
+      <div class="art_tj">
+
+      </div>
+
+ 
+    		<div class="showHead">
+    		  <div class="showTitleBOx" style="text-align:center">
+              <div class="showTitle">
+
+	 		<img src="http://blog.51cto.com/image/skin/artType02.jpg">
+
+
+    		    网卡软中断调优
+                </div>
+  		    </div>
+   		    <span class="artTime">2013-06-08 13:27:55</span></div><!--showHead end-->
+    <div class="showTags">标签：<a href="http://blog.51cto.com/tag-irqbalance、affinity.html" target="_blank" class="operlink">irqbalance、affinity</a> <a href="http://blog.51cto.com/tag-网卡软中断.html" target="_blank" class="operlink">网卡软中断</a>
+
+	</div>
+
+
+            <!--正文 begin-->
+    		<div class="showContent">
+    		  <p><strong>smp_affinity</strong>值计算：</p><p>在前阵子看到HelloDB的一篇文章“<strong><a href="http://www.hellodb.net/2011/06/mysql_multi_instance.html" target="_blank">MySQL单机多实例方案”</a></strong>中提到：</p><p>因为单机运行多个实例，必须对网络进行优化，我们通过多个的IP的方式，将多个MySQL实例绑定在不同的网卡上，从而提高整体的网络能力。还有一种更高级的做法是，将不同网卡的中断与CPU绑定，这样可以大幅度提升网卡的效率。</p><p>于是，对“<strong>将不同网卡的中断与CPU绑定</strong>，这样可以大幅度提升网卡的效率”比较感兴趣，所以找了点资料了解一下。先总结如下：</p><p>1. 不同的设备一般都有自己的IRQ号码（当然一个设备还有可能有多个IRQ号码）</p><p>通过命令：<strong>cat /proc/interrupts</strong>查看</p><p>如：cat /proc/interrupts | grep -e “CPU\|eth4″<br />#当使用KVM中的device assignment特性时，在/proc/interrupts中，有“ … IR-PCI-MSI-edge &nbsp; &nbsp; &nbsp;kvm:0000:05:00.1 …”这样的行。</p><p>2. <strong>中断的smp affinity在cat &nbsp;/proc/irq/$Num/smp_affinity</strong></p><p>可以echo “$bitmask” &gt; /proc/irq/$num/smp_affinity来改变它的值。<br />如： echo 8 &gt; /proc/irq/93/smp_affinity &nbsp; #表示将93号irq绑定到#3号CPU<br /><span style="color:#ff0000;">echo 400 &gt; /proc/irq/93/smp_affinity &nbsp;#表示将93号irq绑定到#10号CPU（我们可以用工具将16进制400转换为二进制为10000000000）</span></p><p>注意smp_affinity这个值是一个十六进制的bitmask，它和cpu No.序列的“与”运算结果就是将affinity设置在那个（那些）CPU了。（也即smp_affinity中被设置为1的位为CPU No.）</p><p>比如：我有8个逻辑core，那么CPU#的序列为11111111 （从右到左依次为#0~#7的CPU）</p><p>如果cat /proc/irq/84/smp_affinity的值为：<span style="color:#ff0000;">20（二进制为：00100000），则84这个IRQ的亲和性为#5号CPU。</span></p><p>每个IRQ的默认的smp affinity在这里：cat /proc/irq/default_smp_affinity</p><p>另外，<strong>cat &nbsp;/proc/irq/$Num/smp_affinity_list</strong> 得到的即是irq绑定的CPU的一个List。</p><p>3. 默认情况下，有一个irqbalance在对IRQ进行负载均衡，它是<strong>/etc/init.d/irqbalance</strong></p><p>在某些特殊场景下，可以根据需要停止这个daemon进程。</p><p>4. 如果要想提高性能，将IRQ绑定到某个CPU，那么最好在系统启动时，将那个<strong>CPU隔离</strong>起来，不被scheduler通常的调度。</p><p>可以通过在Linux kernel中加入启动参数：<strong>isolcpus=cpu-list</strong>来将一些CPU隔离起来。</p><p><br />参考：<a href="http://smilejay.com/2012/02/irq_affinity/">http://smilejay.com/2012/02/irq_affinity/</a><br /></p><p><br /></p><p><a href="http://blog.yufeng.info/archives/2037">http://blog.yufeng.info/archives/2037</a> *****<span style="font-size:14px;">MYSQL数据库网卡软中断不平衡问题及解决方案</span></p><p><br /></p><h2 class="title content-title"></h2><p style="text-align:center;"><span style="color:#ff0000;">LVS网卡软中断配置</span></p><p style="text-align:left;"><span style="color:#ff0000;"><span style="color:#ff0000;"></span></span></p><p>这是之前做LVS的网卡软中断配置时整理的一个文档，网上的资料不是很全，将配置方法share给大家。</p><p>为什么要配置网卡软中断，主要是因为在网络非常 heavy 的情况下，对于文件服务器、高流量 Web 服务器这样的应用来说，把不同的网卡 IRQ 均衡绑定到不同的 CPU 上将会减轻某个 CPU 的负担，提高多个 CPU 整体处理中断的能力。合理的根据自己的生产环境和应用的特点来平衡 IRQ 中断有助于提高系统的整体吞吐能力和性能。<br />先看下未升级之前的效果：可以看到网卡软中断被分配到了两个指定的CPU核心上（<strong><span style="color:#ff0000;">看%si列</span></strong>）:<br /><img onload="if(this.width>650) this.width=650;" alt="lvs1" src="http://f.hiphotos.baidu.com/space/pic/item/37d12f2eb9389b500afaeacd8535e5dde7116e23.jpg" height="128" width="615" /></p><p>经过升级内核调整参数后的效果：</p><p><img onload="if(this.width>650) this.width=650;" alt="lvs2" src="http://a.hiphotos.baidu.com/space/pic/item/f31fbe096b63f6246320339c8744ebf81a4ca32b.jpg" height="186" width="625" /></p><p>软中断被均匀的分配到8个核心上，下面来说下具体过程<br /><strong>首先</strong>，将内核升级到2.6.32以上，升级过程略去：</p><div>为什么要将2.6.18内核升级到2.6.32？</div><div>这个主要是因为2.6.18还丌支持RPS这个特性</div><div>那什么是rps呢？具体可以参看：</div><div>http://lwn.net/Articles/328339/</div><div>http://lwn.net/Articles/378617/</div><p>为什么要将2.6.18内核升级到2.6.32？<br />这个主要是因为2.6.18不支持RPS这个特性<br />那什么是rps呢？具体可以参看：<br />http://lwn.net/Articles/328339/<br />http://lwn.net/Articles/378617/ <br /><br /><strong>第二步：</strong><br />如果你的服务<strong><span style="color:#ff0000;">器网卡和我一样是Broadcom的，那么你就得做这一步，不是请跳到第三步(待deven确认)</span></strong></p><p><img onload="if(this.width>650) this.width=650;" alt="lvs3" src="http://e.hiphotos.baidu.com/space/pic/item/e4dde71190ef76c6ebd7f1b49d16fdfaaf516723.jpg" height="44" width="640" /></p><p>在/etc/modprobe.conf加上下面这行： options bnx2 disable_msi=1</p><p>改完这个重新加载下网卡模块modprobe -r bnx2;modprobe bnx2或者重新启动服务器。</p><p>redhat 6.1或以上版本系统，没有“/etc/modprobe.conf”这个文件，需要编辑“/etc/modprobe.d/dist.conf”。重新加载网卡后可以用“modprobe -c|grep bnx2”查看配置有没有生效<br /></p><p>为什么要加这个？ <br />这个主要是因为broadcom网卡开启msi后，会造成后面的修改smp_affinity丌生效，intel的网卡没这个问题。 <br />msi是什么？下面的链接有解析：<br />http://lwn.net/Articles/44139/</p><p><strong>第三步：<br /></strong>停用irqbalance<br />/etc/init.d/irqbalance stop<br />这个是一个自动调整中断的工具，有兴趣的可以看下irqbalance的官方网站：<br />http://irqbalance.org/ </p><p><strong>第四步：</strong></p><p>设置eth0、eth1对应中断号的 smp_affinity 为 “ff”<br />先看一下网卡的中断号： </p><p><img onload="if(this.width>650) this.width=650;" alt="lvs4" src="http://b.hiphotos.baidu.com/space/pic/item/4ec2d5628535e5ddae29af4076c6a7efce1b6223.jpg" height="161" width="640" /></p><p>从图中可以看到网卡eth1的中断号为16,eth0的中断号为18<br />将/proc/irq/中断号/smp_affinity修改为ff，修改完成后就可以开启lvs了，现在中断应该均分到各个核心上了。</p><p>smp_affinity这个参数是怎么得来的？ 可参考下面链接：<br /><a href="http://www.cs.uwaterloo.ca/~brecht/servers/apic/SMP-affinity.txt">http://www.cs.uwaterloo.ca/~brecht/servers/apic/SMP-affinity.txt</a><br /></p><p><br /></p><p>这个也可以看看：</p><p>http://www.cnblogs.com/Bozh/archive/2013/01/17/2864201.html<br /></p><p style="text-align:left;"><span style="color:#ff0000;"><br /></span><a href="http://www.docin.com/p-289489132.html">http://www.docin.com/p-289489132.html</a> (盛大的) </p><p style="text-align:left;"><br /></p><p style="text-align:left;">以下这篇文章转自：http://hi.baidu.com/excalibur/item/77122ebeb0544242bb0e1236</p><h2 class="title content-title">Linux Virtual Server (LVS)之:ksoftirqd进程耗尽单核100%si处理软中断导致性能瓶颈</h2><div id="content" class="content mod-cs-content text-content clearfix"><p> &nbsp; &nbsp; &nbsp;最近测试LVS性能，发现当CPU其中一个核耗尽后系统达到性能顶峰。</p><p> &nbsp; &nbsp; &nbsp;消耗CPU资源的是ksoftirqd进程，全部用于处理软中断（从进程名也能识别出了）。</p><p> &nbsp; &nbsp; 搜了一下，很多人都遇到这类问题，似乎也没有解决。了解到并尝试过的解决方案有：</p><p> &nbsp; &nbsp; &nbsp; 1、减少集群成员的数量；</p><p> &nbsp; &nbsp; &nbsp; 2、修改集群模式（NAT、TURNL、DR）；</p><p> &nbsp; &nbsp; &nbsp; 3、修改集群调度算法；</p><p> &nbsp; &nbsp; &nbsp; 4、升级操作系统内核到2.6.20以上；</p><p> &nbsp; &nbsp; &nbsp; 5、调整网卡的最大传输单元（MTU）；</p><p> &nbsp; &nbsp; &nbsp; 6、修改设备中断方式；</p><p> &nbsp; &nbsp; &nbsp; 7、使用多网卡负载均衡；</p><p> &nbsp; &nbsp; &nbsp; 8、升级硬件（网卡）；</p><p> &nbsp; &nbsp; &nbsp; 9、更换操作系统。</p><p><br /></p><p> &nbsp; &nbsp;一一解说如下吧：</p><p><strong>第1点</strong>：减少集群成员的数量。由于瓶颈不在真实服务器上，所以减少成员数量，lvs性能没有明显变化。</p><p><strong>第2点</strong>：修改集群模式。理论上DR模式是最省资源的，大概了解理论的朋友应该都知道。由于NAT模式不满足需求，故仅对比了DR和TUN模式，两者没有明显区别。</p><p><strong>第3点</strong>：修改集群调度算法。已有的十种算法中属rr最简单，而且目前瓶颈还未深入到这一层。实际上在处理网络包的时候导致的瓶颈。调度算法简单比较了rr和wrr，两者没有明显区别。</p><p><strong>第4点</strong>：<a target="_blank" href="http://hi.baidu.com/higkoo/blog/item/6188b42a9ec13796023bf6cc.html">升级操作系统内核到2.6.20以上</a>。我直接升级到当前已发布的最新版本2.6.34，结果瓶颈并没有得到改善。</p><p><img onload="if(this.width>650) this.width=650;" src="http://hiphotos.baidu.com/higkoo/pic/item/2824e00aed43a203b0351d1a.jpg" /><br /></p><p><strong>第5点</strong>：调整网卡的最大传输单元。交换机支持最大的传输单元是9216，将网卡的最大传输单元分别修改为：1500（默认）、5000、9000、9216。其中1500和5000两者没有明显差别，9000和9216会导致网络不稳定，性能也没有提高反而出现大量连接超时。</p><p><strong>第6点</strong>：修改设备中断方式。通过修改设置中断/proc/irq/${网卡中断号}/smp_affinity：</p><p>测试服务器CPU为四核，理论上网卡的smp_affinity值为1、2、4、8分别对应cpu0、cpu1、cpu2、cpu3。</p><p>结果：</p><p> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;1、网卡的smp_affinity默认值为8，测试过程中软中断全部由cpu3处理。<strong>正确</strong></p><p> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;2、设置smp_affinity = 1，测试过程中软中断全部由cpu0处理。<strong>正确</strong></p><p> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;3、设置smp_affinity = 2，测试过程中软中断全部由cpu1处理。<strong>正确</strong></p><p> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;4、设置smp_affinity = 4，测试过程中软中断全部由cpu2处理。<strong>正确</strong></p><p> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;5、<span style="color:#ff0000;">设置smp_affinity = 5，测试过程中软中断全部由cpu0处理，预期应该分配给cpu0和cpu2处理。</span><strong><span style="color:#ff0000;">无效</span></strong></p><p> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;6、设置s<span style="color:#ff0000;">mp_affinity = f，测试过程中软中断全部由cpu0处理，预期应该分配给cpu0、cpu1、cpu2和cpu2处理。</span><strong><span style="color:#ff0000;">无效(经过Deven验证，的确如此)</span></strong></p><p> &nbsp; &nbsp; &nbsp; &nbsp; 即：<strong><span style="color:#ff0000;">修改</span><span style="color:#ff0000;">smp_affinity</span><span style="color:#ff0000;">的功能只针对单核有</span></strong><strong><span style="color:#ff0000;"></span>效</strong>。(Deven：按照我的理解，应该是说设置<strong><span style="color:#ff0000;">smp_affinity</span></strong>只能绑定到一个cpu核，绑定多核是不生效的，如果作者把有多个网卡中断号的网卡绑定到不同cpu应该是可行，他说不可行，应该是他的网卡为非多队列)</p><p><strong>第7点</strong>：使用多网卡负载均衡。<strong>此方案可行！</strong>使用两张网卡绑定一个IP地址，性能就提升了一倍，效果非常明显。原因就是两张网卡各用一个CPU核，相比用单核而言，性能自然提升一倍。</p><p><img onload="if(this.width>650) this.width=650;" src="http://hiphotos.baidu.com/higkoo/pic/item/0e3596033d32b74a3812bbc6.jpg" /><br /></p><p>配置方式如下：</p><p><br /></p><p><strong>单网卡工作模式</strong></p><p># cat /etc/sysconfig/network-scripts/ifcfg-eth0<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;DEVICE=eth0<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;BOOTPROTO=none<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;BROADCAST=192.168.223.255<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;HWADDR=00:1E:90:76:6F:E0<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;IPADDR=192.168.223.113<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;NETMASK=255.255.254.0<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;NETWORK=10.20.222.0<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;ONBOOT=yes<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;GATEWAY=192.168.222.1<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;TYPE=Ethernet</p><p><strong>绑定双网卡操作步骤</strong></p><p>echo &#39;alias bond0 bonding&#39; &gt;&gt; /etc/modprobe.conf<br /><br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;# cat /etc/sysconfig/network-scripts/ifcfg-bond0 <br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;DEVICE=bond0<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;BOOTPROTO=static<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;BROADCAST=192.168.223.255<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;MACDDR=00:1E:90:76:6F:E2<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;IPADDR=192.168.223.113<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;NETMASK=255.255.254.0<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;NETWORK=192.168.222.0<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;USERCTL=no<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;ONBOOT=yes<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;GATEWAY=10.20.222.1<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;TYPE=Ethernet<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;BONDING_OPTS=&quot;mode=0 miimon=100&quot;<br /><br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;# cat /etc/sysconfig/network-scripts/ifcfg-eth0<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;DEVICE=eth0<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;ERCTL=no<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;ONBOOT=yes<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;MASTER=bond0<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;SLAVE=yes<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;BOOTPROTO=none<br /><br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;# cat /etc/sysconfig/network-scripts/ifcfg-eth1<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;DEVICE=eth1<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;USERCTL=no<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;ONBOOT=yes<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;MASTER=bond0<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;SLAVE=yes<br /> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;BOOTPROTO=none</p><p><br /></p><p># service network restart</p><img onload="if(this.width>650) this.width=650;" src="http://hiphotos.baidu.com/higkoo/pic/item/8db21f3e62cbd70071cf6cc0.jpg" height="212" width="758" /><br /><p><br /></p><p><br /></p><p><strong><strong>第8点</strong>，升级硬件，使用支持RSS功能的网卡。 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</strong></p><p><strong>下面是<a target="_blank" href="http://www.intel.com/network/connectivity/resources/technologies/optimized_multicore.htm">intel</a>对RSS的说明</strong></p><strong><p><br /></p><p>Receive-side scaling (RSS) routes incoming packets to specific queues, efficiently balancing network loads across CPU cores and increasing performance on multi-processor systems. RSS, called Scalable I/O in Linux*, creates a hash table from IP, TCP, and Port Addresses and uses that table to decide which queue to route a packet to, and to which processor the packet should be associated.</p> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;可是从我们使用网卡的官网硬件指标上，都是支持RSS的。Windows的设置方式是`<strong>netsh int tcp set global rss=enabled</strong>`。 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</strong><p><strong>第9点</strong>，更换操作系统。此方案在生产环境下部署的可能性比较小，但是否关操作系统的事确实需要确认。</p><p>据说Windows的NLB、solaris、AIX支持网卡RSS，目前还有待确认。</p><p><br /></p><h2 class="title title-single" style="border-top-width:0px;border-right-width:0px;border-bottom-width:1px;border-left-width:0px;font-size:16px;vertical-align:baseline;line-height:26px;border-bottom-style:solid;border-bottom-color:#ffffff;color:#334455;font-family:tahoma,arial,helvetica,sans-serif;text-align:left;background-color:#f7f7f7;padding:2px 10px;margin:0px;">大量小包的CPU密集型系统调优案例一则</h2><div>http://blog.netzhou.net/?p=181<br /></div><div><br /></div><div><p style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;font-size:13px;vertical-align:baseline;line-height:18px;color:#333333;font-family:tahoma,arial,helvetica,sans-serif;text-align:left;background-color:#f7f7f7;padding-top:0px;padding-bottom:0px;margin-top:0px;margin-bottom:18px;">我的blog前面有一篇文章描述了软终端导致单cpu消耗100%，导致机器丢包跟延迟高的问题，文中我只是简单的说明了一下升级内核进行解决的，这个问题我并没有进行一个问题解决的说明，经历了一系列的调整后，单机的并发从单机单网卡承受100M流量到160M流量，到现在的最高的230M流量，在程序没有大规模修改的情况下效果还是十分的明显，这次这篇文章将完整的说一下我的一个解决方法：<br style="padding:0px;margin:0px;" />先说说我的场景，我目前负责的一个项目，大量的小数据包，长连接，每个数据包都不大，大概10Kbit左右一个包，但是数量十分之大，目前在生产环境中最大的数据包数量高达15W/s的数量，常见的网游系统，小图片cdn系统，这些服务类型都算是这种类型，单网卡流量不大，但是数据包数量极大，我目前调优的结果是<br style="padding:0px;margin:0px;" />在Xeon E5504， BCM5716的网卡，8G的dell r410的机器，单网卡实现了230MBits大的流量，系统的load为0，8颗cpu每一颗还有10%左右的IDLE，由于我们的系统是数据包的转发，还有一个网卡同期的流量使220M，12.8W的数据包，算上总数，大概可以到450MBits的流量，25.5W的小包，由于人数有限，流量没有跑上去，预计可以跑到480MBits的流量，生产环境的一台机器的数据：<br style="padding:0px;margin:0px;" />流量及机器的网卡包数量<br style="padding:0px;margin:0px;" /><a href="http://blog.netzhou.net/wp-content/uploads/2011/09/traffic.png" style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;vertical-align:baseline;color:#333333;outline-style:none;outline-width:initial;outline-color:initial;padding:0px;margin:0px;"><img onload="if(this.width>650) this.width=650;" src="http://blog.netzhou.net/wp-content/uploads/2011/09/traffic.png" title="traffic" class="alignnone size-medium wp-image-183" style="vertical-align:baseline;border-top-style:solid;border-right-style:solid;border-bottom-style:solid;border-left-style:solid;max-width:610px;height:auto;background-color:#ffffff;border-top-color:#dddddd;border-right-color:#dddddd;border-bottom-color:#dddddd;border-left-color:#dddddd;padding:4px;margin:10px 0px;" height="130" width="600" /></a><br style="padding:0px;margin:0px;" />机器的cpu消耗<br style="padding:0px;margin:0px;" /><a href="http://blog.netzhou.net/wp-content/uploads/2011/09/top.png" style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;vertical-align:baseline;color:#333333;outline-style:none;outline-width:initial;outline-color:initial;padding:0px;margin:0px;"><img onload="if(this.width>650) this.width=650;" src="http://blog.netzhou.net/wp-content/uploads/2011/09/top.png" title="top" class="alignnone size-medium wp-image-185" style="vertical-align:baseline;border-top-style:solid;border-right-style:solid;border-bottom-style:solid;border-left-style:solid;max-width:610px;height:auto;background-color:#ffffff;border-top-color:#dddddd;border-right-color:#dddddd;border-bottom-color:#dddddd;border-left-color:#dddddd;padding:4px;margin:10px 0px;" height="91" width="600" /></a><br style="padding:0px;margin:0px;" />首先机器的选型，由于大量小包的cpu密集的系统，当然cpu越性能越高越好咯，但是成本相应的高。对于这种类型的机器，网卡选型也是十分的重要，一定要选择支持msi-x的网卡类型，<strong><span style="color:#ff0000;">什么是msi-x大家可以查询google资料去了解一下，目前市面出售的大部分最新的网卡都有这个功能，查看方法lspci -v，看到</span></strong>如下图的内容<br style="padding:0px;margin:0px;" /><a href="http://blog.netzhou.net/wp-content/uploads/2011/09/MSI-X.png" style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;vertical-align:baseline;color:#333333;outline-style:none;outline-width:initial;outline-color:initial;padding:0px;margin:0px;"><img onload="if(this.width>650) this.width=650;" src="http://blog.netzhou.net/wp-content/uploads/2011/09/MSI-X.png" title="MSI-X" class="alignnone size-medium wp-image-188" style="vertical-align:baseline;border-top-style:solid;border-right-style:solid;border-bottom-style:solid;border-left-style:solid;max-width:610px;height:auto;background-color:#ffffff;border-top-color:#dddddd;border-right-color:#dddddd;border-bottom-color:#dddddd;border-left-color:#dddddd;padding:4px;margin:10px 0px;" height="103" width="600" /></a><br style="padding:0px;margin:0px;" />再者网卡是否支持多队列，<span style="color:#ff0000;">多队列网卡十分的重要，不是多队列的网卡，这篇文章几乎不需要看</span>了，可以直接忽略掉，查看方法cat /proc/interrupts,这个方法并不适用所有的操作系统例如在rhel 5.5的os当中，bcm5716的网卡就看不到，具体我也没有查到怎么查看的方法，麻烦知道的用户告知一声，如果是的话应该可以看到如下图的内容<br style="padding:0px;margin:0px;" /><a href="http://blog.netzhou.net/wp-content/uploads/2011/09/multiQ.png" style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;vertical-align:baseline;color:#333333;outline-style:none;outline-width:initial;outline-color:initial;padding:0px;margin:0px;"><img onload="if(this.width>650) this.width=650;" src="http://blog.netzhou.net/wp-content/uploads/2011/09/multiQ.png" title="multiQ" class="alignnone size-medium wp-image-189" style="vertical-align:baseline;border-top-style:solid;border-right-style:solid;border-bottom-style:solid;border-left-style:solid;max-width:610px;height:auto;background-color:#ffffff;border-top-color:#dddddd;border-right-color:#dddddd;border-bottom-color:#dddddd;border-left-color:#dddddd;padding:4px;margin:10px 0px;" height="84" width="600" /></a><br style="padding:0px;margin:0px;" />每一个<strong><span style="color:#ff0000;">网卡有8个队列，</span></strong>对于这种大量小包的cpu密集型的系统，多队列的网卡性能至少提供性能50%以上，我们生产环境的有台非多队列的Intel 82574的网卡调优后只能跑到160M左右流量，跟上图明显的一个对比.而同等情况下买一个多队列的网卡明显要便宜很多。<br style="padding:0px;margin:0px;" />操作系统的选择，目前大部分企业使用的是rhel系列的os，包括标准的rhel跟centos作为一个生产环境的os，目前主力的版本还是rhel 5系列的os，而rhel 5系列的内核版本对于软中断处理并不是很好，调优的结果不是很理想，在rhel 5系列的os上，我们最高流量单网卡也就是160M左右，而且机器的load也很高了，机器已经出现小量的丢包，而且只是使用了4到6个cpu还有几个cpu没有利用上，机器性能没有挖掘完毕，由于我们的机器没有存储的压力，单纯的只是消耗cpu资源，没有io的压力，于是大胆的启用刚出的rhel 6.1的系统，看重这个系统的原因是，该os的内核已经加入了google的两个原本在2.6.35当中才启用的2个补丁——RPS/RFS，RPS主要是把软中断的负载均衡到各个cpu，由于RPS只是单纯把数据包均衡到不同的cpu，这个时候如果应用程序所在的cpu和软中断处理的cpu不是同一个，此时对于cpu cache的影响会很大，那么RFS确保应用程序处理的cpu跟软中断处理的cpu是同一个，这样就充分利用cpu的cache，默认情况下，这个功能并没有开启，需要手动开启开启方法，开启的前提是多队列网卡才有效果。<br style="padding:0px;margin:0px;" /><strong><span style="color:#ff0000;">echo ff &gt; /sys/class/net/&lt;interface&gt;/queues/rx-&lt;number&gt;/rps_cpus<br style="padding:0px;margin:0px;" />echo 4096 &gt; /sys/class/net/&lt;interface&gt;/queues/rx-&lt;number&gt;/rps_flow_cnt<br style="padding:0px;margin:0px;" />echo 30976 &gt; /proc/sys/net/core/rps_sock_flow_entries</span></strong></p><p style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;font-size:13px;vertical-align:baseline;line-height:18px;color:#333333;font-family:tahoma,arial,helvetica,sans-serif;text-align:left;background-color:#f7f7f7;padding-top:0px;padding-bottom:0px;margin-top:0px;margin-bottom:18px;"><span style="color:#00b050;">（经过Deven在虚拟机测试，centos6.4版本，设置上面3个选项就搞定了）</span><br style="padding:0px;margin:0px;" />对于2个物理cpu,8核的机器为ff，具体计算方法是第一颗cpu是00000001，第二个cpu是00000010，第3个cpu是00000100，依次类推，由于是所有的cpu都负担，所以所有的cpu数值相加，得到的数值为11111111，十六进制就刚好是ff。而对于/proc/sys/net/core/rps_sock_flow_entries的数值是根据你的网卡多少个通道，计算得出的数据，例如你是8通道的网卡，那么1个网卡，每个通道设置4096的数值，8*4096就是/proc/sys/net/core/rps_sock_flow_entries的数值，对于内存大的机器可以适当调大rps_flow_cnt，这个时候基本可以把软中断均衡到各个cpu上了，而对于cpu的使用，还有其它的例如use，sys等，这个不均衡的话，cpu还是会浪费掉，同时对我们的程序针对多cpu进行小部分的开发跟重新编译，本身我们程序就是多进程的一个模型，我们采用nginx的进程管理模型，一个master管理work进程，master分配每一个连接给work进程，由work进程处理用户的请求，这样每一个进程都能均衡负担几乎相同的处理请求，同时在6.1的系统中gcc新增一个openmp的指令，这个指令作用针对多核，增加程序的并行计算的功能，不需要大规模的更改代码就能实现多核的并行性计算，具体使用使用方法请见如下url</p><p style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;font-size:13px;vertical-align:baseline;line-height:18px;color:#333333;font-family:tahoma,arial,helvetica,sans-serif;text-align:left;background-color:#f7f7f7;padding-top:0px;padding-bottom:0px;margin-top:0px;margin-bottom:18px;">http://zh.wikipedia.org/zh/OpenMP</p><p style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;font-size:13px;vertical-align:baseline;line-height:18px;color:#333333;font-family:tahoma,arial,helvetica,sans-serif;text-align:left;background-color:#f7f7f7;padding-top:0px;padding-bottom:0px;margin-top:0px;margin-bottom:18px;">针对上面的处理，基本上可以实现cpu按理说可以实现完全的均衡了，但是当我们在实际的使用过程中发现还是cpu还不是100%的均衡，存在1到2个cpu消耗量还是比其它的要大20%左右，导致在高峰期有1到2个cpu的idle使用完毕，导致用户使用存在卡的情况，这个时候，需要手动调节一下cpu的使用情况，在这操作之前先了解几个名词以及其作用<br style="padding:0px;margin:0px;" />一个是IO-APIC(输入输出装置的高级可编程中断控制器)<br style="padding:0px;margin:0px;" />为了充分挖掘 SMP 体系结构的并行性，能够把中断传递给系统中的每个CPU至关重要，基于此理由，Intel 引入了一种名为 I/O-APIC的东西。该组件包含两大组成部分：一是“本地 APIC”，主要负责传递中断信号到指定的处理器；举例来说，一台具有三个处理器的机器，则它必须相对的要有三个本地 APIC。另外一个重要的部分是 I/O APIC，主要是收集来自 I/O 装置的 Interrupt 信号且在当那些装置需要中断时发送信号到本地 APIC。这样就能充分利用多cpu的并行性。如果用户对于IO-APIC更感兴趣，请见如下url的中的pdf的说明</p><p style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;font-size:13px;vertical-align:baseline;line-height:18px;color:#333333;font-family:tahoma,arial,helvetica,sans-serif;text-align:left;background-color:#f7f7f7;padding-top:0px;padding-bottom:0px;margin-top:0px;margin-bottom:18px;">http://wenku.baidu.com/view/ccdc114e2e3f5727a5e962e9.html</p><p style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;font-size:13px;vertical-align:baseline;line-height:18px;color:#333333;font-family:tahoma,arial,helvetica,sans-serif;text-align:left;background-color:#f7f7f7;padding-top:0px;padding-bottom:0px;margin-top:0px;margin-bottom:18px;">另外一个就是irqbalance<br style="padding:0px;margin:0px;" />irqbalance 用于优化中断分配,它会自动收集系统数据以分析使用模式,并依据系统负载状况将工作状态置于 Performance mode 或 Power-save mode.处于 Performance mode时irqbalance 会将中断尽可能均匀地分发给各个CPU以充分利用 CPU 多核,提升性能.处<strong><span style="color:#ff0000;">于 Power-save mode时,irqbalance 会将中断集中分配给第一个 CPU,以保证其它空闲 CPU 的睡眠时间,降低能耗</span></strong><br style="padding:0px;margin:0px;" />通过这我们就发现我们是一个非常繁重的系统，并没有节能的需求，而是需要充分利用各个cpu的性能，而事实上在一个大量小包的系统上，irqbalance优化几乎没有效果，而且还使得cpu消耗不均衡，导致机器性能得不到充分的利用，这个时候需要把它给结束掉<br style="padding:0px;margin:0px;" />/etc/init.d/irqbalance stop</p><p style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;font-size:13px;vertical-align:baseline;line-height:18px;color:#333333;font-family:tahoma,arial,helvetica,sans-serif;text-align:left;background-color:#f7f7f7;padding-top:0px;padding-bottom:0px;margin-top:0px;margin-bottom:18px;"><a href="http://blog.yufeng.info/archives/2422">http://blog.yufeng.info/archives/2422</a> ****深度剖析告诉你irqbalance有用吗？</p><p style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;font-size:13px;vertical-align:baseline;line-height:18px;color:#333333;font-family:tahoma,arial,helvetica,sans-serif;text-align:left;background-color:#f7f7f7;padding-top:0px;padding-bottom:0px;margin-top:0px;margin-bottom:18px;"> 同时，手动绑定软中断到指定的cpu，对于一个8个队列的网卡，8核的机器，可以指定一个cpu处理一个网卡队列的中断请求，并根据cpu的消耗情况，手动调整单个网卡的队列到资源消耗低的cpu上，实现手动均衡，具体操作方法，执行如下命令<br style="padding:0px;margin:0px;" />cat /proc/interrupts<br style="padding:0px;margin:0px;" /><a href="http://blog.netzhou.net/wp-content/uploads/2011/09/intrqnum.png" style="border-top-width:0px;border-right-width:0px;border-bottom-width:0px;border-left-width:0px;vertical-align:baseline;color:#333333;outline-style:none;outline-width:initial;outline-color:initial;padding:0px;margin:0px;"><img onload="if(this.width>650) this.width=650;" src="http://blog.netzhou.net/wp-content/uploads/2011/09/intrqnum.png" title="intrqnum" class="alignnone size-medium wp-image-190" style="vertical-align:baseline;border-top-style:solid;border-right-style:solid;border-bottom-style:solid;border-left-style:solid;max-width:610px;height:auto;background-color:#ffffff;border-top-color:#dddddd;border-right-color:#dddddd;border-bottom-color:#dddddd;border-left-color:#dddddd;padding:4px;margin:10px 0px;" height="83" width="600" /></a><br style="padding:0px;margin:0px;" />计算cpu的方法第一颗为00000001换算成16进制为1，第2颗cpu为00000010换算成16进制为2，依次类推得出，第8颗cpu为80，这样就可以做如下的绑定了<br style="padding:0px;margin:0px;" />echo 0001 &gt; /proc/irq/&lt;number&gt;/smp_affinity<br style="padding:0px;margin:0px;" /><span style="color:#ff0000;">这样就可以绑定中断到指定的cpu了，这个时候有可能会问，我的机器是一个2通道的网卡，这个时候如果一个通道一个cpu绑定，这个时候就浪费了6颗cpu了，还是达不到完全均衡负载，为什么不能像前面rps那样，<br style="padding:0px;margin:0px;" />echo ff &gt; /proc/irq/&lt;number&gt;/smp_affinity<br style="padding:0px;margin:0px;" />设置一个ff达到所有的cpu一起均衡呢，这个因为io-apic工作的2个模式logical/low priority跟fixed/physical模式，这两个模式的区别在于，前面一个模式能够把网卡中断传递给多核cpu进行处理，后一种模式对应一个网卡队列的中断只能传递给单cpu进行处理，而linux是fixed/physical工作模式，如果你</span>设置上面那个选项，只能第一个cpu进行软中断的处理，又回到未优化前了。那么为什么不开启logical/low priority呢，当一个tcp连接发起，当数据包到底网卡，网卡触发中断，中断请求到其中一个cpu，而logical/lowpriority并不能保证后续的数据包跟前面的包处于同一个cpu，这样后面的数据包发过来，又可能处于另外一个cpu，这个时候同一个socket都得检查自己的cpu的cache，这样就有可能部分cpu取不到数据，因为本身它的cache并没用数据，这个时候就多了多次的cpu的查找，不能充分利用cpu的效率。对于部分机器来说并不能开启logical/low priority模式，一种可能是cpu过多，另外一种是bios不支持。<strong><span style="color:#ff0000;">因此对于那种单队列网卡并不能充分发挥cpu的性能</span></strong>。<br style="padding:0px;margin:0px;" />经过上述的调整基本可以达到几乎完全均衡的效果，每个cpu都能发挥他的效果。也几乎可以到达我调优的效果<br style="padding:0px;margin:0px;" />对于一个完整的系统来说，不仅有数据包发送的需求还有数据接收的请求，而rps/rfs主要解决数据接收的一个中断均衡的问题，rps/rfs的作者提交了一个xps（Transmit Packet Steering）， 这个patch主要是针对多队列的网卡发送时的优化，当发送一个数据包的时候，它会根据cpu来选择对应的队列，目前这个patch已经添加在2.6.38内核版本当中，我们已经在生产环境中，部分机器上已经使用上了，据作者的benchmark，能够提高20%的性能，具体使用方法<br style="padding:0px;margin:0px;" />echo ff &gt; /sys/class/net/&lt;interface&gt;/queues/tx-&lt;number&gt;/xps_cpus<br style="padding:0px;margin:0px;" />由于还是新上的系统，还没敢大规模放用户进来，还在测试系统的稳定性，不知道上限具体能到多少，从当前生产环境跑的流量来看，比同等其它的机器，cpu消耗情况，确实要减少一些，流量没有跑上来，效果不是特别的明显，还有待继续测试，得出一个具体的结果。<br style="padding:0px;margin:0px;" />另外对于intel的网卡的用户，intel有个叫ioat的功能，关于ioat功能大家可以网上查查资料.<br style="padding:0px;margin:0px;" />而对于centos的用户来说，目前还只是出了6.0的版本，并没有上述功能，要大规模的推广，建议大家编译2.6.38的内核版本，因为2.6.38的版本已经包含了上述几个补丁。编译内核生成内核的rpm包，能快速的在同一批机器上快速部署上去。<br style="padding:0px;margin:0px;" />以上就是我的对cpu密集型系统的一个优化过程，欢迎大家来讨论。</p><span style="font-size:16px;font-family:宋体"></span><p style="text-align:left"><span style="font-size:16px;font-family:宋体"></span></p><h2 class="title content-title">关于Linux网卡调优之：RPS (Receive Packet Steering)</h2><p>参考：<a href="http://hi.baidu.com/higkoo/item/9f2b50d9adb177cd1a72b4a8">http://hi.baidu.com/higkoo/item/9f2b50d9adb177cd1a72b4a8（淘宝的）</a></p><p><a href="http://hi.baidu.com/higkoo/item/9f2b50d9adb177cd1a72b4a8"><br /></a></p><p> &nbsp; &nbsp;昨天在查LVS调度均衡性问题时，最终确定是 persistence_timeout 参数会使用IP哈希。目的是为了保证长连接，即一定时间内访问到的是同一台机器。而我们内部系统，由于出口IP相对单一，所以总会被哈希到相同的RealServer。</p><p> &nbsp; &nbsp;随后和 <a href="http://www.weibo.com/benjiaming1981" target="_blank">@吴佳明_普空</a>八卦LVS压力大的问题，他推荐我使用RPS。小搜一下，瞬间发现这真是个宝贝！</p><p> &nbsp; &nbsp;过去使用LVS，遇到过<a href="http://hi.baidu.com/higkoo/item/32d8638c800f73cab17154a2" target="_blank">单核CPU被软中断耗尽的问题</a>，然后知道了网卡驱动与多队列。而后知道了<a href="http://hi.baidu.com/higkoo/item/9e98b202d8709dc12e4c6bb2" target="_blank">淘宝对LVS的优化</a>，然后对生产环境进行了优化，效果显著。</p><p> &nbsp; &nbsp;如今单台LVS带宽吃到近500Mb/s，每秒进出包都过40万。此时发现网卡（4队列）对应CPU的软中断消耗已过40%了，倍感压力。按理，空闲CPU如果少于40%，则要新增节点了。关于中断不均衡的问题，听取了普空的意见，效果也非常明显，全均衡了：</p><p style="text-align:center;"><img onload="if(this.width>650) this.width=650;" src="http://f.hiphotos.baidu.com/album/pic/item/00e93901213fb80e2e247c6a37d12f2eb8389491.jpg" height="563" width="758" /></p><p> &nbsp; 原来<a href="https://access.redhat.com/site/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Performance_Tuning_Guide/main-network.html" target="_blank">CentOS 6.1就开始支持RPS了</a>，原生支持需要使用<a href="https://github.com/torvalds/linux/blob/master/Documentation/networking/scaling.txt" target="_blank">Linux内核2.6.38或以上版本</a>。</p><p> &nbsp; 简单来讲，RPS就是让网卡使用多核CPU的。传统方法就是网卡多队列（RSS，需要硬件和驱动支持），RPS则是在系统层实现了分发和均衡。献上修改设置的脚本一例：</p><div><div id="highlighter_687789" class="syntaxhighlighter  bash"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div><div class="line number2 index1 alt1">2</div><div class="line number3 index2 alt2">3</div><div class="line number4 index3 alt1">4</div><div class="line number5 index4 alt2">5</div><div class="line number6 index5 alt1">6</div><div class="line number7 index6 alt2">7</div><div class="line number8 index7 alt1">8</div><div class="line number9 index8 alt2">9</div><div class="line number10 index9 alt1">10</div><div class="line number11 index10 alt2">11</div><div class="line number12 index11 alt1">12</div><div class="line number13 index12 alt2">13</div><div class="line number14 index13 alt1">14</div><div class="line number15 index14 alt2">15</div><div class="line number16 index15 alt1">16</div><div class="line number17 index16 alt2">17</div><div class="line number18 index17 alt1">18</div></td><td class="code"><div class="container"><div class="line number1 index0 alt2"><code class="bash preprocessor bold">#!/bin/bash &nbsp;</code></div><div class="line number2 index1 alt1"><code class="bash comments"># Enable RPS (Receive Packet Steering) &nbsp;</code></div><div class="line number3 index2 alt2"><code class="bash spaces"></code></div><div class="line number4 index3 alt1"><code class="bash plain">rfc=4096 &nbsp;</code></div><div class="line number5 index4 alt2"><code class="bash plain">cc=$(</code><code class="bash functions">grep</code><code class="bash plain">-c processor </code><code class="bash plain">/proc/cpuinfo</code><code class="bash plain">) &nbsp;</code></div><div class="line number6 index5 alt1"><code class="bash plain">rsfe=$(</code><code class="bash functions">echo</code><code class="bash plain">$cc*$rfc | </code><code class="bash functions">bc</code><code class="bash plain">) &nbsp;</code></div><div class="line number7 index6 alt2"><code class="bash plain">sysctl -w net.core.rps_sock_flow_entries=$rsfe &nbsp;</code></div><div class="line number8 index7 alt1"><code class="bash keyword">for</code><code class="bash plain">fileRps </code><code class="bash keyword">in</code><code class="bash plain">$(</code><code class="bash functions">ls</code><code class="bash plain">/sys/class/net/eth</code><code class="bash plain">*</code><code class="bash plain">/queues/rx-</code><code class="bash plain">*</code><code class="bash plain">/rps_cpus</code><code class="bash plain">) &nbsp;</code></div><div class="line number9 index8 alt2"><code class="bash keyword">do</code></div><div class="line number10 index9 alt1"><code class="bash spaces"></code><code class="bash functions">echo</code><code class="bash plain">fff &gt; $fileRps &nbsp;</code></div><div class="line number11 index10 alt2"><code class="bash keyword">done</code></div><div class="line number12 index11 alt1"><code class="bash spaces"></code></div><div class="line number13 index12 alt2"><code class="bash keyword">for</code><code class="bash plain">fileRfc </code><code class="bash keyword">in</code><code class="bash plain">$(</code><code class="bash functions">ls</code><code class="bash plain">/sys/class/net/eth</code><code class="bash plain">*</code><code class="bash plain">/queues/rx-</code><code class="bash plain">*</code><code class="bash plain">/rps_flow_cnt</code><code class="bash plain">) &nbsp;</code></div><div class="line number14 index13 alt1"><code class="bash keyword">do</code></div><div class="line number15 index14 alt2"><code class="bash spaces"></code><code class="bash functions">echo</code><code class="bash plain">$rfc &gt; $fileRfc &nbsp;</code></div><div class="line number16 index15 alt1"><code class="bash keyword">done</code></div><div class="line number17 index16 alt2"><code class="bash spaces"></code></div><div class="line number18 index17 alt1"><code class="bash functions">tail</code><code class="bash plain">/sys/class/net/eth</code><code class="bash plain">*</code><code class="bash plain">/queues/rx-</code><code class="bash plain">*/{rps_cpus,rps_flow_cnt}</code></div></div></td></tr></tbody></table></div></div><p> 分享<a title="igi同学" href="http://www.igigo.net" target="_blank">igi同学</a>对： <a title="网卡多队列" href="http://www.igigo.net/archives/231" target="_blank">网卡多队列</a>、<a title="网卡RPS支持" href="http://www.igigo.net/archives/204" target="_blank">网卡RPS支持</a>的详细解释和测试数据！</p><p style="text-align:left"><br /></p><p style="text-align:left"><span style="font-size:16px;font-family:宋体"></span></p><p><a style="color:#ff0000;text-decoration:underline;" href="http://bbs.chinaunix.net/forum.php?mod=viewthread&amp;action=printable&amp;tid=1927269"><span style="color:#ff0000;">http://bbs.chinaunix.net/forum.php?mod=viewthread&amp;action=printable&amp;tid=1927269</span></a></p><p style="text-align:left"><span style="font-size:16px;font-family:宋体"></span><br /></p><a href="http://blog.csdn.net/turkeyzhou/article/details/7528182" style="color:#000000;text-decoration:none;font-family:&#39;microsoft yahei&#39;;font-size:20px;line-height:30px;text-align:left">多队列网卡简介</a><br /></div><div><br /></div><div>http://blog.csdn.net/turkeyzhou/article/details/7528182<br /></div><div><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">多队列网卡是一种技术，最初是用来解决网络IO QoS （quality of service）问题的，后来随着网络IO的带宽的不断提升，单核CPU不能完全处满足网卡的需求，通过多队列网卡驱动的支持，将各个队列通过中断绑定到不同的核上，以满足网卡的需求。</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">常见的有Intel的82575、82576，Boardcom的57711等，下面以公司的服务器使用较多的Intel 82575网卡为例，分析一下多队列网卡的硬件的实现以及linux内核软件的支持。</p><h2 style="color:#333333;font-family:arial;line-height:26px;text-align:left;padding:0px;margin:0px;"><a name="t1"></a><a name="t0" style="color:#336699"></a>1.多队列网卡硬件实现</h2><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">图1.1是Intel 82575硬件逻辑图，有四个硬件队列。当收到报文时，通过hash包头的SIP、Sport、DIP、Dport四元组，将一条流总是收到相同的队列。同时触发与该队列绑定的中断。</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><img onload="if(this.width>650) this.width=650;" src="http://my.csdn.net/uploads/201205/02/1335943114_4089.gif" style="border-top-style:none;border-right-style:none;border-bottom-style:none;border-left-style:none;" /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;">图1.1 82575硬件逻辑图</p><h2 style="color:#333333;font-family:arial;line-height:26px;text-align:left;padding:0px;margin:0px;"><a name="t2"></a><a name="t1" style="color:#336699"></a>2. 2.6.21以前网卡驱动实现</h2><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">kernel从2.6.21之前不支持多队列特性，一个网卡只能申请一个中断号，因此同一个时刻只有一个核在处理网卡收到的包。如图2.1，协议栈通过NAPI轮询收取各个硬件queue中的报文到图2.2的net_device数据结构中，通过QDisc队列将报文发送到网卡。</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><img onload="if(this.width>650) this.width=650;" src="http://my.csdn.net/uploads/201205/02/1335943123_6751.gif" style="border-top-style:none;border-right-style:none;border-bottom-style:none;border-left-style:none;" /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;">图2.1 2.6.21之前内核协议栈</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><br /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><img onload="if(this.width>650) this.width=650;" src="http://my.csdn.net/uploads/201205/02/1335943253_3631.gif" style="border-top-style:none;border-right-style:none;border-bottom-style:none;border-left-style:none;" /><br /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;">图2.2 2.6.21之前net_device</p><h2 style="color:#333333;font-family:arial;line-height:26px;text-align:left;padding:0px;margin:0px;"><a name="t3"></a><a name="t2" style="color:#336699"></a>3. 2.6.21后网卡驱动实现</h2><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">2.6.21开始支持多队列特性，当网卡驱动加载时，通过获取的网卡型号，得到网卡的硬件queue的数量，并结合CPU核的数量，最终通过Sum=Min（网卡queue，CPU core）得出所要激活的网卡queue数量（Sum），并申请Sum个中断号，分配给激活的各个queue。</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">如图3.1，当某个queue收到报文时，触发相应的中断，收到中断的核，将该任务加入到协议栈负责收包的该核的NET_RX_SOFTIRQ队列中（NET_RX_SOFTIRQ在每个核上都有一个实例），在NET_RX_SOFTIRQ中，调用NAPI的收包接口，将报文收到CPU中如图3.2的有多个netdev_queue的net_device数据结构中。</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">这样，CPU的各个核可以并发的收包，就不会应为一个核不能满足需求，导致网络IO性能下降。</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><img onload="if(this.width>650) this.width=650;" src="http://my.csdn.net/uploads/201205/02/1335943128_7304.gif" style="border-top-style:none;border-right-style:none;border-bottom-style:none;border-left-style:none;" /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;">图3.1 2.6.21之后内核协议栈</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><br /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><img onload="if(this.width>650) this.width=650;" src="http://my.csdn.net/uploads/201205/02/1335943136_3052.gif" style="border-top-style:none;border-right-style:none;border-bottom-style:none;border-left-style:none;" /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;">图3.2 2.6.21之后net_device</p><h2 style="color:#333333;font-family:arial;line-height:26px;text-align:left;padding:0px;margin:0px;"><a name="t4"></a><a name="t3" style="color:#336699"></a>4.中断绑定</h2><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">当CPU可以平行收包时，就会出现不同的核收取了同一个queue的报文，这就会产生报文乱序的问题，解决方法是将一个queue的中断绑定到唯一的一个核上去，从而避免了乱序问题。同时如果网络流量大的时候，可以将软中断均匀的分散到各个核上，避免CPU成为瓶颈。</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left"><br /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left"><br /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><img onload="if(this.width>650) this.width=650;" src="http://my.csdn.net/uploads/201205/02/1335943159_4205.gif" style="border-top-style:none;border-right-style:none;border-bottom-style:none;border-left-style:none;" /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;">图4.1 /proc/interrupts</p><h2 style="color:#333333;font-family:arial;line-height:26px;text-align:left;padding:0px;margin:0px;"><a name="t5"></a><a name="t4" style="color:#336699"></a>5.中断亲合纠正</h2><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">一些多队列网卡驱动实现的不是太好，在初始化后会出现图4.1中同一个队列的tx、rx中断绑定到不同核上的问题，这样数据在core0与core1之间流动，导致核间数据交互加大，cache命中率降低，降低了效率。</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><img onload="if(this.width>650) this.width=650;" src="http://my.csdn.net/uploads/201205/02/1335943167_6607.gif" style="border-top-style:none;border-right-style:none;border-bottom-style:none;border-left-style:none;" /><br /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;">图5.1 不合理中断绑定</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">linux network子系统的负责人David Miller提供了一个脚本，首先检索/proc/interrupts文件中的信息，按照图4.1中eth0-rx-0（$VEC）中的VEC得出中断MASK，并将MASK</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">写入中断号53对应的smp_affinity中。由于eth-rx-0与eth-tx-0的VEC相同，实现同一个queue的tx与rx中断绑定到一个核上，如图4.3所示。</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left"><br /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><img onload="if(this.width>650) this.width=650;" src="http://my.csdn.net/uploads/201205/02/1335943176_1846.gif" style="border-top-style:none;border-right-style:none;border-bottom-style:none;border-left-style:none;" /><br /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><br /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><img onload="if(this.width>650) this.width=650;" src="http://my.csdn.net/uploads/201205/02/1335943184_4176.gif" style="border-top-style:none;border-right-style:none;border-bottom-style:none;border-left-style:none;" /><br />图4.2 set_irq_affinity<br /><img onload="if(this.width>650) this.width=650;" src="http://my.csdn.net/uploads/201205/02/1335943191_5239.gif" style="border-top-style:none;border-right-style:none;border-bottom-style:none;border-left-style:none;" /><br /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;">图4.3 合理的中断绑定</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><br /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left"><strong><span style="color:#ff0000;font-size:16px;">set_irq_affinity脚本位于http://mirror.oa.com/tlinux/tools/set_irq_affinity.sh。</span></strong></p><h2 style="color:#333333;font-family:arial;line-height:26px;text-align:left;padding:0px;margin:0px;"><a name="t6"></a><a name="t5" style="color:#336699"></a>6.多队列网卡识别</h2><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">#lspci -vvv</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">Ethernet controller的条目内容，如果有MSI-X &amp;&amp; Enable+ &amp;&amp; TabSize &gt; 1，则该网卡是多队列网卡，如图4.4所示。</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;"><img onload="if(this.width>650) this.width=650;" src="http://my.csdn.net/uploads/201205/02/1335943199_1939.jpg" style="border-top-style:none;border-right-style:none;border-bottom-style:none;border-left-style:none;" /></p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:center;">图4.4 lspci内容</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left">Message Signaled Interrupts(MSI)是PCI规范的一个实现，可以突破CPU 256条interrupt的限制，使每个设备具有多个中断线变成可能，多队列网卡驱动给每个queue申请了MSI。MSI-X是MSI数组，Enable+指使能，TabSize是数组大小。</p><h2 class="title content-title">关于Linux网卡调优之：RPS (Receive Packet Steering)</h2><p> &nbsp; &nbsp;昨天在查LVS调度均衡性问题时，最终确定是 persistence_timeout 参数会使用IP哈希。目的是为了保证长连接，即一定时间内访问到的是同一台机器。而我们内部系统，由于出口IP相对单一，所以总会被哈希到相同的RealServer。</p><p> &nbsp; &nbsp;随后和 <a href="http://www.weibo.com/benjiaming1981" target="_blank">@吴佳明_普空</a>八卦LVS压力大的问题，他推荐我使用RPS。小搜一下，瞬间发现这真是个宝贝！</p><p> &nbsp; &nbsp;过去使用LVS，遇到过<a href="http://hi.baidu.com/higkoo/item/32d8638c800f73cab17154a2" target="_blank">单核CPU被软中断耗尽的问题</a>，然后知道了网卡驱动与多队列。而后知道了<a href="http://hi.baidu.com/higkoo/item/9e98b202d8709dc12e4c6bb2" target="_blank">淘宝对LVS的优化</a>，然后对生产环境进行了优化，效果显著。</p><p> &nbsp; &nbsp;如今单台LVS带宽吃到近500Mb/s，每秒进出包都过40万。此时发现网卡（4队列）对应CPU的软中断消耗已过40%了，倍感压力。按理，空闲CPU如果少于40%，则要新增节点了。关于中断不均衡的问题，听取了普空的意见，效果也非常明显，全均衡了：</p><p style="text-align:center;"><img onload="if(this.width>650) this.width=650;" src="http://f.hiphotos.baidu.com/album/pic/item/00e93901213fb80e2e247c6a37d12f2eb8389491.jpg" height="563" width="758" /></p><p> &nbsp; 原来<a href="https://access.redhat.com/site/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Performance_Tuning_Guide/main-network.html" target="_blank">CentOS 6.1就开始支持RPS了</a>，原生支持需要使用<a href="https://github.com/torvalds/linux/blob/master/Documentation/networking/scaling.txt" target="_blank">Linux内核2.6.38或以上版本</a>。</p><p> &nbsp; 简单来讲，RPS就是让网卡使用多核CPU的。传统方法就是网卡多队列（RSS，需要硬件和驱动支持），RPS则是在系统层实现了分发和均衡。<strong><span style="color:#ff0000;">献上修改设置的脚本一例：</span></strong></p><div><div id="highlighter_740545" class="syntaxhighlighter  bash"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div><div class="line number2 index1 alt1">2</div><div class="line number3 index2 alt2">3</div><div class="line number4 index3 alt1">4</div><div class="line number5 index4 alt2">5</div><div class="line number6 index5 alt1">6</div><div class="line number7 index6 alt2">7</div><div class="line number8 index7 alt1">8</div><div class="line number9 index8 alt2">9</div><div class="line number10 index9 alt1">10</div><div class="line number11 index10 alt2">11</div><div class="line number12 index11 alt1">12</div><div class="line number13 index12 alt2">13</div><div class="line number14 index13 alt1">14</div><div class="line number15 index14 alt2">15</div><div class="line number16 index15 alt1">16</div><div class="line number17 index16 alt2">17</div><div class="line number18 index17 alt1">18</div></td><td class="code"><div class="container"><div class="line number1 index0 alt2"><code class="bash preprocessor bold">#!/bin/bash &nbsp;</code></div><div class="line number2 index1 alt1"><code class="bash comments"># Enable RPS (Receive Packet Steering) &nbsp;</code></div><div class="line number3 index2 alt2"><code class="bash spaces"></code></div><div class="line number4 index3 alt1"><code class="bash plain">rfc=4096 &nbsp;</code></div><div class="line number5 index4 alt2"><code class="bash plain">cc=$(</code><code class="bash functions">grep</code><code class="bash plain">-c processor </code><code class="bash plain">/proc/cpuinfo</code><code class="bash plain">) &nbsp;</code></div><div class="line number6 index5 alt1"><code class="bash plain">rsfe=$(</code><code class="bash functions">echo</code><code class="bash plain">$cc*$rfc | </code><code class="bash functions">bc</code><code class="bash plain">) &nbsp;</code></div><div class="line number7 index6 alt2"><code class="bash plain">sysctl -w net.core.rps_sock_flow_entries=$rsfe &nbsp;</code></div><div class="line number8 index7 alt1"><code class="bash keyword">for</code><code class="bash plain">fileRps </code><code class="bash keyword">in</code><code class="bash plain">$(</code><code class="bash functions">ls</code><code class="bash plain">/sys/class/net/eth</code><code class="bash plain">*</code><code class="bash plain">/queues/rx-</code><code class="bash plain">*</code><code class="bash plain">/rps_cpus</code><code class="bash plain">) &nbsp;</code></div><div class="line number9 index8 alt2"><code class="bash keyword">do</code></div><div class="line number10 index9 alt1"><code class="bash spaces"></code><code class="bash functions">echo</code><code class="bash plain">fff &gt; $fileRps &nbsp;</code></div><div class="line number11 index10 alt2"><code class="bash keyword">done</code></div><div class="line number12 index11 alt1"><code class="bash spaces"></code></div><div class="line number13 index12 alt2"><code class="bash keyword">for</code><code class="bash plain">fileRfc </code><code class="bash keyword">in</code><code class="bash plain">$(</code><code class="bash functions">ls</code><code class="bash plain">/sys/class/net/eth</code><code class="bash plain">*</code><code class="bash plain">/queues/rx-</code><code class="bash plain">*</code><code class="bash plain">/rps_flow_cnt</code><code class="bash plain">) &nbsp;</code></div><div class="line number14 index13 alt1"><code class="bash keyword">do</code></div><div class="line number15 index14 alt2"><code class="bash spaces"></code><code class="bash functions">echo</code><code class="bash plain">$rfc &gt; $fileRfc &nbsp;</code></div><div class="line number16 index15 alt1"><code class="bash keyword">done</code></div><div class="line number17 index16 alt2"><code class="bash spaces"></code></div><div class="line number18 index17 alt1"><code class="bash functions">tail</code><code class="bash plain">/sys/class/net/eth</code><code class="bash plain">*</code><code class="bash plain">/queues/rx-</code><code class="bash plain">*/{rps_cpus,rps_flow_cnt}</code></div></div></td></tr></tbody></table></div></div><p> 分享<a title="igi同学" href="http://www.igigo.net" target="_blank">igi同学</a>对： <a title="网卡多队列" href="http://www.igigo.net/archives/231" target="_blank">网卡多队列</a>、<a title="网卡RPS支持" href="http://www.igigo.net/archives/204" target="_blank">网卡RPS支持</a>的详细解释和测试数据！</p><p style="color:#333333;font-family:arial;font-size:14px;line-height:26px;text-align:left"><br /></p></div><h1>SMP IRQ affinity</h1><p>Linux 2.4内核之后引入了将特定中断绑定到指定的CPU的技术，称为SMP IRQ affinity. </p><h2>原理</h2><p>当一个硬件(如磁盘控制器或者以太网卡), 需要打断CPU的工作时, 它就触发一个中断. 该中断通知CPU发生了某些事情并且CPU应该放下当前的工作去处理这个事情. 为了防止多个设置发送相同的中断, Linux设计了一套中断请求系统, 使得计算机系统中的每个设备被分配了各自的中断号, 以确保它的中断请求的唯一性. 从2.4 内核开始, Linux改进了分配特定中断到指定的处理器(或处理器组)的功能. 这被称为SMP IRQ affinity, 它可以控制系统如何响应各种硬件事件. 允许你限制或者重新分配服务器的工作负载, 从而让服务器更有效的工作. 以网卡中断为例，在没有设置SMP IRQ affinity时，<span style="color:#ff0000;"> 所有网卡中断都关联到CPU0, 这导致了CPU0负载过高，而无法有效快速的处理网络数据包，导致了瓶颈。 通过</span>SMP IRQ affinity， 把网卡多个中断分配到多个CPU上，可以分散CPU压力，提高数据处理速度。</p><ul class=" list-paddingleft-2"><li><p>不使用SMP IRQ affinity</p></li><p><a href="http://www.igigo.net/wp-content/uploads/2012/05/IRQ-affintiy1.png"><img onload="if(this.width>650) this.width=650;" src="http://www.igigo.net/wp-content/uploads/2012/05/IRQ-affintiy1.png" title="IRQ-affintiy1" class="aligncenter size-full wp-image-232" width="550" /></a></p><li><p>使用SMP IRQ affinity</p></li><p><a href="http://www.igigo.net/wp-content/uploads/2012/05/IRQ-affintiy2.png"><img onload="if(this.width>650) this.width=650;" src="http://www.igigo.net/wp-content/uploads/2012/05/IRQ-affintiy2.png" title="IRQ-affintiy2" class="aligncenter size-full wp-image-233" width="550" /></a></p></ul><h2>使用前提</h2><ul class=" list-paddingleft-2"><li><p>需要多CPU的系统</p></li><li><p>需要大于等于2.4的Linux 内核</p></li></ul><h2>相关设置文件</h2><h4>1. /proc/irq/IRQ#/smp_affinity</h4><ul class=" list-paddingleft-2"><li><p>/proc/irq/IRQ#/smp_affinity 和 /proc/irq/IRQ#/smp_affinity_list 指定了哪些CPU能够关联到一个给定的IRQ源. 这两个文件包含了这些指定cpu的cpu位掩码(smp_affinity)和cpu列表(smp_affinity_list). 不允许关闭所有CPU， 同时如果IRQ控制器不支持中断请求亲和(IRQ affinity)，则这些设置的值将保持不变(既关联到所有CPU). 设置方法如下</p></li><div><div id="highlighter_458244" class="syntaxhighlighter  bash"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div></td><td style="word-break:break-all;" class="code"><div class="container"><div class="line number1 index0 alt2"><code class="bash functions">echo</code><code class="bash plain">$ bitmask &gt; </code><code class="bash plain">/proc/irq/IRQ</code><code class="bash comments">#/smp_affinity</code></div></div></td></tr></tbody></table></div></div><li><p>示例(把44号中断绑定到前4个CPU(CPU0-3)上面)</p></li><div><div id="highlighter_538876" class="syntaxhighlighter  bash"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div></td><td style="word-break:break-all;" class="code"><div class="container"><div class="line number1 index0 alt2"><code class="bash functions">echo </code><code class="bash plain">f &gt; </code><code class="bash plain">/proc/irq/44/smp_affinity</code></div></div></td></tr></tbody></table></div></div></ul><h4>2. /proc/irq/IRQ#/smp_affinity_list</h4><ul class=" list-paddingleft-2"><li><p>设置该文件取得的效果与/proc/irq/IRQ#/smp_affinity是一致的，它们两者是联动关系(既设置其中之一，另一个文件也随着改变), 有些系统可能没有该文件, 设置方法如下</p></li><div><div id="highlighter_91128" class="syntaxhighlighter  bash"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div></td><td class="code"><div class="container"><div class="line number1 index0 alt2"><code class="bash functions">echo</code><code class="bash plain">$cpuindex1-$cpuindex2 &gt;</code><code class="bash plain">/proc/irq/IRQ</code><code class="bash comments">#/smp_affinity_list</code></div></div></td></tr></tbody></table></div></div><li><p>示例(把44号中断绑定到前4个CPU(CPU0-3)上面)</p></li><div><div id="highlighter_308537" class="syntaxhighlighter  bash"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div></td><td style="word-break:break-all;" class="code"><div class="container"><div class="line number1 index0 alt2"><code class="bash functions">echo</code><code class="bash plain"> 0-3 &gt; </code><code class="bash plain">/proc/irq/44/smp_affinity_list</code></div></div></td></tr></tbody></table></div></div></ul><h4>3. /proc/irq/default_smp_affinity</h4><ul class=" list-paddingleft-2"><li><p>/proc/irq/default_smp_affinity 指定了默认情况下未激活的IRQ的中断亲和掩码(affinity mask).一旦IRQ被激活，它将被设置为默认的设置(即default_smp_affinity中记录的设置). 该文件能被修改. 默认设置是0xffffffff.</p></li></ul><h2>bitmask计算方法</h2><p>首先我们来看看smp_affinity文件的内容</p><div><div id="highlighter_362689" class="syntaxhighlighter  bash"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div><div class="line number2 index1 alt1">2</div></td><td style="word-break:break-all;" class="code"><div class="container"><div class="line number1 index0 alt2"><code class="bash plain">root@</code><code class="bash functions">hostname</code><code class="bash plain">:</code><code class="bash plain">/home/igi</code><code class="bash comments"># cat /proc/irq/76/smp_affinity</code></div><div class="line number2 index1 alt1"><code class="bash plain">ffffff</code></div></div></td></tr></tbody></table></div></div><p>这个bitmask表示了76号中断将被路由到哪个指定处理器. bit mask转换成二进制后，其中的每一位代表了一个CPU. smp_affinity文件中的数值以十六进制显示。为了操作该文件，在设置之前我们需要把CPU位掩码从二进制转换到十六进制。<br /><br />上面例子中每一个”f”代表了4个CPU的集合，最靠右边的值是最低位的意思。 以4个CPU的系统为例:</p><ul class=" list-paddingleft-2"><li><p>“f” 是十六进制的值， 二进制是”1111”. 二进制中的每个位代表了服务器上的每个CPU. 那么能用以下方法表示每个CPU</p></li><pre>           二进制  十六进制
+   CPU 0   0001    1
+   CPU 1   0010    2
+   CPU 2   0100    4
+   CPU 3   1000    8
+</pre><li><p>结合这些位掩码(简单来说就是直接对十六进制值做加法), 我们就能一次定位多个CPU。 例如， 我想同时表示CPU0和CPU2, bitmask结果就是<strong><span style="color:#ff0000;">（我们是需要把</span><code class="bash comments"><span style="color:#ff0000;">转换为16进制之后再写入smp_affinity</span></code><span style="color:#ff0000;">）:</span></strong></p></li><pre>           二进制       十六进制
+   CPU 0    0001         1
+ + CPU 2    0100         4
+   -----------------------
+   bitmask  0101         5
+</pre><li><p>如果我想一次性表示所有4个CPU，bitmask结果是:</p></li><pre>           二进制       十六进制
+   CPU 0    0001         1
+   CPU 1    0010         2
+   CPU 2    0100         4
+ + CPU 3    1000         8
+   -----------------------
+   bitmask  1111         f
+</pre><p>假如有一个4个CPU的系统， 我们能给一个IRQ分配15种不同的CPU组合(实际上有16种，但我们不能给任何中断分配中断亲和为”0”的值， 即使你这么做，系统也会忽略你的做法)</p></ul><h2>对比测试</h2><table style="width:702px;" class="inline"><tbody><tr class="row0"><th class="col0 centeralign"> &nbsp;类别 &nbsp;</th><th class="col1 centeralign"> &nbsp;测试客户端 &nbsp;</th><th class="col2 centeralign"> &nbsp;测试服务端 &nbsp;</th></tr><tr class="row1"><td class="col0 centeralign"> &nbsp;型号 &nbsp;</td><td class="col1 centeralign"> &nbsp;BladeCenter HS22 &nbsp;</td><td class="col2 centeralign"> &nbsp;BladeCenter HS22 &nbsp;</td></tr><tr class="row2"><td class="col0 centeralign"> &nbsp;CPU &nbsp;</td><td class="col1 centeralign"> &nbsp;Xeon E5640 &nbsp;</td><td class="col2 centeralign"> &nbsp;Xeon E5640 &nbsp;</td></tr><tr class="row3"><td class="col0 centeralign"> &nbsp;网卡 &nbsp;</td><td class="col1 centeralign"> &nbsp;Broadcom NetXtreme II BCM5709S Gigabit Ethernet &nbsp;</td><td class="col2 centeralign"> &nbsp;Broadcom NetXtreme II BCM5709S Gigabit Ethernet &nbsp;</td></tr><tr class="row4"><td class="col0 centeralign"> &nbsp;内核 &nbsp;</td><td class="col1 centeralign"> &nbsp;2.6.38-2-686-bigmem &nbsp;</td><td class="col2 centeralign"> &nbsp;2.6.38-2-686-bigmem &nbsp;</td></tr><tr class="row5"><td class="col0 centeralign"> &nbsp;内存 &nbsp;</td><td class="col1 centeralign"> &nbsp;24GB &nbsp;</td><td class="col2 centeralign"> &nbsp;24GB &nbsp;</td></tr><tr class="row6"><td class="col0 centeralign"> &nbsp;系统 &nbsp;</td><td class="col1 centeralign"> &nbsp;Debian 6.0.3 &nbsp;</td><td class="col2 centeralign"> &nbsp;Debian 6.0.3 &nbsp;</td></tr><tr class="row7"><td class="col0 centeralign"> &nbsp;驱动 &nbsp;</td><td class="col1 centeralign"> &nbsp;bnx2 &nbsp;</td><td class="col2 centeralign"> &nbsp;bnx2 &nbsp;</td></tr></tbody></table><ol class=" list-paddingleft-2"><li><p>客户端: netperf</p></li><li><p>服务端: netserver</p></li><li><p>测试分类: 不开启IRQ affinity和RPS/RFS, 单独开启IRQ affinity, 单独开启RPS/RFS，同时开启IRQ affinity和RPS/RFS, 不同分类设置值如下</p></li></ol><ol class=" list-paddingleft-2"><li><p>不开启IRQ affinity和RPS/RFS</p></li><pre>/proc/irq/74/smp_affinity 00ffff
+/proc/irq/75/smp_affinity 00ffff
+/proc/irq/76/smp_affinity 00ffff
+/proc/irq/77/smp_affinity 00ffff
+/proc/irq/78/smp_affinity 00ffff
+/proc/irq/79/smp_affinity 00ffff
+/proc/irq/80/smp_affinity 00ffff
+/proc/irq/81/smp_affinity 00ffff
+
+/sys/class/net/eth0/queues/rx-0/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-1/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-2/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-3/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-4/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-5/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-6/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-7/rps_cpus 00000000
+
+/sys/class/net/eth0/queues/rx-0/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-1/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-2/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-3/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-4/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-5/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-6/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-7/rps_flow_cnt 0
+
+/proc/sys/net/core/rps_sock_flow_entries 0
+</pre><li><p>单独开启IRQ affinity（Deven：奇怪了，我们服务器没有看到</p><pre>/sys/class/net/eth0/queues目录）<br /></pre></li></ol><ol class=" list-paddingleft-2"><pre>/proc/irq/74/smp_affinity 000001
+/proc/irq/75/smp_affinity 000002
+/proc/irq/76/smp_affinity 000004
+/proc/irq/77/smp_affinity 000008
+/proc/irq/78/smp_affinity 000010
+/proc/irq/79/smp_affinity 000020
+/proc/irq/80/smp_affinity 000040
+/proc/irq/81/smp_affinity 000080
+
+/sys/class/net/eth0/queues/rx-0/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-1/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-2/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-3/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-4/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-5/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-6/rps_cpus 00000000
+/sys/class/net/eth0/queues/rx-7/rps_cpus 00000000
+
+/sys/class/net/eth0/queues/rx-0/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-1/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-2/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-3/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-4/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-5/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-6/rps_flow_cnt 0
+/sys/class/net/eth0/queues/rx-7/rps_flow_cnt 0
+
+/proc/sys/net/core/rps_sock_flow_entries 0
+</pre><li><p>单独开启RPS/RFS</p></li><pre>/proc/irq/74/smp_affinity 00ffff
+/proc/irq/75/smp_affinity 00ffff
+/proc/irq/76/smp_affinity 00ffff
+/proc/irq/77/smp_affinity 00ffff
+/proc/irq/78/smp_affinity 00ffff
+/proc/irq/79/smp_affinity 00ffff
+/proc/irq/80/smp_affinity 00ffff
+/proc/irq/81/smp_affinity 00ffff
+
+/sys/class/net/eth0/queues/rx-0/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-1/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-2/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-3/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-4/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-5/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-6/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-7/rps_cpus 0000ffff
+
+/sys/class/net/eth0/queues/rx-0/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-1/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-2/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-3/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-4/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-5/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-6/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-7/rps_flow_cnt 4096
+
+/proc/sys/net/core/rps_sock_flow_entries 32768
+</pre><li><p>同时开启IRQ affinity和RPS/RFS</p></li><pre>/proc/irq/74/smp_affinity 000001
+/proc/irq/75/smp_affinity 000002
+/proc/irq/76/smp_affinity 000004
+/proc/irq/77/smp_affinity 000008
+/proc/irq/78/smp_affinity 000010
+/proc/irq/79/smp_affinity 000020
+/proc/irq/80/smp_affinity 000040
+/proc/irq/81/smp_affinity 000080
+
+/sys/class/net/eth0/queues/rx-0/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-1/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-2/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-3/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-4/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-5/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-6/rps_cpus 0000ffff
+/sys/class/net/eth0/queues/rx-7/rps_cpus 0000ffff
+
+/sys/class/net/eth0/queues/rx-0/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-1/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-2/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-3/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-4/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-5/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-6/rps_flow_cnt 4096
+/sys/class/net/eth0/queues/rx-7/rps_flow_cnt 4096
+
+/proc/sys/net/core/rps_sock_flow_entries 32768
+</pre></ol><p>测试方法: 每种测试类型执行3次，中间睡眠10秒, 每种测试类型分别执行100、500、1500个实例， 每实例测试时间长度为60秒</p><ol class=" list-paddingleft-2"><li><p>TCP_RR 1 byte: 测试TCP 小数据包 request/response的性能</p></li><div><div id="highlighter_432931" class="syntaxhighlighter  bash"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div></td><td class="code"><div class="container"><div class="line number1 index0 alt2"><code class="bash plain">netperf -t TCP_RR -H $serverip -c -C -l 60</code></div></div></td></tr></tbody></table></div></div><li><p>UDP_RR 1 byte: 测试UDP 小数据包 request/response的性能</p></li><div><div id="highlighter_548738" class="syntaxhighlighter  bash"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div></td><td class="code"><div class="container"><div class="line number1 index0 alt2"><code class="bash plain">netperf -t UDP_RR -H $serverip -c -C -l 60</code></div></div></td></tr></tbody></table></div></div><li><p>TCP_RR 256 byte: 测试TCP 大数据包 request/response的性能</p></li><div><div id="highlighter_637497" class="syntaxhighlighter  bash"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div></td><td class="code"><div class="container"><div class="line number1 index0 alt2"><code class="bash plain">netperf -t TCP_RR -H $serverip -c -C -l 60 -- -r256,256</code></div></div></td></tr></tbody></table></div></div><li><p>UDP_RR 256 byte: 测试UDP 大数据包 request/response的性能</p></li><div><div id="highlighter_91332" class="syntaxhighlighter  bash"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="gutter"><div class="line number1 index0 alt2">1</div></td><td class="code"><div class="container"><div class="line number1 index0 alt2"><strong><code class="bash plain"><span style="color:#ff0000;">netperf </span></code></strong><code class="bash plain"><span style="color:#ff0000;"></span>-t UDP_RR -H $serverip -c -C -l 60 -- -r256,256</code></div></div></td></tr></tbody></table></div></div></ol><h2>测试结果</h2><ol class=" list-paddingleft-2"><li><p>TCP_RR 1 byte小包测试</p></li><p><a href="http://www.igigo.net/wp-content/uploads/2012/05/image0011.png"><img onload="if(this.width>650) this.width=650;" src="http://www.igigo.net/wp-content/uploads/2012/05/image0011.png" title="image001" class="alignleft size-full wp-image-234" width="550" /></a></p><li><p>TCP_RR 256 byte大包测试</p></li><p><a href="http://www.igigo.net/wp-content/uploads/2012/05/image0091.png"><img onload="if(this.width>650) this.width=650;" src="http://www.igigo.net/wp-content/uploads/2012/05/image0091.png" title="image009" class="alignleft size-full wp-image-235" width="550" /></a></p><li><p>UDP_RR 1 byte小包测试</p></li><p><a href="http://www.igigo.net/wp-content/uploads/2012/05/image0051.png"><img onload="if(this.width>650) this.width=650;" src="http://www.igigo.net/wp-content/uploads/2012/05/image0051.png" title="image005" class="alignleft size-full wp-image-236" width="550" /></a></p><li><p>UDP_RR 256 byte大包测试</p></li><p><a href="http://www.igigo.net/wp-content/uploads/2012/05/image0131.png"><img onload="if(this.width>650) this.width=650;" src="http://www.igigo.net/wp-content/uploads/2012/05/image0131.png" title="image013" class="alignleft size-full wp-image-237" width="550" /></a></p></ol><h2>CPU核负载的变化</h2><p>以小数据包1500进程测试的CPU(除了明确指明类型，否则这里的负载都是TCP_RR测试的负载)负载数据为示例</p><ul class=" list-paddingleft-2"><li><p>不开启IRQ affinity和RPS/RFS： 软中断集中在第一个CPU上，导致了性能瓶颈</p></li><pre>Average:     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle
+Average:     all    2.15    0.00   11.35    0.00    0.00    5.66    0.00    0.00   80.84
+Average:       0    0.12    0.00    0.65    0.00    0.00   90.86    0.00    0.00    8.38
+Average:       1    8.36    0.00   37.46    0.00    0.00    0.00    0.00    0.00   54.19
+Average:       2    7.92    0.00   32.94    0.00    0.00    0.00    0.00    0.00   59.13
+Average:       3    5.68    0.00   23.96    0.00    0.00    0.00    0.00    0.00   70.36
+Average:       4    0.78    0.00    9.77    0.07    0.00    0.00    0.00    0.00   89.39
+Average:       5    0.67    0.00    8.87    0.00    0.00    0.00    0.00    0.00   90.47
+Average:       6    0.77    0.00    6.91    0.00    0.00    0.00    0.00    0.00   92.32
+Average:       7    0.50    0.00    5.55    0.02    0.00    0.00    0.00    0.00   93.93
+Average:       8    7.29    0.00   37.16    0.00    0.00    0.00    0.00    0.00   55.55
+Average:       9    0.35    0.00    2.28    0.00    0.00    0.00    0.00    0.00   97.37
+Average:      10    0.27    0.00    2.01    0.00    0.00    0.00    0.00    0.00   97.72
+Average:      11    0.25    0.00    1.87    0.00    0.00    0.00    0.00    0.00   97.88
+Average:      12    0.23    0.00    2.78    0.00    0.00    0.00    0.00    0.00   96.99
+Average:      13    0.27    0.00    2.70    0.00    0.00    0.00    0.00    0.00   97.04
+Average:      14    0.55    0.00    3.03    0.02    0.00    0.00    0.00    0.00   96.40
+Average:      15    0.10    0.00    2.16    0.00    0.00    0.00    0.00    0.00   97.74
+</pre><li><p>单独开启RPS/RFS: 软中断主要集中在CPU0上，但有少许分布在其他CPU上</p></li><pre>Average:     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle
+Average:     all    4.65    0.00   34.71    0.01    0.00    7.37    0.00    0.00   53.26
+Average:       0    0.02    0.00    0.37    0.00    0.00   99.40    0.00    0.00    0.22
+Average:       1    5.60    0.00   38.33    0.02    0.00    2.02    0.00    0.00   54.04
+Average:       2    5.57    0.00   37.33    0.03    0.00    1.01    0.00    0.00   56.05
+Average:       3    5.11    0.00   36.28    0.00    0.00    0.73    0.00    0.00   57.88
+Average:       4    4.78    0.00   37.16    0.00    0.00    2.05    0.00    0.00   56.01
+Average:       5    4.45    0.00   37.46    0.00    0.00    0.97    0.00    0.00   57.12
+Average:       6    4.34    0.00   36.25    0.00    0.00    0.97    0.00    0.00   58.45
+Average:       7    4.28    0.00   35.87    0.00    0.00    0.97    0.00    0.00   58.88
+Average:       8    5.47    0.00   37.11    0.02    0.00    1.27    0.00    0.00   56.13
+Average:       9    5.58    0.00   37.59    0.03    0.00    2.13    0.00    0.00   54.66
+Average:      10    5.98    0.00   37.04    0.00    0.00    1.22    0.00    0.00   55.76
+Average:      11    4.99    0.00   34.58    0.00    0.00    0.99    0.00    0.00   59.44
+Average:      12    4.46    0.00   37.47    0.00    0.00    0.99    0.00    0.00   57.09
+Average:      13    4.83    0.00   36.97    0.00    0.00    1.37    0.00    0.00   56.83
+Average:      14    4.60    0.00   38.06    0.00    0.00    1.53    0.00    0.00   55.81
+Average:      15    4.36    0.00   37.26    0.00    0.00    1.45    0.00    0.00   56.92
+</pre><li><p>单独开启IRQ affinity, TCP_RR测试: 软中断负载比较均匀的分散到前面8个CPU之上(与bitmask设置一致)</p></li><pre>Average:     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle
+Average:     all    6.13    0.00   55.66    0.00    0.00   32.04    0.00    0.00    6.17
+Average:       0    6.31    0.00   54.49    0.03    0.00    4.19    0.00    0.00   34.98
+Average:       1    2.00    0.00   16.65    0.00    0.00   81.35    0.00    0.00    0.00
+Average:       2    3.31    0.00   29.36    0.00    0.00   64.58    0.00    0.00    2.76
+Average:       3    2.91    0.00   23.11    0.00    0.00   71.40    0.00    0.00    2.58
+Average:       4    2.48    0.00   20.82    0.00    0.00   75.30    0.00    0.00    1.40
+Average:       5    2.49    0.00   21.90    0.00    0.00   73.30    0.00    0.00    2.31
+Average:       6    3.00    0.00   28.87    0.00    0.00   65.96    0.00    0.00    2.17
+Average:       7    2.58    0.00   22.95    0.00    0.00   72.46    0.00    0.00    2.01
+Average:       8    6.61    0.00   56.48    0.00    0.00    0.00    0.00    0.00   36.90
+Average:       9    9.83    0.00   89.28    0.00    0.00    0.05    0.00    0.00    0.83
+Average:      10    9.73    0.00   87.18    0.00    0.00    0.00    0.00    0.00    3.08
+Average:      11    9.73    0.00   88.08    0.00    0.00    0.05    0.00    0.00    2.14
+Average:      12    9.11    0.00   88.71    0.00    0.00    0.05    0.00    0.00    2.12
+Average:      13    9.43    0.00   89.53    0.00    0.00    0.03    0.00    0.00    1.00
+Average:      14    9.38    0.00   87.58    0.00    0.00    0.03    0.00    0.00    3.00
+Average:      15    9.53    0.00   88.97    0.00    0.00    0.07    0.00    0.00    1.43
+</pre><li><p>单独开启IRQ affinity, UDP_RR测试: 软中断负载不能均匀的分散到前面8个CPU之上，主要分布在CPU2上，导致了瓶颈，性能下降(下降原因请见本文测试的局限性部分)</p></li><pre>Average:     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle
+Average:     all    1.05    0.00    8.21    0.01    0.00    5.83    0.00    0.00   84.90
+Average:       0    3.10    0.00   23.25    0.00    0.00    0.33    0.00    0.00   73.31
+Average:       1    2.73    0.00   21.15    0.00    0.00    0.37    0.00    0.00   75.75
+Average:       2    0.72    0.00    4.93    0.00    0.00   92.35    0.00    0.00    2.00
+Average:       3    1.27    0.00    9.81    0.00    0.00    0.10    0.00    0.00   88.82
+Average:       4    0.15    0.00    1.87    0.10    0.00    0.07    0.00    0.00   97.82
+Average:       5    0.07    0.00    1.04    0.00    0.00    0.07    0.00    0.00   98.82
+Average:       6    0.02    0.00    0.53    0.00    0.00    0.03    0.00    0.00   99.42
+Average:       7    0.00    0.00    0.23    0.00    0.00    0.00    0.00    0.00   99.77
+Average:       8    0.23    0.00    1.96    0.00    0.00    0.00    0.00    0.00   97.81
+Average:       9    0.08    0.00    0.60    0.00    0.00    0.00    0.00    0.00   99.32
+Average:      10    8.38    0.00   65.07    0.00    0.00    0.00    0.00    0.00   26.56
+Average:      11    0.00    0.00    0.36    0.00    0.00    0.00    0.00    0.00   99.64
+Average:      12    0.03    0.00    0.23    0.00    0.00    0.00    0.00    0.00   99.73
+Average:      13    0.00    0.00    0.19    0.00    0.00    0.00    0.00    0.00   99.81
+Average:      14    0.00    0.00    0.12    0.00    0.00    0.00    0.00    0.00   99.88
+Average:      15    0.02    0.00    0.10    0.00    0.00    0.00    0.00    0.00   99.88
+</pre><li><p>同时开启IRQ affinity和RPS/RFS: 软中断负载比较均匀的分散到各个CPU之上</p></li><pre>Average:     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle
+Average:     all    6.27    0.00   53.65    0.00    0.00   32.33    0.00    0.00    7.74
+Average:       0    7.05    0.00   59.70    0.00    0.00   26.18    0.00    0.00    7.07
+Average:       1    5.44    0.00   43.33    0.00    0.00   44.54    0.00    0.00    6.69
+Average:       2    5.49    0.00   43.06    0.00    0.00   43.38    0.00    0.00    8.07
+Average:       3    5.48    0.00   44.90    0.00    0.00   42.94    0.00    0.00    6.67
+Average:       4    4.74    0.00   43.27    0.00    0.00   45.14    0.00    0.00    6.85
+Average:       5    4.83    0.00   41.90    0.00    0.00   46.74    0.00    0.00    6.53
+Average:       6    5.04    0.00   44.73    0.00    0.00   43.68    0.00    0.00    6.56
+Average:       7    4.85    0.00   44.68    0.00    0.00   45.22    0.00    0.00    5.25
+Average:       8    7.60    0.00   61.50    0.02    0.00   22.79    0.00    0.00    8.08
+Average:       9    7.40    0.00   61.31    0.00    0.00   22.92    0.00    0.00    8.37
+Average:      10    7.74    0.00   60.62    0.00    0.00   22.64    0.00    0.00    9.00
+Average:      11    8.22    0.00   61.02    0.00    0.00   22.13    0.00    0.00    8.63
+Average:      12    6.53    0.00   62.42    0.00    0.00   22.09    0.00    0.00    8.97
+Average:      13    6.68    0.00   62.75    0.00    0.00   22.13    0.00    0.00    8.43
+Average:      14    6.62    0.00   62.41    0.00    0.00   22.69    0.00    0.00    8.28
+Average:      15    6.64    0.00   60.66    0.00    0.00   22.38    0.00    0.00   10.32
+</pre></ul><h2>结果分析</h2><h4>1. TCP_RR TPS小数据包性能</h4><ul class=" list-paddingleft-2"><li><p>单独开启RPS/RFS分别提升60%,145%,200%(依次对应100进程，500进程，1500进程,下同)</p></li><li><p>单独开启IRQ affinity分别提升135%, 343%, 443%</p></li><li><p>同时开启RPS/RFS和IRQ affinity分别提升148%, 346%, 372%</p></li></ul><h4>2. TCP_RR TPS大数据包性能</h4><ul class=" list-paddingleft-2"><li><p>单独开启RPS/RFS分别提升76%,77%,89%</p></li><li><p>单独开启IRQ affinity分别提升79%, 77%, 88%</p></li><li><p>同时开启RPS/RFS和IRQ affinity分别提升79%, 77%, 88%</p></li></ul><h4>3. UDP_RR TPS小数据包性能</h4><ul class=" list-paddingleft-2"><li><p>单独开启RPS/RFS分别提升44%,103%,94%</p></li><li><p>单独开启IRQ affinity性能分别下降11%, 8%, 8% (这是此次测试的局限造成, 详细分析见: 测试的局限性)</p></li><li><p>同时开启RPS/RFS和IRQ affinity分别提升65%, 130%, 137%</p></li></ul><h4>4. UDP_RR TPS小数据包性能</h4><ul class=" list-paddingleft-2"><li><p>单独开启RPS/RFS分别提升55%,53%,61%</p></li><li><p>单独开启IRQ affinity性能分别下降5%, 4%, 4%</p></li><li><p>同时开启RPS/RFS和IRQ affinity分别提升55%, 51%, 53%</p></li></ul><ol class=" list-paddingleft-2"><li><p>TCP 小数据包应用上，单独开启IRQ affinity能获得最大的性能提升，随着进程数的增加，IRQ affinity的优势越加明显. </p></li><li><p>UDP 小数据包方面，由于此次测试的局限，无法真实体现实际应用中的单独开启IRQ affinity而获得的性能提升, 但用RPS/RFS配合IRQ affinity，也能获得大幅度的性能提升; </p></li><li><p>TCP 大数据包应用上，单独开启IRQ affinity性能提升没有小数据包那么显著，但也有接近80%的提升, 基本与单独开启RPS/RFS的性能持平， 根据实验的数据计算所得，此时网卡流量约为88MB，还没达到千兆网卡的极限。</p></li><li><p>UDP 大数据包应用上，也是同样受测试局限性的影响，无法真实体现实际应用中的单独开启IRQ affinity而获得的性能提升, 但用RPS/RFS配合IRQ affinity，也能获得大幅度的性能提升</p></li></ol><h2>测试的局限性</h2><p>对于UDP测试在IRQ affinity上性能的下降， 查阅了内核源码(drivers/net/bnx2.c)及资料, bnx2 网卡的RSS hash不支持对UDP的端口进行计算，从而导致单独启用IRQ affinity的时候(这时候由硬件进行hash计算), UDP的数据只被hash了IP地址而导致数据包的转发出现集中在某个CPU的现象. 这是此次测试的局限所在，由于测试只是一台服务器端及一台客户端，所有UDP的IP地址都相同，无法体现UDP性能在单独启用IRQ affinity的性能提升. 但RPS/RFS的hash计算不受硬件影响，故而能体现性能提升. 对于实际应用中，服务器与多台客户端交互的情形，应该不受bnx2的RSS hash影响(以上只是针对bnx2网卡的特定问题)</p><h2>相关对比测试</h2><p> &nbsp;1. Linux内核 RPS/RFS功能详细测试分析: <a href="http://www.igigo.net/archives/204">http://www.igigo.net/archives/204</a></p><h2>参考资料</h2><ul class=" list-paddingleft-2"><li><p><a href="http://www.kernel.org/doc/Documentation/IRQ-affinity.txt">IRQ affinity</a></p></li><li><p><a href="http://www.mjmwired.net/kernel/Documentation/networking/scaling.txt">Scaling in the Linux Networking Stack</a></p></li><li><p><a href="http://www.vpsee.com/2010/07/load-balancing-with-irq-smp-affinity/">Linux 多核下绑定硬件中断到不同 CPU（IRQ Affinity）</a></p></li><li><p><a href="http://www.vpsee.com/2010/07/smp-irq-affinity/">计算 SMP IRQ Affinity</a></p></li><li><p><a href="http://git.itanic.dy.fi/?p=linux-stable;a=commitdiff;h=fdc8541d693a04ba3d6c335dace19b8362ac4e83">bnx2 RSS hash</a></p></li><li><p><a href="http://msdn.microsoft.com/zh-cn/library/ff556942.aspx">Introduction to Receive-Side Scaling</a></p></li></ul><p><br /></p><h1>RPS和RFS</h1><ul class=" list-paddingleft-2"><li><p>RPS 全称是 Receive Packet Steering, 这是Google工程师 Tom Herbert (<a class="mail" title="therbert@google.com" href="mailto:therbert@google.com;">therbert@google.com</a> )提交的内核补丁, 在2.6.35进入Linux内核. 这个patch采用软件模拟的方式，实现了多队列网卡所提供的功能，分散了在多CPU系统上数据接收时的负载, 把软中断分到各个CPU处理，而不需要硬件支持，大大提高了网络性能。</p></li><li><p>RFS 全称是 Receive Flow Steering, 这也是Tom提交的内核补丁，它是用来配合RPS补丁使用的，是RPS补丁的扩展补丁，它把接收的数据包送达应用所在的CPU上，提高cache的命中率。</p></li><li><p>这两个补丁往往都是一起设置，来达到最好的优化效果,<strong><span style="color:#FF0000;"> 主要是针对单队列网卡多CPU环境(多队列多重中断的网卡也可以使用该补丁的功能，但多队列多重中断网卡有更好的选择:</span></strong><a href="http://www.igigo.net/archives/231"><strong><span style="color:#FF0000;">SMP IRQ affinity</span></strong></a><strong><span style="color:#FF0000;">)</span></strong></p></li></ul><h2>原理</h2><div class="level2"> &nbsp; &nbsp;RPS: RPS实现了数据流的hash归类，并把软中断的负载均衡分到各个cpu，实现了类似多队列网卡的功能。由于RPS只是单纯的把同一流的数据包分发给同一个CPU核来处理了，但是有可能出现这样的情况，即给该数据流分发的CPU核和执行处理该数据流的应用程序的CPU核不是同一个：数据包均衡到不同的cpu，这个时候如果应用程序所在的cpu和软中断处理的cpu不是同一个，此时对于cpu cache的影响会很大。那么RFS补丁就是用来确保应用程序处理的cpu跟软中断处理的cpu是同一个，这样就充分利用cpu的cache。</div><ul class=" list-paddingleft-2"><li class="level1"><p>应用RPS之前: 所有数据流被分到某个CPU, 多CPU没有被合理利用， 造成瓶颈</p></li><p><a title="不使用RPS和RFS" href="http://www.igigo.net/wp-content/uploads/2012/05/RPS1.png"><img onload="if(this.width>650) this.width=650;" src="http://www.igigo.net/wp-content/uploads/2012/05/RPS1.png" class="aligncenter size-full wp-image-211" width="550" /></a></p><li class="level1"><p>应用RPS之后: 同一流的数据包被分到同个CPU核来处理，但可能出现cpu cache迁跃</p></li><p><a class="media" title="只使用RPS" href="http://www.igigo.net/wp-content/uploads/2012/05/RPS2.png"><img onload="if(this.width>650) this.width=650;" class="media" src="http://www.igigo.net/wp-content/uploads/2012/05/RPS2.png" width="550" /></a></p><li class="level1"><p>应用RPS+RFS之后: 同一流的数据包被分到应用所在的CPU核</p></li><p><a title="使用RPS和RFS" href="http://www.igigo.net/wp-content/uploads/2012/05/RPS3.png"><img onload="if(this.width>650) this.width=650;" src="http://www.igigo.net/wp-content/uploads/2012/05/RPS3.png" class="aligncenter size-full wp-image-211" width="550" /></a></p></ul><h3 class="title-article margin-top"><br /></h3><h3 class="title-article margin-top"><strong>解析Linux 2.6.35 新增特性———什么是RPS和RFS</strong></h3><p> &nbsp;Linux 2.6.35于2010年8月1号发布，新增特性比较多，而其中最引我注意的为第一点：Transparent spreading of incoming network traffic load across CPUs。</p><p> &nbsp; &nbsp;关于此点改进的详细介绍可以查看LWN上的两篇文章：&quot;Receive packet steering&quot; and &quot;Receive flow steering&quot;。</p><p> &nbsp; &nbsp;下面我就自己的理解来做一下阐述，不当之处，多多包涵。</p><p> &nbsp; &nbsp;首先是Receive Packet Steering (RPS)</p><p> &nbsp; &nbsp;随着单核CPU速度已经达到极限，CPU向多核方向发展，要持续提高网络处理带宽，传统的提升硬件设备、智能处理（如GSO、TSO、UFO）处理办法已不足够。如何充分利用多核势来进行并行处理提高网络处理速度就是RPS解决的课题。</p><p> &nbsp; &nbsp;以一个具有8核CPU和一个NIC的，连接在网络中的主机来说，对于由该主机产生并通过NIC发送到网络中的数据，CPU核的并行性是自热而然的事情：</p><p><br /><img onload="if(this.width>650) this.width=650;" src="http://fmn.xnimg.cn/fmn038/20100827/2220/b_large_aQmm_45d80004935f2d0e.jpg" /></p><p> &nbsp; &nbsp;问题主要在于当该主机通过NIC收到从网络发往本机的数据包时，应该将数据包分发给哪个CPU核来处理（有些具有多条接收队列和多重中断线路的NIC可以帮助数据包并行分发，这里考虑普通的NIC，普通的NIC通过RPS来模拟实现并行分发）：</p><p><br /><img onload="if(this.width>650) this.width=650;" src="http://fmn.xnimg.cn/fmn045/20100827/2220/b_large_yhw8_03d50002fcc42d14.jpg" /><br /><br /> &nbsp; &nbsp;普通的NIC来分发这些接收到的数据包到CPU核处理需要一定的知识智能以帮助提升性能，如果数据包被任意的分配给某个CPU核来处理就可能会导致所谓的“cacheline-pingpong”现象：<br /><span style="color:#ff0000;">比如DATA0数据流的第一个包被分发给CPU0来处理，第二个包分发给CPU1处理，第三个包又分发给CPU0处理；而DATA1数据流恰好相反。</span>这样的交替轮换（8核情况交替得更随意）会导致CPU核的CACHE利用过分抖动。</p><p><br /><img onload="if(this.width>650) this.width=650;" src="http://fmn.xnimg.cn/fmn041/20100827/2220/b_large_DvKK_03d50002fce12d14.jpg" /><br /><br /> &nbsp; &nbsp;RPS就是消除这种CPU核随意性分配的智能知识，它通过数据包相关的信息（比如IP地址和端口号）来创建CPU核分配的hash表项，当一个数据包从NIC转到内核网络子系统时就从该hash表内获取其对应分配的CPU核（首次会创建表项）。这样做的目的很明显，它将具有相同相关信息（比如IP地址和端口号）的数据包都被分发给同一个CPU核来处理，避免了CPU的CACHE抖动现象，提高处理性能。</p><p> &nbsp; &nbsp;有两点细节：</p><p> &nbsp; &nbsp;第一，所有CPU核具有等同的被绑定几率，但管理员可以明确设置CPU核的绑定情况；</p><p> &nbsp; &nbsp;第二，hash表<span style="color:#ff0000;">项的计算是由NIC进行的，不消耗CPU</span>。</p><p> &nbsp; &nbsp;RPS的性能优化结果为大致可提升3倍左右。tg3驱动的NIC性能由90,000提升到285,000，而e1000驱动的NIC性能由90,000提升到292,000，其它驱动NIC也得到类似的测试结果。</p><p><br /></p><p> &nbsp; &nbsp;接下来是Receive flow steering (RFS)<br /> &nbsp; &nbsp;RFS是在RPS上的改进，从上面的介绍可以看到，通过RPS已经可以把同一流的数据包分发给同一个CPU核来处理了，但是有可能出现这样的情况，<span style="color:#ff0000;">即给该数据流分发的CPU核和执行处理该数据流的应用程序的CPU核不是同一个：</span></p><p><br /><img onload="if(this.width>650) this.width=650;" src="http://fmn.xnimg.cn/fmn037/20100827/2220/b_large_XKoQ_5fe70002e60b2d0b.jpg" /></p><p><br /></p><p> &nbsp; &nbsp;不仅要把同一流的数据包分发给同一个CPU核来处理，还要分发给其‘被期望’的CPU核来处理就是RFS需要解决的问题。</p><p> &nbsp; &nbsp;RFS会创建两个与数据包相关信息（比如IP地址和端口号）的CPU核映射hash表：</p><p> &nbsp; &nbsp;1. &nbsp; &nbsp; &nbsp; &nbsp; 一个用于表示期望处理具有该类相关信息数据包的CPU核映射，通过recvmsg()或sendmsg()等系统调用信息来创建该hash表（称之为期望CPU表）。比如运行于CPU0核上的某应用程序调用了recvmsg()从远程机器host1上获取数据，那么NIC对从host1上发过来的数据包的分发期望CPU核就是CPU0。</p><p> &nbsp; &nbsp;2. &nbsp; &nbsp; &nbsp; &nbsp; 一个用于表示最近处理过具有该类相关信息数据包的CPU核映射，称这种表为当前CPU表。该表的存在是因为有多线程的情况，比如运行在两个CPU核上的多线程程序（每个核运行一个线程）交替调用recvmsg()系统函数从同一个socket上获取远程机器host1上的数据会导致期望CPU表频繁更改。<span style="color:#ff0000;">如果数据包的分发仅由期望CPU表决定则会导致数据包交替分发到这两个CPU核上，很明显，这不是我们想要的效果。</span><br />既然CPU核的分配由两个hash表值决定，那么就可以有一个算法来描述这个决定过程：</p><p> &nbsp; &nbsp;1. &nbsp; &nbsp; &nbsp; &nbsp; 如果当前CPU表对应表项未设置或者当前CPU表对应表项映射的CPU核处于离线状态，那么使用期望CPU表对应表项映射的CPU核。</p><p> &nbsp; &nbsp;2. &nbsp; &nbsp; &nbsp; &nbsp; 如果当前CPU表对应表项映射的CPU核和期望CPU表对应表项映射的CPU核为同一个，那么好办，就使用这一个核。</p><p> &nbsp; &nbsp;3. &nbsp; &nbsp; &nbsp; &nbsp; 如果当前CPU表对应表项映射的CPU核和期望CPU表对应表项映射的CPU核不为同一个，那么：</p><p> &nbsp; &nbsp;a) &nbsp; &nbsp; &nbsp; &nbsp; 如果同一流的前一段数据包未处理完，那么必须使用当前CPU表对应表项映射的CPU核，以避免乱序。</p><p> &nbsp; &nbsp;b) &nbsp; &nbsp; &nbsp; &nbsp;如果同一流的前一段数据包已经处理完，那么则可以使用期望CPU表对应表项映射的CPU核。</p><p> &nbsp; &nbsp;算法的前两步比较好理解，而对于第三步可以用下面两个图来帮助理解。应用程序APP0有两个线程THD0和THD1分别运行在CPU0核和CPU1核上，同时CPU1核上还运行有应用程序APP1。首先THD1调用recvmsg()获取远程数据（数据流称之为FLOW0），此时FLOW0的期望CPU核为CPU1，随着数据块FLOW0 : 0的到来并交给CPU1核处理，此时FLOW0的当前CPU核也为CPU1。如果此时THD0也在同一个socket上调用recvmsg()获取远程数据（数据流同样也是FLOW0），那么FLOW0的期望CPU核就改变为CPU0（当前CPU核仍然为CPU1）。与此同时，NIC收到数据块FLOW0 : 1，如何将该数据块分发给CPU核就到了上面算法的第三步。</p><p>分情况判断：</p><p><br /></p><p>1. &nbsp; &nbsp; &nbsp; &nbsp; 如果同一流的前一段数据包FLOW0 : 0未处理完，那么必须使用当前CPU核CPU1来处理新到达的数据块，以避免乱序。如下图所示（FLOW1流是应用程序APP1的）：</p><p><br /><img onload="if(this.width>650) this.width=650;" src="http://fmn.xnimg.cn/fmn042/20100827/2220/b_large_WHYX_03d900065f232d14.jpg" /><br /><br />2. &nbsp; &nbsp; &nbsp; &nbsp; 如果同一流的前一段数据包FLOW0 : 0已经处理完毕，那么可以使用期望CPU核CPU0来处理新到达的数据块。如下图所示（FLOW1流是应用程序APP1的）：</p><p><br /><img onload="if(this.width>650) this.width=650;" src="http://fmn.xnimg.cn/fmn038/20100827/2220/b_large_o0TH_3519000492992d13.jpg" /></p><p> &nbsp; &nbsp;RFS适用于面向流的网络协议，它能更好的提升CPU的CACHE效率，不论是内核还是应用程序本身。RFS的性能优化结果在普通环境下为大致可提升3倍左右，而在多线程环境大致可提升2倍。能通过软件的形式提升机器网络带宽性能自然也是再好不过的事情了。</p><p><br /></p></div><p><br /></p>
+    		</div><!--正文 end-->
+<script type="text/javascript">
+	var kevent = 'onabort|onblur|onchange|onclick|ondblclick|onerror|onfocus|onkeydown|onkeypress|onkeyup|onload|onmousedown|onmousemove|onmouseout|onmouseover|onmouseup|onreset|onresize|onselect|onsubmit|onunload';
+	var aevent = kevent.split('|');
+
+	jQuery('.showContent img').each(function(){
+		var nimg = this;
+		jQuery.each(aevent, function(i, n){
+			if (n!='onload') {
+				jQuery(nimg).attr(n, '');
+			} else {
+				if (jQuery(nimg).attr(n) != 'if(this.width>650) this.width=650;') {
+					jQuery(nimg).attr(n, '');
+				}
+			}
+		});
+	});
+</script>
+<script type="text/javascript" charset="utf-8">
+var encodetitle = encodeURI('一篇很棒的博文分享给大家：《网卡软中断调优》');
+
+function show51share(){
+
+	window.open('http://t.51cto.com/index.php?m=share&url=http://wwdhks.blog.51cto.com/839773/1218785&type=l&count=&relateUid=&appkey=3843950324&title=' + encodetitle);
+}
+</script>		
+<div class="m_sharebtn clear">
+	<table width="100%" border="0" cellspacing="0" cellpadding="0">
+	  <tr>
+		<td width="11%" height="43" align="center" valign="middle"><img src="http://img1.51cto.com/images/share/ssk.png" alt="分享至"/></td>
+		<td width="77%" align="left" valign="top">
+			<div id="bdshare" class="bdshare_t bds_tools_32 get-codes-bdshare" data="{'wbuid':1706976420}">
+				<a class="bds_tsina"></a>
+				<a class="bds_qzone"></a>
+				<a class="bds_tqq"></a>
+				<a class="bds_baidu"></a>
+				<a class="bds_renren"></a>
+				<a class="bds_qq"></a>
+				<a class="bds_douban"></a>
+				<a class="bds_hi"></a>
+				<a class="bds_msn"></a>
+				<em title="分享到51CTO微博" class="weibo_51cto" onMouseOut="this.style.backgroundImage='url(http://img1.51cto.com/images/share/ico_mweibo.gif)'" onMouseOver="this.style.backgroundImage='url(http://img1.51cto.com/images/share/ico_mweibob.gif)'" onClick="show51share();"></em>
+				<span class="bds_more">更多</span>
+				
+				<a class="shareCount"></a>
+			</div>
+	<script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=559183" ></script>
+	<script type="text/javascript" id="bdshell_js"></script>
+	<script type="text/javascript">
+		var bds_config = {'wbUid':1706976420, 'bdPic':'http://blog.51cto.com/attachment/201305/173413310.jpg'};
+		document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?t=" + new Date().getHours();
+	</script>
+	<!-- Baidu Button END --></td>
+		<td width="12%" align="right" valign="middle"><a href="javascript:favorBox('open');" title="一键收藏，随时查看，分享好友！"><img src="http://home.51cto.com/public/themes/blue/images/favorite_add_small.gif" border="0" alt="一键收藏，随时查看，分享好友！" /></a></td>
+	  </tr>
+	</table>
+
+</div>			
+    		<div class="showBottom">
+            <!--<div class="reviews"><span class="fl" style="cursor:pointer;"><a onclick="openFavoulist();" id="favourer"></a>
+
+            </span><div id="favourdiv" class="support01">0人</div>
+              <span class="fl">了这篇文章</span></div>-->
+              <table width="720" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td  align="right"><img src="http://phpanddb.blog.51cto.com/image/skin/25/icon01.png" width="15" height="16" /> <span style="cursor:pointer;"><a onclick="openFavoulist();" id="favourer"></a></span></td>
+    <td width="70" align="left"><div style="line-height:28px;" id="favourdiv" class="support01">0人</div></td>
+    <td width="60" align="left">了这篇文章</td>
+  </tr>
+</table>
+
+
+
+
+            <div class="showType">类别：<a href="/839773/d-7" class="operlink">Linux</a>┆<a class="operlink" onclick="javascript:joingroups(1218785,'wwdhks');return false;">技术圈</a>(<script src="http://blog.51cto.com/js/joingroup.php?tid=1218785"></script>)┆阅读(<span id="readNum">0</span>)┆评论(<span id='cmtNum' >0</span>)
+
+
+┆
+
+	<a  href="#"  onclick="javascript:dfanologin('http://home.51cto.com/index.php?reback=http%253A%252F%252Fwwdhks.blog.51cto.com%252F839773%252F1218785');return false;" class="operlink">
+
+推送到技术圈</a>┆<a href="/">返回首页</a></div>
+            <div class="prevNext">
+
+			上一篇 <a href="/839773/1213446" class="operlink" title="du和df的使用_句柄泄露导致磁盘空间不足_du和df的使用及统计到的磁盘使用不同为什么  ">du和df的使用_句柄泄露导致磁盘空间不足_du和d..</a>
+
+
+			下一篇 <a href="/839773/1225824" class="operlink" title="禁止开发用户crontab功能">禁止开发用户crontab功能</a>
+
+
+            </div>
+
+            </div>
+
+	  </div><!--showBottom end-->
+      </div><!--modCon-->
+    <span class="modBot"></span>
+    </div><!--artShow end-->
+    <span class="blank"></span>
+	
+	<div class="relatedArt box">
+<a href="http://blog.51cto.com/contest2013/index.php?mod=userlist_top100" target="_blank"><img src="http://blog.51cto.com/attachment/201311/102515463.jpg" /></a>
+</div>
+	
+
+<div class="artComm box">
+    <div class="title"><a name="replay"></a><h2>文章评论</h2></div>
+    <div class="modCon"  id="artcomment">
+		<div>  &nbsp;</div><div>  &nbsp;</div>
+    </div><!--modCon-->
+        <span class="modBot"></span>
+</div><!--commBox end-->
+<a href="" id="com_top_top"></a>
+<form action='/comment.php?' method='post' name='form1' id='form1' onSubmit='return commentSubmit(this,"");'>
+<span class="blank1"></span>
+<div class="box writeComm" style="min-height:30px;">
+<a name='comment'></a>
+<input type='hidden' name='action' value='comment'>
+<input  id='commenttid' type='hidden' name='tid' value='1218785'>
+<input type="hidden" name="com_count_ajax" id="com_count_ajax" value="1" />
+
+ <div class="title">
+	<h2 class="fl">发表评论&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</h2>
+	<span class="fl"><a class="mred" target="_blank" href="http://edu.51cto.com">51CTO学院：海量专家精品视频课程在线学习</a></span>
+	<style type="text/css">
+		a.mred:link{ color:#ff0000; text-decoration:underline;}
+		a.mred:visited{color:#ff0000;}
+		a.mred:hover{color:#ff0000;}
+		a.mred:active{color:#ff0000;}
+	</style>
+</div>
+ <div class="modCon">
+
+ <div class="commForm">
+<dl>
+<dt>昵&nbsp;&nbsp;称：</dt>
+<dd>
+
+<input type="text" id='commentusername' name='username' value='' class="commInput fl" /><span><a href='http://home.51cto.com/index.php?reback=http%253A%252F%252Fwwdhks.blog.51cto.com%252F839773%252F1218785' style='text-decoration:underline' >登录</a>&nbsp;&nbsp;<a href='http://ucenter.51cto.com/reg_01.php?reback=http://blog.51cto.com' target='_blank' style='text-decoration: underline;'>快速注册</a></span>
+
+
+
+</dd>
+</dl>
+
+
+
+<dl id="commentyanzheng">
+
+
+<dt>验证码：</dt>
+<dd><input class="code" type="text" value=""  id="commentauthnum" name="authnum" onclick="displaysecunum();"/>
+
+  <img width="78" class="fl" height="29"  id="secunum" onclick="refimg()" style="display:none;"/><p class="fl"><span style="display:none;" id="spanfont">点击图片可刷新验证码</span><span style="display:inline;" id="clickfont">请点击后输入验证码</span><span class="pl5"><a href="http://51ctoblog.blog.51cto.com/26414/5591" target="_blank" style="text-decoration: underline;">博客过2级，无需填写验证码</a></span></p></dd>
+</dl>
+<dl>
+<dt>内&nbsp;&nbsp;容：</dt>
+<dd>
+<textarea class="writeCommCon f12"  id="commentcontent" name='content'></textarea>
+</dd>
+</dl>
+</div>
+<div class="writeCommBot">
+  <input type="hidden" name="parentid" value="" id="parentid"/>
+  <input class="commBtn fl"   name='submit' type='button' id="commentsubmit" value='' onclick="commentSubmitend2()"/>
+
+ <p class="fl" style="display:none;"><input class="fl" type="checkbox" name="favour" id="favour" checked="" value="1" /><span class="fl">同时赞一个</span></p>
+
+</div>
+<span class="blank"></span>
+
+</div><!--modCon-->
+<span class="modBot"></span>
+</div>
+</form>
+
+<iframe id=iframe1 name=iframe1 width=0 height=0></iframe>
+<!--发表评论 end-->
+</div>
+</div>
+<script language="javascript">
+	function refimg(){
+		var randval = Math.random();
+		document.getElementById("secunum").src="/seccode.php?rnum="+randval;
+	}
+	function displaysecunum()
+	{
+		var displaystr = document.getElementById("secunum").style.display;
+		if(displaystr == 'none')
+		{
+			refimg();
+			document.getElementById("clickfont").style.display = 'none';
+			document.getElementById("secunum").style.display = 'inline';
+			document.getElementById("spanfont").style.display = 'inline';
+		}
+	}
+
+	function showMsn(){
+		document.getElementById("c02").style.display = "none";
+		document.getElementById("c01").style.display = "block";
+		document.getElementById("share").style.height = "83px";
+		document.getElementById("share").style.background = "none";
+	}
+	function showBBS(){
+		document.getElementById("c01").style.display = "none";
+		document.getElementById("c02").style.display = "block";
+		document.getElementById("share").style.height = "83px";
+		document.getElementById("share").style.background = "none";
+	}
+
+	//资源页面，分享按钮
+	function copyShareUrl(title){
+
+		if (window.clipboardData){
+
+			if(document.getElementById("c01").style.display == 'block')
+			{
+				copy = "推荐：" + title + "http://wwdhks.blog.51cto.com/839773/1218785";
+				var alertText = "复制成功，你可以粘贴到MSN或QQ中发给好友。";
+			}
+			else
+			{
+				copy = "[url=" + "http://wwdhks.blog.51cto.com/839773/1218785" + "][u]" + title + "[/u][/url]";
+				var alertText = "复制成功，你可以粘贴到论坛分享给坛友。";
+			}
+			window.clipboardData.clearData();
+			window.clipboardData.setData("Text", copy);
+			alert(alertText);
+		}
+		else if (window.netscape){
+			alert("您使用的浏览器不支持此复制功能，请使用Ctrl+C或鼠标右键。");
+			if(document.getElementById("c01").style.display == 'block')
+			{
+				document.getElementById("shareTextQM").value = "推荐：" + title + "http://wwdhks.blog.51cto.com/839773/1218785";
+				document.getElementById("shareTextQM").select();
+			}
+			else
+			{
+				document.getElementById("shareTextBBS").value = "[url=" + "http://wwdhks.blog.51cto.com/839773/1218785" + "][u]" + title + "[/u][/url]";
+                document.getElementById("shareTextBBS").select();
+			}
+		}
+		return false;
+	}
+	function select_login(){
+		document.getElementById('fixed').style.display='';
+	}
+	function commentcheck()
+	{
+		if(document.form1.content.value == "")
+		{
+			alert("评论内容为空!");
+			document.form1.content.focus();
+			return false;
+		}
+	}
+	function changename(){
+
+	var memberid=0;
+	memberid="";
+
+	if(document.getElementById('commentniming').checked){
+		document.getElementById('commentusername').disabled=false;
+		document.getElementById('commentusername').value='';
+		document.getElementById("indexhidden").style.display="none";
+		document.getElementById("commentindex").value='';
+		document.getElementById("commentyanzheng").style.display="";
+	}else{
+		document.getElementById('commentusername').disabled=true;
+		document.getElementById('commentusername').value="";
+		document.getElementById("indexhidden").style.display="";
+		document.getElementById("commentindex").value="http://.blog.51cto.com";
+		if(memberid>8)
+		{
+			document.getElementById("commentyanzheng").style.display="none";
+		}
+	}
+	}
+	function openFavoulist()
+	{
+		window.open ('http://blog.51cto.com/mod/favourlist.php?tid=1218785','newwindow','height=300,width=500,top=400,left=400,toolbar=no,menubar=no,scrollbars=no, resizable=no,location=no, status=no,z-look=yes');
+	}
+
+	var e_zti = document.getElementById('zti');//有专题锚点
+	var maodian = window.location.href;//锚点
+	if (e_zti) {
+		e_zti.href= (/[#]+/.test(maodian)) ? maodian : maodian + "#zhuanti";
+	}
+</script>
+<script src="http://blog.51cto.com/js/jquery-1.7.1.min.js"></script>
+<script src="http://blog.51cto.com/js/jquery.cookie.js"></script>
+<script src="http://blog.51cto.com/js/jquery.messager.js"></script>
+<link href="http://blog.51cto.com/css/blog_top/blog_top.css" rel="stylesheet" type="text/css" />
+<script src="http://blog.51cto.com/js/blog_top_list.php" type="text/javascript" language="javascript"></script>
+<style>
+.backToTop {
+    display: none;
+	WIDTH: 45px;
+	height:45px;
+	BOTTOM: 20px;
+     position: fixed;
+    _position: absolute;
+    right: 140px;
+    bottom: 10px;
+    _bottom: "auto";
+    cursor: pointer;
+    opacity: .6;
+    filter: Alpha(opacity=60);
+	text-indent:-9999px;
+}
+.tops { background:url(/images/tops.jpg) no-repeat center center; }
+</style>
+<script type="text/javascript">
+(function() {
+    var backToTopTxt = "返回顶部", backToTopEle = $('<div class="backToTop tops"></div>').appendTo($("body"))
+        .text(backToTopTxt).attr("title", backToTopTxt).click(function() {
+            $("html, body").animate({ scrollTop: 0 }, 520);
+    }), backToTopFun = function() {
+        var st = $(document).scrollTop(), winh = $(window).height();
+        (st > 0)? backToTopEle.show(): backToTopEle.hide();    
+        //IE6下的定位
+        if (!window.XMLHttpRequest) {
+            backToTopEle.css("top", st + winh - 60);    
+        }
+    };
+    $(window).bind("scroll", backToTopFun);
+    $(function() { backToTopFun(); });
+})();
+</script>
+
+
+
+
+</div>
+</div>
+<div class="clear"></div>
+<!-- <script>
+jQuery(function(){
+	var html= "<div id=\"sogou_se_tgbar\" style=\"text-align:center;margin:0px auto 2px auto;clear:both;background:url(http://home.51cto.com/public/images/notice/sogou_se_tgbar_bg_final1.gif) repeat-x;width:950px;color:#000;font-size:13px;height:36px;z-index:21474836471\"><div style=\"float:left;cursor:pointer;width:910px;text-align:center;border-left:solid #efbf00 1px;height:32px; line-height:32px;txt-align:center;\"><span style=\"\">	<a href=\"http://51ctoblog.blog.51cto.com/26414/1093282\">【新年祝福征集】51CTO社区年底嘉年华活动正在征集博主祝福语，祝福以红包的形式随机的赠送给访问51CTO的网友 点此送祝福>></a></span></div><div onclick=\"document.getElementById('sogou_se_tgbar').style.display = 'none';\" style=\"float:right;width:20px;cursor:pointer;height:28px;padding:4px 8px 0px 8px;border-right:solid #efbf00 1px\"><img style=\"border:none;margin:4px 0px 0px 0px;\" src=\"http://home.51cto.com/public/images/notice/sogou_se_tgbar_close_final1.gif\"></div></div>"
+	jQuery('body').prepend(html);
+})
+</script> -->
+</div>
+<div id="footer">
+  <div id="innerFooter">
+	<center>
+		<small>
+			Copyright By 51CTO.COM 版权所有<br><br>
+			<a href="http://blog.51cto.com" target="_blank"><img src="http://img1.51cto.com/image/skin/30/copyright.jpg"></a>
+	  </small>
+	</center>
+  </div>
+</div>
+<script src="http://home.51cto.com/index.php?s=/Index/getLoginStatus/reback/http%253A%252F%252Fwwdhks.blog.51cto.com%252F839773%252F1218785" charset='utf-8'></script>
+<div style="display:none">
+<script src="http://logs.51cto.com/rizhi/count/count.js"></script>
+
+<iframe frameborder="0" scrolling="no" width="0" height="0" src="http://log.51cto.com/pageview.php?frompos=blog_art"></iframe>
+</div>
+<div style="display:none;"><script src="http://s24.cnzz.com/stat.php?id=4274540&web_id=4274540&show=pic" language="JavaScript"></script><div>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38670657-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+</body>
+</html>

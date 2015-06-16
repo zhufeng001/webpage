@@ -1,0 +1,633 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="author" content="root">
+  <meta name="Description" content="Van's Apache SSL/TLS mini-HOWTO">
+  <meta name="Keywords" content="Apache SSL/TLS HOWTO, fun with Apache SSL">
+
+  <title>Van's Apache SSL/TLS mini-HOWTO</title>
+  
+<style type="text/css">
+  body { color: black; background: white; font-family: arial,sans-serif;
+  margin-left: 5%; margin-right: 5%;}
+  pre { color: black; background: #E6E6F9; font-family: monospace; border: solid; 
+  border-width: thin; padding: 0.5em;}
+  h1 { font-size: 200%; color: #05057A;}
+  h2 { font-size: 150%; color: #05057A; margin-left: -1%;}
+  h3 { font-size: 125%; color: black;}
+  div.box { border: solid; border-width: thin; width: 100% }
+  div.center { text-align:center }
+  .right { float:right }
+  .left { float:left }
+  div.color {
+    background: #ADD7E6;
+    padding: 0.5em;
+    border: none;
+    font-family: monospace;
+  }
+  strong { font-size: 90%; color: red }
+  .gb { color: #197D1D; font-size: 110%; }
+  .noborder { border-style: none }  
+  li.sp { padding-bottom:12px }
+  
+  a:link {color:blue}
+  a:visited {color:purple}
+  a:focus {color:teal}
+  a:hover {color:teal}
+  a:active {color:red}
+   
+</style>
+  
+</head>
+
+<body>
+
+
+
+<div class="center">
+<br /><h2>Van's Apache SSL/TLS mini-HOWTO</h2>
+<h3><i>Fun with Apache, mod_ssl, and OpenSSL</i></h3><br />
+
+<img src="apache_pb.gif" width="102" height="47" alt="gif" />
+<img src="spacer.gif" width="51" height="47" alt="gif" />
+<img src="mod_ssl_sb.gif" width="102" height="47" alt="gif" />
+<img src="spacer.gif" width="51" height="47" alt="gif" />
+<img src="openssl.gif" width="102" height="47" alt="gif" />
+
+<br /><br />
+<hr />
+</div>
+
+<h3>Introduction</h3>
+
+<p>I recently had a need to setup a private directory on my web server that could only be accessed by a 
+handful of selected people.  The content also needed to be encrypted in transit.  This mini-HOWTO details 
+how I did this on a Red Hat 8.0/Apache 2.0.40 server using mod_ssl and OpenSSL (0.9.6b and higher). 
+Here are the goals of this small project:</p>
+
+<ul>
+ <li>Require HIGH or MEDIUM level SSL/TLS encryption at the transport (TCP) layer</li>
+ <li>Browser must use SSLv3 or TLSv1, not SSLv2</li>
+ <li>Require username/password authentication for some subdirectories</li>
+ <li>Learn about TLS certificates</li>
+ <li>Be a mini-CA (Certificate Authority)</li>
+ <li>Use a non-standard port to keep most of the port-scanning riffraff away</li>
+ <li>Create client certificates, and require them for specific directories</li>
+</ul>
+
+<p>The key to this whole system is the SSL/TLS protocol.  SSL stands for Secure Sockets Layer, and it 
+was developed by Netscape to enable secure transactions over the Web.  It operates between the TCP layer 
+and the HTTP application layer.  TLSv1 is the IETF standard implementation, based on SSLv3.  TLS stands 
+for Transport Layer Security.</p>
+
+<h3>Assumptions/Prerequisites</h3>
+
+<p>First and foremost, this document assumes that you are using some flavor of Linux, Apache 2.0.x, and 
+that you have OpenSSL installed.  These particular instructions were generated using Red Hat 8.0. 
+You should also check out the excellent documentation at 
+<a href="http://httpd.apache.org">Apache.Org</a>.  Other assumptions:</p>
+
+<ul>
+	<li>This will be used over the Internet</li>
+	<li>Your DNS configuration is correct (hostname=FQDN, PTR records O.K., etc.)</li>
+	<li>Your firewall is setup to allow connections on the chosen https:// port</li>
+	<li>You have a second machine with Mozilla or another modern browser for testing purposes</li>
+	<li>In these examples, my FQDN and hostname is: &nbsp;&nbsp;&nbsp;<b>mars.vanemery.com</b></li>
+</ul>
+
+<p>Most client tests were performed with the Mozilla web browser. Mozilla is the "reference platform".</p>
+
+<h3 id="CA">Step 1:  Setup your own CA (Certificate Authority)</h3>
+
+<p>In order to run a secure (SSL/TLS encrypted) web server, you have to have a private key and a 
+certificate for the server.  For a commercial web site, you will probably want to purchase a certificate 
+signed by a well-known root CA.  For Intranet or special-purpose uses like this, you 
+can be your own CA.  This is done with the OpenSSL tools.</p>
+
+<p>Here, we will make a private CA key and a private CA X.509 certificate.  We will also make a directory for the 
+certs and keys:</p>
+
+<pre>
+[root]# <b>mkdir /root/CA</b>
+[root]# <b>chmod 0770 /root/CA</b>
+[root]# <b>cd /root/CA</b>
+
+[root]# <b>openssl genrsa -des3 -out my-ca.key 2048</b>
+Generating RSA private key, 2048 bit long modulus
+.....................................................+++
+...................................................+++
+e is 65537 (0x10001)
+Enter PEM pass phrase:
+Verifying password - Enter PEM pass phrase:
+
+[root]# <b>openssl req -new -x509 -days 3650 -key my-ca.key -out my-ca.crt</b>
+Using configuration from /usr/share/ssl/openssl.cnf
+Enter PEM pass phrase:
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [GB]:US
+State or Province Name (full name) [Berkshire]:Kentucky
+Locality Name (eg, city) [Newbury]:Fayette County
+Organization Name (eg, company) [My Company Ltd]:VanEmery.Com
+Organizational Unit Name (eg, section) []:Certificate Authority
+Common Name (eg, your name or your server's hostname) []:VanEmery.Com CA
+Email Address []:hostmaster@vanemery.com
+
+[root]# <b>openssl x509 -in my-ca.crt -text -noout</b>
+</pre>
+
+<p><b>Notes:</b>  &nbsp;The first OpenSSL command makes the key.  The second command makes the X.509 certificate with 
+a 10-year lifetime.  The third command lets you view the completed certificate.  Make sure that you keep the 
+password in a safe place, you will need this every time you sign another certificate!  You will probably also 
+want to make backups of the cert and key and lock them in a safe place.</p>
+
+<h3>Step 2:  Make a key and a certificate for the web server:</h3>
+
+<p>Now, we have to make an X.509 certificate and corresponding private key for the web server.  Rather than 
+creating a certificate directly, we will create a key and a <i>certificate request</i>, then "sign" the 
+certificate request with the CA key we made in Step 1.  You can make keys for multiple web servers 
+this way.  One thing to note is that SSL/TLS private keys for web servers need to be either 512 or 
+1024 bits.  Any other key size may be incompatible with certain browsers.</p>
+
+<pre>
+[root]# <b>openssl genrsa -des3 -out mars-server.key 1024</b>
+Generating RSA private key, 1024 bit long modulus
+....++++++
+.++++++
+e is 65537 (0x10001)
+Enter PEM pass phrase:
+Verifying password - Enter PEM pass phrase:
+
+[root]# <b>openssl req -new -key mars-server.key -out mars-server.csr</b>
+Using configuration from /usr/share/ssl/openssl.cnf
+Enter PEM pass phrase:
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [GB]:TW
+State or Province Name (full name) [Berkshire]:Taipei County
+Locality Name (eg, city) [Newbury]:Nankang
+Organization Name (eg, company) [My Company Ltd]:VanEmery.Com
+Organizational Unit Name (eg, section) []:Web Services
+Common Name (eg, your name or your server's hostname) []:mars.vanemery.com <strong>&lt;=== This must be the real FQDN of your server!!!</strong>
+Email Address []:hostmaster@vanemery.com
+
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:
+An optional company name []:
+
+# <b>openssl x509 -req -in mars-server.csr -out mars-server.crt -sha1 -CA my-ca.crt -CAkey my-ca.key -CAcreateserial -days 3650</b>
+Signature ok
+subject=/C=TW/ST=Taipei County/L=Nankang/O=VanEmery.Com/OU=Web Services/CN=mars.vanemery.com/Email=hostmaster@vanemery.com
+Getting CA Private Key
+Enter PEM pass phrase:
+
+[root]# <b>openssl x509 -in mars-server.crt -text -noout</b>
+</pre>
+
+<p>Make sure that your server name is the same as the FQDN that your clients will use when connecting 
+to your site.  Also, let's get in the habit of protecting our keys with appropriate permissions:</p>
+
+<pre>
+
+[root]# <b>chmod 0400 *.key</b>
+
+</pre>
+
+<p>Now, we need to move the new keys and certs into the proper directories in the /etc/httpd hierarchy:
+</p>
+
+<pre>
+[root]# <b>cp mars-server.crt /etc/httpd/conf/ssl.crt</b>
+[root]# <b>cp mars-server.key /etc/httpd/conf/ssl.key</b>
+[root]# <b>cp my-ca.crt /etc/httpd/conf/ssl.crt</b>
+</pre>
+
+
+<h3>Step 3: Create directories and files for the secure web service</h3>
+
+<p>I do not want the secure branch of my webserver directory tree to be part of my "insecure" branch that 
+serves unencrypted files.  My normal web root directory is <tt>/var/www/html</tt> .  The document root for the 
+secure web server will be located at <tt>/var/www/SSL</tt> .</p>
+
+<pre>
+[root]# <b>mkdir /var/www/SSL</b>
+[root]# <b>chmod 0775 /var/www/SSL</b>
+[root]# <b>cd /var/www/SSL</b>
+[root]# <b>mkdir Passneeded</b>
+[root]# <b>mkdir Certneeded</b>
+[root]# <b>mkdir PassAndCert</b>
+</pre>
+
+<p>For testing purposes, I added this very simple test <a href="SSL-index.txt">SSL index file</a> into <tt>/var/www/SSL</tt> . 
+Save it as <tt>index.html</tt> .
+Copy some JPEG files and text files into each directory, so that there will be something to look 
+at/retrieve in each directory.
+</p>
+
+
+<h3>Step 4: Configure the Apache web server</h3>
+
+<p>On a default Red Hat 8.0 install, there are two config files that concern us:  <tt>httpd.conf</tt> 
+and <tt>ssl.conf</tt>.  All of our changes will be made in the <tt>/etc/httpd/conf.d/ssl.conf</tt> file.  
+It is not necessary to modify the <tt>httpd.conf</tt> file to accomplish our goals on a stock Red Hat 8.0 
+server.  Here are the changes/additions to <tt>ssl.conf</tt> :
+</p>
+
+<pre>
+DocumentRoot "/var/www/SSL"
+
+# Note that the FQDN and server hostname must go here - clients will not be able to connect, otherwise!
+ServerName mars.vanemery.com:443
+ServerAdmin webmaster@vanemery.com
+
+# Here, I am allowing only "high" and "medium" security key lengths.
+SSLCipherSuite HIGH:MEDIUM
+
+# Here I am allowing SSLv3 and TLSv1, I am NOT allowing the old SSLv2.
+SSLProtocol all -SSLv2
+
+#   Server Certificate:
+SSLCertificateFile /etc/httpd/conf/ssl.crt/mars-server.crt
+
+#   Server Private Key:
+SSLCertificateKeyFile /etc/httpd/conf/ssl.key/mars-server.key
+
+#   Server Certificate Chain:
+SSLCertificateChainFile /etc/httpd/conf/ssl.crt/my-ca.crt
+
+#   Certificate Authority (CA):
+SSLCACertificateFile /etc/httpd/conf/ssl.crt/my-ca.crt
+
+# This is needed so that you can use auto-indexing for some directories in the 
+# /var/www/SSL directory branch.  This can be handy if you would like to have 
+# a list of sensitive files for people to download.
+&lt;Directory "/var/www/SSL"&gt;
+        Options Indexes
+        AllowOverride None
+        Allow from from all
+        Order allow,deny
+&lt;/Directory&gt;
+</pre>
+
+<p>The working config file up to this point is <a href="ssl.conf.1">located here</a>.</p>
+
+<h3>Step 5: Start the web server and test</h3>
+
+<p>Run the following commands to start the the Apache web server:</p>
+
+<pre>
+[root]# <b>/etc/init.d/httpd start</b>
+Starting httpd: Apache/2.0.40 mod_ssl/2.0.40 (Pass Phrase Dialog)
+Some of your private key files are encrypted for security reasons.
+In order to read them you have to provide us with the pass phrases.
+
+Server mars.vanemery.com:443 (RSA)
+Enter pass phrase:
+Ok: Pass Phrase Dialog successful.
+                                                           [  OK  ]
+</pre>
+
+<p>Note that you will have to enter the password for your server key in order to start the server. 
+You will also have to do this during boot if you have httpd configured to start automatically.</p>
+
+<p>Make sure that the web server is now listening on the SSL/TLS port, TCP port 443:</p>
+
+<pre>
+[root]# <b>netstat -tna</b>
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN
+tcp        0      0 0.0.0.0:443             0.0.0.0:*               LISTEN
+</pre>
+
+<p>In order to test that your SSL/TLS web server is running, you will now need to connect to it with a 
+browser.  The URL you use should be <tt>https://yourservername.com</tt>.  You will probably get a 
+warning prompt about the Certificate Authority (CA) being unknown.  You can view the certificate 
+properties, which will look familiar because you created the cert yourself.  You can save the cert 
+in your browser, or import the <tt>my-ca.crt</tt> file into your browser as a new CA.  How you do this will depend 
+on which browser you are using.  I had no problems doing this with Mozilla.
+</p>
+
+<h3>Step 6: Require simple username/password auth for one of the directories:</h3>
+
+<p>We want to require a valid username and password for the <tt>/var/www/SSL/Passneeded</tt> directory.  
+The username and password will be encrypted in transit as part of the TCP stream.  We will need to 
+setup the access control directives, as well as use the <tt>htpasswd</tt> command to add the username/password 
+pairs.</p>
+
+<pre>
+[root]# <b>htpasswd -c -m /etc/httpd/.htpasswd joe</b>
+New password:
+Re-type new password:
+Adding password for user joe
+[root]# <b>htpasswd -m /etc/httpd/.htpasswd john</b>
+New password:
+Re-type new password:
+Adding password for user john
+
+[root]# <b>chown apache.root /etc/httpd/.htpasswd</b>
+[root]# <b>chmod 0460 /etc/httpd/.htpasswd</b>
+</pre>
+
+<p>Now, we need to tell Apache to require a username/password to access the <tt>Passneeded</tt> directory.  Here is 
+what we will add to <tt>/etc/httpd/conf.d/ssl.conf</tt> file:</p>
+
+<pre>
+&lt;Directory "/var/www/SSL/Passneeded"&gt;
+	AuthType Basic
+	AuthName "Username and Password Required"
+	AuthUserFile /etc/httpd/.htpasswd
+	Require valid-user
+&lt;/Directory&gt;
+</pre>
+
+<p>Now, restart the webserver with <tt>/etc/init.d/httpd restart</tt>.  When you try to access the 
+<tt>Passneeded</tt> directory from a web browser, you should be prompted for a username and password.  If you 
+enter incorrect information, you should be denied access.</p>
+
+<p>The config file (up to this point) is <a href="ssl.conf.2">located here</a>.</p>
+
+<h3>Step 7: Change the TCP port that Apache SSL/TLS listens on:</h3>
+
+<p>Since this is a private, special-purpose secure web server, you may want to change the TCP port 
+from 443 to something else.  This will make it just a little more difficult for crackers to locate 
+via automated network scans.  For this excercise, we will change the port to TCP 444 by editing three 
+lines in the <tt>ssl.conf</tt> configuration file.  Make the following changes to the <tt>ssl.conf</tt>  :
+</p>
+
+<pre>
+Listen 444
+
+&lt;VirtualHost _default_:444&gt;
+
+ServerName mars.vanemery.com:444
+</pre>
+
+<p>Now, restart Apache and look at the listening ports:</p>
+
+<pre>
+[root]# <b>/etc/init.d/httpd restart</b>
+
+[root]# <b>netstat -tna</b>
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN
+tcp        0      0 0.0.0.0:444             0.0.0.0:*               LISTEN
+</pre>
+
+<p>Now, you should be able to connect to the server with this URL:<br /><br />
+<tt>https://yourservername.com:444</tt>
+</p>
+
+<p>The config file including this change is <a href="ssl.conf.3">located here</a>.  If you are having 
+any problems, you may want to consult the <tt>ssl_*</tt> logfiles in the <tt>/var/log/httpd</tt> directory.  
+These can be quite useful for trouble-shooting.</p>
+
+<p>Congratulations, you have now configured a basic SSL/TLS web server!</p>
+
+<div><br /><br /><hr /></div>
+
+<h3>Creating Client Certificates for Authentication</h3>
+
+<p>Now, let's say that we want a <i>stronger</i> method of authenticating clients, one that is not as 
+susceptible to password guessing and shoulder-surfing.  What can we do?  We can create an SSL/TLS 
+<b>client certificate</b>.  The certificate has to be digitally signed by a CA that the server trusts, 
+the user has to have the client loaded in his browser, and the user has to know a pass phrase to use it. 
+The certificate itself uses strong, public-key cryptography.  We can make such a certificate with 
+our OpenSSL toolkit.</p>
+
+<p><i>A note on certificate formats:</i> &nbsp;&nbsp;The server and CA certs that we have been using up to now 
+are encoded in PEM format, which uses ASCII characters.  For some reason, the industry-standard client 
+certs used in web browsers are encoded in the PKCS#12 format, which cannot be viewed as simple text.  It 
+is a binary file.  We will now create a client cert by following these steps:</p>
+
+<ul>
+	<li>Create a new private key and certificate request</li>
+	<li>Sign the certificate request, thereby creating the client certificate</li>
+	<li>Generate the PKCS#12 cert file</li>
+	<li>View information about the PKCS#12 cert</li>
+	<li>Import the PKCS#12 client cert into your browser</li>
+	<li>Test!</li>
+</ul>
+
+<pre>
+[root]# <b>cd /root/CA</b>
+[root]# <b>openssl genrsa -des3 -out van-c.key 1024</b>
+Generating RSA private key, 1024 bit long modulus
+..++++++
+........................................................................++++++
+e is 65537 (0x10001)
+Enter PEM pass phrase:
+Verifying password - Enter PEM pass phrase:
+
+[root]# <b>openssl req -new -key van-c.key -out van-c.csr</b>
+Using configuration from /usr/share/ssl/openssl.cnf
+Enter PEM pass phrase:
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [GB]:TW
+State or Province Name (full name) [Berkshire]:Taipei County
+Locality Name (eg, city) [Newbury]:Nankang
+Organization Name (eg, company) [My Company Ltd]:VanEmery.Com
+Organizational Unit Name (eg, section) []:Sales
+Common Name (eg, your name or your server's hostname) []:Van Emery
+Email Address []:ve@vanemery.com
+
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:
+An optional company name []:
+
+# <b>openssl x509 -req -in van-c.csr -out van-c.crt -sha1 -CA my-ca.crt -CAkey my-ca.key -CAcreateserial -days 3650</b>
+
+[root]# <b>openssl pkcs12 -export -in van-c.crt -inkey van-c.key -name "Van Emery Cert" -out van-c.p12</b>
+
+[root]# <b>openssl pkcs12 -in van-c.p12 -clcerts -nokeys -info</b>
+
+</pre>
+
+<p><b>Note:</b>  The "export password" is all the end-user needs to know.  This is what you will be asked 
+for when installing the certificate in a browser.</p>
+
+<p>Now move the <tt>van-c.p12</tt> file to your client machine and import it into your web browser.  This is usually 
+done your browser's "Preferences" section under "Privacy and Security", "Certificates", "Manage 
+Certificates".  You may be asked to input a Software Security Device Master Password. 
+<strong>DO NOT FORGET</strong> this 
+password!  You will also be asked for the client certificate's export password.</p>
+
+<h3><br />Configure Apache to require client certificates for a specific directory:</h3>
+
+<p>In order to require client certificates for the <tt>/var/www/SSL/Certneeded</tt> directory, you will need to 
+add the following lines to the <tt>/etc/httpd/conf.d/ssl.conf</tt> configuration file:</p>
+
+<pre>
+&lt;Directory /var/www/SSL/Certneeded&gt;
+	SSLVerifyClient require
+	SSLVerifyDepth 1
+&lt;/Directory&gt;
+</pre>
+
+<p>Now, restart Apache with <tt>/etc/init.d/httpd restart</tt>.  You can now connect from your client 
+machine browser to the secure webserver at <tt>https://yoursevername.com:444</tt>.  You should now be 
+able to click on the "Client Certificate Required" link and view the files in that directory.  I successfully 
+tested my client certificate with:</p>
+
+<ul>
+	<li>Mozilla 1.4 and 1.2.1 on Linux</li>
+	<li>Mozilla 1.4 on Windows 2000</li>
+	<li>Internet Explorer 6 on Windows 2000</li>
+	<li>Opera 7 on Linux</li>
+	<li>Konqueror 3.0.5 on Linux</li>
+	<li>Galeon 1.2.7 on Linux</li>
+</ul>
+
+<p>If you connect 
+from a different browser that does <b>not</b> have the certificate installed, you will not be able to enter 
+the directory at all. When you look in your <tt>/var/www/httpd/ssl_error_log</tt> file, you will see this 
+error:</p>
+
+<pre>
+[17:41:41] [error] Re-negotiation handshake failed: Not accepted by client!?
+[17:41:41] [error] SSL handshake failed (server mars.vanemery.com:444, client 192.168.1.191)
+[17:41:41] [error] SSL Library Error: 336105671 error:140890C7:lib(20):func(137):reason(199)
+</pre>
+
+<p><a href="ssl.conf.4">Here is the config file</a> that includes all of the changes up to this point.</p>
+
+<h3><br />Configure Apache to require client certificates AND username/password for a specific directory:</h3>
+
+<p>If you are super paranoid, you may want to require a client certificate AND username/password.  This 
+is totally up to you, and it is easy to do.</p>
+
+<p>For this simple example, we will use the <tt>.htpasswd</tt> file and usernames/passwords that have already been 
+created earlier.  This will force clients to have a certificate and a valid username/password pair
+in order to access the <tt>/var/www/SSL/PassAndCert</tt>. All we have to do is add the following 
+section to the <tt>/etc/httpd/conf.d/ssl.conf</tt> configuration file:</p>
+
+<pre>
+&lt;Directory "/var/www/SSL/PassAndCert"&gt;
+	SSLVerifyClient require
+	SSLVerifyDepth 1
+	AuthType Basic
+	AuthName "Restricted Area"
+	AuthUserFile /etc/httpd/.htpasswd
+	Require valid-user
+&lt;/Directory&gt;
+</pre>
+
+<p>Now, restart Apache with <tt>/etc/init.d/httpd restart</tt>.  Connect from your client 
+machine browser to the secure webserver.  When you click the link for the "Client Cert AND Password 
+Required" directory, you should be prompted for a username and password.  You should then be able to 
+view the directory contents.  If you delete your client certificate from the browser, you will be 
+unable to access either directory that requires client certificates.<br /><br /></p>
+
+<p><b>Final Config File</b> &nbsp;&nbsp;(The <tt>ssl.conf</tt> config file which incorporates ALL of the changes):
+
+<p>
+<a href="ssl.conf.5">Complete Config with All Remarks</a>
+<br />
+<a href="ssl.conf.stripped">Complete Config with Minimal Remarks</a>
+</p>
+
+<div><hr /></div>
+
+<h3>Web Server Key Password:</h3>
+
+<p>You have probably noticed by now that every time you restart Apache or boot your server, you are 
+forced to enter the password for the server key.  This is a security measure, but it can be inconvenient.  
+If you would like to make an <i>insecure</i> server key that will allow Apache to start automatically 
+at boot time, then there is a way to do this.  In my case, I don't run an e-commerce 
+site and I'm not worried about someone else creating a fake VanEmery.Com secure web site.  It is more 
+likely that a power outage will occur that will cause my server to reboot while I am not around, so I 
+want it to boot without requiring a password. The choice is yours...<br /><br />
+Here is how you do it:</p>
+
+<pre>
+[root]# <b>cd /etc/httpd/conf/ssl.key</b>
+[root]# <b>cp mars-server.key mars-server.key.org</b>
+
+[root]# <b>openssl rsa -in mars-server.key.org -out mars-server.key</b>
+
+[root]# <b>chmod 0400 mars-server*</b>
+</pre>
+
+<p>Now, you should be able to restart Apache or boot your server without having to input the password.  
+<strong>This may also be a very good time to copy all the keys and certificates that you made to floppy or CD.</strong> 
+You can imagine what a pain it would be if you lost all of your keys and certs due to  a disk failure.  You may even 
+want to make paper copies of the PEM encoded certificates and keys, which use ASCII text.  Lock them 
+in a secure place, along with any passwords.</p>
+
+<div><hr /></div>
+
+<h3>Conclusion/Final Comments</h3>
+
+<p>As you can see, setting up a secure web server for some specific function is not that difficult.  
+All the tools are included with a standard GNU/Linux distribution.  OpenSSL is a fantastic Open Source 
+toolkit that can be used in a number of applications.  <a href="openSSL.html">For example</a>, 
+you can use it to run files through 
+different hashing functions, handle S/MIME encrypted mail, or encrypt &amp; decrypt files.</p>
+
+<p>In order to use Apache as a high-volume e-commerce server with SSL/TLS, you will probably need to 
+do more configuration and hardware tuning.  You may need to buy and configure a hardware crypto accelerator 
+card.  You will almost certainly want to purchase a "real" server certificate signed by Entrust, Thawte, or 
+one of the other root-level CAs.</p>
+
+<p>In any event, you now have a good feel for all the pieces, parts, and protocols that make it work!  
+If you have any comments or corrections, please zap me an e-mail here: &nbsp;&nbsp;&nbsp; 
+<b>webmaster [at] vanemery.com</b></p>
+
+<div><hr /></div>
+
+<h3>Resources</h3>
+
+<ul>
+ <li><a href="http://httpd.apache.org/docs-2.0/">Apache 2.0 Documentation</a></li>
+ <li><a href="http://www.modssl.org/">mod_ssl home page</a></li>
+ <li><a href="http://www.openssl.org/">OpenSSL home page</a></li>
+ <li><a href="http://www.drh-consultancy.demon.co.uk/pkcs12faq.html">Dr. Henson's PKCS#12 FAQ</a></li>
+ <li><a href="http://www.ietf.org/html.charters/tls-charter.html">IETF TLS Charter</a></li>
+ <li><a href="openSSL.html">Van's List of Useful OpenSSL Tricks</a></li>
+ <li>The following man pages:
+  <ul>
+     <li>man openssl</li>
+     <li>man genrsa</li>
+     <li>man req</li>
+     <li>man x509</li>
+     <li>man pkcs12</li>
+     <li>man htpasswd</li>
+  </ul>
+ </li>
+</ul>
+
+<div><hr /></div>
+
+<div class="center">
+<br /><br /><br />
+<a href="../linux.html">Back...</a>
+<br /><br />
+</div>
+
+<p>
+   <a href="http://validator.w3.org/check/referer">
+   <img class="noborder" src="../valid-html401.png" alt="Valid HTML 4.01!" height="31" width="88"></a>
+</p>                   
+
+</body>
+</html>

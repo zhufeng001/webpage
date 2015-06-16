@@ -1,0 +1,1168 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+	
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<title>迁移 VMware 虚拟机到 KVM</title>
+<link rel="schema.DC" href="http://purl.org/DC/elements/1.0/"/>
+<link rel="SHORTCUT ICON" href="//www.ibm.com/favicon.ico"/>
+<meta name="DC.Rights" content="© Copyright IBM Corporation 2011"/>
+<meta name="Keywords" content="VMware, KVM, Migrate, Libvirt, Virt-v2v, tttlca"/>
+<meta name="DC.Date" scheme="iso8601" content="2011-11-02"/>
+<meta name="Source"  content="v17 delivery:developerWorks"/>
+<meta name="Security" content="Public"/>
+<meta name="Abstract" content="目前 x86 平台上最流行的虚拟化软件是 VMware 公司的系列产品，而基于开源技术的 KVM 虚拟化软件也得到了广泛的应用。本文是虚拟化迁移技术系列文章的第三部分，详细介绍了如何使用 virt-v2v 开源工具或者手动方法迁移创建在 VMware 软件上的 Window 及 Linux 虚拟机到基于 KVM 的虚拟机，并且从功能上比较了虚拟机系统迁移前后的变化，最后总结了 VMware 虚拟机到 KVM 迁移的不足和注意事项。"/>
+<meta name="Description" content="目前 x86 平台上最流行的虚拟化软件是 VMware 公司的系列产品，而基于开源技术的 KVM 虚拟化软件也得到了广泛的应用。本文是虚拟化迁移技术系列文章的第三部分，详细介绍了如何使用 virt-v2v 开源工具或者手动方法迁移创建在 VMware 软件上的 Window 及 Linux 虚拟机到基于 KVM 的虚拟机，并且从功能上比较了虚拟机系统迁移前后的变化，最后总结了 VMware 虚拟机到 KVM 迁移的不足和注意事项。"/>
+<meta name="IBM.Effective" scheme="W3CDTF" content="2011-11-02"/>
+<meta name="Owner" content="developerWorks/China/IBM"/>
+<meta name="DC.Language" scheme="rfc1766" content="zh-CN"/>
+<meta name="IBM.SpecialPurpose" content="SP001"/>
+<meta name="IBM.Country" content="CN"/>
+<meta name="Robots" content="index,follow"/>
+<meta name="DC.Type" scheme="IBM_ContentClassTaxonomy" content="CT316" />
+<meta name="DC.Subject" scheme="IBM_SubjectTaxonomy" content="SWGC0" />
+<meta name="dW.ContentArea" content="2" />
+<meta name="dW.Topic" content="611" />
+
+<meta scheme="IBM_WTMCategory" name="IBM.WTMCategory" content="SOFDCLNXCN" />
+
+<link rel="canonical" href="http://www.ibm.com/developerworks/cn/linux/l-cn-mgrtvm3/index.html"/>
+<!-- HEADER_SCRIPTS_AND_CSS_INCLUDE -->
+<link href="//1.www.s81c.com/common/v17/css/www.css" rel="stylesheet" title="www"  type="text/css"/>
+<link href="//1.www.s81c.com/common/v17/css/country/cnzh.css" rel="stylesheet" title="www" type="text/css">
+<!-- Masthead/footer -->
+<link href="//dw1.s81c.com/developerworks/css/dw-mf/v17/dw-mfN2014-05.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/v17/dw-article-6.css" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/v17/dw-common-features.css" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/v17/dw-local-site-v17-N2014-05.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<script type="text/javascript" src="//1.www.s81c.com/common/js/dojo/www.js">//</script>
+<script type="text/javascript" src="//dw1.s81c.com/developerworks/js/v17/dw-www.js">//</script> 
+<script type="text/javascript">
+//  ibmweb.config.set({ sbs: { enabled: false }});
+</script>
+<!-- A/B Exp -->
+<script type="text/javascript">dojo.addOnLoad(function(){var dw_source="dwchina";var dw_register="注册免费的 Bluemix 试用版";var dw_connect="连接 Bluemix 开发者";var dw_vp="在 IBM Bluemix 云平台上开发并部署您的下一个应用。";var dw_cta="现在就开始免费试用";var dw_tile_alt="在 IBM Bluemix 云平台上开发并部署您的下一个应用。现在就开始免费试用";var dw_campaign="bluemix";var dw_content=window.location.pathname.split("/")[window.location.pathname.split("/").length-2];if(dw_content=="library"){dw_content=window.location.pathname.split("/")[window.location.pathname.split("/").length-1];dw_content=window.location.pathname.split("/")[window.location.pathname.split("/").length-3]+"-"+dw_content.substring(0,dw_content.indexOf(".html"))}var dw_medium="article";var bluDevComURL="https://developer.ibm.com/bluemix/";var bluLink="https://www.bluemix.net/";var watsonLink="https://ace.ng.bluemix.net/#/solutions/solution=watson";var lnkID;var lnkIDd;var lnkIDt;var bLinkEnd;var bLinkTemp;var idTrkr=[];var idCnt;var artTop=dojo.query("div.ibm-col-1-1")[0];var artChildren=dojo.query(artTop).children();var edgy=false;if(dojo.hasClass(artChildren[0],"ibm-inset"))edgy=true;if((artChildren[0].nodeName=="H2")&&(dojo.hasClass(artChildren[1],"ibm-inset")))edgy=true;if(dojo.hasClass(artChildren[0],"codesection"))edgy=true;if((artChildren[0].nodeName=="H5")&&(dojo.hasClass(artChildren[1],"codesection")))edgy=true;if((artChildren[0].nodeName=="H5")&&(artChildren[1].width>=701))edgy=true;if(artChildren[1].width>=701)edgy=true;if(dojo.hasClass(artChildren[0],"ibm-data-table"))edgy=true;if((artChildren[0].nodeName=="H5")&&(dojo.hasClass(artChildren[1],"ibm-data-table")))edgy=true;if(!(edgy)){var sBarAB='<div class="dw-article-sidebar dw-bluemix" id="dwc-exp-c">'+'<img src="//dw1.s81c.com/developerworks/i/bluemix-graphic.png" height="64" width="64" alt=""/>'+'<p>'+dw_vp+'</p>'+'<p class="ibm-button-link-alternate dw-button-green">'+'<a id="tutc-sbar-bmix-home-btn-ABc" href="'+bluLink+'" class="dw-button-large">'+dw_cta+'</a></p></div>';dojo.place(sBarAB,artTop,"first");}dojo.forEach(dojo.query("#ibm-content-main a"),function(item,index){var bLink=dojo.attr(item,"href");if(bLink&&(bLink.indexOf("//bluemix.net/")>-1))bLink=bLink.replace("//bluemix.net/","//ace.ng.bluemix.net/");if(bLink&&((bLink.indexOf("//www.bluemix.net")>-1)||(bLink.indexOf("//ace.ng.bluemix.net")>-1)||(bLink.indexOf("//www.ng.bluemix.net")>-1)||(bLink.indexOf("mybluemix.net")>-1)||(bLink.indexOf("//hub.jazz.net")>-1))){bLinkEnd="";bLink=bLink.split("?");if((bLink[1])&&(bLink[1].indexOf("/")!=-1))bLinkEnd=bLink[1].substring(bLink[1].indexOf("/"));bLink=bLink[0];if(bLink.indexOf("//hub.jazz.net")>-1){if((bLink.indexOf("//hub.jazz.net/git")>-1)||(bLink.indexOf("//hub.jazz.net/project")>-1)){bLink="https://login.jazz.net/psso/proxy/jazzregister?utm_source="+dw_source+"&utm_medium="+dw_medium+"&utm_content="+dw_content+"&utm_campaign="+dw_campaign+"&redirect_uri="+bLink}else{bLink=bLink+"?utm_source="+dw_source+"&utm_campaign="+dw_campaign+"&utm_content="+dw_content+"&utm_medium="+dw_medium}}else{if(bLink.indexOf("/#/")==-1){if(bLink.substring(bLink.length-7)=="/docs/#"){bLink=bLink.replace("/docs/#","/docs/"+"?cm_mmc="+dw_source+"-_-"+dw_campaign+"-_-"+dw_content+"-_-"+dw_medium+"#")}else{bLink=bLink+"?cm_mmc="+dw_source+"-_-"+dw_campaign+"-_-"+dw_content+"-_-"+dw_medium}}else{bLink=bLink.substring(0,bLink.indexOf("#"))+"?cm_mmc="+dw_source+"-_-"+dw_campaign+"-_-"+dw_content+"-_-"+dw_medium+bLink.substring(bLink.indexOf("#")-1)}}if(bLinkEnd)bLink=bLink+bLinkEnd;dojo.attr(item,"href",bLink);}})});</script><!-- LEADSPACE_STYLES -->
+
+</head>
+
+<body id="ibm-com">
+
+	<div id="ibm-top" class="ibm-landing-page">
+
+<!-- MASTHEAD_BEGIN -->
+<div id="ibm-masthead">
+
+    <!-- TOP ROW -->    
+	<div id="dw-masthead-top-row">
+		<ul id="ibm-mast-options-dw" role="toolbar" class="cn">
+		<li role="presentation" id="dw-mast-top-4">
+				<a href="http://www.ibm.com/developerworks/cn/"><img src="//dw1.s81c.com/developerworks/i/mf/dwn-dw-badge.png" width="43" height="22" alt="dW" aria-label="dW" /></a></li>
+			<li role="presentation" id="dw-mast-top-0">
+				<div><a class="dw-mf-noscript" href="#" title="登录（或注册）需启用 JavaScript" role="button" tabindex="0">登录 (或注册)</a></div>
+			</li>
+			<li role="presentation" id="dw-mast-top-1">
+				<div><a href="#SELECTLANG" role="button">中文</a></div>
+			</li>
+			<li role="presentation" id="dw-mast-top-3">
+				<a role="button" href="http://www.ibm.com">IBM</a>
+			</li>
+			<li role="presentation" id="dw-mast-top-2" class="dw-mf-hide">
+				<a href="#">[userid]</a>
+			</li>
+		</ul>
+	</div>
+
+    <!-- TOP ROW SLIDER -->
+	<div id="ibm-my-menu-dw" style="display:none">
+        <!-- Sign-in -->
+		<div id="signin_div" class="dw-mast-columns" role="group">
+			<div class="dw-mast-col-1-1">
+				<div id="dw-mast-sso">
+					<div id="signin_error_mf" class="no-display"></div>
+					<div id="dw-mast-sso-form">
+						<form id="sForm_mf" action="" method="post" name="sForm_name_mf" onsubmit="return false;">
+							<div id="dw-mast-sso-id" class="dw-mast-sso-id-cn">
+								<label for="ibmid_mf">IBM ID:</label>
+								<input id="ibmid_mf" value="" name="ibmid_name_mf" maxlength="100"
+								    onkeypress="dwsi.siInst.handleEP(event,this.form,'mf');" type="text" />
+							</div>
+							<div id="dw-mast-sso-pw" class="dw-mast-sso-pw-cn">
+								<label for="pw_mf">密码：</label>
+								<input id="pw_mf" value="" name="pw_name_mf" maxlength="100"
+								    onkeypress="dwsi.siInst.handleEP(event,this.form,'mf');" type="password" />
+							</div>
+							<div id="dw-mast-sso-target" class="dw-mast-sso-target-cn">
+								<p class="dw-mf-perm-box">
+									<input id="perm_mf" name="perm_name_mf" type="checkbox"><label for="perm_mf"> 保持登录。</label></input>
+								</p>
+							</div>					
+							<div id="dw-mast-sso-terms">
+								<p class="dw-mast-sso-terms-cn">单击提交则表示您同意developerWorks 的条款和条件。 <a
+								    href="//www.ibm.com/developerworks/community/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+							<div>
+								<input class="dw-mf-submit-btn-cn" name="ibm_submit_name_mf" value="提交"
+								    onclick="dwsi.siInst.signin('mf');return false;" type="submit" />
+							</div>
+						</form>
+					</div>
+					<div id="dw-mast-sso-update">
+						<div id="dw-mast-sso-update-id">
+							<ul>
+								<li><a href="#" onclick="(function ()
+								    {window.location='//www.ibm.com/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.href);})();">需要一个 IBM ID？</a></li>
+								<li><a href="//www.ibm.com/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a></li>
+							</ul>
+						</div>
+						<div id="dw-mast-sso-update-pw">
+							<ul class="dw-mf-pwupdate">
+								<li><a href="#" onclick="(function ()
+								    {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(dwsi.siInst.getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Den_US%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a></li>
+								<li><a href="#" onclick="(function ()
+								    {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></li>
+							</ul>
+						</div>
+					</div>
+					<div id="dw-mast-sso-text">
+						<p>在您首次登录 developerWorks 时，会为您创建一份个人概要。<strong>您的个人概要中的信息（您的姓名、国家/地区，以及公司名称）是公开显示的，而且会随着您发布的任何内容一起显示，除非您选择隐藏您的公司名称。</strong>您可以随时更新您的 IBM 帐户。</p>
+						<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+					</div>
+				</div>
+				<div id="dw-mast-dname" class="dw-mf-hide">
+					<p>当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+					<div id="signin_dname_error_mf" class="no-display"></div>
+					<div id="dw-mast-dname-form"  class="dw-mast-dname-form-cn">
+						<form id="dForm_mf" action="" method="post" name="dForm_name_mf" onsubmit="return false;">
+							<div id="dw-mast-dname-mf">
+								<label for="dname_mf">昵称：</label>
+								<input id="dname_mf" name="dname_name_mf" maxlength="31" size="25" value=""
+								    onkeypress="dwsi.siInst.handleEP(event,this.form,'mf');" type="text" />
+							</div>
+							<div id="dw-mast-dname-terms">
+								<p class="dw-mast-dname-terms-cn">单击<strong>提交</strong>则表示您同意developerWorks
+								    的条款和条件。 <a href="//www.ibm.com/developerworks/community/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+							<div>
+								<input class="dw-mf-submit-btn-cn" name="dname_submit_name_mf" value="提交"
+								    onclick="dwsi.siInst.signin('mf');return false;" type="submit" />
+							</div>
+						</form>								
+					</div>
+					<div id="dw-mast-dname-secure">
+						<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+					</div>
+				</div>
+				<div id="dw-mast-auth" class="dw-mf-hide">
+					<div>
+						<h2>developerWorks 社区:</h2>
+                		<ul>
+							<li><a id="dw-mast-top-0-0" href="//www.ibm.com/developerworks/community/homepage?lang=zh">我的首页</a></li>						    
+							<li><a
+							    href="//www.ibm.com/developerworks/community/profiles/html/myProfileView.do?lang=zh">我的概要信息</a></li>
+							<li><a
+							    href="//www.ibm.com/developerworks/community/groups/service/html/mycommunities?lang=zh">我的社区</a></li>
+			                 <li><a href="/developerworks/community/news/?lang=zh">设置</a></li>
+										    
+						</ul>     
+					</div>
+					
+					<div class="dw-mast-more">
+						<ul class="ibm-link-list">
+							<li><a class="dw-more-link" href="#" onclick="dwsi.siInst.signOut(); return false;"><strong>退出</strong></a></li>
+						</ul>
+					</div>
+				</div>								
+			</div>		
+		</div>
+        <!-- Language selector --> 
+		<div id="lang_div" class="dw-mast-columns" role="group">
+			<div class="dw-mast-col-2-1">
+				<h2>选择语言：</h2>
+				<ul>
+					<li><a id="dw-mast-top-1-0" href="http://www.ibm.com/developerworks/" lang="en">English</a></li>
+					<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+					<li><a href="http://www.ibm.com/developerworks/jp/" lang="ja">日本語</a></li>
+					<li><a href="http://www.ibm.com/developerworks/ru/" lang="ru">Русский</a></li>
+				</ul>
+			</div>
+			<div class="dw-mast-col-2-2">
+				<ul>
+					<li><a href="http://www.ibm.com/developerworks/br/" lang="pt">Português (Brasil)</a></li>
+					<li><a href="http://www.ibm.com/developerworks/ssa/" lang="es">Español</a></li>
+					<li><a href="http://www.ibm.com/developerworks/vn/" lang="vi">Việt</a></li>
+				</ul>
+			</div>
+		</div>
+		<div id="empty_div" class="dw-mast-columns" role="group"><!-- Authenticated --></div>		
+		<!-- IBM -->
+		<div id="ibmhome_div" class="dw-mast-columns" role="group">
+			<div class="dw-mast-col-2-1">
+				<ul>
+					<li><a id="dw-mast-top-3-0" href="http://www.ibm.com/cn/zh/">IBM 主页</a></li>
+					<li><a href="http://www.ibm.com/solutions/cn/zh/">解决方案</a></li>
+					<li><a href="http://www.ibm.com/software/cn/">软件</a></li>
+				</ul>
+			</div>
+			<div class="dw-mast-col-2-2 dw-mast-ibm">
+				<ul>
+							<li><a href="http://www.ibm.com/support/cn/zh/">支持门户</a></li>
+							<li><a href="http://www.ibm.com/support/documentation/cn/zh/">产品文档</a></li>
+							<li><a href="http://www.ibm.com/redbooks/">Redbooks（英文）</a></li>
+				</ul>
+			</div>	
+		</div>		
+	</div>
+		
+    <!-- BOTTOM ROW -->
+	<div id="ibm-universal-nav-dw" aria-label="Site map">
+		<ul id="ibm-unav-links-dw">
+			<li id="ibm-unav-home-dwlogo">
+				<a href="http://www.ibm.com/developerworks/cn/"><img src="//dw1.s81c.com/developerworks/i/mf/dwn-dw-wordmark.png" width="225" height="28" alt="developerWorks®" /></a>
+			</li>
+		</ul>
+		<ul id="ibm-menu-links-dw" class="ibm-menu-links-dw-cn" role="toolbar" aria-label="Site map">
+			<li id="dw-mast-nav-0" role="presentation"><a href="http://www.ibm.com/developerworks/cn/topics/" tabindex="0">技术主题</a></li>
+			<li id="dw-mast-nav-1" role="presentation"><a href="http://www.ibm.com/developerworks/cn/downloads/">软件下载</a></li>
+			<li id="dw-mast-nav-2" role="presentation"><a href="http://www.ibm.com/developerworks/community/?lang=zh">社区</a></li>
+			<li id="dw-mast-nav-3" role="presentation"><a href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></li>
+		</ul>
+		<form id="ibm-search-form" action="//www.ibm.com/search/csass/search/" method="get" name="form1" aria-label="搜索 developerWorks" role="search">
+			<p>
+				<label for="q"><span class="ibm-access">搜索 developerWorks</span></label>
+				<input id="q" type="text" name="q" value="搜索 developerWorks" maxlength="100"/>
+				<input type="hidden" name="sn" value="dw" />
+				<input type="hidden" name="lang" value="zh" />
+				<input type="hidden" name="cc" value="CN" />
+				<input type="hidden" name="en" value="utf" />
+				<input type="hidden" name="hpp" value="20" />
+				<input type="hidden" name="dws" value="cndw" />
+				<input type="hidden" name="lo" value="zh" />
+				<input id="ibm-search" class="ibm-btn-search" type="submit" value="提交" />
+			</p>
+		</form>
+	</div>    
+	
+</div>
+<div id="fdiv" class="ibm-access"></div><!-- MASTHEAD_END -->
+	    
+<!-- LAYOUT -->
+<!-- LEADSPACE_BEGIN --> 
+<div id="ibm-leadspace-head">
+	<!-- LEADSPACE_BODY_BEGIN --> 
+	<div id="ibm-leadspace-body">
+		<!-- Navigation_Trail_BEGIN -->
+      <ul id="ibm-navigation-trail"><li><a href="http://www.ibm.com/developerworks/cn/">developerWorks 中国</a></li><li><a href="http://www.ibm.com/developerworks/cn/topics/">技术主题</a></li><li><a href="http://www.ibm.com/developerworks/cn/linux/">Linux</a></li><li><a href="http://www.ibm.com/developerworks/cn/views/linux/libraryview.jsp">文档库</a></li></ul>
+		<!-- END_Navigation_Trail -->
+			<!-- Title_Subtitle -->
+			<h1>迁移 VMware 虚拟机到 KVM</h1><p><em><span>如何迁移 VMware 上的 Windows 及 Linux 虚拟机到基于 KVM 的虚拟机</span></em></p>
+	</div>
+	<!-- LEADSPACE_BODY_END --> 
+	<!-- SUMMARY_BEGIN -->
+	<div id="dw-summary-area" class="dw-summary-columns">
+		<div class="ibm-col-6-4">
+		<p>目前 x86 平台上最流行的虚拟化软件是 VMware 公司的系列产品，而基于开源技术的 KVM 虚拟化软件也得到了广泛的应用。本文是虚拟化迁移技术系列文章的第三部分，详细介绍了如何使用 virt-v2v 开源工具或者手动方法迁移创建在 VMware 软件上的 Window 及 Linux 虚拟机到基于 KVM 的虚拟机，并且从功能上比较了虚拟机系统迁移前后的变化，最后总结了 VMware 虚拟机到 KVM 迁移的不足和注意事项。</p>
+		<p class="ibm-no-print ibm-ind-link">
+
+			
+			<span id="nCmts"></span>
+		</p>
+		</div>
+		<div class="ibm-col-6-2 dw-toc-margin">
+			<p class="dw-summary-author"><a href="#authorN1001A" class="ibm-popup-link" onclick="ibmweb.overlay.show('authorN1001A',this);return false;">郭 晋兵</a>, 高级软件工程师, IBM</p>
+<div id="authorN1001A" class="ibm-common-overlay"><div class="ibm-head"><p><a href="#close" class="ibm-common-overlay-close">关闭 [x]</a></p></div><div class="ibm-body"><div class="ibm-main"><div class="ibm-title"><!--this is where the h2 usually goes--></div><div class="ibm-container ibm-alternate"><div class="ibm-container-body">
+<p><!--.-->
+郭晋兵，高级软件工程师，目前在 IBM 中国软件开发中心从事软件的开发测试工作。</p><br /><br /></div></div></div></div><div class="ibm-footer"><!----></div></div>
+<p class="dw-summary-author"><a href="#authorN1002A" class="ibm-popup-link" onclick="ibmweb.overlay.show('authorN1002A',this);return false;">吴 超凤</a>, 软件工程师, IBM</p>
+<div id="authorN1002A" class="ibm-common-overlay"><div class="ibm-head"><p><a href="#close" class="ibm-common-overlay-close">关闭 [x]</a></p></div><div class="ibm-body"><div class="ibm-main"><div class="ibm-title"><!--this is where the h2 usually goes--></div><div class="ibm-container ibm-alternate"><div class="ibm-container-body">
+<p><!--.-->
+吴超凤，软件工程师，目前在 IBM 中国软件开发中心从事 KVM 虚拟机相关软件的开发测试工作。</p><br /><br /></div></div></div></div><div class="ibm-footer"><!----></div></div>
+<p class="dw-summary-author"><a href="#authorN1003A" class="ibm-popup-link" onclick="ibmweb.overlay.show('authorN1003A',this);return false;">丛 彬彬</a>, 高级软件工程师, IBM</p>
+<div id="authorN1003A" class="ibm-common-overlay"><div class="ibm-head"><p><a href="#close" class="ibm-common-overlay-close">关闭 [x]</a></p></div><div class="ibm-body"><div class="ibm-main"><div class="ibm-title"><!--this is where the h2 usually goes--></div><div class="ibm-container ibm-alternate"><div class="ibm-container-body">
+<p><!--.-->
+丛彬彬，高级软件工程师，目前在 IBM 中国软件开发中心从事软件的开发测试工作。</p><br /><br /></div></div></div></div><div class="ibm-footer"><!----></div></div>
+			<p class="dw-summary-date">2011 年 11 月 02 日</p>
+			
+
+
+			<div aria-hidden="true" class="ibm-container" id="dw-toc"><div class="ibm-container-body"><ul class="ibm-twisty"><li><a href="#toggle" class="ibm-twisty-trigger"><img src="//www.ibm.com/i/c.gif" alt="-"/></a><span class="ibm-twisty-head">内容</span><div class="ibm-twisty-body"><ul style="font-size:0.8em" class="ibm-link-list">
+<li><a class="ibm-anchor-down-em-link" href="#major1">前言</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#major2">VMware 虚拟机迁移到 KVM 的方式</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#major3">VMware 虚拟化产品及虚拟机文件</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#major4">virt-v2v 迁移 VMware ESX 虚拟机</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#major5">手动迁移 VMware Workstation/Player 上的虚拟机到 KVM</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#major6">小结</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#resources">参考资料 </a></li>
+<li><a class="ibm-anchor-down-em-link" href="#icomments">评论</a></li></ul></div></li></ul></div></div>
+		</div>
+	</div>
+	<!-- SUMMARY_END -->
+</div>
+<!-- LEADSPACE_END -->
+
+<div id="ibm-pcon">
+
+<!-- BEGIN_IBM-CONTENT -->
+<div id="ibm-content">
+
+<!-- BEGIN_IBM-CONTENT-BODY -->
+<div id="ibm-content-body">
+
+<!-- BEGIN_IBM-CONTENT-MAIN -->
+<div id="ibm-content-main">
+
+<!-- 1_1_COLUMN_BEGIN -->
+<div class="ibm-columns">
+<div class="ibm-col-1-1">
+
+<h2 id="major1">前言</h2><p>随着虚拟化技术的不断发展，虚拟机的应用也越来越广泛。日常应用中可能出现资源不足，系统管理调整或者系统备份等原因，希望将某一虚拟机从原来物理主机迁移到另一个物理主机上，即 V2V（Virtual-to-Virtual）迁移。虚拟机的迁移需要物理主机上 VMM（Virtual Machine Monitor）的支持。相同类型 VMM 之间，使用相同的 API 接口，通常具有强大的迁移能力。例如本系列第二篇文章介绍的 KVM 虚拟机之间的迁移，它支持三种迁移方式：离线迁移、在线共享存储迁移和在线块迁移。而不同的 VMM 之间，由于虚拟化实现技术的不同、开发厂商的不同、API 接口的不同，使虚拟机迁移困难重重。本文分别介绍如何静态迁移 VMware ESX/ESXi、VMware Workstation 及 VMware Player 上的虚拟机到 KVM 主机。</p><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="major2">VMware 虚拟机迁移到 KVM 的方式</h2><p>虚拟机 V2V（Virtual-to-Virtual）迁移是在虚拟机之间移动操作系统和数据， 照顾主机级别的差异和处理不同的虚拟硬件。V2V 的迁移方法有两种，静态迁移和在线迁移。静态迁移（offline migration）也叫做常规迁移、离线迁移。在迁移之前将虚拟机暂停，同时拷贝虚拟机镜像和状态到目的主机。相比较于在线迁移（online migration），其缺点是静态迁移方式的过程需要显式的停止虚拟机的运行，而在线迁移的过程仅有非常短暂的停机时间，保证迁移过程中虚拟机服务的持续可用；优点是兼容性强，不需要 VMM 的有统一的 API 接口，可以借助第三方工具辅助迁移。由于目前 VMM 的开发没有统一的标准，不同的虚拟化厂商，尤其是闭源的商业厂商开发的 VMM 各成一套，静态迁移是解决不同类型虚拟机之间迁移的有效办法。本文采用 V2V 静态迁移的方法实现 VMware 虚拟机到 KVM 的迁移，同时介绍开源迁移工具 virt-v2v 的使用。</p><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="major3">VMware 虚拟化产品及虚拟机文件</h2><h3 id="minor3.1">VMware 产品简介</h3><p>VMware 是全球虚拟化解决方案的领导厂商，提供了一套虚拟机解决方案，按产品特点可分为如下四类。 　</p><ul class="ibm-bullet-list"><li>
+ VMware ESX/ESXi：这个产品不需要安装任何操作系统，它本身就是一个用来管理硬件资源的特殊的操作系统，所有的虚拟机都安装在它的上面。ESX Server 带有远程 web 管理和客户端管理功能。</li><li>
+ VMware Server、Workstation 和 Fusion：与 ESX 相比，这三个产品都是要安装在操作系统上的。Server 和 Workstation 运行在 Windows 和 Linux 上，Fusion 运行在苹果的 Mac OS 上。</li><li>
+ VMware VMotion：是 VMware 开发出的一项独特技术，它将服务器、存储和网络设备完全虚拟化，使得正在运行的整个虚拟机能够在瞬间从一台服务器移到另一台服务器上。</li><li>
+ Virtual Center、Importer、Convertor、P2V、Player：这些是为了配合 VMware 虚拟引擎，主要是为了配合 ESX 开发的管理软件和工具，这些工具中很多是免费的。</li></ul><p>本文主要迁移创建在 VMware ESX/ESXi、VMware Workstation 和 VMware Player 上的虚拟机到 KVM 主机上，迁移后的虚拟机可以被开源的 libvirt 软件管理。</p><h3 id="minor3.2">VMware 虚拟机文件介绍</h3><p>成功迁移虚拟机的一个重要的验证标准就是文件的正确性和完整性。下图中列出与 VMware 虚拟机相关的文件，但是迁移 VMware 虚拟机到 KVM 并不需要用到所有的文件。</p><h5 id="fig1">图 1. VMware 虚拟机文件</h5><img alt="图 1. VMware 虚拟机文件" src="images/image001.jpg" width="369" /><p>VMware 虚拟机的文件主要包括 .nvram 文件，.vmx 文件，vmdk 文件，.vswp 文件，.vmss 文件，.vmsd 文件，.vmsn 文件，.log 文件，.vmxf 文件。与迁移相关的最主要的是 .vmx 文件和 .vmdk 文件。</p><ul class="ibm-bullet-list"><li>
+ .vmx 文件：包括虚拟机所有配置信息与硬件设置。不管你对虚拟机的设置做了何种编辑，所有的信息都会以文本形式保存在这个文件里。如特殊硬件配置（例如 RAM 大小，网络接口信息，硬盘驱动信息，串行与并行信息），高级能源与资源配置、VMware 工具选项及能源管理选项。迁移虚拟机时，需要更改这个文件的格式到 KVM 支持的 xml 文件，并且重新确认文件信息的有效性。</li><li>
+ .vmdk 文件：包含虚拟磁盘的信息。虚拟机的文件系统就建立在 .vmdk 文件上。迁移时需要拷贝这个文件到 KVM 主机，并且转换成能够被 libvirt 识别的文件格式。</li></ul><p>以下的虚拟机文件有些只在虚拟机处于的某种状态时出现，迁移过程中不会用到。例如当虚拟机开启时出现 .vswp 文件，当虚拟机暂停时出现 .vmss 文件。</p><ul class="ibm-bullet-list"><li>
+ .nvram 文件：包括虚拟机启动过程一部分的 Phoenix BIOS。它类似于拥有 BIOS 芯片的物理服务器，能够设置硬件配置选项。如果删除的话，在虚拟机启动时会自动地重新创建。</li><li>
+ .vswp file：这些文件的大小等于分配给虚拟机的内存大小，再减去任何内存预留（默认是 0）。这些文件通常创建在虚拟机里，但是只有当 ESX 主机耗尽所有物理内存时才使用。当虚拟机关闭或暂停时，这些文件将删除。</li><li>
+ .vmss 文件：这个文件用于虚拟机暂停时，保存虚拟机的存储内容，以便在重新开始时继续运行。</li><li>
+ .vmsd 文件：这个文件与快照一起使用，用于存储元数据和其他活动在虚拟机里的每个快照的信息。这个文本文件在创建快照之前的初始大小是 0 字节，并在每次创建或删除快照时更新信息。</li><li>
+ .vmsn 文件：这个文件与快照一起使用，用于存储虚拟机在进行快照时的状态。每在虚拟机上创建一个快照就会生成一个 .vmsn 文件，在删除快照时，文件自动删除。</li><li>
+ .log 文件：这些文件创建来用于存储虚拟机的日志信息，并常常用于故障检查。在虚拟机目录里，有大量的这样的文件。当前的日志文件通常命名为 vmware.log。</li><li>
+ .vmxf 文件：这是一个附加配置文件，不用于 ESX，用于与 Workstation 兼容的目的。这个文件是文本格式，Workstation 用来聚合虚拟机（VM teaming），将多个虚拟机分配成一组，作为一个单一对象开启或关闭、暂停或恢复它们。</li></ul><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="major4">virt-v2v 迁移 VMware ESX 虚拟机</h2><p>从 RHEL6（Red Hat Enterprise Linux 6）开始，RHEL 发行版中包含了 Red Hat 公司开发的 virt-v2v 工具。它是由 perl 语言编写的脚本，可以自动化的将创建在 Xen，KVM 和 VMware ESX 上的虚拟机拷贝到 virt-v2v 的主机，并且自动的更改配置，使之能够被 libvirt 进行管理。目前，virt-v2v 支持静态迁移下列虚拟机：RHEL4、RHEL5, RHEL6，Windows XP，Windows Vista, Windows 7, Windows Server 2003 和 Windows Server 2008。</p><h5 id="fig2">图 2. virt-v2v 迁移 VMware/Xen/KVM 虚拟机示意图</h5><img alt="图 2. virt-v2v 迁移 VMware/Xen/KVM 虚拟机示意图" src="images/image002.gif" width="306" /><p>本节中，将分别介绍如何使用 virt-v2v 工具迁移 Vmware ESXi 上的 RHEL 虚拟机和 Windows 7 虚拟机到 KVM 主机。</p><h3 id="minor4.1">迁移前的环境设置</h3><p>本文的 KVM 主机安装最新的 RHEL6.1 操作系统（发布于 2011 年 5 月 19 日）。这样，最基本的支持 KVM 虚拟机的软件 qemu-kvm、libvirt、virt-manager 和 virt-v2v 工具都在发行版中安装了。</p><h5 id="listing1">清单 1. 支持 KVM 虚拟机的软件包</h5><div class="codesection"><pre class="displaycode"> [root@localhost ~]# rpm -qa qemu-kvm 
+ qemu-kvm-0.12.1.2-2.160.el6.x86_64 
+ [root@localhost ~]# rpm -qa libvirt 
+ libvirt-0.8.7-18.el6.x86_64 
+ [root@localhost ~]# rpm -qa virt-manager 
+ virt-manager-0.8.6-4.el6.noarch 
+ [root@localhost ~]# rpm -qa virt-v2v 
+ virt-v2v-0.7.1-3.el6.x86_64</pre></div><p>为了使 virt-v2v 工具能够自动化的迁移 VMware ESX 虚拟机，尽量减少手动干预，还需要在 KVM 主机上做一些设置。</p><p><strong>1. 安装支持 Windows 虚拟机迁移的软件。</strong></p><p>对于 Windows 虚拟机的迁移需要安装 libguestfs-winsupport 包来支持 NTFS 文件系统和 virtio-win 包来支持 Windows para-virtualized 存储和网络设备驱动。</p><h5 id="listing2">清单 2. 安装 Windows 虚拟机迁移的支持包</h5><div class="codesection"><pre class="displaycode"> [root@victory4 v2v]# rpm -ivh libguestfs-winsupport-1.0-7.el6.x86_64.rpm  \
+ virtio-win-1.2.0-1.el6.noarch.rpm 
+ Preparing...                ########################################### [100%] 
+   1:virtio-win             ########################################### [ 50%] 
+   2:libguestfs-winsupport  ########################################### [100%]</pre></div><p><strong>2. 创建 KVM 主机存储域</strong></p><p>virt-v2v 在迁移虚拟机的过程中，需要拷贝被迁移虚拟机到 KVM 主机预先定义的存储池中。存储池可以用 libvirt 工具创建。最简单的方法就是使用 virt-manager 来创建新的存储池。本文中创建了一个文件目录类型的存储池，位置在 KVM 主机系统的 /home/images/migration 目录。</p><h5 id="fig3">图 3. 使用 virt-manager 创建本地存储域</h5><img alt="图 3. 使用 virt-manager 创建本地存储域" src="images/image003.gif" width="468" /><p><strong>3. 创建 KVM 主机网络接口</strong></p><p>虚拟机在迁移之后将连接 KVM 主机网络， 因此主机必须有一个与之相匹配的网络接口，比如说网桥。Linux 系统上有很多工具可以创建网桥，其中 RHEL6.1 发行版上的 virt-manager 已经支持创建和管理网桥。本文创建了网桥 br0，并且绑定在 eth0 的接口上，具体配置如下图。</p><h5 id="fig4">图 4. 使用 virt-manager 创建网桥</h5><img alt="图 4. 使用 virt-manager 创建网桥" src="images/image004.gif" width="252" /><p>4. 创建配置文件 virt-v2v.conf</p><p>在 virt-v2v.conf 文件中设置 virt-v2v 迁移的规则，包括网络接口迁移后的映射，迁移的方式，存储的位置，输出的格式等等。这些规则也能以命令行参数的方式输入，如 - - network，-o，-os，-of 等。</p><h3 id="minor4.2">virt-v2v 迁移 VMware 虚拟机的步骤</h3><p>在 KVM 主机上完成上节的准备工作后，可以正式开始迁移 VMware ESX 上的虚拟机了。下面是迁移的具体步骤：</p><p>1. 如果虚拟机上安装了 VMware Tools，必须先卸载它。因为 KVM 的虚拟机不支持 VMware Tools 里面的虚拟驱动。</p><p>2. 在 VMware ESX 上停止等待迁移的虚拟机，因为 virt-v2v 只支持静态迁移。</p><p>3. 为自动登录 VMware ESX 服务器创建 .netrc 文件。VMware ESX 服务器的连接需要授权，virt-v2v 支持密码方式的授权连接，可以从 $HOME/.netrc 文件中读取密码并自动登录。如果主机系统没有这个文件，就手动创建它。并且 .netrc 文件需要 0600 权限，使 virt-v2v 工具可以正确读取它。</p><h5 id="listing3">清单 3. .netrc 文件的格式</h5><div class="codesection"><pre class="displaycode"> machine esx.example.com login root password xxxxxx</pre></div><p>4. 使用 virt-v2v 命令进行迁移。VMware ESX 服务器采用 HTTPS 连接方式，连接时需要配置 SSL 证书。本文通过添加'?no_verify=1'; 到 VMware 服务器的 URI 连接中，来关闭证书检查。</p><h5 id="listing4">清单 4. virt-v2v 迁移命令及参数</h5><div class="codesection"><pre class="displaycode"> virt-v2v -ic esx://esx.example.com/?no_verify=1 -os pool --bridge brname vm-name 
+    
+ esx.example.com – 是 ESX 服务器主机名或 IP Address 
+ pool – 本地主机存储池，用来保存镜像
+ brname – 本地主机网桥名字，用来连接迁移后的虚拟机网络
+ vm-name – 虚拟机的名字</pre></div><p>5. 迁移成功后，虚拟机出现在 virt-manager 管理的虚拟机列表中。通过 virt-manager 工具启动虚拟机。</p><p>6. 检查迁移后的虚拟机的设备驱动。如果需要，重新安装虚拟设备驱动。</p><p>7. 验证迁移后的虚拟机的配置和系统是否和迁移之前一致。</p><h3 id="minor4.3">virt-v2v 迁移实例：Linux 虚拟机 RHEL5.5</h3><p>本例将迁移创建在 VMWare ESXi 服务器上的 RHEL5.5 虚拟机到 KVM 主机上，并使迁移后的虚拟机被 libvirt 管理。本例的环境中，VMware ESXi 服务器和 KVM 主机通过网络连接，虚</p><p>拟机镜像被各自的存储管理。</p><h5 id="fig5">图 5. virt-v2v 迁移 RHEL5 虚拟机的环境</h5><img alt="图 5. virt-v2v 迁移 RHEL5 虚拟机的环境" src="images/image005.jpg" width="502" /><p>下面就开始正式的迁移 :</p><p>1. 在 VMware ESXi 上检测 RHEL5.5 虚拟机，如果安装了 VMware Tools，先卸载它。</p><p>2. 在 VMware ESXi 上关闭 RHEL5.5 虚拟机。</p><p>3. 在 KVM 主机上创建或修改 $HOME/.netrc 文件，添加 VMware ESXi 服务器的用户名和密码。</p><h5 id="listing5">清单 5. 修改 .netrc 文件</h5><div class="codesection"><pre class="displaycode"> [root@localhost home]# cat ~/.netrc 
+ machine 9.123.99.913 login root password xxxxxx 
+
+ [root@localhost home]# chmod 0600 ~/.netrc</pre></div><p>4. 开始迁移虚拟机。KVM 的存储是迁移前准备好的存储域 migration，文件格式采用 libvirt 支持的 qcow2，网络连接方式与 VMware 虚拟机相同，采用网桥。</p><h5 id="listing6">清单 6. 迁移 RHEL5.5 虚拟机</h5><div class="codesection"><pre class="displaycode"> [root@localhost ~]# virt-v2v -ic esx://9.123.99.193/?no_verify=1 \
+ -os migration -of qcow2 --bridge br0 RHEL5.5 
+ Using CPU model "cpu64-rhel6"
+ RHEL5.5_RHEL5.5: 100% [=============================================]D 0h22m52s 
+ Using CPU model "cpu64-rhel6"
+ virt-v2v: RHEL5.5 configured with virtio drivers 
+
+参数说明
+ -os migration:  迁移虚拟机的镜像文件到主机上的存储池
+ -of qcow2：     转换迁移后虚拟机的文件格式
+ --bridge br0：  设置迁移后虚拟机的网络映射到网桥 br0 
+ RHEL5.5:        Vmware ESXi 上虚拟机的名字，迁移后保持名字一致</pre></div><p>5. 在 KVM 主机上启动 virt-manager 软件，就会发现迁移后的虚拟机已经被 libvirt 管理了。</p><h5 id="fig6">图 6. virt-manager 管理迁移后的 RHEL5.5 虚拟机</h5><img alt="图 6. virt-manager 管理迁移后的 RHEL5.5 虚拟机" src="images/image006.gif" width="420" /><p>6. 深入比较迁移前在 VMware ESXi 上的虚拟机和迁移后在 KVM 上的虚拟机。</p><h5 id="N1015A">表 1. RHEL5.5 虚拟机迁移前后在 VMware ESXi 和 KVM 上的比较</h5><table border="0" cellpadding="0" cellspacing="0" class="ibm-data-table"><thead xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><tr><th style="text-align:center; vertical-align:top"><strong>RHEL5.5</strong></th><th style="text-align:center; vertical-align:top"><strong>VMware ESXi</strong></th><th style="text-align:center; vertical-align:top"><strong>KVM/Libvirt</strong></th><th style="text-align:center; vertical-align:top"><strong>结论</strong></th></tr></thead><tbody xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><tr><td style="text-align:left; vertical-align:top">
+ CPUs 
+</td><td style="text-align:left; vertical-align:top">
+ Intel Xeon 5160 x2 
+</td><td style="text-align:left; vertical-align:top">
+ QEMU vCPU <br />
+ (cpu64-rhel6) 
+</td><td style="text-align:left; vertical-align:top">
+数量一致，类型和转化为虚拟 CPU，主频和支持的 flags 有变化
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Memory 
+</td><td style="text-align:left; vertical-align:top">
+ 1384M 
+</td><td style="text-align:left; vertical-align:top">
+ 1384M 
+</td><td style="text-align:left; vertical-align:top">
+数量一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Hard Disk 
+</td><td style="text-align:left; vertical-align:top">
+ 18GB，<br />
+ LSI Logic SCSI<br />
+ VMDK 
+</td><td style="text-align:left; vertical-align:top">
+ 18GB<br />
+ virtio SCSI<br />
+ qcow2 
+</td><td style="text-align:left; vertical-align:top">
+大小一致，总线接口和文件系统转换为适合 libvirt 的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ CDROM 
+</td><td style="text-align:left; vertical-align:top">
+ IDE 
+</td><td style="text-align:left; vertical-align:top">
+ IDE 
+</td><td style="text-align:left; vertical-align:top">
+类型一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Network Adaptor 
+</td><td style="text-align:left; vertical-align:top">
+ MAC 00:0c:29:a9:7b:83<br />
+ Type: e1000<br />
+ vSwitch0<br />
+ DHCP 
+</td><td style="text-align:left; vertical-align:top">
+ MAC 00:0c:29:a9:7b:83<br />
+ Type: virtio<br />
+ bridge br0<br />
+ DHCP 
+</td><td style="text-align:left; vertical-align:top">
+ Mac 相同，网卡类型和连接方式转换为适合 libvirt 的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Video Card 
+</td><td style="text-align:left; vertical-align:top">
+ Vmware SVGA<br />
+ 4M Video RAM 
+</td><td style="text-align:left; vertical-align:top">
+ Model: Cirrus<br />
+ 9M RAM 
+</td><td style="text-align:left; vertical-align:top">
+转换为 libvirt 支持的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+系统用户
+</td><td style="text-align:left; vertical-align:top">
+ root/admin001 
+</td><td style="text-align:left; vertical-align:top">
+ root/admin001 
+</td><td style="text-align:left; vertical-align:top">
+一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+磁盘分区
+</td><td style="text-align:left; vertical-align:top">
+ VolGroup00<br />
+ /dev/sda 
+</td><td style="text-align:left; vertical-align:top">
+ VolGroup00<br />
+ /dev/vda 
+</td><td style="text-align:left; vertical-align:top">
+逻辑卷一致，物理盘符有变化。
+</td></tr></tbody></table><p>从表中的比较看出，RHEL5.5 从 VMware ESXi 服务器迁移到 KVM 主机上后，由于 Hypervisor 的不同，硬件发生了很大的变化。但是 virt-v2v 工具很好的解决的这个问题，使用 virtio 虚拟设备驱动使 RHEL5.5 系统迁移后能够流畅的运行。除了 RHEL5，virt-v2v 还支持 RHEL4 及 RHEL6 版本的迁移。</p><h3 id="minor4.4">virt-v2v 迁移实例：Windows 虚拟机 WinXP，Win7</h3><p>本例中将介绍如何使用 virt-v2v 工具迁移创建在 VMware ESXi 上的 Windows 虚拟机，包括 Windows XP SP3 32bit 中文版和 Windows 7 Professional 32bit 中文版。本节的环境中，KVM 主机上安装了 virt-v2v 及相应的支持包 libguestfs-winsupport 和 virtio-win。VMware ESXi 服务器和 KVM 主机通过网络连接，虚拟机镜像被各自的存储管理。</p><h5 id="fig7">图 7. virt-v2v 迁移 Windows 虚拟机的环境</h5><img alt="图 7. virt-v2v 迁移 Windows 虚拟机的环境" src="images/image007.gif" width="414" /><p>下面是正式的迁移步骤：</p><p>1. 在 VMware ESXi 上检测 WinXP 和 Win7 虚拟机，如果安装了 VMware Tools，先卸载它。</p><p>2. 在 VMware ESXi 上关闭 WinXP 和 Win7 虚拟机。</p><p>3. 在 KVM 主机上创建或修改 $HOME/.netrc 文件，添加 VMware ESXi 服务器的用户名和密码。</p><p>4. 开始迁移虚拟机。KVM 的存储是迁移前准备好的存储域 migration，文件格式采用 libvirt 支持的 qcow2，网络连接方式与 VMware 虚拟机相同，采用网桥。</p><h5 id="listing7">清单 7. 迁移 WinXP 虚拟机</h5><div class="codesection"><pre class="displaycode"> [root@localhost ~]# virt-v2v -ic esx://9.123.99.193/?no_verify=1 \
+ -os migration -of qcow2 --bridge br0 WinXP 
+ Using CPU model "cpu64-rhel6"
+ WinXP_WinXP: 100% [=========================================================]D 0h11m13s 
+ Using CPU model "cpu64-rhel6"
+ virt-v2v: WARNING: There is no virtio net driver available in the directory 
+ specified for this version of Windows. The guest will be configured with 
+ a rtl8139 network adapter, but no driver will be installed for it.
+  If the rtl8139 driver is not already installed in the guest, you must install 
+  it manually after conversion. 
+ virt-v2v: WinXP configured with virtio storage only.</pre></div><h5 id="listing8">清单 8. 迁移 Win7 虚拟机</h5><div class="codesection"><pre class="displaycode"> [root@localhost ~]# virt-v2v -ic esx://9.123.99.193/?no_verify=1 \
+ -os migration -of qcow2 --bridge br0 Win7 
+ Using CPU model "cpu64-rhel6"
+ Win7_Win7: 100% [====================================
+ ===================================
+ =======================================]D 0h35m41s 
+ Using CPU model "cpu64-rhel6"
+ virt-v2v: Win7 configured with virtio drivers 
+ [root@localhost ~]#</pre></div><p>5. 迁移完成后，在 KVM 主机上启动 virt-manager 软件，会发现迁移后的 Windows 虚拟机已经被 libvirt 管理了。</p><p>6. 在 KVM 上启动虚拟机后，由于更新了一些虚拟硬件设备，可能需要重新安装驱动程序和重启系统。</p><p>7. 深入比较迁移前在 VMware ESXi 上的虚拟机和迁移后在 KVM 上的虚拟机，</p><h5 id="N10231">表 2. WinXP 虚拟机迁移前后在 VMware ESXi 和 KVM 上的比较</h5><table border="0" cellpadding="0" cellspacing="0" class="ibm-data-table"><thead xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><tr><th style="text-align:center; vertical-align:top"><strong>WinXP</strong></th><th style="text-align:center; vertical-align:top"><strong>VMware ESXi</strong></th><th style="text-align:center; vertical-align:top"><strong>KVM/Libvirt</strong></th><th style="text-align:center; vertical-align:top"><strong>结论</strong></th></tr></thead><tbody xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><tr><td style="text-align:left; vertical-align:top">
+ CPUs 
+</td><td style="text-align:left; vertical-align:top">
+ Intel Xeon 5160 
+</td><td style="text-align:left; vertical-align:top">
+ Intel Pentium II 处理器
+</td><td style="text-align:left; vertical-align:top">
+数量一致，类型和转化为虚拟 CPU，主频和支持的 flags 有变化
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Memory 
+</td><td style="text-align:left; vertical-align:top">
+ 1256M 
+</td><td style="text-align:left; vertical-align:top">
+ 1256M 
+</td><td style="text-align:left; vertical-align:top">
+数量一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Hard Disk 
+</td><td style="text-align:left; vertical-align:top">
+ 8GB，<br />
+ Vmware Virtual IDE<br />
+ VMDK 
+</td><td style="text-align:left; vertical-align:top">
+ 8GB<br />
+ Virtio SCSI<br />
+ qcow2 
+</td><td style="text-align:left; vertical-align:top">
+大小一致，总线接口和文件系统转换为适合 libvirt 的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ CDROM 
+</td><td style="text-align:left; vertical-align:top">
+ VMware IDE 
+</td><td style="text-align:left; vertical-align:top">
+ IDE 
+</td><td style="text-align:left; vertical-align:top">
+类型一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Network Adaptor 
+</td><td style="text-align:left; vertical-align:top">
+ MAC 00:0c:29:83:86:d7<br />
+ Type: PCNET<br />
+ vSwitch0<br />
+ DHCP 
+</td><td style="text-align:left; vertical-align:top">
+ MAC 00:0c:29:83:86:d7<br />
+ Type: rtl8139<br />
+ bridge br0<br />
+ DHCP 
+</td><td style="text-align:left; vertical-align:top">
+ Mac 相同，网卡类型和连接方式转换为适合 libvirt 的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Video Card 
+</td><td style="text-align:left; vertical-align:top">
+ Vmware SVGA<br />
+ 4M Video RAM 
+</td><td style="text-align:left; vertical-align:top">
+ Model: Cirrus<br />
+ 9M RAM 
+</td><td style="text-align:left; vertical-align:top">
+转换为 libvirt 支持的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+系统
+</td><td style="text-align:left; vertical-align:top">
+ Administrator/admin001 
+</td><td style="text-align:left; vertical-align:top">
+ Administrator/admin001 
+</td><td style="text-align:left; vertical-align:top">
+一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+磁盘分区
+</td><td style="text-align:left; vertical-align:top">
+ C:\<br />
+ D:\ 
+</td><td style="text-align:left; vertical-align:top">
+ C:\<br />
+ D:\ 
+</td><td style="text-align:left; vertical-align:top">
+一致
+</td></tr></tbody></table><h5 id="N102D3">表 3. Win7 虚拟机迁移前后在 VMware ESXi 和 KVM 上的比较</h5><table border="0" cellpadding="0" cellspacing="0" class="ibm-data-table"><thead xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><tr><th style="text-align:center; vertical-align:top"><strong>Win7</strong></th><th style="text-align:center; vertical-align:top"><strong>VMware ESXi</strong></th><th style="text-align:center; vertical-align:top"><strong>KVM/Libvirt</strong></th><th style="text-align:center; vertical-align:top"><strong>结论</strong></th></tr></thead><tbody xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><tr><td style="text-align:left; vertical-align:top">
+ CPUs 
+</td><td style="text-align:left; vertical-align:top">
+ Intel Xeon 5160 x 2 
+</td><td style="text-align:left; vertical-align:top">
+ X86 family 6 x 2 
+</td><td style="text-align:left; vertical-align:top">
+数量一致，类型和转化为虚拟 CPU，主频和支持的 flags 有变化
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Memory 
+</td><td style="text-align:left; vertical-align:top">
+ 1024M 
+</td><td style="text-align:left; vertical-align:top">
+ 1024M 
+</td><td style="text-align:left; vertical-align:top">
+数量一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Hard Disk 
+</td><td style="text-align:left; vertical-align:top">
+ 24GB，<br />
+ LSI Logic SCSI<br />
+ VMDK 
+</td><td style="text-align:left; vertical-align:top">
+ 24GB<br />
+ Virtio SCSI<br />
+ qcow2 
+</td><td style="text-align:left; vertical-align:top">
+大小一致，总线接口和文件系统转换为适合 libvirt 的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ CDROM 
+</td><td style="text-align:left; vertical-align:top">
+ VMware IDE 
+</td><td style="text-align:left; vertical-align:top">
+ IDE 
+</td><td style="text-align:left; vertical-align:top">
+类型一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Network Adaptor 
+</td><td style="text-align:left; vertical-align:top">
+ MAC 00:0c:29:64:de:6a<br />
+ Type: e1000<br />
+ vSwitch0<br />
+ DHCP 
+</td><td style="text-align:left; vertical-align:top">
+ MAC 00:0c:29:64:de:6a<br />
+ Type: virtio<br />
+ bridge br0<br />
+ DHCP 
+</td><td style="text-align:left; vertical-align:top">
+ Mac 相同，网卡类型和连接方式转换为适合 libvirt 的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Video Card 
+</td><td style="text-align:left; vertical-align:top">
+ Vmware SVGA<br />
+ 8M Video RAM 
+</td><td style="text-align:left; vertical-align:top">
+ Model: Cirrus<br />
+ 9M RAM 
+</td><td style="text-align:left; vertical-align:top">
+转换为 libvirt 支持的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+系统
+</td><td style="text-align:left; vertical-align:top">
+ Administrator/admin001 
+</td><td style="text-align:left; vertical-align:top">
+ Administrator/admin001 
+</td><td style="text-align:left; vertical-align:top">
+一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+磁盘分区
+</td><td style="text-align:left; vertical-align:top">
+ C:\<br />
+ D:\ 
+</td><td style="text-align:left; vertical-align:top">
+ C:\<br />
+ D:\ 
+</td><td style="text-align:left; vertical-align:top">
+一致
+</td></tr></tbody></table><p>从表中的比较看出，Windows 虚拟机从 VMware ESXi 服务器迁移到 KVM 主机上后，由于 Hypervisor 的不同，硬件发生了很大的变化。Virt-v2v 工具尽量在 KVM 虚拟机上使用 Virtio 虚拟设备加速系统的 IO 设备。WinXP 虚拟机的迁移后，使用了磁盘的 virtio 驱动而网络设备使用默认的 rtl8139。 Win7 虚拟机的迁移后磁盘和网络全部使用 virtio 的驱动。Virt-v2v 还支 Windows Vista，Win2003，Win2008 虚拟机从 VMware ESX/ESXi 上的迁移，步骤和 WinXP，Win7 虚拟机类似。</p><h3 id="minor4.5">virt-v2v 迁移小结</h3><p>virt-v2v 工具自动化的解决了 VMware ESX/ESXi 服务器上的 RHEL 虚拟机和 Windows 虚拟机迁移到 KVM 主机的问题。而且在迁移的过程中尽量的使用 virtio 驱动提高 IO 设备的性能。但是，virt-2v2 工具也有一些局限性。比如只支持虚拟机关机情况下的静态迁移；只支持 RHEL 虚拟机和 Windows 虚拟机的迁移；不支持 VMware 虚拟机快照的迁移。对于创建在 VMware Workstation/Player 上的虚拟机，目前 virt-v2v 还不支持自动迁移。但是我们可以用手动迁移的方法完成到 KVM 主机的迁移。请看下节：手动迁移 VMware Workstation/Player 上的虚拟机到 KVM 。</p><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="major5">手动迁移 VMware Workstation/Player 上的虚拟机到 KVM</h2><p>从物理机的文件系统看，VMware 虚拟机是由一组文件组成。这些文件可能集中存储在存储服务器上，如 VMware ESX/ESXi，也可能存储在本地，如 VMware Workstation/Player。关闭虚拟机的情况下，这些文件内容不会改变。所以我们可以用手动迁移的方法，拷贝这些文件到 KVM 主机并且转换这些文件的格式或内容，使 libvirt 能够管理和识别。这样就完成了 VMware 虚拟机的手动迁移。</p><h3 id="minor5.1">手动迁移的准备工作</h3><p>在 VMware 虚拟机众多的文件中，最重要的是虚拟机镜像文件 .vmdk 和系统配置文件 .xml。所以手动迁移就是要分别处理这两种文件。</p><ul class="ibm-bullet-list"><li>
+合并分散的 vmdk 镜像文件。在 VMware Workstation 上创建虚拟机的时候，可以选择存储虚拟磁盘为一个文件或多个文件。但是 libvirt 不能管理多个文件组成的磁盘镜像，所以需要在迁移前合并这些文件为一个单独的文件。VMware Workstation 自带了离线的磁盘管理工具 vmware-vdiskmanager.exe 来合并 vmdk 文件。</li></ul><h5 id="fig8">图 8. 多个文件存储的 VMware 虚拟机</h5><img alt="图 8. 多个文件存储的 VMware 虚拟机" src="images/image008.gif" width="446" /><ul class="ibm-bullet-list"><li>
+ qemu-img 转换 vmdk 的文件格式。KVM 主机上安装 qemu-img 包，可以察看并转换 vmdk 文件到 raw/qcow2 文件格式。</li></ul><ul class="ibm-bullet-list"><li>
+创建 xml 文件。VMware 的系统配置文件是 vmx，必须转换成 libvirt 能够识别的 xml 格式。一种方法是根据 VMware 虚拟机的硬件信息，手动创建一个新的 xml 文件；另一种方法是利用工具辅助转换 vmx 文件。比如 virt-goodies/vmware2libvirt 工具，可以从下面 link 下载安装 virt-goodies：<a href="https://launchpad.net/ubuntu/+source/virt-goodies/0.4">https://launchpad.net/ubuntu/+source/virt-goodies/0.4</a></li></ul><p>下面我们以 VMware Workstations 上的 SUSE Linux Enterprise Server 11 SP1 虚拟机和 VMware Player 上的 Windows 2008 R2 虚拟机为例，详细介绍迁移到 KVM 主机的步骤。</p><h3 id="minor5.2">手动迁移 VMware Workstation 上的 SLES11SP1 虚拟机</h3><p>VMware Workstation 软件安装在一个 Windows XP 系统上，然后创建 SLES11SP1 虚拟机。虚拟机的文件都存储在本地。KVM 主机通过网络连接到 Window XP 系统。</p><h5 id="fig9">图 9. 手动迁移 SLES11SP1 虚拟机的环境</h5><img alt="图 9. 手动迁移 SLES11SP1 虚拟机的环境" src="images/image009.gif" width="486" /><p>迁移的过程如下：</p><p>1. 登录宿主机 Windows XP 系统，在 VMware Workstation 上检查 SLES11SP1 虚拟机，如果安装了 VMware Tools，以 root 用户运行 vmware-uninstall-tools.pl 卸载它。</p><p>2. 关闭 SLES11SP1 虚拟机。</p><p>3. 检查虚拟机的镜像文件。本例中，虚拟机的镜像存储在多个 vmdk 文件中，所以需要在迁移前合并他们。</p><h5 id="fig10">图 10. 用 vmware-vdiskmanager.exe 合并多个 vmdk 文件</h5><img alt="图 10. 用 vmware-vdiskmanager.exe 合并多个 vmdk 文件" src="images/image010.gif" width="578" /><p>4. 拷贝合并后的 vmdk 文件到 KVM 主机上。本例中，拷贝文件 SLES11SP1-single.vmdk 到 KVM 主机的 /home/images/migration 目录下。并且使用 qemu-img 工具将 vmdk 文件转换成 qcow2 格式的文件。可以看出，转换后镜像文件 SLES11SP1-single.img 的实际大小 3.9G 和最大范围 20G 没有改变，仅仅是文件系统类型变化了。</p><h5 id="listing9">清单 9. 转换 vmdk 文件到 qcow2 格式</h5><div class="codesection"><pre class="displaycode"> [root@localhost migration]# qemu-img info SLES11SP1-single.vmdk 
+ image: SLES11SP1-single.vmdk 
+ file format: vmdk 
+ virtual size: 20G (21474836480 bytes) 
+ disk size: 3.9G 
+
+ [root@localhost migration]# qemu-img convert -f vmdk \
+ -O qcow2 SLES11SP1-single.vmdk SLES11SP1-single.img 
+
+ [root@localhost migration]# qemu-img info SLES11SP1-single.img 
+ image: SLES11SP1-single.img 
+ file format: qcow2 
+ virtual size: 20G (21474836480 bytes) 
+ disk size: 3.9G 
+ cluster_size: 65536</pre></div><p>5. 转换 vmx 文件。本例介绍第一种方法，即手动创建 vmx 文件。首先要找出 SLES11SP1 虚拟机全部虚拟设备信息，这些信息可以从 VMware Workstation 的管理界面和虚拟机系统的系统信息获得；然后在 KVM 主机上的 virt-manager 中，以第 4 步转换完成的镜像文件 SLES11SP1-single.img 为基础创建一个虚拟机；最后添加与 VMware 相同或类似的硬件，并且尽量保证数量、类型和配置的一致，包括 CPU 和 MEM 数量、系统构架、网络类型、MAC 地址等。</p><h5 id="fig11">图 11. VMware Workstation 上查看虚拟机的硬件信息</h5><img alt="图 11. VMware Workstation 上查看虚拟机的硬件信息" src="images/image011.gif" width="560" /><h5 id="fig12">图 12. 手动配置 KVM 虚拟机</h5><img alt="图 12. 手动配置 KVM 虚拟机" src="images/image012.gif" width="582" /><p>6. 设置完成后，自动创建 KVM 虚拟机的配置文件 /etc/libvirt/qemu/SLES11SP1.xml，并且 virt-manager 可以管理这个 SLES 虚拟机了。在 libvirt 上启动虚拟机，手动配置虚拟机系统以适应新的硬件。</p><p>7. 深入比较迁移前在 VMware Workstation 上的虚拟机和迁移后在 KVM 上的虚拟机。</p><h5 id="N103EE">表 4. SLES11SP1 虚拟机迁移前后在 VMware Workstation 和 KVM 上的比较</h5><table border="0" cellpadding="0" cellspacing="0" class="ibm-data-table"><thead xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><tr><th style="text-align:center; vertical-align:top"><strong>SLES11SP1</strong></th><th style="text-align:center; vertical-align:top"><strong>VMware Workstation</strong></th><th style="text-align:center; vertical-align:top"><strong>KVM/Libvirt</strong></th><th style="text-align:center; vertical-align:top"><strong>结论</strong></th></tr></thead><tbody xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><tr><td style="text-align:left; vertical-align:top">
+ CPUs 
+</td><td style="text-align:left; vertical-align:top">
+ Intel Core2 x 2 
+</td><td style="text-align:left; vertical-align:top">
+ QEMU vCPU  x 2<br /></td><td style="text-align:left; vertical-align:top">
+数量一致，类型和转化为虚拟 CPU，主频和支持的 flags 有变化
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Memory 
+</td><td style="text-align:left; vertical-align:top">
+ 768M 
+</td><td style="text-align:left; vertical-align:top">
+ 768M 
+</td><td style="text-align:left; vertical-align:top">
+数量一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Hard Disk 
+</td><td style="text-align:left; vertical-align:top">
+ 20GB<br />
+ LSI Logic SCSI<br />
+ VMDK 
+</td><td style="text-align:left; vertical-align:top">
+ 20GB<br />
+ IDE<br />
+ qcow2 
+</td><td style="text-align:left; vertical-align:top">
+大小一致，总线接口和文件系统转换为适合 libvirt 的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ CDROM 
+</td><td style="text-align:left; vertical-align:top">
+ IDE 
+</td><td style="text-align:left; vertical-align:top">
+ IDE 
+</td><td style="text-align:left; vertical-align:top">
+类型一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Floppy 
+</td><td style="vertical-align:top"/><td style="vertical-align:top"/><td style="text-align:left; vertical-align:top">
+类型一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ USB Controller 
+</td><td style="text-align:left; vertical-align:top">
+ USB 2.0 
+</td><td style="text-align:left; vertical-align:top">
+ Physical USB device 
+</td><td style="text-align:left; vertical-align:top">
+ libvirt 对 USB 的支持较弱
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Network Adaptor 
+</td><td style="text-align:left; vertical-align:top">
+ MAC 00:0c:29:68:16:33<br />
+ Type: PCNet<br />
+ NAT<br />
+ Virtual DHCP 
+</td><td style="text-align:left; vertical-align:top">
+ MAC 00:0c:29:a9:7b:83<br />
+ Type: Virtio<br />
+ NAT<br />
+ Virtual DHCP 
+</td><td style="text-align:left; vertical-align:top">
+ Mac 相同，网卡类型和连接方式转换为适合 libvirt 的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Video Card 
+</td><td style="text-align:left; vertical-align:top">
+ Vmware SVGA 
+</td><td style="text-align:left; vertical-align:top">
+ Model: Cirrus<br />
+ 9M RAM 
+</td><td style="text-align:left; vertical-align:top">
+转换为 libvirt 支持的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Audio device 
+</td><td style="text-align:left; vertical-align:top">
+ ES1371 
+</td><td style="text-align:left; vertical-align:top">
+ ES1370 
+</td><td style="text-align:left; vertical-align:top">
+转换为 libvirt 支持的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+系统用户
+</td><td style="text-align:left; vertical-align:top">
+ root/admin001 
+</td><td style="text-align:left; vertical-align:top">
+ root/admin001 
+</td><td style="text-align:left; vertical-align:top">
+一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+磁盘分区
+</td><td style="text-align:left; vertical-align:top">
+ /dev/sda1<br />
+ /dev/sda2 
+</td><td style="text-align:left; vertical-align:top">
+ /dev/sda1<br />
+ /dev/sda2 
+</td><td style="text-align:left; vertical-align:top">
+物理盘符及系统分区一致
+</td></tr></tbody></table><p>和使用 virt-v2v 自动化迁移工具相比，手动迁移增加了很多工作和不确定性。在本系列文章第一篇列举了”Linux 系统在虚拟机迁移中的技术难点”，此处正好验证了手动迁移中需要注意的问题。比如在本例中，有以下两个问题：</p><ul class="ibm-bullet-list"><li>
+如何选择磁盘总线类型。virt-v2v 工具自动选择 virtio 磁盘驱动来提高 KVM 虚拟机的性能，但是在本例中，SLES 虚拟机不能直接使用 virtio 磁盘驱动。因为 SLES 系统的磁盘分区名在 /etc/fstab 被硬编码为 /dev/sda，而 virtio 磁盘分区名为 /dev/vda，直接使用 virtio 磁盘驱动会导致系统找不到分区而无法启动的错误。所以本例为 KVM 虚拟机选择了性能较差的 IDE 磁盘类型。</li></ul><ul class="ibm-bullet-list"><li>
+ Xwindow 需要重新配置。SLES 虚拟机不能自动处理显示设备的变化，所以需要手动运行 SaX2 重新配置 Xwindow 并重新启动 gdm。</li></ul><p>实际上，手动把 SLES 虚拟机里面关于磁盘分区的硬编码全部改成 UUID 后，就可以使用高性能的 virtio 磁盘驱动。具体操作方法将在本系列文章的第五部分介绍。</p><h3 id="minor5.3">手动迁移 VMware Player 上的 Win2008R2 虚拟机</h3><p>VMware Player 软件安装在 Linux 系统上，然后创建了 Windows 2008 R2 虚拟机。虚拟机的文件都存储在本地。KVM 主机通过网络连接到 VMware Player 的主机系统。</p><h5 id="fig13">图 13. 手动迁移 Win2008R2 虚拟机的环境设置</h5><img alt="图 13. 手动迁移 Win2008R2 虚拟机的环境设置" src="images/image013.gif" width="466" /><p>迁移的过程如下：</p><p>1. 登录宿主机 Linux 系统，在 VMware Player 上检查 Win2008R2 虚拟机，如果安装了 VMware Tools，必须先卸载它。</p><p>2. 关闭 Win2008R2 虚拟机，因为手动迁移必须保持虚拟机文件的一致性。</p><p>3. 检查虚拟机的镜像文件。如果虚拟机的镜像存储在多个 vmdk 文件中，需要在迁移前合并。本例的 VMware 虚拟机存储在单独的 vmdk 文件中，所以略过此步。</p><p>4. 拷贝 vmdk 文件到 KVM 主机上。本例中，拷贝 Win2008R2.vmdk 文件到 KVM 主机的 /home/images/migration 目录下。并且使用 qemu-img 工具将 vmdk 文件转换成 qcow2 格式的文件。可以看出，转换后镜像文件 Win2008R2.img 的实际大小 6.4G 和最大范围 20G 没有改变，仅仅是文件系统类型变化了。</p><h5 id="listing10">清单 10. 转换 vmdk 文件到 qcow2 格式</h5><div class="codesection"><pre class="displaycode"> [root@localhost migration]# qemu-img info Win2008R2.vmdk 
+ image: Win2008R2.vmdk 
+ file format: vmdk 
+ virtual size: 20G (21474836480 bytes) 
+ disk size: 6.4G 
+
+ [root@localhost migration]# qemu-img convert -f vmdk \
+ -O qcow2 Win2008R2.vmdk Win2008R2.img 
+
+ [root@localhost migration]# qemu-img info Win2008R2.img 
+ image: Win2008R2.img 
+ file format: qcow2 
+ virtual size: 20G (21474836480 bytes) 
+ disk size: 6.4G 
+ cluster_size: 65536</pre></div><p>5. 转换 vmx 文件。virt-goodies/vmware2libvirt 脚本是用来做 vmx 到 xml 转换的简单工具。但是由于它很长时间没有升级，而且不同的 Linux 发行版对 KVM/libvirt 安装方式不同，vmware2libvirt 工具转换后的 xml 文件需要手动更改或添加某些配置。</p><ul class="ibm-bullet-list"><li>
+注意不同 Linux 发行版 qemu-kvm 的路径不同，RHEL6.1 下是 /usr/libexec/qemu-kvm。</li></ul><ul class="ibm-bullet-list"><li>
+把虚拟机的镜像文件路径及名字改成 /home/images/migration/Win2008R2.img。</li></ul><ul class="ibm-bullet-list"><li>
+ vmware2libvirt 只转换第一块网卡，如果有多块网卡需要手动添加。</li></ul><ul class="ibm-bullet-list"><li>
+ vmware2libvirt 不转换 CDROM、Floppy、USB 和显示设备，需要手动为 KVM 虚拟机添加。</li><li>
+磁盘和网卡采用默认的驱动程序，因为 Windows 系统没有预装 virtio 驱动。</li></ul><h5 id="listing11">清单 11. vmware2libvirt 转换 vmx 文件</h5><div class="codesection"><pre class="displaycode"> [root@localhost migration]# /home/vmware2libvirt \
+ -f Win2008R2.vmx &gt; /etc/libvirt/qemu/Win2008R2.xml 
+添加 Win2008R2 到 virt-manager 
+ [root@localhost migration]# virsh -c qemu:///system \
+ define /etc/libvirt/qemu/Win2008R2.xml 
+ Domain Win2008R2 defined from /etc/libvirt/qemu/Win2008R2.xml</pre></div><p>6. 在 virt-manager 中启动 Win2008R2 虚拟机，手动添加缺少的硬件。</p><h5 id="fig14">图 14. KVM 上 Win2008R2 虚拟机的配置</h5><img alt="图 14. KVM 上 Win2008R2 虚拟机的配置" src="images/image014.gif" width="582" /><p>7. 启动虚拟机，检查系统状态。</p><h5 id="N1050D">表 5. Win2008R2 虚拟机迁移前后在 VMware Player 和 KVM 上的比较</h5><table border="0" cellpadding="0" cellspacing="0" class="ibm-data-table"><thead xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><tr><th style="text-align:center; vertical-align:top"><strong>Win2008R2</strong></th><th style="text-align:center; vertical-align:top"><strong>VMware Player</strong></th><th style="text-align:center; vertical-align:top"><strong>KVM/Libvirt</strong></th><th style="text-align:center; vertical-align:top"><strong>结论</strong></th></tr></thead><tbody xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><tr><td style="text-align:left; vertical-align:top">
+ CPUs 
+</td><td style="text-align:left; vertical-align:top">
+ Intel Core Duo 2.66G x 2 
+</td><td style="text-align:left; vertical-align:top">
+ QEMU vCPU 2.66G x 2 
+</td><td style="text-align:left; vertical-align:top">
+数量一致，类型和转化为虚拟 CPU，主频和支持的 flags 有变化
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Memory 
+</td><td style="text-align:left; vertical-align:top">
+ 1024M 
+</td><td style="text-align:left; vertical-align:top">
+ 1024M 
+</td><td style="text-align:left; vertical-align:top">
+数量一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Hard Disk 
+</td><td style="text-align:left; vertical-align:top">
+ 20GB，<br />
+ LSI Logic SCSI<br />
+ VMDK 
+</td><td style="text-align:left; vertical-align:top">
+ 20GB<br />
+ IDE<br />
+ qcow2 
+</td><td style="text-align:left; vertical-align:top">
+大小一致，总线接口和文件系统转换为适合 libvirt 的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ CDROM 
+</td><td style="text-align:left; vertical-align:top">
+ VMware IDE 
+</td><td style="text-align:left; vertical-align:top">
+ IDE 
+</td><td style="text-align:left; vertical-align:top">
+类型一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Network Adaptor 
+</td><td style="text-align:left; vertical-align:top">
+ MAC 00:0c:29:aa:9b:a4<br />
+ Type: e1000<br />
+ NAT 
+</td><td style="text-align:left; vertical-align:top">
+ MAC 00:0c:29:aa:9b:a4<br />
+ Type: e1000<br />
+ NAT 
+</td><td style="text-align:left; vertical-align:top">
+ Mac 地址、网卡类型和连接方式相同
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+ Video Card 
+</td><td style="text-align:left; vertical-align:top">
+ Vmware SVGA 
+</td><td style="text-align:left; vertical-align:top">
+ Model: Cirrus<br />
+ 9M RAM 
+</td><td style="text-align:left; vertical-align:top">
+转换为 libvirt 支持的类型
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+系统
+</td><td style="text-align:left; vertical-align:top">
+ Administrator/qwe123OP 
+</td><td style="text-align:left; vertical-align:top">
+ Administrator/qwe123OP 
+</td><td style="text-align:left; vertical-align:top">
+一致
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+磁盘分区
+</td><td style="text-align:left; vertical-align:top">
+ C:\<br />
+ D:\ 
+</td><td style="text-align:left; vertical-align:top">
+ C:\<br />
+ D:\ 
+</td><td style="text-align:left; vertical-align:top">
+一致
+</td></tr></tbody></table><p>由上表可以看出，Win2008R2 虚拟机迁移到 KVM 后，虽然硬件有变化，但是不影响操作系统及软件的运行。这此迁移过程中没有使用任何 virtio 的驱动程序，因为 Windows 系统本身没有 virtio 的驱动。如果想使用 virtio 来提高 KVM 虚拟机的性能，参见下节如何用 virtio 驱动光盘或软盘手动安装。</p><h3 id="minor5.4">在 Windows 虚拟机上手动安装 virtio 驱动</h3><p>实际上，virtio 驱动光盘镜像文件和软盘镜像文件包含在清单 2 列出的 virtio-win 包中。只需要在虚拟机的虚拟光驱或软驱中装载这些镜像文件，就可以升级磁盘和网卡驱动为 virtio 驱动了。</p><h5 id="listing12">清单 12. virtio 光盘镜像和软盘镜像文件</h5><div class="codesection"><pre class="displaycode"> [root@localhost migration]# rpm -ql virtio-win 
+ ....... 
+ /usr/share/virtio-win/virtio-win-1.2.0.iso 
+ /usr/share/virtio-win/virtio-win-1.2.0.vfd 
+ /usr/share/virtio-win/virtio-win.iso 
+ /usr/share/virtio-win/virtio-win.vfd</pre></div><p>下面以上一个小节中，迁移到 KVM 的 Win2008R2 虚拟机为例，介绍如何在 Windows 虚拟机上安装 virtio 驱动。</p><p>1. 在虚拟光驱中加载 virtio 镜像。</p><h5 id="fig15">图 15. 加载 virtio 光盘镜像</h5><img alt="图 15. 加载 virtio 光盘镜像" src="images/image015.gif" width="530" /><p>2. 更改网卡的类型为 virtio，这样系统启动后可以从 virtio 光盘升级网卡驱动程序。</p><p>3. 此时不能更改磁盘的驱动类型。因为此时 virtio 驱动还没有安装，直接更改磁盘类型会导致系统无法启动的错误。替代方法是临时添加一块新的磁盘，大小随意，类型为 virtio。</p><h5 id="fig16">图 16. 添加临时 virtio 磁盘</h5><img alt="图 16. 添加临时 virtio 磁盘" src="images/image016.gif" width="440" /><p>4. 启动虚拟机并登陆系统，查看硬件设备管理器。发现缺少了网卡和磁盘控制器的驱动。用 virtio 光盘中的驱动安装他们。</p><h5 id="fig17">图 17. 安装 virtio 驱动</h5><img alt="图 17. 安装 virtio 驱动" src="images/image017.gif" width="484" /><p>5. 安装完成后，关闭虚拟机。删除临时磁盘并把主磁盘的类型改为 virtio，然后启动虚拟机。这时你会发现 Win2008R2 虚拟机已经用上 virtio 的磁盘和网卡设备了。</p><p>目前 virtio 光盘镜像包含 WinXP、Win7、Win2003 和 Win2008 四个平台的驱动程序，都可以用上面这种方法手动安装。</p><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="major6">小结</h2><p>以上章节详细介绍了几种迁移 VMware 虚拟机到 KVM 的方法，下面总结一下各种迁移方法的的优缺点。</p><ul class="ibm-bullet-list"><li>
+ virt-v2v 工具是专门针对 VMware ESX/ESXi 的自动化迁移工具，而且支持的虚拟机系统仅限于 RHEL 和 Windows 虚拟机。Virt-v2v 在迁移后的 KVM 虚拟机中优先使用 virtio 虚拟驱动来提高系统 IO 的性能。如果不支持，才选用性能稍低，但更稳定可靠的虚拟硬件。而且这个过程全部自动化完成。</li></ul><ul class="ibm-bullet-list"><li>
+手动迁移可以涵盖所有的 VMware 软件和所有的虚拟机系统。从而迁移中面临的问题也是多样化的，需要不同程度的手动干预。某些特定的环境下，可以使用一些工具来辅助手动迁移，比如 virt-goodies/vmware2libvirt。另外 libvirt 也在开发支持 VMware Workstation/Player 迁移的新功能。</li></ul><p>不论是 virt-v2v 自动化工具还是手动迁移，由于商业软件 VMware 开放的编程接口的限制，VMware 虚拟机到 KVM 的迁移有一些软肋：</p><ol type="1"><li>
+一些 VMware 虚拟机的特性没有办法迁移到 KVM 虚拟机上。比如 VMware 虚拟机广泛使用的快照功能。</li></ol><ol type="1"><li>
+只能实现关闭虚拟机情况下的静态迁移，无法做到虚拟机不关机情况下的在线迁移。</li><li>
+一些特殊的 VMware 设备不能迁移到 KVM 虚拟机，于是采用了类似功能的硬件设备替代。比如 VMware Tools 中的虚拟驱动、VMware SVGA、VMware USB Controller 等。</li></ol><p>总的来说，VMware 虚拟机到 KVM 的迁移不够成熟和自动化，迁移的过程需要手动干预。这要求迁移的操作人员具有相关的知识和经验。开源工具 virt-v2v 的出现简化了 VMware ESX/ESXi 上部分虚拟机的迁移，而且计划将来支持 VMware Workstation/Player 上虚拟机的自动迁移。反言之，自动化的迁移工具不就是用脚本语言把手动迁移的步骤和条件程序化么？掌握了手动迁移，才能了解虚拟机迁移更多的奥秘。</p><!--CMA ID: 769227--><!--Site ID: 10--><!--XSLT stylesheet used to transform this file: dw-document-html-7.0.xsl-->
+
+
+</div>
+</div>
+<!-- 1_1_COLUMN_END -->
+
+<!-- SPLIT_COLUMNS_BEGIN -->
+<div class="ibm-columns">
+
+<!-- 6_4_COLUMN_BEGIN -->
+<div class="ibm-col-6-4">
+
+<h2 id="resources" class="ibm-rule">参考资料 </h2><h3 class="dw-resources-category-heading">学习</h3><ul class="ibm-bullet-list"><li>参考 developerWorks 上的文章“<a href="http://www.ibm.com/developerworks/cn/linux/l-libvirt/index.html">Libvirt</a><a href="http://www.ibm.com/developerworks/cn/linux/l-libvirt/index.html">虚拟化库剖析</a>”，了解关于 Libvirt 的用途和构架。</li><li>参考 developerWorks 上的文章“<a href="http://www.ibm.com/developerworks/cn/linux/l-cn-mgrtvm1/index.html">虚拟机迁移技术漫谈，第 1 部分</a>”，了解关于虚拟机迁移的相关背景和知识。</li><li>参考 developerWorks 上的文章“<a href="http://www.ibm.com/developerworks/cn/linux/l-cn-mgrtvm2/index.html">KVM 虚拟机在物理主机之间迁移的实现</a>”，了解关于 KVM 虚拟机迁移的相关背景和知识。</li><li>参考“<a href="http://www.vmware.com/cn/">VMware 中国官方网站</a>”产品主页，了解关于 VMware 产品的功能特性。</li><li> 在 <a href="http://www.ibm.com/developerworks/cn/linux/"> developerWorks Linux 专区</a> 寻找为 Linux 开发人员（包括 <a href="http://www.ibm.com/developerworks/cn/linux/newto/">Linux 新手入门</a>）准备的更多参考资料，查阅我们 <a href="http://www.ibm.com/developerworks/cn/linux/best2009/index.html">最受欢迎的文章和教程</a>。 </li><li>在 developerWorks 上查阅所有 <a href="http://www.ibm.com/developerworks/cn/views/linux/libraryview.jsp?search_by=Linux+%E6%8A%80%E5%B7%A7"> Linux 技巧</a> 和 <a href="http://www.ibm.com/developerworks/cn/views/linux/libraryview.jsp?type_by=%E6%95%99%E7%A8%8B"> Linux 教程</a>。 </li><li>随时关注 developerWorks <a href="http://www.ibm.com/developerworks/cn/offers/techbriefings/">技术活动</a>和<a href="http://www.ibm.com/developerworks/cn/swi/">网络广播</a>。 </li></ul><h3 class="dw-resources-category-heading">讨论</h3><ul class="ibm-bullet-list"><li>加入 <a href="http://www.ibm.com/developerworks/cn/community/">developerWorks 中文社区</a>，developerWorks 社区是一个面向全球 IT 专业人员，可以提供博客、书签、wiki、群组、联系、共享和协作等社区功能的专业社交网络社区。</li></ul>
+
+<!-- INLINE_COMMENTS_BEGIN -->
+<h2 id="icomments" class="ibm-alternate-rule ibm-no-print">条评论</h2>
+    
+<div class="ibm-no-print" id="dw-icomments-container">	
+	<div id="threadShow"></div>
+</div>
+<!-- Sign in OVERLAY STARTS HERE -->
+    
+<!-- Sign in OVERLAY STARTS HERE -->
+<div class="ibm-common-overlay" id="signin_overlay">
+<div class="ibm-head">
+<p><a class="ibm-common-overlay-close" href="#" onclick="dwsi.siInst.clearForm();">关闭 [x]</a></p>
+</div>
+<div class="ibm-body">
+<div class="ibm-main">
+
+ <div class="ibm-title">
+<h2>developerWorks: 登录</h2>
+<div id="ibm-overlay-error-signin" class="no-display"></div>
+</div>
+<div class="ibm-container ibm-alternate ibm-buttons-last">
+<div class="ibm-container-body">
+<p class="ibm-overlay-intro">标有星（<span class="ibm-required">*</span>）号的字段是必填字段。</p> 
+<form class="ibm-column-form" id="sFormId" action="" method="post" name="sForm" onsubmit="return false;">
+<p><label for="ibmid">IBM ID:<span class="ibm-required">*</span></label><span>
+    <input name="ibm-id" id="ibmid" size="25" value="" class="required" type="text" onkeypress="dwsi.siInst.handleEP(event,this.form);" />
+    <br /><a onclick="window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.protocol + '//' + location.hostname + location.pathname + '#icomments'); return false;" href="#" class="ibm-forward-link">需要一个 IBM ID？</a> <br />
+    <a class="ibm-forward-link" href="/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a> 
+</span>
+</p> 
+<p><label for="password">密码：<span class="ibm-required">*</span></label><span>
+    <input name="password" id="password" size="25" value="" class="required" type="password" onkeypress="dwsi.siInst.handleEP(event,this.form);" />
+    <br /><a class="ibm-forward-link" href="#" onclick="(function ()
+        {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(dwsi.siInst.getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Dzh_CN%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a>
+    <br /><a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></span></p> 
+<p class="dw-perm-box">
+	<span><input id="perm" type="checkbox" name="perm_name"/><label for="perm"> 保持登录。</label></span>
+</p>
+<p>单击提交则表示您同意developerWorks 的条款和条件。 <a
+    href="/developerworks/community/terms?lang=zh">查看条款和条件</a>。</p>
+<div class="ibm-buttons-row">
+   <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="dwsi.siInst.signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+<input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="dwsi.siInst.clearForm();ibmweb.overlay.hide('signin_overlay');return false;"/></p>
+</div>
+</form>
+ <div class="ibm-overlay-rule"><hr /></div> 
+
+<p>在您首次登录 developerWorks 时，会为您创建一份个人概要。<strong>您的个人概要中的信息（您的姓名、国家/地区，以及公司名称）是公开显示的，而且会随着您发布的任何内容一起显示，除非您选择隐藏您的公司名称。</strong>您可以随时更新您的 IBM 帐户。</p>
+<div><p class="dw-c-overlay-secure">所有提交的信息确保安全。</p></div>
+</div>
+</div>
+</div>
+</div>
+<div class="ibm-footer"></div>
+</div>
+<!-- Display name OVERLAY STARTS HERE -->
+<div class="ibm-common-overlay" id="displayname_overlay">
+<div class="ibm-head">
+<p><a class="ibm-common-overlay-close" href="#" onclick="dwsi.siInst.clearForm();">关闭 [x]</a></p>
+</div>
+<div class="ibm-body">
+<div class="ibm-main">
+<div class="ibm-title">
+<h2>选择您的昵称</h2><br /><br />
+<div id="ibm-overlay-error-dname" class="no-display"></div>
+</div>
+<div class="ibm-container ibm-alternate ibm-buttons-last">
+<div class="ibm-container-body">
+<p class="ibm-overlay-intro">当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 
+    您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+<p class="ibm-overlay-intro">标有星（<span class="ibm-required">*</span>）号的字段是必填字段。</p> 
+<form id="dFormId" method="post" action="" name="dForm" onsubmit="return false;" class="ibm-column-form">
+<p><label for="displayname">昵称：<span class="ibm-required">*</span></label><span>
+    <input name="displayname" id="displayname" size="25" value="" type="text" onkeypress="dwsi.siInst.handleEP(event,this.form);" /></span>
+    <span class="ibm-form-note">(昵称长度在 3 至 31 个字符之间)</span>
+</p>
+<p>单击<strong>提交</strong>则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/community/terms?lang=zh">查看条款和条件</a>.</p>
+<div class="ibm-buttons-row">
+   <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="dwsi.siInst.signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+<input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="dwsi.siInst.clearForm();ibmweb.overlay.hide('displayname_overlay');return false;" /></p>
+</div>
+</form>
+<div class="ibm-overlay-rule"><hr /></div>
+<div><p class="dw-c-overlay-secure">所有提交的信息确保安全。</p></div>
+</div>
+</div>
+</div>
+</div>
+<div class="ibm-footer"></div>
+</div>
+
+
+<!-- INLINE_COMMENTS_END -->
+
+</div>
+<!-- 6_4_COLUMN_END -->
+
+<!-- 6_2_COLUMN_BEGIN -->
+<div class="ibm-col-6-2">
+
+<!-- Next_Steps -->
+<!-- Dig_Deeper -->
+
+
+<!-- Promotion_Module -->
+    
+<!-- PROMOTION_MODULE_START -->
+<div class="ibm-alternate-rule"><hr /></div>
+<ul class="ibm-portrait-module-list">
+<li><img height="60" width="60" src="//www.ibm.com/developerworks/i/sm-f-cl-puresystems70.jpg" alt=""/>
+<h3><a class="ibm-feature-link"
+    href="http://www.ibm.com/developerworks/cn/puresystems/">IBM PureSystems</a></h3>
+<p>IBM PureSystems™ 系列解决方案是一个专家集成系统</p></li>
+<li><img height="60" width="60" src="//www.ibm.com/developerworks/i/sm-f-knowledgepath50.jpg" alt=""/>
+<h3><a class="ibm-feature-link" href="http://www.ibm.com/developerworks/cn/views/global/libraryview.jsp?type_by=Knowledge+paths">developerWorks 学习路线图</a></h3>
+<p>通过学习路线图系统掌握软件开发技能</p></li>
+<li><img height="60" width="60" src="//www.ibm.com/developerworks/i/sm-f-evaluationsoftware60.png" alt=""/>
+<h3><a class="ibm-feature-link" href="http://www.ibm.com/developerworks/cn/downloads/">软件下载资源中心</a></h3>
+<p>软件下载、试用版及云计算</p></li>
+</ul>
+<!-- PROMOTION_MODULE_END -->
+
+</div>
+<!-- 6_2_COLUMN_END -->
+
+</div>
+<!-- SPLIT_COLUMNS_END -->
+
+<!-- BOTTOM_BACK_TO_TOP -->
+<div class="ibm-columns">
+<div class="ibm-col-1-1">
+	<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p>
+</div>
+</div>
+
+<!-- Rating_Meta_BEGIN -->
+<!--Rating_Meta_BEGIN--><div class="metavalue">static.content.url=http://www.ibm.com/developerworks/js/artrating/</div><div class="metavalue">SITE_ID=10</div><div class="metavalue">Zone=Linux</div><div class="metavalue">ArticleID=769227</div><div class="metavalue">ArticleTitle=迁移 VMware 虚拟机到 KVM</div><div class="metavalue">publish-date=11022011</div><script language="javascript" type="text/javascript">document.write('<div class="metavalue">url='+location.href.replace(/</g,  '%3C')+'</div>');</script><!--Rating_Meta_END-->
+<!-- Rating_Meta_END -->
+
+</div>
+<!-- END_IBM_CONTENT_MAIN -->
+
+</div>
+<!-- END_IBM_CONTENT_BODY -->
+
+</div>
+<!-- END_IBM_CONTENT -->
+
+</div>
+<!-- END_IBM_PCON -->
+<!-- FOOTER_BEGIN -->
+<!-- FOOTER_BEGIN -->
+<div id="ibm-footer"><!-- IBM footer container; disabled --></div>
+
+<div id="ibm-footer-module-dwwrapper" role="contentinfo" aria-label="developerWorks Footer">
+
+<div id="ibm-footer-module-dw">
+	<div class="dw-footer-columns">
+		<div class="dw-footer-col-5-1">
+			<ul>
+                <li><a href="https://www.ibm.com/developerworks/secure/feedback.jsp?domain=dwchina">帮助</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/author/">联系编辑</a></li>
+				<li><a href="https://www.ibm.com/developerworks/secure/myideas2.jsp?domain=dwchina&start=true">提交内容</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/rss/">订阅源</a></li>
+			</ul>
+        </div>
+		<div class="dw-footer-col-5-2">
+			<ul>
+			<li><a href="http://www.ibm.com/vrm/newsletter/10104?S_TACT=105AGX52&S_CMP=dwcntop">在线浏览每周时事通讯</a></li>
+				<li><a class="dwcn-sina-link" href="http://weibo.com/ibmdw/" target="_blank">新浪微博</a></li>
+				<li><a href="https://www.ibm.com/developerworks/community/report?lang=zh">报告滥用</a></li>
+				<li><a href="https://www.ibm.com/developerworks/community/terms?lang=zh">使用条款</a></li>
+				<li><a href="https://www.ibm.com/developerworks/cn/community/terms/thirdparty/">第三方提示</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-5-3">
+			<ul>
+				<li><a href="http://www.ibm.com/privacy/cn/zh/">隐私条约</a></li>
+				<li><a href="http://www.ibm.com/ibm/accessibility/cn/">浏览辅助</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/academic/">IBM 教育学院教育培养计划</a></li><li><a href="http://www.ibm.com/developerworks/cn/gep/">IBM 创业企业全球扶持计划</a></li><li><a href="http://www.ibm.com/partnerworld/isv/">ISV 资源 (英语)</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-5-4">
+		
+ 
+			<ul>
+				<li><a href="//www.ibm.com/developerworks/cn/newsletter/">dW 中国每周时事通讯</a><br /> 
+				
+				</li>
+			</ul>
+			</form>
+		</div>
+		<div class="dw-footer-col-5-5">
+			<img width="223" height="46" alt="IBM®" src="//dw1.s81c.com/developerworks/i/mf/dwn-ibm-logo-v17.png">
+			<img class="dw-preload" src="//1.www.s81c.com/i/v17/icons/ibm_sprite_social_blue_ON.png" alt="" width="1" height="1"/>
+		</div>
+	</div>
+	<!-- Language selector no-script -->
+	<noscript>
+	<div id="dw-footer-selectlang">
+		<h2><a name="SELECTLANG">选择语言：</a></h2>
+		<ul>
+			<li><a href="http://www.ibm.com/developerworks/" lang="en">English</a></li>
+			<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+			<li><a href="http://www.ibm.com/developerworks/jp/" lang="ja">日本語</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ru/" lang="ru">Русский</a></li>
+			<li><a href="http://www.ibm.com/developerworks/br/" lang="pt">Português (Brasil)</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ssa/" lang="es">Español</a></li>
+			<li><a href="http://www.ibm.com/developerworks/vn/" lang="vi">Việt</a></li>
+		</ul>
+	</div>
+	</noscript>
+</div>
+
+</div><!-- FOOTER_END --><!-- FOOTER_END -->
+
+<!-- END_IBM-TOP -->
+</div>
+
+<!-- SCRIPTS_INCLUDE_BEGIN -->
+<script type="text/javascript" src="/developerworks/js/v17/dw-comments.js">//</script>
+<script type="text/javascript" language="JavaScript">
+		dojo.ready(function(){
+		rBHash = null;
+		rBHash = new Object();
+		rBHash['viperLang'] = 'zh';
+		rBHash['urlLang'] = 'cn';
+		
+		dwsi.siInst = new dwweb.dynnav.dwsi();
+		dwsi.siInst.initSI();		
+
+		// construct the comment widget
+dwc.cmts = '条评论';
+dwc.signInPreText = '请';
+dwc.signIn = '登录';
+dwc.or = '或';
+dwc.register = '注册';
+dwc.signInPostText = '';
+dwc.leaveCmt = '后发表评论。';
+dwc.view = '查看';
+dwc.totalCmts = '共有评论';
+dwc.postYourCmt = '添加您的评论';
+dwc.show = '显示：';
+dwc.recentCmts = '最新评论';
+dwc.allCmts = '所有评论';
+dwc.tooLongCmt = '您的评论超过了 1000 字符限制';
+dwc.numCharsLeft = '剩余 <span id="charCount">{1}</span> 字符';
+dwc.reportAbuse = '报告滥用';
+dwc.notifyMsg = '有新评论时提醒我';
+dwc.htmlWarning = '注意：评论中不支持 HTML 语法'; 
+dwc.cmt = '评论：';
+dwc.addCmts = '添加评论';
+dwc.addCmt = '添加评论';
+dwc.doNotErase = '--在下方添加评论--'; 
+dwc.viewOrAddCmts = '查看或添加评论';
+dwc.reportInapprCont = '举报不良信息';
+dwc.reportInapprContLink = 'http://www.ibm.com/developerworks/forums/forum.jspa?forumID=1834';
+dwc.postingCmt = '正在发布评论……';
+dwc.noCmt = '快来添加第一条评论';
+dwc.netwkErr = '在检索评论时出错，请稍后刷新。';
+dwc.addACmt = '添加评论';
+dwc.instructCmt = '标有星号（<span class="ibm-required">*</span>）的是必填项目。';
+dwc.btnPost = '发布';
+dwc.btnPostAnon = '匿名发布';
+dwc.btnClrCmt = '清除评论';
+dwc.btnCancel = '取消';
+dwc.showRecent = '显示最新的 {1} 条评论'; // {1} is the count to be substituted
+dwc.showNext = '显示后 {1} 条评论'; // {1} is the count to be substituted
+dwc.showAllCmts = '显示所有评论';
+dwc.enterCmt = '请输入评论内容。';
+dwc.loginErr = '暂时无法验证您的登录状态，请稍后再试。';
+dwc.postErr = '暂时无法发布您的评论，请稍后再试。';
+dwc.postBy = '由 <strong>{1}</strong>  于 {2} '; // {1} is the author to be substituted; {2} is the date
+dwc.siteId = 10;
+dwc.lang = 'zh_CN';
+dwc.viperLang = 'zh';
+//dwc.abuseHref =  null;
+dwc.maxChars = 1000;
+dwc.cmtTxt =  '评论：';
+dwc.cmtsTxt =  '评论：';  
+		dwc && new dwc.comments('threadShow','95%',5,'nCmts','icomments');
+		});
+</script>
+
+<!-- BEGIN: Use this section to set page specific variables for the Unica Page Tag -->
+<script language="JavaScript">var NTPT_PGEXTRA="ibmSkillLevel=1&ibmCmaId=769227&ibmContentAreas=linux";</script>
+<!--END --><!-- SCRIPTS_INCLUDE_END -->
+
+<div id="ibm-metrics">
+<script src="//dw1.s81c.com/common/stats/stats.js" type="text/javascript">//</script>
+</div>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

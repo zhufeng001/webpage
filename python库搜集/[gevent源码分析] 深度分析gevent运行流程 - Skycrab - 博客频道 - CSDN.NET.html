@@ -1,0 +1,1074 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+     
+    <html xmlns="http://www.w3.org/1999/xhtml">
+    
+<head>    
+    <script type="text/javascript" src="http://csdnimg.cn/pubfooter/js/tracking.js" charset="utf-8"></script>  
+
+    <script type="text/javascript">
+        var protocol = window.location.protocol;
+        document.write('<script type="text/javascript" src="' + protocol + '//csdnimg.cn/pubfooter/js/repoAddr2.js?v=' + Math.random() + '"></' + 'script>');
+    </script>
+
+
+    <script id="allmobilize" charset="utf-8" src="http://a.yunshipei.com/46aae4d1e2371e4aa769798941cef698/allmobilize.min.js"></script>
+ <meta http-equiv="Cache-Control" content="no-siteapp" /><link rel="alternate" media="handheld" href="#" />
+
+    <title>[gevent源码分析] 深度分析gevent运行流程 - Skycrab
+        - 博客频道 - CSDN.NET</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="description" content="一直不太懂gevent运行流程，最近看源码略有所得，不敢独享，分享之。" />
+    <script src="http://static.blog.csdn.net/scripts/jquery.js" type="text/javascript"></script>
+    <script type="text/javascript" src="http://static.blog.csdn.net/scripts/ad.js?v=1.1"></script>
+        <!--new top-->
+               <link rel="stylesheet" href="http://static.csdn.net/public/common/toolbar/css/index.css">        <!--new top-->
+
+    <link rel="Stylesheet" type="text/css" href="http://static.blog.csdn.net/skin/light_blue/css/style.css?v=1.1" />
+    <link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="/yueguanghaidao/rss/list" />
+    <link rel="shortcut icon" href="http://csdnimg.cn/public/favicon.ico" />
+    <link type="text/css" rel="stylesheet" href="http://static.blog.csdn.net/scripts/SyntaxHighlighter/styles/default.css" />
+ 
+
+
+</head>
+<body>
+    
+   
+      <!--new top-->
+    <script id="toolbar-tpl-scriptId" fixed="true" prod="blog" skin="black" src="http://static.csdn.net/public/common/toolbar/js/html.js" type="text/javascript"></script>
+     <!--new top-->
+    <div id="container">
+        <div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h2>
+                <a href="http://blog.csdn.net/yueguanghaidao">Skycrab</a></h2>
+            <h3>Act like an overlord and do whatever one wishes</h3>
+            <div class="clear">
+            </div>
+        </div>
+        <div class="clear">
+        </div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg">
+    </div>
+    <div class="navigator">
+        <ul>
+            
+                <li id="btnContents"><a href="http://blog.csdn.net/yueguanghaidao?viewmode=contents"><span onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_mulu'])">
+                    <img src="http://static.blog.csdn.net/images/ico_list.gif">目录视图</span></a></li>
+                <li id="btnView"><a href="http://blog.csdn.net/yueguanghaidao?viewmode=list"><span onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_zhaiyao'])">
+                    <img src="http://static.blog.csdn.net/images/ico_summary.gif">摘要视图</span></a></li>
+                <li id="btnRss"><a href="http://blog.csdn.net/yueguanghaidao/rss/list"><span onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_RSS'])">
+                    <img src="http://static.blog.csdn.net/images/ico_rss.gif">订阅</span></a></li>                
+
+            </ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "yueguanghaidao";
+    var _blogger = username;
+    var blog_address = "http://blog.csdn.net/yueguanghaidao";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";  
+</script>
+
+        <div id="body">
+            <div id="main">
+                <div class="main">
+                        <div class="ad_class">
+<div class="notice tracking-ad" data-mod='popu_3' > 
+
+
+<a href="http://blog.csdn.net/csdnproduct/article/details/43561659">
+<font color=blue>博客Markdown编辑器上线啦</font></a>
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/42918959">
+<font color=red>那些年我们追过的Wrox精品红皮计算机图书
+</font></a>
+&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://edu.csdn.net/lecturer/lecturer_detail?lecturer_id=95">
+<font color=blue>PMBOK第五版精讲视频教程
+</font></a>
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://edu.csdn.net/course/detail/443">
+<font color=red>火星人敏捷开发1001问
+</font></a>
+
+
+</div>                        </div>
+                        
+
+  
+<link href="http://static.blog.csdn.net/css/comment1.css" type="text/css" rel="stylesheet" />
+<link href="http://static.blog.csdn.net/css/style1.css" type="text/css" rel="stylesheet" />
+<script language='JavaScript' type='text/javascript' src='http://download.csdn.net/js/jquery.cookie.js'></script>
+<script type="text/javascript" src="http://csdnimg.cn/rabbit/search-service/main.js"></script>
+
+
+<link rel="stylesheet" href="http://static.blog.csdn.net/public/res-min/markdown_views.css" />
+
+<script type="text/javascript" src="http://static.blog.csdn.net/public/res/bower-libs/MathJax/MathJax.js?config=TeX-AMS_HTML"></script>
+
+
+
+
+
+
+
+
+
+  <script type="text/ecmascript">
+      window.quickReplyflag = true;
+    </script>
+<div id="article_details" class="details">
+    <div class="article_title">   
+         <span class="ico ico_type_Original"></span>
+
+
+    <h1>
+        <span class="link_title"><a href="/yueguanghaidao/article/details/24281751">
+        [gevent源码分析] 深度分析gevent运行流程
+        </a></span>
+    </h1>
+</div>
+
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="/yueguanghaidao/article/category/958330" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_fenlei']);">python</a> 
+        </span>
+    <span class="link_postdate">2014-04-25 00:13</span>
+    <span class="link_view" title="阅读次数">3443人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="#comments" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_pinglun'])">评论</a>(2)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_shoucang']);collectArticle('[gevent源码分析] 深度分析gevent运行流程','24281751');return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="#report"  onclick="javascript:_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_jubao']);report(24281751,2);return false;" title="举报">举报</a></span>
+    
+</div>
+
+  
+    
+<div id="article_content" class="article_content">
+<p><span style="font-family:'Microsoft YaHei';font-size:14px;">一直对gevent运行流程比较模糊，最近看源码略有所得，不敢独享，故分享之。</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">gevent是一个高性能网络库，底层是libevent，1.0版本之后是libev，核心是<span style="line-height: 21px; "><span style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; ">greenlet。gevent和</span></span><span style="line-height: 21px; "><span style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; "><span style="line-height: 21px; ">eventlet是亲近，唯一不同的是eventlet是自己实现的事件驱动，而gevent是使用libev。两者都有广泛的应用，如openstack底层网络通信使用eventlet，goagent是使用gevent。</span></span></span></span></p><div><span style="font-family:'Microsoft YaHei';font-size:14px;"><br /></span></div><div><span style="font-family:'Microsoft YaHei';font-size:14px;">要想理解gevent首先要理解gevent的调度流程，gevent中有一个hub的概念，也就是下图的MainThread，用于调度所有其它的greenlet实例(下图Coroutine)。</span></div><div><span style="font-family:'Microsoft YaHei';font-size:14px;">其实hub也是一个greenlet,只不过特殊一些。</span></div><div><span style="font-family:'Microsoft YaHei';font-size:14px;">看下图我们会发现每次从hub切换到一个greenlet后，都会回到hub，这就是gevent的关键。</span></div><div><span style="font-family:'Microsoft YaHei';font-size:14px;">注意：gevent中并没有greenlet链的说法，所有都是向主循环注册greenlet.switch方法，主循环在合适的时机切换回来。</span></div><p></p><p><img src="http://img.blog.csdn.net/20140424214144156?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveXVlZ3VhbmdoYWlkYW8=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt="" /></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">也许大家会好奇，为什么采用这种模式，为什么每次都要切换到hub？我想理由有二：</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">1.hub是事件驱动的核心，每次切换到hub后将继续循环事件。如果在一个greenlet中不出来，那么其它greenlet将得不到调用。</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">2.维持两者关系肯定比维持多个关系简单。每次我们所关心的就是hub以及当前greenlet，不需要考虑各个greenlet之间关系。</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;"><br /></span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">我们看看最简单的gevent.sleep发生了什么？</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">我们先想想最简单的sleep(0)该如何调度？根据上面很明显</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">1.向事件循环注册当前greenlet的switch函数</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">2.切换到hub，运行主事件循环</span></p><p><span style="font-family: 'Microsoft YaHei'; font-size: 12px; "></span></p><pre code_snippet_id="310877" snippet_file_name="blog_20140425_1_4699204" name="code" class="python">def sleep(seconds=0, ref=True):
+    hub = get_hub()
+    loop = hub.loop
+    if seconds &lt;= 0:
+        waiter = Waiter()
+        loop.run_callback(waiter.switch)
+        waiter.get()
+    else:
+        hub.wait(loop.timer(seconds, ref=ref))</pre><span style="font-family:'Microsoft YaHei';font-size:14px;">当seconds小于等于0时，loop.run_callback(waiter.switch)即是将当前greenlet的switch注册到loop，使用waiter.get()切换到hub。那么很明显，</span><p></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">当切换到hub后当调用刚注册的回调（waiter.switch)回到刚刚sleep所在的greenlet。<br /><br /></span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">不熟悉Waiter的童鞋可能对上面说的有点模糊，下面我们好好看看Waiter是什么。</span></p><p></p><pre code_snippet_id="310877" snippet_file_name="blog_20140425_2_4460006" name="code" class="python">&gt;&gt;&gt; result = Waiter()
+&gt;&gt;&gt; timer = get_hub().loop.timer(0.1)
+&gt;&gt;&gt; timer.start(result.switch, 'hello from Waiter')
+&gt;&gt;&gt; result.get() # blocks for 0.1 seconds
+    'hello from Waiter'</pre><span style="font-family:'Microsoft YaHei';font-size:14px;">timer.start(result.switch, 'hello from Waiter')我们向hub的主循环注册一个0.1s的定时器，回调为result.switch，然后将执行result.get()，此时过程代码如下：</span><p></p><p></p><pre code_snippet_id="310877" snippet_file_name="blog_20140425_3_4361730" name="code" class="python">def get(self):
+            assert self.greenlet is None, 'This Waiter is already used by %r' % (self.greenlet, )
+            self.greenlet = getcurrent()
+            try:
+                return self.hub.switch()
+            finally:
+                self.greenlet = None
+</pre><br /><span style="font-family:'Microsoft YaHei';font-size:14px;">将把self.greenlet设置为当前greenlet，然后通过self.hub.switch()切换到主循环，很明显在主循环中将回调result.switch，看代码：</span><p></p><p></p><pre code_snippet_id="310877" snippet_file_name="blog_20140425_4_916167" name="code" class="python">def switch(self, value=None):
+            &quot;&quot;&quot;Switch to the greenlet if one's available. Otherwise store the value.&quot;&quot;&quot;
+            greenlet = self.greenlet
+            assert getcurrent() is self.hub, &quot;Can only use Waiter.switch method from the Hub greenlet&quot;
+            switch = greenlet.switch
+            try:
+                switch(value)
+            except:
+                self.hub.handle_error(switch, *sys.exc_info())</pre><span style="font-family:'Microsoft YaHei';font-size:14px;">拿到刚保存的greenlet，然后切换到greenlet.switch（），返回到我们刚调用reuslt.get()方法。通过上面assert我们也可以看出这是在hub中调用的。</span><p></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">通过以上分析，小伙伴们肯定都懂了gevent的执行流程了。</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">这里有个问题，如果上面先发生result.switch，那又该如何呢？就像下面这样：</span></p><p></p><pre code_snippet_id="310877" snippet_file_name="blog_20140425_5_502246" name="code" class="python">&gt;&gt;&gt; result = Waiter()
+&gt;&gt;&gt; timer = get_hub().loop.timer(0.1)
+&gt;&gt;&gt; timer.start(result.switch, 'hi from Waiter')
+&gt;&gt;&gt; sleep(0.2)
+&gt;&gt;&gt; result.get() # returns immediatelly without blocking
+    'hi from Waiter'</pre><span style="font-family:'Microsoft YaHei';font-size:14px;">我想聪明的你，打开hub.py再看看源码肯定就明白了(上面Waiter代码是我特意简化的)。<br /></span><p></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">既然我们知道了gevent运行流程，下面我们看看gevent.spawn和join到底做了什么？</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">gevent.spawn其实就是Greenlet.spawn，所以gevent.spawn就是创建一个greenlet，并将该greenlet的switch()加入hub主循环回调。</span></p><p></p><pre code_snippet_id="310877" snippet_file_name="blog_20140425_6_2563560" name="code" class="python">class Greenlet(greenlet):
+    &quot;&quot;&quot;A light-weight cooperatively-scheduled execution unit.&quot;&quot;&quot;
+
+    def __init__(self, run=None, *args, **kwargs):
+        hub = get_hub()
+        greenlet.__init__(self, parent=hub)
+        if run is not None:
+            self._run = run
+        self._start_event = None
+
+    def start(self):
+        &quot;&quot;&quot;Schedule the greenlet to run in this loop iteration&quot;&quot;&quot;
+        if self._start_event is None:
+            self._start_event = self.parent.loop.run_callback(self.switch)
+
+    @classmethod
+    def spawn(cls, *args, **kwargs):
+        &quot;&quot;&quot;Return a new :class:`Greenlet` object, scheduled to start.
+
+        The arguments are passed to :meth:`Greenlet.__init__`.
+        &quot;&quot;&quot;
+        g = cls(*args, **kwargs)
+        g.start()
+        return g</pre><p></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">通过下面代码证明：</span></p><p></p><pre code_snippet_id="310877" snippet_file_name="blog_20140425_7_6609741" name="code" class="python">import gevent
+
+def talk(msg):
+    print(msg)
+
+g1 = gevent.spawn(talk, 'bar')
+gevent.sleep(0)</pre><br /><span style="font-family:'Microsoft YaHei';font-size:14px;">将输出：bar，我们通过sleep切换到hub，然后hub将运行我们添加的回调talk，一切正常。</span><p></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">此时不要沾沾自喜，如果下面代码也觉得一切正常再高兴也不迟。</span></p><p></p><pre code_snippet_id="310877" snippet_file_name="blog_20140425_8_5116025" name="code" class="python">import gevent
+
+def talk(msg):
+    print(msg)
+    gevent.sleep(0)
+    print msg
+
+g1 = gevent.spawn(talk, 'bar')
+gevent.sleep(0)</pre><span style="font-size:14px;"><br /><span style="font-family:'Microsoft YaHei';">这次还是输出：bar，有点不对劲啊，应该输出两个bar才对，为什么为导致这样呢？</span></span><p></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">我们来好好分析流程：</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">1.gevent.spawn注册回调talk</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">2.然后最后一行gevent.sleep(0)注册当前greenlet.switch(最外面的)到hub，然后切换到hub</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">3.hub执行回调talk，打印&quot;bar&quot;，此时gevent.sleep再次将g1.switch注册到hub，同时切换到hub</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">4.由于第2步最外层greenlet现注册，所以将调用最外层greenlet，此时很明显，程序将结束。因为最外层greenlet并不是hub的子greenlet，</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">所以died后并不会回到父greenlet,即hub</span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;"><br /></span></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">你可能会说那我自己手动切换到hub不就可以了吗？这将导致主循环结束不了的问题。</span></p><p></p><pre code_snippet_id="310877" snippet_file_name="blog_20140425_9_4145697" name="code" class="python">import gevent
+
+def talk(msg):
+    print(msg)
+    gevent.sleep(0)
+    print msg
+
+g1 = gevent.spawn(talk, 'bar')
+gevent.get_hub().switch()</pre><span style="font-family:'Microsoft YaHei';font-size:14px;">程序输出：</span><p></p><p></p><pre code_snippet_id="310877" snippet_file_name="blog_20140425_10_3208388" name="code" class="python">bar
+bar
+Traceback (most recent call last):
+  File &quot;F:\py_cgi\geve.py&quot;, line 9, in &lt;module&gt;
+    gevent.get_hub().switch()
+  File &quot;C:\Python26\lib\site-packages\gevent\hub.py&quot;, line 331, in switch
+    return greenlet.switch(self)
+gevent.hub.LoopExit: This operation would block forever</pre><span style="font-family:'Microsoft YaHei';font-size:14px;">虽然成功的输出了两次“bar&quot;，但也导致了更为严重的问题。<br /></span><p></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">这也就是join存在的价值，我们看看join是如何做到的？</span></p><p></p><pre code_snippet_id="310877" snippet_file_name="blog_20140425_11_8126621" name="code" class="python">    def join(self, timeout=None):
+        &quot;&quot;&quot;Wait until the greenlet finishes or *timeout* expires.
+        Return ``None`` regardless.
+        &quot;&quot;&quot;
+        if self.ready():
+            return
+        else:
+            switch = getcurrent().switch
+            self.rawlink(switch)
+            try:
+                t = Timeout.start_new(timeout)
+                try:
+                    result = self.parent.switch()
+                    assert result is self, 'Invalid switch into Greenlet.join(): %r' % (result, )
+                finally:
+                    t.cancel()
+            except Timeout:
+                self.unlink(switch)
+                if sys.exc_info()[1] is not t:
+                    raise
+            except:
+                self.unlink(switch)
+                raise
+
+
+    def rawlink(self, callback):
+        &quot;&quot;&quot;Register a callable to be executed when the greenlet finishes the execution.
+
+        WARNING: the callable will be called in the HUB greenlet.
+        &quot;&quot;&quot;
+        if not callable(callback):
+            raise TypeError('Expected callable: %r' % (callback, ))
+        self._links.append(callback)
+        if self.ready() and self._links and not self._notifier:
+            self._notifier = self.parent.loop.run_callback(self._notify_links)
+
+    def _notify_links(self):
+        while self._links:
+            link = self._links.popleft()
+            try:
+                link(self)
+            except:
+                self.parent.handle_error((link, self), *sys.exc_info())</pre><br /><span style="font-family:'Microsoft YaHei';font-size:14px;">从代码中可以看出，join会保存当前greenlet.switch到一个队列中，并注册_notify_links回调，然后切换到hub，在_notify_links回调中将依次调用先前注册在队列中的回调。</span><p></p><p><span style="font-family:'Microsoft YaHei';font-size:14px;">而我们调用g1.join()将会把最外层greenlet.switch注册到队列中，当回调时就顺利结束程序了。很完美！！！</span></p><p><br /></p><p><br /></p></div>
+
+
+
+
+<!-- Baidu Button BEGIN -->
+
+<div class="bdsharebuttonbox" style="float: right;">
+<a href="#" class="bds_more" data-cmd="more" style="background-position:0 0 !important; background-image: url(http://bdimg.share.baidu.com/static/api/img/share/icons_0_16.png?v=d754dcc0.png) !important"></a>
+<a href="#" class="bds_qzone" data-cmd="qzone" title="分享到QQ空间"  style="background-position:0 -52px !important"></a>
+<a href="#" class="bds_tsina" data-cmd="tsina" title="分享到新浪微博"style="background-position:0 -104px !important"></a>
+<a href="#" class="bds_tqq" data-cmd="tqq" title="分享到腾讯微博"style="background-position:0 -260px !important"></a>
+<a href="#" class="bds_renren" data-cmd="renren" title="分享到人人网"style="background-position:0 -208px !important"></a>
+<a href="#" class="bds_weixin" data-cmd="weixin" title="分享到微信"style="background-position:0 -1612px !important" ></a>
+</div>
+<script>window._bd_share_config = { "common": { "bdSnsKey": {}, "bdText": "", "bdMini": "1", "bdMiniList": false, "bdPic": "", "bdStyle": "0", "bdSize": "16" }, "share": {} }; with (document) 0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = 'http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion=' + ~(-new Date() / 36e5)];</script>
+<!-- Baidu Button END -->
+
+<!--192.168.100.36-->
+<ul class="article_next_prev">
+            <li class="prev_article"><span  onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_shangyipian']);location.href='/yueguanghaidao/article/details/23436179';">上一篇</span><a href="/yueguanghaidao/article/details/23436179" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_shangyipian'])">[Python网络编程]使用select,poll</a></li>
+            <li class="next_article"><span onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_xiayipian']);location.href='/yueguanghaidao/article/details/25246867';">下一篇</span><a href="/yueguanghaidao/article/details/25246867" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_xiayipian'])">[python网络编程]使用scapy修改源IP发送请求</a></li>
+</ul>
+
+<!-- Baidu Button BEGIN -->
+<script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=1536434" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+    document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date()/3600000)
+</script>
+<!-- Baidu Button END -->
+
+
+        <div id="digg" ArticleId="24281751">
+            <dl id="btnDigg" class="digg digg_disable">
+                <dt onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_ding'])">顶</dt>
+                <dd>7</dd>
+            </dl>
+            <dl id="btnBury" class="digg digg_disable">
+                <dt onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_cai'])">踩</dt>
+                <dd>2</dd>
+            </dl>
+        </div>
+</div>
+      <dl class="blog-associat-tag">
+        <dt>主题推荐</dt>
+        <dd>
+                <a href="http://www.csdn.net/tag/源码" target="_blank" class="blog-tage-red" >源码</a> 
+                <a href="http://www.csdn.net/tag/openstack" target="_blank" class="blog-tage-red" >openstack</a> 
+                <a href="http://www.csdn.net/tag/高性能" target="_blank" class="blog-tage-red" >高性能</a> 
+                <a href="http://www.csdn.net/tag/网络" target="_blank" class="blog-tage-red" >网络</a> 
+                <a href="http://www.csdn.net/tag/object" target="_blank" class="blog-tage-red" >object</a> 
+        </dd>
+    </dl> 
+
+
+<dl class="blog-ass-articl tracking-ad"  data-mod="popu_36" id="res-relatived"> 
+     <dt><span>猜你在找</span></dt>    
+</dl>
+<div id="job_blog_reco">
+<script src="http://csdnimg.cn/jobreco/job_reco.js" type="text/javascript"></script>
+   
+     <script type="text/javascript">
+         csdn.position.show({
+         sourceType: "blog",
+         tplType: "blogDetail",
+         searchType: "detail",
+         searchKey: "24281751",
+             username: "",
+         containerId: "job_blog_reco"
+        }); 
+    </script>
+
+</div>
+
+<script type="text/javascript">
+    var searchtitletags = '[gevent源码分析] 深度分析gevent运行流程' + ',' + '源码,openstack,高性能,网络,object';
+    searchService({
+        index: 'blog',
+        query: searchtitletags,
+        from: 10,
+        size: 10,
+        appendTo: '#res-relatived',
+        url: 'recommend',
+        his: 2,
+        client: "blog_cf_enhance",
+        tmpl: '<dd style="background:url(http://static.blog.csdn.net/skin/default/images/blog-dot-red3.gif) no-repeat 0 10px;"><a href="#{ url }" title="#{ title }" strategy="#{ strategy }">#{ title }</a></dd>'
+    });
+
+ </script>   
+
+
+
+    <div id="ad_cen">
+   
+          <script type="text/javascript">
+              new Ad(4, 'ad_cen');
+          </script>
+    </div>
+<div class="comment_class">
+    <div id="comment_title" class="panel_head">
+        <span class="see_comment">查看评论</span><a name="comments"></a></div>
+    <div id="comment_list">
+    </div>
+    <div id="comment_bar">
+    </div>
+    <div id="comment_form">
+    </div>
+
+    <div class="announce">
+        * 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+</div>
+
+<script type="text/javascript">
+    var fileName = '24281751';
+    var commentscount = 2;
+    var islock = false
+</script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/comment.js"></script>
+    <div id="ad_bot">
+    </div>
+    <script type="text/javascript">
+    new Ad(5, 'ad_bot');
+    </script>
+<div id="report_dialog">
+</div>
+
+<div id="d-top"  style="bottom:60px;">
+        <a id="quick-reply" class="btn btn-top q-reply" title="快速回复" style="display:none;">
+            <img src="http://static.blog.csdn.net/images/blog-icon-reply.png" alt="快速回复">
+        </a>    
+
+    <a id="d-top-a" class="btn btn-top backtop"  style="display: none;" title="返回顶部" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_huidaodingbu'])" style="">         
+         <img src="http://static.blog.csdn.net/images/top.png" alt="TOP">
+    </a>
+</div>
+<script type="text/javascript">
+    $(function ()
+    {
+        $("#ad_frm_0").height("90px");
+        
+        setTimeout(function(){
+            $("#ad_frm_2").height("200px");
+        },1000);
+        
+        /*
+        if($("#comment_content").length>0)
+        {
+            $("#quick-reply").show();
+
+            $("#quick-reply").click(function(){
+                setEditorFocus();
+            });
+        }       
+     
+        var d_top = $('#d-top-a');
+
+        document.onscroll = function ()
+        {
+            var scrTop = (document.body.scrollTop || document.documentElement.scrollTop);
+            if (scrTop > 500)
+            {
+                d_top.show();
+            } else
+            {
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function ()
+        {
+            scrollTo(0, 0);
+            this.blur();
+            return false;
+        });
+        */
+    });
+  
+</script>
+<style type="text/css">
+    .tag_list
+    {
+        background: none repeat scroll 0 0 #FFFFFF;
+        border: 1px solid #D7CBC1;
+        color: #000000;
+        font-size: 12px;
+        line-height: 20px;
+        list-style: none outside none;
+        margin: 10px 2% 0 1%;
+        padding: 1px;
+    }
+    .tag_list h5
+    {
+        background: none repeat scroll 0 0 #E0DBD3;
+        color: #47381C;
+        font-size: 12px;
+        height: 24px;
+        line-height: 24px;
+        padding: 0 5px;
+        margin: 0;
+    }
+    .tag_list h5 a
+    {
+        color: #47381C;
+    }
+    .classify
+    {
+        margin: 10px 0;
+        padding: 4px 12px 8px;
+    }
+    .classify a
+    {
+        margin-right: 20px;
+        white-space: nowrap;
+    }
+</style>
+<div class="tag_list">
+    <h5>
+        <a href="http://www.csdn.net/tag/" target="_blank">核心技术类目</a></h5>
+    <div class="classify">
+<a title="全部主题" href="http://www.csdn.net/tag" target="_blank" onclick="LogClickCount(this,336);">全部主题</a>
+<a title="Hadoop" href="http://g.csdn.net/5272865" target="_blank" onclick="LogClickCount(this,336);">Hadoop</a>
+<a title="AWS" href="http://g.csdn.net/5272866" target="_blank" onclick="LogClickCount(this,336);">AWS</a>
+<a title="移动游戏" href="http://g.csdn.net/5272870" target="_blank" onclick="LogClickCount(this,336);">移动游戏</a>
+<a title="Java" href="http://g.csdn.net/5272871" target="_blank" onclick="LogClickCount(this,336);">Java</a>
+<a title="Android" href="http://g.csdn.net/5272872" target="_blank" onclick="LogClickCount(this,336);">Android</a>
+<a title="iOS" href="http://g.csdn.net/5272873" target="_blank" onclick="LogClickCount(this,336);">iOS</a>
+<a title="Swift" href="http://g.csdn.net/5272868" target="_blank" onclick="LogClickCount(this,336);">Swift</a>
+<a title="智能硬件" href="http://g.csdn.net/5272869" target="_blank" onclick="LogClickCount(this,336);">智能硬件</a>
+<a title="Docker" href="http://g.csdn.net/5272867" target="_blank" onclick="LogClickCount(this,336);">Docker</a>
+<a title="OpenStack" href="http://g.csdn.net/5272925" target="_blank" onclick="LogClickCount(this,336);">OpenStack</a>
+<a title="VPN" href="http://www.csdn.net/tag/vpn" target="_blank" onclick="LogClickCount(this,336);">VPN</a>
+<a title="Spark" href="http://g.csdn.net/5272924" target="_blank" onclick="LogClickCount(this,336);">Spark</a>
+<a title="ERP" href="http://www.csdn.net/tag/erp" target="_blank" onclick="LogClickCount(this,336);">ERP</a>
+<a title="IE10" href="http://www.csdn.net/tag/ie10" target="_blank" onclick="LogClickCount(this,336);">IE10</a>
+<a title="Eclipse" href="http://www.csdn.net/tag/eclipse" target="_blank" onclick="LogClickCount(this,336);">Eclipse</a>
+<a title="CRM" href="http://www.csdn.net/tag/crm" target="_blank" onclick="LogClickCount(this,336);">CRM</a>
+<a title="JavaScript" href="http://www.csdn.net/tag/javascript" target="_blank" onclick="LogClickCount(this,336);">JavaScript</a>
+<a title="数据库" href="http://www.csdn.net/tag/数据库" target="_blank" onclick="LogClickCount(this,336);">数据库</a>
+<a title="Ubuntu" href="http://www.csdn.net/tag/ubuntu" target="_blank" onclick="LogClickCount(this,336);">Ubuntu</a>
+<a title="NFC" href="http://www.csdn.net/tag/nfc" target="_blank" onclick="LogClickCount(this,336);">NFC</a>
+<a title="WAP" href="http://www.csdn.net/tag/wap" target="_blank" onclick="LogClickCount(this,336);">WAP</a>
+<a title="jQuery" href="http://www.csdn.net/tag/jquery" target="_blank" onclick="LogClickCount(this,336);">jQuery</a>
+<a title="BI" href="http://www.csdn.net/tag/bi" target="_blank" onclick="LogClickCount(this,336);">BI</a>
+<a title="HTML5" href="http://www.csdn.net/tag/html5" target="_blank" onclick="LogClickCount(this,336);">HTML5</a>
+<a title="Spring" href="http://www.csdn.net/tag/spring" target="_blank" onclick="LogClickCount(this,336);">Spring</a>
+<a title="Apache" href="http://www.csdn.net/tag/apache" target="_blank" onclick="LogClickCount(this,336);">Apache</a>
+<a title=".NET" href="http://www.csdn.net/tag/.net" target="_blank" onclick="LogClickCount(this,336);">.NET</a>
+<a title="API" href="http://www.csdn.net/tag/api" target="_blank" onclick="LogClickCount(this,336);">API</a>
+<a title="HTML" href="http://www.csdn.net/tag/html" target="_blank" onclick="LogClickCount(this,336);">HTML</a>
+<a title="SDK" href="http://www.csdn.net/tag/sdk" target="_blank" onclick="LogClickCount(this,336);">SDK</a>
+<a title="IIS" href="http://www.csdn.net/tag/iis" target="_blank" onclick="LogClickCount(this,336);">IIS</a>
+<a title="Fedora" href="http://www.csdn.net/tag/fedora" target="_blank" onclick="LogClickCount(this,336);">Fedora</a>
+<a title="XML" href="http://www.csdn.net/tag/xml" target="_blank" onclick="LogClickCount(this,336);">XML</a>
+<a title="LBS" href="http://www.csdn.net/tag/lbs" target="_blank" onclick="LogClickCount(this,336);">LBS</a>
+<a title="Unity" href="http://www.csdn.net/tag/unity" target="_blank" onclick="LogClickCount(this,336);">Unity</a>
+<a title="Splashtop" href="http://www.csdn.net/tag/splashtop" target="_blank" onclick="LogClickCount(this,336);">Splashtop</a>
+<a title="UML" href="http://www.csdn.net/tag/uml" target="_blank" onclick="LogClickCount(this,336);">UML</a>
+<a title="components" href="http://www.csdn.net/tag/components" target="_blank" onclick="LogClickCount(this,336);">components</a>
+<a title="Windows Mobile" href="http://www.csdn.net/tag/windowsmobile" target="_blank" onclick="LogClickCount(this,336);">Windows Mobile</a>
+<a title="Rails" href="http://www.csdn.net/tag/rails" target="_blank" onclick="LogClickCount(this,336);">Rails</a>
+<a title="QEMU" href="http://www.csdn.net/tag/qemu" target="_blank" onclick="LogClickCount(this,336);">QEMU</a>
+<a title="KDE" href="http://www.csdn.net/tag/kde" target="_blank" onclick="LogClickCount(this,336);">KDE</a>
+<a title="Cassandra" href="http://www.csdn.net/tag/cassandra" target="_blank" onclick="LogClickCount(this,336);">Cassandra</a>
+<a title="CloudStack" href="http://www.csdn.net/tag/cloudstack" target="_blank" onclick="LogClickCount(this,336);">CloudStack</a>
+<a title="FTC" href="http://www.csdn.net/tag/ftc" target="_blank" onclick="LogClickCount(this,336);">FTC</a>
+<a title="coremail" href="http://www.csdn.net/tag/coremail" target="_blank" onclick="LogClickCount(this,336);">coremail</a>
+<a title="OPhone " href="http://www.csdn.net/tag/ophone " target="_blank" onclick="LogClickCount(this,336);">OPhone </a>
+<a title="CouchBase" href="http://www.csdn.net/tag/couchbase" target="_blank" onclick="LogClickCount(this,336);">CouchBase</a>
+<a title="云计算" href="http://www.csdn.net/tag/云计算" target="_blank" onclick="LogClickCount(this,336);">云计算</a>
+<a title="iOS6" href="http://www.csdn.net/tag/iOS6" target="_blank" onclick="LogClickCount(this,336);">iOS6</a>
+<a title="Rackspace " href="http://www.csdn.net/tag/rackspace " target="_blank" onclick="LogClickCount(this,336);">Rackspace </a>
+<a title="Web App" href="http://www.csdn.net/tag/webapp" target="_blank" onclick="LogClickCount(this,336);">Web App</a>
+<a title="SpringSide" href="http://www.csdn.net/tag/springside" target="_blank" onclick="LogClickCount(this,336);">SpringSide</a>
+<a title="Maemo" href="http://www.csdn.net/tag/maemo" target="_blank" onclick="LogClickCount(this,336);">Maemo</a>
+<a title="Compuware" href="http://www.csdn.net/tag/compuware" target="_blank" onclick="LogClickCount(this,336);">Compuware</a>
+<a title="大数据" href="http://www.csdn.net/tag/大数据" target="_blank" onclick="LogClickCount(this,336);">大数据</a>
+<a title="aptech" href="http://www.csdn.net/tag/aptech" target="_blank" onclick="LogClickCount(this,336);">aptech</a>
+<a title="Perl" href="http://www.csdn.net/tag/perl" target="_blank" onclick="LogClickCount(this,336);">Perl</a>
+<a title="Tornado" href="http://www.csdn.net/tag/tornado" target="_blank" onclick="LogClickCount(this,336);">Tornado</a>
+<a title="Ruby" href="http://www.csdn.net/tag/ruby" target="_blank" onclick="LogClickCount(this,336);">Ruby</a>
+<a title="Hibernate" href="http://www.csdn.net/hibernate" target="_blank" onclick="LogClickCount(this,336);">Hibernate</a>
+<a title="ThinkPHP" href="http://www.csdn.net/tag/thinkphp" target="_blank" onclick="LogClickCount(this,336);">ThinkPHP</a>
+<a title="HBase" href="http://www.csdn.net/tag/hbase" target="_blank" onclick="LogClickCount(this,336);">HBase</a>
+<a title="Pure" href="http://www.csdn.net/tag/pure" target="_blank" onclick="LogClickCount(this,336);">Pure</a>
+<a title="Solr" href="http://www.csdn.net/tag/solr" target="_blank" onclick="LogClickCount(this,336);">Solr</a>
+<a title="Angular" href="http://www.csdn.net/tag/angular" target="_blank" onclick="LogClickCount(this,336);">Angular</a>
+<a title="Cloud Foundry" href="http://www.csdn.net/tag/cloudfoundry" target="_blank" onclick="LogClickCount(this,336);">Cloud Foundry</a>
+<a title="Redis" href="http://www.csdn.net/tag/redis" target="_blank" onclick="LogClickCount(this,336);">Redis</a>
+<a title="Scala" href="http://www.csdn.net/tag/scala" target="_blank" onclick="LogClickCount(this,336);">Scala</a>
+<a title="Django" href="http://www.csdn.net/tag/django" target="_blank" onclick="LogClickCount(this,336);">Django</a>
+<a title="Bootstrap" href="http://www.csdn.net/tag/bootstrap" target="_blank" onclick="LogClickCount(this,336);">Bootstrap</a>
+    </div>
+</div>
+
+<div id="pop_win" style="display:none ;position: absolute; z-index: 10000; border: 1px solid rgb(220, 220, 220); top: 222.5px; left: 630px; opacity: 1; background: none 0px 0px repeat scroll rgb(255, 255, 255);">
+    
+</div>
+<div id="popup_mask"></div>
+<style>
+    #popup_mask
+    {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        z-index: 9999;
+        left: 0px;
+        top: 0px;
+        opacity: 0.3;
+        filter: alpha(opacity=30);
+        display: none;
+    }
+
+</style>
+
+
+
+
+<script type="text/javascript">
+    $(function(){
+        setTimeout(function(){
+            $(".comment_body:contains('回复')").each(function(index,item){
+                var u=$(this).text().split('：')[0].toString().replace("回复","")
+                var thisComment=$(this);
+                if(u)
+                {
+                    $.getJSON("https://passport.csdn.net/get/nick?callback=?", {users: u}, function(a) {
+                        if(a!=null&&a.data!=null&&a.data.length>0)
+                        {
+                            nick=a.data[0].n; 
+                            if(u!=nick)
+                            {
+                                thisComment.text(thisComment.text().replace(u,nick));  
+                            }
+                        }       
+                    });  
+                }
+            });
+        },200);  
+        
+        setTimeout(function(){
+            $("a img[src='http://js.tongji.linezing.com/stats.gif']").parent().css({"position":"absolute","left":"50%"});
+        },300);
+    });
+
+    function loginbox(){
+        var $logpop=$("#pop_win");
+        $logpop.html('<iframe src="https://passport.csdn.net/account/loginbox?service=http://static.blog.csdn.net/callback.htm" frameborder="0" height="600" width="400" scrolling="no"></iframe>');
+
+        $('#popup_mask').css({
+            opacity: 0.5,
+            width: $( document ).width() + 'px',
+            height:  $( document ).height() + 'px'
+        });
+        $('#popup_mask').css("display","block");
+ 
+        $logpop.css( {
+            top: ($( window ).height() - $logpop.height())/ 2  + $( window 
+       ).scrollTop() + 'px',
+            left:($( window ).width() - $logpop.width())/ 2
+        } );
+ 
+        setTimeout( function () {
+            $logpop.show();
+            $logpop.css( {
+                opacity: 1
+            } );
+        }, 200 );
+ 
+        $('#popup_mask').unbind("click");
+        $('#popup_mask').bind("click", function(){
+            $('#popup_mask').hide();
+            var $clopop = $("#pop_win");
+            $("#common_ask_div_sc").css("display","none");
+            $clopop.css( {
+                opacity: 0
+            } );
+            setTimeout( function () {
+                $clopop.hide();
+            }, 350 );
+            return false;
+        });
+    }    
+
+</script>
+                        <div class="clear">
+                        </div>
+                    </div>                   
+                
+            </div>
+            <div id="side">
+    <div class="side">
+<div id="panel_Profile" class="panel">
+<ul class="panel_head"><span>个人资料</span></ul>
+<ul class="panel_body profile">
+<div id="blog_userface">
+    <a href="http://my.csdn.net/yueguanghaidao" target="_blank">
+    <img src="http://avatar.csdn.net/7/1/C/1_yueguanghaidao.jpg" title="访问我的空间" style="max-width:90%"/>
+    </a>
+    <br />
+    <span><a href="http://my.csdn.net/yueguanghaidao" class="user_name" target="_blank">yueguanghaidao</a></span>
+</div>
+<div class="interact">
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_guanzhu'])"></a>
+
+ <a href="javascript:void(0);" class="letter"  title="[发私信]" onclick="window.open('http://msg.csdn.net/letters/model?receiver=yueguanghaidao','_blank','height=350,width=700');_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_sixin'])"></a>  
+</div>
+<div id="blog_medal">
+                       <div class="ico_expert" title="CSDN认证专家" style="width:54px;height:60px;background:url('http://csdnimg.cn/jifen/images/xunzhang/xunzhang/bokezhuanjiamiddle.png') no-repeat" ></div>
+                <div id="bms_box">
+                                            <a  target="_blank">
+                                                    <img src="http://csdnimg.cn/jifen/images/xunzhang/xunzhang/zhuanlandaren.png" onmouseover="m_over_m(this,2)" onmouseout="m_out_m()" alt="1" >
+                                            </a>
+               </div>
+</div>
+<ul id="blog_rank">
+    <li>访问：<span>264817次</span></li>
+    <li>积分：<span>3877</span> </li>    
+    <li >等级： <span style="position:relative;display:inline-block;z-index:1" >
+            <img src="http://csdnimg.cn/jifen/images/xunzhang/jianzhang/blog5.png" alt="" style="vertical-align: middle;" id="leveImg">
+            <div id="smallTittle" style=" position: absolute;  left: -24px;  top: 25px;  text-align: center;  width: 101px;  height: 32px;  background-color: #fff;  line-height: 32px;  border: 2px #DDDDDD solid;  box-shadow: 0px 2px 2px rgba (0,0,0,0.1);  display: none;   z-index: 999;">
+            <div style="left: 42%;  top: -8px;  position: absolute;  width: 0;  height: 0;  border-left: 10px solid transparent;  border-right: 10px solid transparent;  border-bottom: 8px solid #EAEAEA;"></div>
+            积分：3877 </div>
+        </span>  </li>
+    <li>排名：<span>第3031名</span></li>
+</ul>
+<ul id="blog_statistics">
+    <li>原创：<span>100篇</span></li>
+    <li>转载：<span>11篇</span></li>
+    <li>译文：<span>3篇</span></li>
+    <li>评论：<span>146条</span></li>
+</ul>
+</ul>
+</div>
+
+
+
+
+<div id="custom_column_27365807" class="panel">
+<ul class="panel_head"><span>有用链接</span></ul>
+<ul class="panel_body">
+
+<a href="https://github.com/Skycrab">My GitHub</a><br>
+<br>
+<a href="mailto:skycrab68@gmail.com">Email Me</a><br>
+<br>
+<a href="http://www.wooyun.org/">乌云漏洞平台</a> <br>
+<br>
+<a href="http://code.google.com/p/zhong-wiki/wiki/PEP8">PEP8中文版</a><br>
+<br>
+<a href="http://www.lfd.uci.edu/~gohlke/pythonlibs/">Python库下载</a><br>
+<br>
+<a href="http://zh-google-styleguide.readthedocs.org/en/latest/google-cpp-styleguide/contents/">Google C&#43;&#43;编码规范</a><br>
+<br>
+
+</ul>
+</div><div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字" /></span>
+        <input id="btnSubmit" type="button" value="搜索" title="search in blog" />
+        <input type="hidden" name="q" id="inputQ" />
+        <input type="hidden" name="t" value="blog" />
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        $("#btnSubmit").click(function () {           
+            search();
+        });
+
+        $("#frmSearch").submit(function () {
+            search();
+            return false;
+        });
+
+        function search()
+        {
+            var url = "http://so.csdn.net/so/search/s.do?q=" + encodeURIComponent($("#inputSearch").val()) + "&u=" + username + "&t=blog";
+            window.location.href = url;
+        }   
+    });
+</script><div id="panel_Category" class="panel">
+    <ul class="panel_head"><span>博客专栏</span></ul>
+    <ul class="panel_body" id="sp_column">
+    <table cellpadding="0" cellspacing="0"><tr>
+    <td style="padding:10px 10px 0 0;">
+    <a href="http://blog.csdn.net/column/details/pytho-socket.html" target="_blank"><img src="http://avatar.csdn.net/blogpic/20140518222143500.jpg" style="width:75px;height:75px;" /></a>
+    </td>
+    <td style="padding:10px 0; vertical-align:top;">
+    <a href="http://blog.csdn.net/column/details/pytho-socket.html" target="_blank">Python网络编程</a>
+    <p>文章：9篇</p>
+    <span>阅读：13345</span>
+    </td>
+    </tr></table>
+    <table cellpadding="0" cellspacing="0"><tr>
+    <td style="padding:10px 10px 0 0;">
+    <a href="http://blog.csdn.net/column/details/pythonic.html" target="_blank"><img src="http://avatar.csdn.net/blogpic/20130908232218578.jpg" style="width:75px;height:75px;" /></a>
+    </td>
+    <td style="padding:10px 0; vertical-align:top;">
+    <a href="http://blog.csdn.net/column/details/pythonic.html" target="_blank">Python之美[从菜鸟到高手]</a>
+    <p>文章：15篇</p>
+    <span>阅读：40800</span>
+    </td>
+    </tr></table>
+    <table cellpadding="0" cellspacing="0"><tr>
+    <td style="padding:10px 10px 0 0;">
+    <a href="http://blog.csdn.net/column/details/practisepython.html" target="_blank"><img src="http://avatar.csdn.net/blogpic/20130709225719671.jpg" style="width:75px;height:75px;" /></a>
+    </td>
+    <td style="padding:10px 0; vertical-align:top;">
+    <a href="http://blog.csdn.net/column/details/practisepython.html" target="_blank">Python实战</a>
+    <p>文章：4篇</p>
+    <span>阅读：15034</span>
+    </td>
+    </tr></table>
+    </ul>
+</div>
+<div id="panel_Category" class="panel">
+<ul class="panel_head"><span>文章分类</span></ul>
+<ul class="panel_body">
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/854532" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">Linux</a><span>(20)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/854533" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">Cisco</a><span>(5)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/863929" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">java</a><span>(0)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/863930" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">c++/c</a><span>(25)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/884229" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">oracle</a><span>(3)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/884230" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">windows</a><span>(2)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/901651" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">php</a><span>(4)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/925874" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">mysql</a><span>(5)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/958330" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">python</a><span>(55)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/1129695" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">MongoDB</a><span>(1)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/1217938" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">computer system</a><span>(1)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/1217939" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">算法</a><span>(3)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/1225826" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">设计模式</a><span>(1)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/1489713" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">扯淡</a><span>(1)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/1525781" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">网络安全</a><span>(4)</span>
+            </li>
+             <li>
+                <a href="http://blog.csdn.net/yueguanghaidao/article/category/1530813" onclick="_gaq.push(['_trackEvent','function', 'onclick', 'blog_articles_wenzhangfenlei']); ">Javascript</a><span>(2)</span>
+            </li>
+</ul>
+</div><div id="panel_Archive" class="panel">
+<ul class="panel_head"><span>文章存档</span></ul>
+<ul class="panel_body">
+<div id="archive_list">
+<!--归档统计-->
+<li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2014/12">2014年12月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2014/11">2014年11月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2014/10">2014年10月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2014/09">2014年09月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2014/08">2014年08月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2014/07">2014年07月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2014/06">2014年06月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2014/05">2014年05月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2014/04">2014年04月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2014/03">2014年03月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2013/11">2013年11月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2013/10">2013年10月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2013/09">2013年09月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2013/08">2013年08月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2013/07">2013年07月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2012/12">2012年12月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2012/10">2012年10月</a><span>(1)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2012/09">2012年09月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2012/08">2012年08月</a><span>(3)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2012/06">2012年06月</a><span>(2)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2012/05">2012年05月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2012/04">2012年04月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2012/03">2012年03月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2012/02">2012年02月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2011/12">2011年12月</a><span>(11)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2011/11">2011年11月</a><span>(8)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2011/10">2011年10月</a><span>(7)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2011/09">2011年09月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/yueguanghaidao/article/month/2011/07">2011年07月</a><span>(1)</span></li>
+</div>
+</ul>
+</div>
+<div id="hotarticls" class="panel">
+<ul class="panel_head">
+    <span>       
+阅读排行    </span>
+</ul>
+
+<ul class="panel_body itemlist">
+<li>
+<a href="/yueguanghaidao/article/details/7035248" title="TCP服务器端和客户端程序设计">TCP服务器端和客户端程序设计</a><span>(17237)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/7055985" title="UDP服务器端和客户端程序设计">UDP服务器端和客户端程序设计</a><span>(15538)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/10416867" title="向Python女神推荐这些年我追过的经典书籍">向Python女神推荐这些年我追过的经典书籍</a><span>(12618)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/9568071" title="Js作用域与作用域链详解">Js作用域与作用域链详解</a><span>(10377)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/7355119" title="使用SecureCRT连接Dynamips时, 报错:The remote system refused the connection??前几天还是好好的，奇怪。。">使用SecureCRT连接Dynamips时, 报错:The remote system refused the connection??前几天还是好好的，奇怪。。</a><span>(7866)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/7578144" title="python实战--web.py实战（开发新浪微博应用）">python实战--web.py实战（开发新浪微博应用）</a><span>(7052)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/7605283" title="C链表和文件操作实战--图书管理系统">C链表和文件操作实战--图书管理系统</a><span>(6817)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/7265246" title="python对XML的解析">python对XML的解析</a><span>(6197)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/8450938" title="C语言开发Linux下web服务器(支持GET/POST,SSL,目录显示等)">C语言开发Linux下web服务器(支持GET/POST,SSL,目录显示等)</a><span>(5885)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/11274737" title="Python之美[从菜鸟到高手]--Python垃圾回收机制及gc模块详解">Python之美[从菜鸟到高手]--Python垃圾回收机制及gc模块详解</a><span>(5656)</span>
+</li>
+</ul>
+</div>
+<div id="hotarticls2" class="panel">
+<ul class="panel_head"><span>评论排行</span></ul>
+<ul class="panel_body itemlist">
+<li>
+<a href="/yueguanghaidao/article/details/9568071" title="Js作用域与作用域链详解">Js作用域与作用域链详解</a><span>(24)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/10416867" title="向Python女神推荐这些年我追过的经典书籍">向Python女神推荐这些年我追过的经典书籍</a><span>(17)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/7578144" title="python实战--web.py实战（开发新浪微博应用）">python实战--web.py实战（开发新浪微博应用）</a><span>(11)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/7592274" title="C语言计算任意两日期之间天数">C语言计算任意两日期之间天数</a><span>(10)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/8450938" title="C语言开发Linux下web服务器(支持GET/POST,SSL,目录显示等)">C语言开发Linux下web服务器(支持GET/POST,SSL,目录显示等)</a><span>(7)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/7055985" title="UDP服务器端和客户端程序设计">UDP服务器端和客户端程序设计</a><span>(7)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/9258459" title="毕业---新的开始">毕业---新的开始</a><span>(6)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/7605283" title="C链表和文件操作实战--图书管理系统">C链表和文件操作实战--图书管理系统</a><span>(6)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/7471281" title="pyqt开发新浪微博粉丝聊天软件v1(图形界面)">pyqt开发新浪微博粉丝聊天软件v1(图形界面)</a><span>(6)</span>
+</li>
+<li>
+<a href="/yueguanghaidao/article/details/21748693" title="PHP结合Python的WEB开发技术 [ppython]">PHP结合Python的WEB开发技术 [ppython]</a><span>(4)</span>
+</li>
+</ul>
+</div>
+<div id="homepageArticles" class="panel tracking-ad" data-mod="popu_4">
+<ul class="panel_head"><span>推荐文章</span></ul>
+<ul class="panel_body" id="ad_commend"></ul>
+</div>
+<script type="text/javascript">
+ new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+   
+         <a href="/yueguanghaidao/article/details/10416867#comments">向Python女神推荐这些年我追过的经典书籍</a>
+    <p style="margin:0px;"><a href="/yueguanghaidao" class="user_name">yueguanghaidao</a>:
+@tlint:呵呵  的确 这话时对bash来说的 大perl的魔法看的我也是醉了
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yueguanghaidao/article/details/10416867#comments">向Python女神推荐这些年我追过的经典书籍</a>
+    <p style="margin:0px;"><a href="/tlint" class="user_name">tlint</a>:
+“有人说，Linux系统管理还是Shell/Perl用的多，说的一点也没错，但更加细致的活他们就不适...
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yueguanghaidao/article/details/7055985#comments">UDP服务器端和客户端程序设计</a>
+    <p style="margin:0px;"><a href="/yueguanghaidao" class="user_name">yueguanghaidao</a>:
+@fore4321:当然可以，udp只是不确保可靠性，需要应用程序做可靠性
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yueguanghaidao/article/details/7055985#comments">UDP服务器端和客户端程序设计</a>
+    <p style="margin:0px;"><a href="/fore4321" class="user_name">fore4321</a>:
+你好，我想问一下，udp服务器端能向客户端传输数据吗？
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yueguanghaidao/article/details/9258459#comments">毕业---新的开始</a>
+    <p style="margin:0px;"><a href="/feng2783581" class="user_name">feng2783581</a>:
+LZ加油，喜欢你的文章，加油!
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yueguanghaidao/article/details/9568071#comments">Js作用域与作用域链详解</a>
+    <p style="margin:0px;"><a href="/ygbada" class="user_name">ygbada</a>:
+@li_yiang:就这段代码来说，with语句结束后，返回到全局作用域，所以接下来访问的name是...
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yueguanghaidao/article/details/9568071#comments">UDP服务器端和客户端程序设计</a>
+    <p style="margin:0px;"><a href="/fore4321" class="user_name">fore4321</a>:
+博主，写的真好，而且很详细，
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yueguanghaidao/article/details/9568071#comments">毕业---新的开始</a>
+    <p style="margin:0px;"><a href="/u011399208" class="user_name">u011399208</a>:
+我也是今年出来实习，还没有毕业，实习期间还要做课程大作业，准备每年的毕业设计。看了你的说说，我觉得我...
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yueguanghaidao/article/details/41814163#comments">ZeroMq LRU算法中间件</a>
+    <p style="margin:0px;"><a href="/Jerry_1126" class="user_name">Jerry_1126</a>:
+赞一个！
+    </p>
+    </li>
+    <li>
+   
+         <a href="/yueguanghaidao/article/details/41814163#comments">Js作用域与作用域链详解</a>
+    <p style="margin:0px;"><a href="/xinkedaxia" class="user_name">xinkedaxia</a>:
+看的还是一知半解的
+    </p>
+    </li>
+</ul>
+</div>
+    </div>
+    <div class="clear">
+    </div>
+</div>
+
+            <div class="clear">
+            </div>
+        </div>
+        
+
+<script type="text/javascript" src="http://csdnimg.cn/rabbit/cnick/cnick.js"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/newblog.min.js"></script>
+
+
+<script type="text/javascript" src="http://medal.blog.csdn.net/showblogmedal.ashx?blogid=1036968"></script>
+<script type="text/javascript" src="http://static.blog.csdn.net/scripts/JavaScript1.js"></script>
+
+    <script type="text/javascript" src="http://passport.csdn.net/content/loginbox/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script>
+<script type="text/javascript" src="http://www.csdn.net/ui/scripts/Csdn/counter.js"></script>
+<script type="text/javascript" src="http://ad.csdn.net/scripts/ad-blog.js"></script>
+<script type="text/javascript" src="http://zz.csdn.net/js/count.js"></script>
+<script type="text/javascript">
+    $(function () {
+        function __get_code_toolbar(snippet_id) {
+            return $("<a href='https://code.csdn.net/snippets/"
+                    + snippet_id
+                    + "' target='_blank' title='在CODE上查看代码片' style='text-indent:0;'><img src='https://code.csdn.net/assets/CODE_ico.png' width=12 height=12 alt='在CODE上查看代码片' style='position:relative;top:1px;left:2px;'/></a>"
+                    + "<a href='https://code.csdn.net/snippets/"
+                    + snippet_id
+                    + "/fork' target='_blank' title='派生到我的代码片'  style='text-indent:0;'><img src='https://code.csdn.net/assets/ico_fork.svg' width=12 height=12 alt='派生到我的代码片' style='position:relative;top:2px;left:2px;'/></a>");
+        }
+        
+        $("[code_snippet_id]").each(function () {
+            __s_id = $(this).attr("code_snippet_id");
+            if (__s_id != null && __s_id != "" && __s_id != 0 && parseInt(__s_id) > 70020) {
+                __code_tool = __get_code_toolbar(__s_id);
+                $(this).prev().find(".tools").append(__code_tool);
+            }
+        });
+    });
+</script>
+
+    </div>
+      <!--new top-->
+    
+    <script id="csdn-toolbar-id" btnId="header_notice_num" wrapId="note1" count="5" subCount="5" type="text/javascript" src="http://static.csdn.net/public/common/toolbar/js/toolbar.js"></script>     <!--new top-->
+   
+    <link href="http://csdnimg.cn/comm_ask/css/ask_float_block.css" type="text/css" rel="stylesheet" />
+    <script language='JavaScript' type='text/javascript' src='http://csdnimg.cn/comm_ask/js/libs/wmd.js'></script>
+    <script language='JavaScript' type='text/javascript' src='http://csdnimg.cn/comm_ask/js/libs/showdown.js'></script>
+    <script language='JavaScript' type='text/javascript' src='http://csdnimg.cn/comm_ask/js/libs/prettify.js'></script>
+    <script language='JavaScript' type='text/javascript' src='http://csdnimg.cn/comm_ask/js/apps/ask_float_block.js'></script>
+
+</body>
+</html>

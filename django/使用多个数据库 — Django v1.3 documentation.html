@@ -1,0 +1,643 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>使用多个数据库 &mdash; Django v1.3 documentation</title>
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Django v1.3 documentation" href="../../index.html" />
+    <link rel="up" title="模型和数据库" href="index.html" />
+    <link rel="next" title="数据库访问优化" href="optimization.html" />
+    <link rel="prev" title="管理数据库事务" href="transactions.html" />
+ 
+<script type="text/javascript" src="../../templatebuiltins.js"></script>
+<script type="text/javascript">
+(function($) {
+    if (!django_template_builtins) {
+       // templatebuiltins.js missing, do nothing.
+       return;
+    }
+    $(document).ready(function() {
+        // Hyperlink Django template tags and filters
+        var base = "../../ref/templates/builtins.html";
+        if (base == "#") {
+            // Special case for builtins.html itself
+            base = "";
+        }
+        // Tags are keywords, class '.k'
+        $("div.highlight\\-html\\+django span.k").each(function(i, elem) {
+             var tagname = $(elem).text();
+             if ($.inArray(tagname, django_template_builtins.ttags) != -1) {
+                 var fragment = tagname.replace(/_/, '-');
+                 $(elem).html("<a href='" + base + "#" + fragment + "'>" + tagname + "</a>");
+             }
+        });
+        // Filters are functions, class '.nf'
+        $("div.highlight\\-html\\+django span.nf").each(function(i, elem) {
+             var filtername = $(elem).text();
+             if ($.inArray(filtername, django_template_builtins.tfilters) != -1) {
+                 var fragment = filtername.replace(/_/, '-');
+                 $(elem).html("<a href='" + base + "#" + fragment + "'>" + filtername + "</a>");
+             }
+        });
+    });
+})(jQuery);
+</script>
+
+  </head>
+  <body>
+
+    <div class="document">
+  <div id="custom-doc" class="yui-t6">
+    <div id="hd">
+      <h1><a href="../../index.html">Django v1.3 documentation</a></h1>
+      <div id="global-nav">
+        <a title="Home page" href="../../index.html">Home</a>  |
+        <a title="Table of contents" href="../../contents.html">Table of contents</a>  |
+        <a title="Global index" href="../../genindex.html">Index</a>  |
+        <a title="Module index" href="../../py-modindex.html">Modules</a>
+      </div>
+      <div class="nav">
+    &laquo; <a href="transactions.html" title="管理数据库事务">previous</a> 
+     |
+    <a href="../index.html" title="使用 Django" accesskey="U">up</a>
+   |
+    <a href="optimization.html" title="数据库访问优化">next</a> &raquo;</div>
+    </div>
+    
+    <div id="bd">
+      <div id="yui-main">
+        <div class="yui-b">
+          <div class="yui-g" id="topics-db-multi-db">
+            
+  <div class="section" id="s-id1">
+<span id="id1"></span><h1>使用多个数据库<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<div class="versionadded">
+<span class="title">New in Django 1.2:</span> <a class="reference internal" href="../../releases/1.2.html"><em>Please, see the release notes</em></a></div>
+<p>大多数其他文档都假设使用单一数据库，本文主要讨论如何在 Django 中使用多个数据库。
+使用多个数据库，要增加一些步骤。</p>
+<div class="section" id="s-id2">
+<span id="id2"></span><h2>定义你的数据库<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>使用多数据库的第一步是通过 <a class="reference internal" href="../../ref/settings.html#std:setting-DATABASES"><tt class="xref std std-setting docutils literal"><span class="pre">DATABASES</span></tt></a> 设置要使用的数据库服务。这个
+设置用于映射数据库别名和特定的联结设置字典，这是 Django 定义数据库一贯的手法。
+字典内部的设置参见 <a class="reference internal" href="../../ref/settings.html#std:setting-DATABASES"><tt class="xref std std-setting docutils literal"><span class="pre">DATABASES</span></tt></a> 文档。</p>
+<p>数据库可以使用任何别名，但是 <tt class="docutils literal"><span class="pre">default</span></tt> 有特殊意义。当没有选择其他数据库时，
+Django 总是使用别名为 <tt class="docutils literal"><span class="pre">default</span></tt> 的数据库。因此，如果你没有定义一个名为
+<tt class="docutils literal"><span class="pre">default</span></tt> 的数据库时，你应当小心了，在使用数据库前要指定你想用的数据库。</p>
+<p>以下是一个定义两个数据库的 <tt class="docutils literal"><span class="pre">settings.py</span></tt> 代码片断。定义了一个缺省的
+PostgreSQL 数据库和一个名为 <tt class="docutils literal"><span class="pre">users</span></tt> 的 MySQL 数据库：</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">DATABASES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;default&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s">&#39;NAME&#39;</span><span class="p">:</span> <span class="s">&#39;app_data&#39;</span><span class="p">,</span>
+        <span class="s">&#39;ENGINE&#39;</span><span class="p">:</span> <span class="s">&#39;django.db.backends.postgresql_psycopg2&#39;</span><span class="p">,</span>
+        <span class="s">&#39;USER&#39;</span><span class="p">:</span> <span class="s">&#39;postgres_user&#39;</span><span class="p">,</span>
+        <span class="s">&#39;PASSWORD&#39;</span><span class="p">:</span> <span class="s">&#39;s3krit&#39;</span>
+    <span class="p">},</span>
+    <span class="s">&#39;users&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s">&#39;NAME&#39;</span><span class="p">:</span> <span class="s">&#39;user_data&#39;</span><span class="p">,</span>
+        <span class="s">&#39;ENGINE&#39;</span><span class="p">:</span> <span class="s">&#39;django.db.backends.mysql&#39;</span><span class="p">,</span>
+        <span class="s">&#39;USER&#39;</span><span class="p">:</span> <span class="s">&#39;mysql_user&#39;</span><span class="p">,</span>
+        <span class="s">&#39;PASSWORD&#39;</span><span class="p">:</span> <span class="s">&#39;priv4te&#39;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>如果你尝试访问 <a class="reference internal" href="../../ref/settings.html#std:setting-DATABASES"><tt class="xref std std-setting docutils literal"><span class="pre">DATABASES</span></tt></a> 设置中没有定义的数据库， Django 会抛出一个
+<tt class="docutils literal"><span class="pre">django.db.utils.ConnectionDoesNotExist</span></tt> 异常。</p>
+</div>
+<div class="section" id="s-id3">
+<span id="id3"></span><h2>同步你的数据库<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="../../ref/django-admin.html#django-admin-syncdb"><tt class="xref std std-djadmin docutils literal"><span class="pre">syncdb</span></tt></a> 管理命令一次只操作一个数据库。缺省情况下，它操作 <tt class="docutils literal"><span class="pre">default</span></tt>
+数据库。但是加上 <a class="reference internal" href="../../ref/django-admin.html#django-admin-option---database"><tt class="xref std std-djadminopt docutils literal"><span class="pre">--database</span></tt></a> 参数，你可以让 syncdb 同步不同的
+数据库。所以要同步我们例子中的所有数据库的所有模型可以使用如下命令:</p>
+<div class="highlight-python"><pre>$ ./manage.py syncdb
+$ ./manage.py syncdb --database=users</pre>
+</div>
+<p>如果你不是同步所有的程序到同一个数据库中，你可定义一个
+<a class="reference internal" href="#topics-db-multi-db-routing"><em>数据库路由</em></a> 来为指定的模型实施特定的控制
+策略。</p>
+<p>如果你要精细地控制同步，那么还有一种方式是修改 <a class="reference internal" href="../../ref/django-admin.html#django-admin-sqlall"><tt class="xref std std-djadmin docutils literal"><span class="pre">sqlall</span></tt></a> 的输出，手工在
+数据库中执行命令，命令如下:</p>
+<div class="highlight-python"><pre>$ ./manage.py sqlall sales | ./manage.py dbshell</pre>
+</div>
+<div class="section" id="s-id4">
+<span id="id4"></span><h3>使用其他管理命令<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<p>其他操作数据库的 <tt class="docutils literal"><span class="pre">django-admin.py</span></tt> 命令与 <a class="reference internal" href="../../ref/django-admin.html#django-admin-syncdb"><tt class="xref std std-djadmin docutils literal"><span class="pre">syncdb</span></tt></a> 类似，他们一次只
+操作一个数据库，使用 <a class="reference internal" href="../../ref/django-admin.html#django-admin-option---database"><tt class="xref std std-djadminopt docutils literal"><span class="pre">--database</span></tt></a> 来控制使用哪个数据库。</p>
+</div>
+</div>
+<div class="section" id="s-topics-db-multi-db-routing">
+<span id="s-id5"></span><span id="topics-db-multi-db-routing"></span><span id="id5"></span><h2>自动数据库路由<a class="headerlink" href="#topics-db-multi-db-routing" title="Permalink to this headline">¶</a></h2>
+<p>使用多数据库最简单的方法是设置一个数据库路由方案。缺省的路由方案确保对象
+“紧贴”其原本的数据库（例如：一个对象从哪个数据库取得，就保存回哪个数据库）。
+缺省的路由方案还确保如果一个数据库没有指定，所有的查询都会作用于 <tt class="docutils literal"><span class="pre">缺省</span></tt> 数据
+库。</p>
+<p>你不必为启动缺省路由方案作任何事，因为它是“开箱即用”的。但是，如果你要执行
+一些更有趣的数据库分配行为的话，你可以定义并安装你自己的数据库路由。</p>
+<div class="section" id="s-id6">
+<span id="id6"></span><h3>数据库路由<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<p>一个数据库路由是一个类，这个类最多有四个方法：</p>
+<dl class="method">
+<dt id="db_for_read">
+<tt class="descname">db_for_read</tt>(<em>model</em>, <em>**hints</em>)<a class="headerlink" href="#db_for_read" title="Permalink to this definition">¶</a></dt>
+<dd><p>建议 <tt class="docutils literal"><span class="pre">model</span></tt> 对象写操作时使用的数据库。</p>
+<p>如果一个数据库操作可以提供对选择数据库有用的附加信息，那么可以通过
+<tt class="docutils literal"><span class="pre">hints</span></tt> 字典提供。详见 <a class="reference internal" href="#topics-db-multi-db-hints"><em>下文</em></a> 。</p>
+<p>如果没有建议则返回 None 。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="db_for_write">
+<tt class="descname">db_for_write</tt>(<em>model</em>, <em>**hints</em>)<a class="headerlink" href="#db_for_write" title="Permalink to this definition">¶</a></dt>
+<dd><p>建议 <tt class="docutils literal"><span class="pre">model</span></tt> 对象读操作时使用的数据库。</p>
+<p>如果一个数据库操作可以提供对选择数据库有用的附加信息，那么可以通过
+<tt class="docutils literal"><span class="pre">hints</span></tt> 字典提供。详见 <a class="reference internal" href="#topics-db-multi-db-hints"><em>下文</em></a> 。</p>
+<p>如果没有建议则返回 None 。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allow_relation">
+<tt class="descname">allow_relation</tt>(<em>obj1</em>, <em>obj2</em>, <em>**hints</em>)<a class="headerlink" href="#allow_relation" title="Permalink to this definition">¶</a></dt>
+<dd><p>当 obj1 和 obj2 之间允许有关系时返回 True ，不允许时返回 False ，或者没有
+意见时返回 None 。这是一个纯粹的验证操作，用于外键和多对多操作中，两个对象
+的关系是否被允许。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="allow_syncdb">
+<tt class="descname">allow_syncdb</tt>(<em>db</em>, <em>model</em>)<a class="headerlink" href="#allow_syncdb" title="Permalink to this definition">¶</a></dt>
+<dd><p>决定 <tt class="docutils literal"><span class="pre">model</span></tt> 是否可以和 <tt class="docutils literal"><span class="pre">db</span></tt> 为别名的数据库同步。如果可以返回 True ，
+如果不可以返回 False ，或者没有意见时返回 None 。这个方法用于决定一个给定
+数据库的模型是否可用。</p>
+</dd></dl>
+
+<p>一个路由不必提供 <em>所有</em> 这些方法，可以省略其中一个或多个。如果其中一个方法被
+省略了，那么 Django 会在执行相关检查时跳过相应路由。</p>
+<div class="section" id="s-topics-db-multi-db-hints">
+<span id="s-id7"></span><span id="topics-db-multi-db-hints"></span><span id="id7"></span><h4>提示参数<a class="headerlink" href="#topics-db-multi-db-hints" title="Permalink to this headline">¶</a></h4>
+<p>数据库路由接收的“提示”参数可用于决定哪个数据库应当接收一个给定的请求。</p>
+<p>目前，唯一可以提供的提示参数是 <tt class="docutils literal"><span class="pre">实例</span></tt> ，即一个与读写操作相关的对象的实例。
+可以是一个已保存的对象的实例，也可以是一个多对多关系中添加的实例。在某些情况下，
+也可能没有对象的实例可以提供。路由会检查提示实例是否存在，并相应地决定是否改变
+路由行为。</p>
+</div>
+</div>
+<div class="section" id="s-id8">
+<span id="id8"></span><h3>使用路由<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
+<p>数据库路由使用 <a class="reference internal" href="../../ref/settings.html#std:setting-DATABASE_ROUTERS"><tt class="xref std std-setting docutils literal"><span class="pre">DATABASE_ROUTERS</span></tt></a> 设置来安装。这个设置定义一个类名称
+列表，每个类定义一个用于主路由 (<tt class="docutils literal"><span class="pre">django.db.router</span></tt>) 的路由。</p>
+<p>主路由用于 Django 分配数据库操作。当一个查询想要知道使用哪个数据库时，会提供
+一个模型和一个提示（如果有的话），并调用主路由。 Django 就会按次序尝试每个路由，
+直到找到合适的路由建议。如果找不到路由建议就会尝试实例提示的当前的
+<tt class="docutils literal"><span class="pre">_state.db</span></tt> 。如果没有提供路由提示，或者实例没有当前数据库状态，那么主路由会
+分配 <tt class="docutils literal"><span class="pre">缺省</span></tt> 数据库。</p>
+</div>
+<div class="section" id="s-id9">
+<span id="id9"></span><h3>一个例子<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h3>
+<div class="admonition- admonition ">
+<p class="first admonition-title">仅用于示例目的！</p>
+<p>这个例子仅用于展示路由如何改变数据库的使用。本例有意忽略了一些复杂的东西以
+便于更好的展示路由是如何工作的。</p>
+<p>如果任何一个 <tt class="docutils literal"><span class="pre">myapp</span></tt> 中的模型包含与 <tt class="docutils literal"><span class="pre">另一个</span></tt> 数据库中模型的关系时，本例
+是无效的。参见 <a class="reference internal" href="#no-cross-database-relations"><em>跨数据库关系</em></a> 一节中介绍
+的 Django 引用完整性问题。</p>
+<p class="last">本例的主/从配置也是有缺陷的：它没有处理复制延时（比如因为把写操作传递给从
+数据库耗费时间而产生的查询不一致），也没有考虑与数据库使用策略的交互作用。</p>
+</div>
+<p>那么，这个例子有什么用呢？本例仅用于演示一个 <tt class="docutils literal"><span class="pre">myapp</span></tt> 存在于 <tt class="docutils literal"><span class="pre">other</span></tt> 数据库，
+所有其他模型之间是主/从关系，且存在于 <tt class="docutils literal"><span class="pre">master</span></tt> 、 <tt class="docutils literal"><span class="pre">slave1</span></tt> 和 <tt class="docutils literal"><span class="pre">slave2</span></tt>
+数据库。本例使用了两个路由:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">MyAppRouter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; 一个控制 myapp 应用中模型的</span>
+<span class="sd">    所有数据库操作的路由 &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">db_for_read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">hints</span><span class="p">):</span>
+        <span class="s">&quot;myapp 应用中模型的操作指向 &#39;other&#39;&quot;</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">app_label</span> <span class="o">==</span> <span class="s">&#39;myapp&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39;other&#39;</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">db_for_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">hints</span><span class="p">):</span>
+        <span class="s">&quot;myapp 应用中模型的操作指向 &#39;other&#39;&quot;</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">app_label</span> <span class="o">==</span> <span class="s">&#39;myapp&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39;other&#39;</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">allow_relation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj1</span><span class="p">,</span> <span class="n">obj2</span><span class="p">,</span> <span class="o">**</span><span class="n">hints</span><span class="p">):</span>
+        <span class="s">&quot; 如果包含 myapp 应用中的模型则允许所有关系 &quot;</span>
+        <span class="k">if</span> <span class="n">obj1</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">app_label</span> <span class="o">==</span> <span class="s">&#39;myapp&#39;</span> <span class="ow">or</span> <span class="n">obj2</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">app_label</span> <span class="o">==</span> <span class="s">&#39;myapp&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">allow_syncdb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="s">&quot; 确保 myapp 应用只存在于 &#39;other&#39; 数据库 &quot;</span>
+        <span class="k">if</span> <span class="n">db</span> <span class="o">==</span> <span class="s">&#39;other&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">app_label</span> <span class="o">==</span> <span class="s">&#39;myapp&#39;</span>
+        <span class="k">elif</span> <span class="n">model</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">app_label</span> <span class="o">==</span> <span class="s">&#39;myapp&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+<span class="k">class</span> <span class="nc">MasterSlaveRouter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; 一个设置简单主/从定义</span>
+<span class="sd">    的路由 &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">db_for_read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">hints</span><span class="p">):</span>
+        <span class="s">&quot; 所有读操作指向一个随机的从数据库 &quot;</span>
+        <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="s">&#39;slave1&#39;</span><span class="p">,</span><span class="s">&#39;slave2&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">db_for_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">hints</span><span class="p">):</span>
+        <span class="s">&quot; 所有写操作指向主数据库 &quot;</span>
+        <span class="k">return</span> <span class="s">&#39;master&#39;</span>
+
+    <span class="k">def</span> <span class="nf">allow_relation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj1</span><span class="p">,</span> <span class="n">obj2</span><span class="p">,</span> <span class="o">**</span><span class="n">hints</span><span class="p">):</span>
+        <span class="s">&quot; 允许数据库池中的两个对象间的任何关系 &quot;</span>
+        <span class="n">db_list</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;master&#39;</span><span class="p">,</span><span class="s">&#39;slave1&#39;</span><span class="p">,</span><span class="s">&#39;slave2&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">obj1</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">db</span> <span class="ow">in</span> <span class="n">db_list</span> <span class="ow">and</span> <span class="n">obj2</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">db</span> <span class="ow">in</span> <span class="n">db_list</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">allow_syncdb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="s">&quot; 显示地放置所有数据库中的模型 &quot;</span>
+        <span class="k">return</span> <span class="bp">True</span>
+</pre></div>
+</div>
+<p>然后在你的设置文件增加如下内容（把 <tt class="docutils literal"><span class="pre">path.to.</span></tt> 替换为你定义路由的模型的路径
+）:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">DATABASE_ROUTERS</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;path.to.MyAppRouter&#39;</span><span class="p">,</span> <span class="s">&#39;path.to.MasterSlaveRouter&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>这个设置中，路由的顺序是很重要的，因为查询时是按这个设置中的顺序依次查询的。上
+例中， <tt class="docutils literal"><span class="pre">MyAppRouter</span></tt> 先于 <tt class="docutils literal"><span class="pre">MasterSlaveRouter</span></tt> ，因此， <tt class="docutils literal"><span class="pre">myapp</span></tt> 中的模型就
+优先于其他模型。如果 <a class="reference internal" href="../../ref/settings.html#std:setting-DATABASE_ROUTERS"><tt class="xref std std-setting docutils literal"><span class="pre">DATABASE_ROUTERS</span></tt></a> 设置中两个路由的顺序变换了，
+那么 <tt class="docutils literal"><span class="pre">MasterSlaveRouter.allow_syncdb()</span></tt> 会优先执行。因为 MasterSlaveRouter 是
+包罗万象的，这样就会导致所有模型可以使用所有数据库。</p>
+<p>设置好之后让我们来运行一些代码:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c"># 从 &#39;credentials&#39; 数据库获得数据</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fred</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s">&#39;fred&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fred</span><span class="o">.</span><span class="n">first_name</span> <span class="o">=</span> <span class="s">&#39;Frederick&#39;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># 保存到 &#39;credentials&#39; 数据库</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fred</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># 随机从从数据库获得数据</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dna</span> <span class="o">=</span> <span class="n">Person</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;Douglas Adams&#39;</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># 新对象创建时还没有分配数据库</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mh</span> <span class="o">=</span> <span class="n">Book</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s">&#39;Mostly Harmless&#39;</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># 这个赋值会向路由发出请求，并把 mh 的数据库设置为与 author 对象同样的</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># 数据库</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mh</span><span class="o">.</span><span class="n">author</span> <span class="o">=</span> <span class="n">dna</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># 这会强制 &#39;mh&#39; 实例使用主数据库...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mh</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># ... 但如果我们重新获取对象，就会从从数据库中获取</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mh</span> <span class="o">=</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s">&#39;Mostly Harmless&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="s-id10">
+<span id="id10"></span><h2>手动选择数据库<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h2>
+<p>Django 也提供一个可以让你通过代码完全控制数据库使用的 API 。手动定义数据库分配
+优先于路由。</p>
+<div class="section" id="s-id11">
+<span id="id11"></span><h3>为一个 <tt class="docutils literal"><span class="pre">查询集</span></tt> 手动选择一个数据库<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h3>
+<p>你可以在 <tt class="docutils literal"><span class="pre">查询集</span></tt> “链”中的任何点为 <tt class="docutils literal"><span class="pre">查询集</span></tt> 选择数据库。我们通过在
+<tt class="docutils literal"><span class="pre">查询集</span></tt> 上调用 <tt class="docutils literal"><span class="pre">using()</span></tt> 来得到使用指定数据库的另一个 <tt class="docutils literal"><span class="pre">查询集</span></tt> 。</p>
+<p><tt class="docutils literal"><span class="pre">using()</span></tt> 使用一个参数：你想要运行查询的数据库的别名。例如:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c"># 这会运行在“缺省”数据库上。</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Author</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># 这同样会运行在“缺省”数据库上。</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Author</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="s">&#39;default&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># 这会运行在“ other ”数据库上。</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Author</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="s">&#39;other&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="s-save">
+<span id="save"></span><h3>为 <tt class="docutils literal"><span class="pre">save()</span></tt> 选择一个数据库<a class="headerlink" href="#save" title="Permalink to this headline">¶</a></h3>
+<p>在使用 <tt class="docutils literal"><span class="pre">Model.save()</span></tt> 时加上 <tt class="docutils literal"><span class="pre">using</span></tt> 关键字可以指定保存到哪个数据库。</p>
+<p>例如，要把一个对象保存到 <tt class="docutils literal"><span class="pre">legacy_users</span></tt> 数据库应该这样做:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">my_object</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">using</span><span class="o">=</span><span class="s">&#39;legacy_users&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>如果你不定义 <tt class="docutils literal"><span class="pre">using</span></tt> ，那么 <tt class="docutils literal"><span class="pre">save()</span></tt> 方法会根据路由分配把数据保存到缺省
+数据库中。</p>
+<div class="section" id="s-id12">
+<span id="id12"></span><h4>把一个对象从一个数据库移动到另一个数据库<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h4>
+<p>当你已经在一个数据库中保存了一个对象后，你可能会使用 <tt class="docutils literal"><span class="pre">save(using=...)</span></tt> 把这个
+对象移动到另一个数据库中。但是，如果你没有使用恰当的方法，那么可能会出现意想不
+到的后果。</p>
+<p>假设有如下的例子:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Person</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;Fred&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">using</span><span class="o">=</span><span class="s">&#39;first&#39;</span><span class="p">)</span>  <span class="c"># （第一句）</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">using</span><span class="o">=</span><span class="s">&#39;second&#39;</span><span class="p">)</span> <span class="c"># （第二名）</span>
+</pre></div>
+</div>
+<p>在第一名中，一个新的 <tt class="docutils literal"><span class="pre">Person</span></tt> 对象被保存到 <tt class="docutils literal"><span class="pre">first</span></tt> 数据库中。这时， <tt class="docutils literal"><span class="pre">p</span></tt>
+还没有一个主键，因此 Django 执行了一个 <tt class="docutils literal"><span class="pre">INSERT</span></tt> SQL 语句。这样就会创建一个
+主键，并将这个主键分配给 <tt class="docutils literal"><span class="pre">p</span></tt> 。</p>
+<p>在第二句中，因为 <tt class="docutils literal"><span class="pre">p</span></tt> 已经有了一个主键，所以 Django 在保存对象时会尝试在新的
+数据库中使用这个主键。如果 <tt class="docutils literal"><span class="pre">second</span></tt> 数据库中没有使用这个主键，那就不会有问题，
+该对象会复制到新数据库。</p>
+<p>然而，如果 <tt class="docutils literal"><span class="pre">p</span></tt> 的主键在 <tt class="docutils literal"><span class="pre">second</span></tt> 数据库中已经使用过了，那么 <tt class="docutils literal"><span class="pre">second</span></tt> 使用
+这个主键的已存在的对象将会被 <tt class="docutils literal"><span class="pre">p</span></tt> 覆盖。</p>
+<p>有两种方法可以避免上述情况的发生。第一，你可以清除实例的主键。如果一个对象没有
+主主键，那么 Django 会把它看作一个新对象，在保存到 <tt class="docutils literal"><span class="pre">second</span></tt> 数据库中时就不会
+带来数据的损失:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Person</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;Fred&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">using</span><span class="o">=</span><span class="s">&#39;first&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">pk</span> <span class="o">=</span> <span class="bp">None</span> <span class="c"># 清除主键。</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">using</span><span class="o">=</span><span class="s">&#39;second&#39;</span><span class="p">)</span> <span class="c"># 写入一个全新的对象。</span>
+</pre></div>
+</div>
+<p>第二种方法是在 <tt class="docutils literal"><span class="pre">save()</span></tt> 方法中使用 <tt class="docutils literal"><span class="pre">force_insert</span></tt> 选项来保证 Django 执行
+一个 <tt class="docutils literal"><span class="pre">INSERT</span></tt> SQL:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Person</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;Fred&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">using</span><span class="o">=</span><span class="s">&#39;first&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">using</span><span class="o">=</span><span class="s">&#39;second&#39;</span><span class="p">,</span> <span class="n">force_insert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>这样可以保证名为 <tt class="docutils literal"><span class="pre">Fred</span></tt> 的人员在两个数据库中使用相同的主键。如果在保存到
+<tt class="docutils literal"><span class="pre">second</span></tt> 数据库时主键已被占用，会抛出一个错误。</p>
+</div>
+</div>
+<div class="section" id="s-id13">
+<span id="id13"></span><h3>选择一个要删除数据的数据库<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h3>
+<p>缺省情况下，一个现存对象从哪个数据库得到，删除这个对象也会在这个数据库中进行:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">u</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="s">&#39;legacy_users&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s">&#39;fred&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">u</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span> <span class="c"># 会从 `legacy_users` 数据库中删除</span>
+</pre></div>
+</div>
+<p>通过向 <tt class="docutils literal"><span class="pre">Model.delete()</span></tt> 方法传递 <tt class="docutils literal"><span class="pre">using</span></tt> 关键字参数可以定义在哪个数据库中删除
+数据。 <tt class="docutils literal"><span class="pre">using</span></tt> 的用法与 <tt class="docutils literal"><span class="pre">save()</span></tt> 方法中使用这个参数类似。</p>
+<p>例如，假设我们要把一个用户从 <tt class="docutils literal"><span class="pre">legacy_users</span></tt> 数据库移动到 <tt class="docutils literal"><span class="pre">new_users</span></tt> 数据库
+可以使用如下命令:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">user_obj</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">using</span><span class="o">=</span><span class="s">&#39;new_users&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">user_obj</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">using</span><span class="o">=</span><span class="s">&#39;legacy_users&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="s-id14">
+<span id="id14"></span><h3>多数据库情况下使用管理器<a class="headerlink" href="#id14" title="Permalink to this headline">¶</a></h3>
+<p>在管理器上使用 <tt class="docutils literal"><span class="pre">db_manager()</span></tt> ，可以让管理器访问一个非缺省数据库。</p>
+<p>例如，假设你有一个操作数据库的自定义管理器 <tt class="docutils literal"><span class="pre">User.objects.create_user()</span></tt> 。
+因为 <tt class="docutils literal"><span class="pre">create_user()</span></tt> 是一个管理器方法，不是一个 <tt class="docutils literal"><span class="pre">查询集</span></tt> ，所以你不能用
+<tt class="docutils literal"><span class="pre">User.objects.using('new_users').create_user()</span></tt> 。（ <tt class="docutils literal"><span class="pre">create_user()</span></tt> 方法
+只能用于 <tt class="docutils literal"><span class="pre">User.objects</span></tt> 管理器，而不能用于，管理器衍生出的 <tt class="docutils literal"><span class="pre">查询集</span></tt> 。）
+解决方法是使用 <tt class="docutils literal"><span class="pre">db_manager()</span></tt> ，就象下面这样:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">db_manager</span><span class="p">(</span><span class="s">&#39;new_users&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">create_user</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">db_manager()</span></tt> 返回的是绑定到你指定的数据库的管理器的一个副本。</p>
+<div class="section" id="s-get-query-set">
+<span id="get-query-set"></span><h4>多数据库情况下使用 <tt class="docutils literal"><span class="pre">get_query_set()</span></tt><a class="headerlink" href="#get-query-set" title="Permalink to this headline">¶</a></h4>
+<p>如果你在管理器中重载了 <tt class="docutils literal"><span class="pre">get_query_set()</span></tt> ，请确保在其父类中也调用了相同的方法
+（使用 <tt class="docutils literal"><span class="pre">super()</span></tt> ）或者正确处理管理器中的 <tt class="docutils literal"><span class="pre">_db</span></tt> 属性（一个包含要使用的数据库
+名称的字符串）。</p>
+<p>例如，如果你要从 <tt class="docutils literal"><span class="pre">get_query_set</span></tt> 方法返回一个自定义 <tt class="docutils literal"><span class="pre">查询集</span></tt> 类，那么你可以
+这样做:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">MyManager</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Manager</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get_query_set</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">qs</span> <span class="o">=</span> <span class="n">CustomQuerySet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">qs</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">qs</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="s-django">
+<span id="django"></span><h2>在 Django 管理接口中使用多数据库<a class="headerlink" href="#django" title="Permalink to this headline">¶</a></h2>
+<p>Django 的管理接口没有明显支持多数据库。如果想要支持的话你必须写自定义
+<a class="reference internal" href="../../ref/contrib/admin/index.html#django.contrib.admin.ModelAdmin" title="django.contrib.admin.ModelAdmin"><tt class="xref py py-class docutils literal"><span class="pre">ModelAdmin</span></tt></a> 。</p>
+<p>如果要支持多数据库，那么 <tt class="docutils literal"><span class="pre">ModelAdmin</span></tt> 对象有五个方法要自定义:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">MultiDBModelAdmin</span><span class="p">(</span><span class="n">admin</span><span class="o">.</span><span class="n">ModelAdmin</span><span class="p">):</span>
+    <span class="c"># 为方便起见定义一个数据库名称常量。</span>
+    <span class="n">using</span> <span class="o">=</span> <span class="s">&#39;other&#39;</span>
+
+    <span class="k">def</span> <span class="nf">save_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">form</span><span class="p">,</span> <span class="n">change</span><span class="p">):</span>
+        <span class="c"># 让 Django 保存对象到 &#39;other&#39; 数据库。</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">using</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">delete_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="c"># 让 Django 从 &#39;other&#39; 数据库中删除对象。</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">using</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="c"># 让 Django 在 &#39;other&#39; 数据库中搜索对象。</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiDBModelAdmin</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">queryset</span><span class="p">(</span><span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">using</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">formfield_for_foreignkey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_field</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c"># 让 Django 基于 &#39;other&#39; 数据库生成外键控件。</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiDBModelAdmin</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">formfield_for_foreignkey</span><span class="p">(</span><span class="n">db_field</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span> <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">using</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">formfield_for_manytomany</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_field</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c"># 让 Django 基于 &#39;other&#39; 数据库生成多对多关系控件。</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiDBModelAdmin</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">formfield_for_manytomany</span><span class="p">(</span><span class="n">db_field</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span> <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">using</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>以上代码实现了一个多数据库策略：所有给定类型的对象全部储存到一个指定的数据库（
+如所有 <tt class="docutils literal"><span class="pre">User</span></tt> 对象都在 <tt class="docutils literal"><span class="pre">other</span></tt> 数据库中）。如果你的多数据库应用更复杂，你就
+需要自定义更复杂的 <tt class="docutils literal"><span class="pre">ModelAdmin</span></tt> 。</p>
+<p>内联也可以按上面类似的方式处理。内联处理需要三个自定义方法:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">MultiDBTabularInline</span><span class="p">(</span><span class="n">admin</span><span class="o">.</span><span class="n">TabularInline</span><span class="p">):</span>
+    <span class="n">using</span> <span class="o">=</span> <span class="s">&#39;other&#39;</span>
+
+    <span class="k">def</span> <span class="nf">queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="c"># 让 Django 在 &#39;other&#39; 数据库中搜索内联对象。</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiDBTabularInline</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">queryset</span><span class="p">(</span><span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">using</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">formfield_for_foreignkey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_field</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c"># 让 Django 基于 &#39;other&#39; 数据库生成外键控件。</span>
+        <span class="c"># on the &#39;other&#39; database.</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiDBTabularInline</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">formfield_for_foreignkey</span><span class="p">(</span><span class="n">db_field</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span> <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">using</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">formfield_for_manytomany</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_field</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c"># 让 Django 基于 &#39;other&#39; 数据库生成多对多关系控件。</span>
+        <span class="c"># on the &#39;other&#39; database.</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiDBTabularInline</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">formfield_for_manytomany</span><span class="p">(</span><span class="n">db_field</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span> <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">using</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>一旦你写好了管理模型的定义，就可被任何 <tt class="docutils literal"><span class="pre">Admin</span></tt> 实例注册使用:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">django.contrib</span> <span class="kn">import</span> <span class="n">admin</span>
+
+<span class="c"># 指定用于给定模型的多数据库管理对象。</span>
+<span class="k">class</span> <span class="nc">BookInline</span><span class="p">(</span><span class="n">MultiDBTabularInline</span><span class="p">):</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">Book</span>
+
+<span class="k">class</span> <span class="nc">PublisherAdmin</span><span class="p">(</span><span class="n">MultiDBModelAdmin</span><span class="p">):</span>
+    <span class="n">inlines</span> <span class="o">=</span> <span class="p">[</span><span class="n">BookInline</span><span class="p">]</span>
+
+<span class="n">admin</span><span class="o">.</span><span class="n">site</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">Author</span><span class="p">,</span> <span class="n">MultiDBModelAdmin</span><span class="p">)</span>
+<span class="n">admin</span><span class="o">.</span><span class="n">site</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">Publisher</span><span class="p">,</span> <span class="n">PublisherAdmin</span><span class="p">)</span>
+
+<span class="n">othersite</span> <span class="o">=</span> <span class="n">admin</span><span class="o">.</span><span class="n">Site</span><span class="p">(</span><span class="s">&#39;othersite&#39;</span><span class="p">)</span>
+<span class="n">othersite</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">Publisher</span><span class="p">,</span> <span class="n">MultiDBModelAdmin</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>这个例子设置了两个管理站点。第一个管理站点，显示作者和出版商对象，出版商对象有
+一个内联表格显示该出版商所出版的书。第二个管理站点只显示出版商，没有内联对象。</p>
+</div>
+<div class="section" id="s-id15">
+<span id="id15"></span><h2>多数据库情况下使用原始指针<a class="headerlink" href="#id15" title="Permalink to this headline">¶</a></h2>
+<p>如果使用多个数据库，那么可以使用 <tt class="docutils literal"><span class="pre">django.db.connections</span></tt> 来获得特定数据库的
+连接（和指针）。 <tt class="docutils literal"><span class="pre">django.db.connections</span></tt> 是一个类似字典的对象，允许你通过别名
+来获得一个特定的连接:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">django.db</span> <span class="kn">import</span> <span class="n">connections</span>
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">connections</span><span class="p">[</span><span class="s">&#39;my_db_alias&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="s-id16">
+<span id="id16"></span><h2>多数据库的限制<a class="headerlink" href="#id16" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="s-no-cross-database-relations">
+<span id="s-id17"></span><span id="no-cross-database-relations"></span><span id="id17"></span><h3>跨数据库关系<a class="headerlink" href="#no-cross-database-relations" title="Permalink to this headline">¶</a></h3>
+<p>Django 当前不支持外键或多对多关系跨数据库的情况。如果你已经通过使用路由把模型
+分配到不同的数据库中，那么任何外键或多对多关系涉及的模型必须放在同一个数据库中。</p>
+<p>这里涉及到一个引用完整性问题。为了维护两个对象之间的关系， Django 需要知道相
+关联对象的主键是否合法。如果主键存放在另一个数据库，就不可能轻易的验证主键的
+合法性了。</p>
+<p>如果你正在使用 Postgres 、 Oracle 或 带有InnoDB 的 MySQL ，那么在数据库级别就
+已经限制跨数据库关系。</p>
+<p>但是，如是你正在使用的 SQLite 或只使用 MyISAM 表的 MySQL ，就没有这种限制，因此
+可以“假装”使用跨数据库外键，但是这种方式不被 Django 官方支持。</p>
+</div>
+</div>
+</div>
+
+
+          </div>         
+        </div>
+      </div>
+      
+        
+          <div class="yui-b" id="sidebar">
+            
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../../contents.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">使用多个数据库</a><ul>
+<li><a class="reference internal" href="#id2">定义你的数据库</a></li>
+<li><a class="reference internal" href="#id3">同步你的数据库</a><ul>
+<li><a class="reference internal" href="#id4">使用其他管理命令</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#topics-db-multi-db-routing">自动数据库路由</a><ul>
+<li><a class="reference internal" href="#id6">数据库路由</a><ul>
+<li><a class="reference internal" href="#topics-db-multi-db-hints">提示参数</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id8">使用路由</a></li>
+<li><a class="reference internal" href="#id9">一个例子</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id10">手动选择数据库</a><ul>
+<li><a class="reference internal" href="#id11">为一个 <tt class="docutils literal"><span class="pre">查询集</span></tt> 手动选择一个数据库</a></li>
+<li><a class="reference internal" href="#save">为 <tt class="docutils literal"><span class="pre">save()</span></tt> 选择一个数据库</a><ul>
+<li><a class="reference internal" href="#id12">把一个对象从一个数据库移动到另一个数据库</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id13">选择一个要删除数据的数据库</a></li>
+<li><a class="reference internal" href="#id14">多数据库情况下使用管理器</a><ul>
+<li><a class="reference internal" href="#get-query-set">多数据库情况下使用 <tt class="docutils literal"><span class="pre">get_query_set()</span></tt></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#django">在 Django 管理接口中使用多数据库</a></li>
+<li><a class="reference internal" href="#id15">多数据库情况下使用原始指针</a></li>
+<li><a class="reference internal" href="#id16">多数据库的限制</a><ul>
+<li><a class="reference internal" href="#no-cross-database-relations">跨数据库关系</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h3>Browse</h3>
+  <ul>
+    
+      <li>Prev: <a href="transactions.html">管理数据库事务</a></li>
+    
+    
+      <li>Next: <a href="optimization.html">数据库访问优化</a></li>
+    
+  </ul>
+  <h3>You are here:</h3>
+  <ul>
+      <li>
+        <a href="../../index.html">Django v1.3 documentation</a>
+        
+          <ul><li><a href="../index.html">使用 Django</a>
+        
+          <ul><li><a href="index.html">模型和数据库</a>
+        
+        <ul><li>使用多个数据库</li></ul>
+        </li></ul></li></ul>
+      </li>
+  </ul>  
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../../_sources/topics/db/multi-db.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+              <h3>Last update:</h3>
+              <p class="topless">Jul 02, 2011</p>
+          </div> 
+        
+      
+    </div>
+    
+    <div id="ft">
+      <div class="nav">
+    &laquo; <a href="transactions.html" title="管理数据库事务">previous</a> 
+     |
+    <a href="../index.html" title="使用 Django" accesskey="U">up</a>
+   |
+    <a href="optimization.html" title="数据库访问优化">next</a> &raquo;</div>
+    </div>
+  </div>
+
+      <div class="clearer"></div>
+    </div>
+  </body>
+</html>

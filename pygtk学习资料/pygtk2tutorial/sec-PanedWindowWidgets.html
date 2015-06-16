@@ -1,0 +1,122 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>10.7. Paned Window Widgets</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-ContainerWidgets.html" title="Chapter 10. Container Widgets"><link rel="prev" href="sec-AspectFrames.html" title="10.6. Aspect Frames"><link rel="next" href="sec-Viewports.html" title="10.8. Viewports"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">10.7. Paned Window Widgets</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-AspectFrames.html">Prev</a> </td><th width="60%" align="center">Chapter 10. Container Widgets</th><td width="20%" align="right"> <a accesskey="n" href="sec-Viewports.html">Next</a></td></tr></table><hr></div><div class="sect1" title="10.7. Paned Window Widgets"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-PanedWindowWidgets"></a>10.7. Paned Window Widgets</h2></div></div></div><p>The paned window widgets are useful when you want to divide an
+area into two parts, with the relative size of the two parts controlled by
+the user. A groove is drawn between the two portions with a handle that the
+user can drag to change the ratio. The division can either be horizontal
+(<code class="classname">HPaned</code>) or vertical
+(<code class="classname">VPaned</code>).</p><p>To create a new paned window, call one of:</p><pre class="programlisting">
+  hpane = gtk.HPaned()
+
+  vpane = gtk.VPaned()
+</pre><p>After creating the paned window widget, you need to add child
+widgets to its two halves. To do this, use the methods:</p><pre class="programlisting">
+  paned.add1(<strong class="parameter"><code>child</code></strong>)
+
+  paned.add2(<strong class="parameter"><code>child</code></strong>)
+</pre><p>The <code class="methodname">add1</code>() method adds the
+<em class="parameter"><code>child</code></em> widget to
+the left or top half of the paned window. The <code class="methodname">add2</code>()
+method adds the <em class="parameter"><code>child</code></em> widget to the right or bottom
+half of the paned window.</p><p>The <a class="ulink" href="examples/paned.py" target="_top"><span class="command"><strong>paned.py</strong></span></a> example program
+creates part of the user interface of an imaginary email program. A window
+is divided into two portions vertically, with the top portion being a list
+of email messages and the bottom portion the text of the email message. Most
+of the program is pretty straightforward. A couple of points to note: text
+can't be added to a Text widget until it is realized. This could be done by
+calling the <code class="methodname">realize</code>() method, but as a
+demonstration of an alternate technique, we connect a handler to the
+"realize" signal to add the text. Also, we need to add the
+<code class="varname">SHRINK</code> option to some of the items in the table
+containing the text window and its scrollbars, so that when the bottom
+portion is made smaller, the correct portions shrink instead of being pushed
+off the bottom of the window.  <a class="xref" href="sec-PanedWindowWidgets.html#panedfig" title="Figure 10.6. Paned Example">Figure 10.6, “Paned Example”</a> shows the result
+of running the program:</p><div class="figure"><a name="panedfig"></a><p class="title"><b>Figure 10.6. Paned Example</b></p><div class="figure-contents"><div class="mediaobject" align="center"><img src="figures/paned.png" align="middle" alt="Paned Example"></div></div></div><br class="figure-break"><p>The source code of the <a class="ulink" href="examples/paned.py" target="_top"><span class="command"><strong>paned.py</strong></span></a> program
+is:</p><pre class="programlisting">
+    1	#!/usr/bin/env python
+    2	
+    3	# example paned.py
+    4	
+    5	import pygtk
+    6	pygtk.require('2.0')
+    7	import gtk, gobject
+    8	
+    9	class PanedExample:
+   10	    # Create the list of "messages"
+   11	    def create_list(self):
+   12	        # Create a new scrolled window, with scrollbars only if needed
+   13	        scrolled_window = gtk.ScrolledWindow()
+   14	        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+   15	
+   16	        model = gtk.ListStore(gobject.TYPE_STRING)
+   17	        tree_view = gtk.TreeView(model)
+   18	        scrolled_window.add_with_viewport (tree_view)
+   19	        tree_view.show()
+   20	
+   21	        # Add some messages to the window
+   22	        for i in range(10):
+   23	            msg = "Message #%d" % i
+   24	            iter = model.append()
+   25	            model.set(iter, 0, msg)
+   26	
+   27	        cell = gtk.CellRendererText()
+   28	        column = gtk.TreeViewColumn("Messages", cell, text=0)
+   29	        tree_view.append_column(column)
+   30	
+   31	        return scrolled_window
+   32	   
+   33	    # Add some text to our text widget - this is a callback that is invoked
+   34	    # when our window is realized. We could also force our window to be
+   35	    # realized with gtk.Widget.realize(), but it would have to be part of a
+   36	    # hierarchy first
+   37	    def insert_text(self, buffer):
+   38	        iter = buffer.get_iter_at_offset(0)
+   39	        buffer.insert(iter,
+   40	                      "From: pathfinder@nasa.gov\n"
+   41	                      "To: mom@nasa.gov\n"
+   42	                      "Subject: Made it!\n"
+   43	                      "\n"
+   44	                      "We just got in this morning. The weather has been\n"
+   45	                      "great - clear but cold, and there are lots of fun sights.\n"
+   46	                      "Sojourner says hi. See you soon.\n"
+   47	                      " -Path\n")
+   48	   
+   49	    # Create a scrolled text area that displays a "message"
+   50	    def create_text(self):
+   51	        view = gtk.TextView()
+   52	        buffer = view.get_buffer()
+   53	        scrolled_window = gtk.ScrolledWindow()
+   54	        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+   55	        scrolled_window.add(view)
+   56	        self.insert_text(buffer)
+   57	        scrolled_window.show_all()
+   58	        return scrolled_window
+   59	   
+   60	    def __init__(self):
+   61	        window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+   62	        window.set_title("Paned Windows")
+   63	        window.connect("destroy", lambda w: gtk.main_quit())
+   64	        window.set_border_width(10)
+   65	        window.set_size_request(450, 400)
+   66	
+   67	        # create a vpaned widget and add it to our toplevel window
+   68	        vpaned = gtk.VPaned()
+   69	        window.add(vpaned)
+   70	        vpaned.show()
+   71	
+   72	        # Now create the contents of the two halves of the window
+   73	        list = self.create_list()
+   74	        vpaned.add1(list)
+   75	        list.show()
+   76	
+   77	        text = self.create_text()
+   78	        vpaned.add2(text)
+   79	        text.show()
+   80	        window.show()
+   81	
+   82	def main():
+   83	    gtk.main()
+   84	    return 0
+   85	
+   86	if __name__ == "__main__":
+   87	    PanedExample()
+   88	    main()
+</pre></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-AspectFrames.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-ContainerWidgets.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="sec-Viewports.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">10.6. Aspect Frames </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 10.8. Viewports</td></tr></table></div></body></html>

@@ -1,0 +1,250 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>14.9. TreeView Drag and Drop</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-TreeViewWidget.html" title="Chapter 14. Tree View Widget"><link rel="prev" href="sec-TreeSelections.html" title="14.8. TreeSelections"><link rel="next" href="sec-TreeModelSortAndTreeModelFilter.html" title="14.10. TreeModelSort and TreeModelFilter"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">14.9. TreeView Drag and Drop</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-TreeSelections.html">Prev</a> </td><th width="60%" align="center">Chapter 14. Tree View Widget</th><td width="20%" align="right"> <a accesskey="n" href="sec-TreeModelSortAndTreeModelFilter.html">Next</a></td></tr></table><hr></div><div class="sect1" title="14.9. TreeView Drag and Drop"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-TreeViewDragAndDrop"></a>14.9. TreeView Drag and Drop</h2></div></div></div><div class="sect2" title="14.9.1. Drag and Drop Reordering"><div class="titlepage"><div><div><h3 class="title"><a name="DragDropReordering"></a>14.9.1. Drag and Drop Reordering</h3></div></div></div><p>Reordering of the <code class="classname">TreeView</code> rows (and the
+underlying tree model rows is enabled by using the
+<code class="methodname">set_reorderable</code>() method mentioned above. The
+<em class="parameter"><code>set_reorderable</code></em>() method sets the "reorderable"
+property to the specified value and enables or disables the internal drag
+and drop of <code class="classname">TreeView</code> rows. When the "reorderable"
+property is <code class="literal">TRUE</code> a user can drag
+<code class="classname">TreeView</code> rows and drop them at a new location. This
+action causes the underlying <code class="classname">TreeModel</code> rows to be
+rearranged to match. Drag and drop reordering of rows only works with
+unsorted stores.</p></div><div class="sect2" title="14.9.2. External Drag and Drop"><div class="titlepage"><div><div><h3 class="title"><a name="sec-ExternalDragDrop"></a>14.9.2. External Drag and Drop</h3></div></div></div><p>If you want to control the drag and drop or deal
+with drag and drop from external sources, you'll have to enable and control
+the drag and drop using the following methods:</p><pre class="programlisting">
+  treeview.enable_model_drag_source(<strong class="parameter"><code>start_button_mask</code></strong>, <strong class="parameter"><code>targets</code></strong>, <strong class="parameter"><code>actions</code></strong>)
+  treeview.enable_model_drag_dest(<strong class="parameter"><code>targets</code></strong>, <strong class="parameter"><code>actions</code></strong>)
+</pre><p>These methods enable using rows as a drag source and a drop site
+respectively. <em class="parameter"><code>start_button_mask</code></em> is a modifier mask
+(see the <a class="ulink" href="http://www.pygtk.org/pygtk2reference/gdk-constants.html#gdk-modifier-constants" target="_top">gtk.gtk
+Constants reference</a> in the <a class="ulink" href="http://www.pygtk.org/pygtk2reference/index.html" target="_top">PyGTK Reference
+Manual</a>) that specifies the buttons or keys that must be pressed to
+start the drag operation. <em class="parameter"><code>targets</code></em> is a list of
+3-tuples that describe the target information that can be given or
+received. For a drag and drop to succeed at least one of the targets must
+match in the drag source and drag destination (e.g. the "STRING"
+target). Each target 3-tuple contains the target name, flags (a combination
+of <code class="literal">gtk.TARGET_SAME_APP</code> and
+<code class="literal">gtk.TARGET_SAME_WIDGET</code> or neither) and a unique int
+identifier. <em class="parameter"><code>actions</code></em> describes what the result of the
+operation should be:</p><table border="0" width="100%" bgcolor="#FFECCE"><col align="left" valign="top" width="0*"><tbody><tr><td><p><span class="term"><code class="literal">gtk.gdk.ACTION_DEFAULT</code>, </span><span class="term"><code class="literal">gtk.gdk.ACTION_COPY</code></span></p></td><td>Copy the data.</td></tr><tr><td><p><span class="term"><code class="literal">gtk.gdk.ACTION_MOVE</code></span></p></td><td>Move the data, i.e. first copy it, then delete it from
+the source using the <code class="literal">DELETE</code> target of the X selection
+protocol.</td></tr><tr><td><p><span class="term"><code class="literal">gtk.gdk.ACTION_LINK</code></span></p></td><td>Add a link to the data. Note that this is only useful
+if source and destination agree on what it means.</td></tr><tr><td><p><span class="term"><code class="literal">gtk.gdk.ACTION_PRIVATE</code></span></p></td><td>Special action which tells the source that the
+destination will do something that the source doesn't understand.</td></tr><tr><td><p><span class="term"><code class="literal">gtk.gdk.ACTION_ASK</code></span></p></td><td>Ask the user what to do with the data.</td></tr></tbody></table><p>For example to set up a drag drop destination:</p><pre class="programlisting">
+  treeview.enable_model_drag_dest([('text/plain', 0, 0)],
+                  gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
+</pre><p>Then you'll have to handle the <code class="classname">Widget</code>
+"drag-data-received" signal to receive that dropped data - perhaps replacing
+the data in the row it was dropped on. The signature for the callback for
+the "drag-data-received" signal is:</p><pre class="programlisting">
+  def callback(<em class="parameter"><code>widget</code></em>, <em class="parameter"><code>drag_context</code></em>, <em class="parameter"><code>x</code></em>, <em class="parameter"><code>y</code></em>, <em class="parameter"><code>selection_data</code></em>, <em class="parameter"><code>info</code></em>, <em class="parameter"><code>timestamp</code></em>)
+</pre><p>where <em class="parameter"><code>widget</code></em> is the
+<code class="classname">TreeView</code>, <em class="parameter"><code>drag_context</code></em> is a
+<code class="classname">DragContext</code> containing the context of the selection,
+<em class="parameter"><code>x</code></em> and <em class="parameter"><code>y</code></em> are the position where
+the drop occurred, <em class="parameter"><code>selection_data</code></em> is the
+<code class="classname">SelectionData</code> containing the data,
+<em class="parameter"><code>info</code></em> is the ID integer of the type,
+<em class="parameter"><code>timestamp</code></em> is the time when the drop occurred. The row
+can be identified by calling the method:</p><pre class="programlisting">
+  drop_info = treeview.get_dest_row_at_pos(<strong class="parameter"><code>x</code></strong>, <strong class="parameter"><code>y</code></strong>)
+</pre><p>where (<em class="parameter"><code>x</code></em>,
+<em class="parameter"><code>y</code></em>) is the position passed to the callback
+function and <em class="parameter"><code>drop_info</code></em> is a 2-tuple containing the
+path of a row and a position constant indicating where the drop is with
+respect to the row: <code class="literal">gtk.TREE_VIEW_DROP_BEFORE</code>,
+<code class="literal">gtk.TREE_VIEW_DROP_AFTER</code>,
+<code class="literal">gtk.TREE_VIEW_DROP_INTO_OR_BEFORE</code> or
+<code class="literal">gtk.TREE_VIEW_DROP_INTO_OR_AFTER</code>. The callback function
+could be something like:</p><pre class="programlisting">
+  treeview.enable_model_drag_dest([('text/plain', 0, 0)],
+                  gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
+  treeview.connect("drag-data-received", drag_data_received_cb)
+  ...
+  ...
+  def drag_data_received_cb(treeview, context, x, y, selection, info, timestamp):
+      drop_info = treeview.get_dest_row_at_pos(x, y)
+      if drop_info:
+          model = treeview.get_model()
+          path, position = drop_info
+          data = selection.data
+          # do something with the data and the model
+          ...
+      return
+  ...
+</pre><p>If a row is being used as a drag source it must handle the
+<code class="classname">Widget</code> "drag-data-get" signal that populates a
+selection with the data to be passed back to the drag drop destination with
+a callback function with the signature:</p><pre class="programlisting">
+  def callback(<em class="parameter"><code>widget</code></em>, <em class="parameter"><code>drag_context</code></em>, <em class="parameter"><code>selection_data</code></em>, <em class="parameter"><code>info</code></em>, <em class="parameter"><code>timestamp</code></em>)
+</pre><p>The parameters to <em class="parameter"><code>callback</code></em> are similar to
+those of the "drag-data-received" callback function. Since the callback is
+not passed a tree path or any easy way of retrieving information about the
+row being dragged, we assume that the row being dragged is selected and the
+selection mode is <code class="literal">gtk.SELECTION_SINGLE</code> or
+<code class="literal">gtk.SELECTION_BROWSE</code> so we can retrieve the row by
+getting the <code class="classname">TreeSelection</code> and retrieving the tree
+model and <code class="classname">TreeIter</code> pointing at the row. For example,
+text from a row could be passed in the drag drop by:</p><pre class="programlisting">
+  ...
+  treestore = gtk.TreeStore(str, str)
+  ...
+  treeview.enable_model_drag_source(gtk.gdk.BUTTON1_MASK,
+                  [('text/plain', 0, 0)],
+                  gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_MOVE)
+  treeview.connect("drag-data-get", drag_data_get_cb)
+  ...
+  ...
+  def drag_data_get_cb(treeview, context, selection, info, timestamp):
+      treeselection = treeview.get_selection()
+      model, iter = treeselection.get_selected()
+      text = model.get_value(iter, 1)
+      selection.set('text/plain', 8, text)
+      return
+  ...
+</pre><p>The <code class="classname">TreeView</code> can be disabled as a drag
+source and drop destination by using the methods:</p><pre class="programlisting">
+  treeview.unset_rows_drag_source()
+  treeview.unset_rows_drag_dest()
+</pre></div><div class="sect2" title="14.9.3. TreeView Drag and Drop Example"><div class="titlepage"><div><div><h3 class="title"><a name="sec-TreeViewDnDExample"></a>14.9.3. TreeView Drag and Drop Example</h3></div></div></div><p>A simple example program is needed to pull together the pieces
+of code described above. This example (<a class="ulink" href="examples/treeviewdnd.py" target="_top">treeviewdnd.py</a>) is a list that URLs
+can be dragged from and dropped on. Also the URLs in the list can be
+reordered by dragging and dropping within the
+<code class="classname">TreeView</code>. A couple of buttons are provided to clear
+the list and to clear a selected item.</p><pre class="programlisting">
+    1   #!/usr/bin/env python
+    2
+    3   # example treeviewdnd.py
+    4
+    5   import pygtk
+    6   pygtk.require('2.0')
+    7   import gtk
+    8
+    9   class TreeViewDnDExample:
+   10
+   11       TARGETS = [
+   12           ('MY_TREE_MODEL_ROW', gtk.TARGET_SAME_WIDGET, 0),
+   13           ('text/plain', 0, 1),
+   14           ('TEXT', 0, 2),
+   15           ('STRING', 0, 3),
+   16           ]
+   17       # close the window and quit
+   18       def delete_event(self, widget, event, data=None):
+   19           gtk.main_quit()
+   20           return False
+   21
+   22       def clear_selected(self, button):
+   23           selection = self.treeview.get_selection()
+   24           model, iter = selection.get_selected()
+   25           if iter:
+   26               model.remove(iter)
+   27           return
+   28
+   29       def __init__(self):
+   30           # Create a new window
+   31           self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+   32
+   33           self.window.set_title("URL Cache")
+   34
+   35           self.window.set_size_request(200, 200)
+   36
+   37           self.window.connect("delete_event", self.delete_event)
+   38
+   39           self.scrolledwindow = gtk.ScrolledWindow()
+   40           self.vbox = gtk.VBox()
+   41           self.hbox = gtk.HButtonBox()
+   42           self.vbox.pack_start(self.scrolledwindow, True)
+   43           self.vbox.pack_start(self.hbox, False)
+   44           self.b0 = gtk.Button('Clear All')
+   45           self.b1 = gtk.Button('Clear Selected')
+   46           self.hbox.pack_start(self.b0)
+   47           self.hbox.pack_start(self.b1)
+   48
+   49           # create a liststore with one string column to use as the model
+   50           self.liststore = gtk.ListStore(str)
+   51
+   52           # create the TreeView using liststore
+   53           self.treeview = gtk.TreeView(self.liststore)
+   54
+   55          # create a CellRenderer to render the data
+   56           self.cell = gtk.CellRendererText()
+   57
+   58           # create the TreeViewColumns to display the data
+   59           self.tvcolumn = gtk.TreeViewColumn('URL', self.cell, text=0)
+   60
+   61           # add columns to treeview
+   62           self.treeview.append_column(self.tvcolumn)
+   63           self.b0.connect_object('clicked', gtk.ListStore.clear, self.liststore)
+   64           self.b1.connect('clicked', self.clear_selected)
+   65           # make treeview searchable
+   66           self.treeview.set_search_column(0)
+   67
+   68           # Allow sorting on the column
+   69           self.tvcolumn.set_sort_column_id(0)
+   70
+   71           # Allow enable drag and drop of rows including row move
+   72           self.treeview.enable_model_drag_source( gtk.gdk.BUTTON1_MASK,
+   73                                                   self.TARGETS,
+   74                                                   gtk.gdk.ACTION_DEFAULT|
+   75                                                   gtk.gdk.ACTION_MOVE)
+   76           self.treeview.enable_model_drag_dest(self.TARGETS,
+   77                                                gtk.gdk.ACTION_DEFAULT)
+   78
+   79           self.treeview.connect("drag_data_get", self.drag_data_get_data)
+   80           self.treeview.connect("drag_data_received",
+   81                                 self.drag_data_received_data)
+   82
+   83           self.scrolledwindow.add(self.treeview)
+   84           self.window.add(self.vbox)
+   85           self.window.show_all()
+   86
+   87       def drag_data_get_data(self, treeview, context, selection, target_id,
+   88                              etime):
+   89           treeselection = treeview.get_selection()
+   90           model, iter = treeselection.get_selected()
+   91           data = model.get_value(iter, 0)
+   92           selection.set(selection.target, 8, data)
+   93
+   94       def drag_data_received_data(self, treeview, context, x, y, selection,
+   95                                   info, etime):
+   96           model = treeview.get_model()
+   97           data = selection.data
+   98           drop_info = treeview.get_dest_row_at_pos(x, y)
+   99           if drop_info:
+  100               path, position = drop_info
+  101               iter = model.get_iter(path)
+  102               if (position == gtk.TREE_VIEW_DROP_BEFORE
+  103                   or position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE):
+  104                   model.insert_before(iter, [data])
+  105               else:
+  106                   model.insert_after(iter, [data])
+  107           else:
+  108               model.append([data])
+  109           if context.action == gtk.gdk.ACTION_MOVE:
+  110               context.finish(True, True, etime)
+  111           return
+  112
+  113   def main():
+  114       gtk.main()
+  115
+  116   if __name__ == "__main__":
+  117       treeviewdndex = TreeViewDnDExample()
+  118       main()
+</pre><p>The result of running the example program <a class="ulink" href="examples/treeviewdnd.py" target="_top">treeviewdnd.py</a> is illustrated in
+<a class="xref" href="sec-TreeViewDragAndDrop.html#treeviewdndfig" title="Figure 14.8. TreeView Drag and Drop Example">Figure 14.8, “TreeView Drag and Drop Example”</a>:</p><div class="figure"><a name="treeviewdndfig"></a><p class="title"><b>Figure 14.8. TreeView Drag and Drop Example</b></p><div class="figure-contents"><div class="mediaobject" align="center"><img src="figures/treeviewdnd.png" align="middle" alt="TreeView Drag and Drop Example"></div></div></div><br class="figure-break"><p>The key to allowing both external drag and drop and internal row
+reordering is the organization of the targets (the
+<code class="literal">TARGETS</code> attribute - line 11). An application specific
+target (<code class="literal">MY_TREE_MODEL_ROW</code>) is created and used to
+indicate a drag and drop within the <code class="classname">TreeView</code> by
+setting the <code class="literal">gtk.TARGET_SAME_WIDGET</code> flag. By setting this
+as the first target the drag destination will attempt to match it first with
+the drag source targets. Next the source drag actions must include
+<code class="literal">gtk.gdk.ACTION_MOVE</code> and
+<code class="literal">gtk.gdk.ACTION_DEFAULT</code> (see lines 72-75). When the
+destination is receiving the data from the source, if the
+<code class="classname">DragContext</code> action is
+<code class="literal">gtk.gdk.ACTION_MOVE</code> the source is told to delete the data
+(in this case the row) by calling the <code class="classname">DragContext</code>
+method <code class="methodname">finish</code>() (see lines 109-110). The
+<code class="classname">TreeView</code> provides a number of internal functions that
+we are leveraging to drag, drop and delete the data.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-TreeSelections.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-TreeViewWidget.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="sec-TreeModelSortAndTreeModelFilter.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">14.8. TreeSelections </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 14.10. TreeModelSort and TreeModelFilter</td></tr></table></div></body></html>

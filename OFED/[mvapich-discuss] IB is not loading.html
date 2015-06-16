@@ -1,0 +1,208 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [mvapich-discuss] IB is not loading
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:mvapich-discuss%40cse.ohio-state.edu?Subject=%5Bmvapich-discuss%5D%20IB%20is%20not%20loading&In-Reply-To=4805673D.7020705%40ucla.edu">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001606.html">
+   <LINK REL="Next"  HREF="001582.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[mvapich-discuss] IB is not loading</H1>
+    <B>Christopher Tanner</B> 
+    <A HREF="mailto:mvapich-discuss%40cse.ohio-state.edu?Subject=%5Bmvapich-discuss%5D%20IB%20is%20not%20loading&In-Reply-To=4805673D.7020705%40ucla.edu"
+       TITLE="[mvapich-discuss] IB is not loading">christopher.tanner at gatech.edu
+       </A><BR>
+    <I>Wed Apr 16 09:39:59 EDT 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001606.html">[mvapich-discuss] dynamic process connections (accept/connect or
+	MPI_Comm_join) and Infiniband...
+</A></li>
+        <LI>Next message: <A HREF="001582.html">[mvapich-discuss] error IBV_WC_LOC_LEN_ERR and FATAL event
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1571">[ date ]</a>
+              <a href="thread.html#1571">[ thread ]</a>
+              <a href="subject.html#1571">[ subject ]</a>
+              <a href="author.html#1571">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Scott - thanks for your help man. I'm still new to Linux, so detailed  
+commands were great. I did use the automated installer, and I did just  
+the basic OFED 1.3 install. However...
+
+a) 'ibstat' just doesn't exist. I've installed OFED three times now  
+and each time 'ibstat' is not created or is not placed in an intuitive  
+directory (/usr/bin, /usr/local/bin, etc.)
+
+b)  I've confirmed that the modules are NOT loaded - the lsmod  
+returned nothing (literally)
+
+c) chkconfig resulted in this :
+openibd        	0:off	   1:off   2:on   3:on   4:on   5:on   6:off
+Which I assume to mean the initscripts for run levels 3 and 5 are  
+executing. So, I think we're gravy there.
+
+d) service command resulted in this :
+Loading Mellanox HCA driver:                       [FAILED]
+Loading Mellanox MLX4 HCA driver:           [FAILED]
+Loading cxgb3 driver:                                      [FAILED]
+Loading HCA driver and Access Layer:       [FAILED]
+Please open an issue in the <A HREF="http://openib.org/bugzilla">http://openib.org/bugzilla</A> and attach /tmp/ 
+ib_debug_info.log
+
+Tek recommended burning new firmware onto each of the Infiniband  
+cards, but that seems like an arduous process for a relatively new  
+cluster.
+
+Is it this hard to get an Infiniband network running on every cluster  
+or am I really missing something?
+
+-------------------------------------------
+Chris Tanner
+Space Systems Design Lab
+Georgia Institute of Technology
+<A HREF="http://mail.cse.ohio-state.edu/mailman/listinfo/mvapich-discuss">christopher.tanner at gatech.edu</A>
+-------------------------------------------
+
+
+
+On Apr 15, 2008, at 10:41 PM, Scott A. Friedman wrote:
+&gt;<i> Hi Chris,
+</I>&gt;<i>
+</I>&gt;<i> I have been watching your messages and thought I'd send you a note.
+</I>&gt;<i>
+</I>&gt;<i> If your drivers (kernel modules) are not loading you should try a  
+</I>&gt;<i> few simple things - especially if you used the OFED installer.
+</I>&gt;<i>
+</I>&gt;<i> You should run 'ibstat' first. You normally need to be root to run  
+</I>&gt;<i> this but you can also run it with the full path if you are not root.
+</I>&gt;<i>
+</I>&gt;<i> /usr/sbin/ibstat
+</I>&gt;<i>
+</I>&gt;<i> You should also confirm that the kernel models are in fact loaded.
+</I>&gt;<i>
+</I>&gt;<i> /sbin/lsmod | grep ib
+</I>&gt;<i>
+</I>&gt;<i> You should see a bunch of ib_blah entries - like ib_uverbs etc.
+</I>&gt;<i>
+</I>&gt;<i> if none of these work then the modules are probably not loaded at  
+</I>&gt;<i> all. In that case you should check (on a redhat/fedora/centos type  
+</I>&gt;<i> system) as root.
+</I>&gt;<i>
+</I>&gt;<i> chkconfig --list openibd
+</I>&gt;<i>
+</I>&gt;<i> It should show that the initscript runs (on) for the run level you  
+</I>&gt;<i> are using (typically 3 or 5). If it says it is off then that is your  
+</I>&gt;<i> problem - and why the modules are not loaded upon startup.
+</I>&gt;<i>
+</I>&gt;<i> chkconfig openibd on
+</I>&gt;<i> service openibd start
+</I>&gt;<i>
+</I>&gt;<i> Then try your mpi again - no need to reboot.
+</I>&gt;<i>
+</I>&gt;<i> You will also need the subnet manager running - which is opensmd on  
+</I>&gt;<i> at least one node. /usr/sbin/sminfo will show you if it is running  
+</I>&gt;<i> someplace on your IB network - have to run this as root. If it  
+</I>&gt;<i> isn't...
+</I>&gt;<i>
+</I>&gt;<i> chkconfig opensmd on
+</I>&gt;<i> service opensmd start
+</I>&gt;<i>
+</I>&gt;<i> do this on, say, your head node.
+</I>&gt;<i>
+</I>&gt;<i> You may also need to setup ipoib if you are using mvapich with the  
+</I>&gt;<i> newer connection management rdmacm setup (which I think the default  
+</I>&gt;<i> mvapich that comes with OFED does for the connection management to  
+</I>&gt;<i> work).
+</I>&gt;<i>
+</I>&gt;<i> Let me know how it goes,
+</I>&gt;<i> Scott
+</I>&gt;<i>
+</I>&gt;<i> ----
+</I>&gt;<i> Scott A. Friedman, Ph.D
+</I>&gt;<i> Computer Scientist
+</I>&gt;<i> Research Computing Technologies Group
+</I>&gt;<i> UCLA Academic Technology Services
+</I>&gt;<i> 310-825-8607
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Christopher Tanner wrote:
+</I>&gt;&gt;<i> Sorry to keep hassling everyone, but I have received several  
+</I>&gt;&gt;<i> potential solutions to my problem, but none have worked (or I'm a  
+</I>&gt;&gt;<i> little to novice to understand what to do). Thanks for all your  
+</I>&gt;&gt;<i> help though. Here's another try...
+</I>&gt;&gt;<i> I'm pretty sure the IB drivers are not loading and I don't know how  
+</I>&gt;&gt;<i> to load them. Here's the error I get when trying to execute the  
+</I>&gt;&gt;<i> osu_latency benchmark in mvapich2:
+</I>&gt;&gt;<i> libibverbs: Fatal: couldn't read uverbs ABI version.
+</I>&gt;&gt;<i> Fatal error in MPI_Init:
+</I>&gt;&gt;<i> Other MPI error, error stack:
+</I>&gt;&gt;<i> MPIR_Init_thread(259)...........: Initialization failed
+</I>&gt;&gt;<i> MPID_Init(102)..................: channel initialization failed
+</I>&gt;&gt;<i> MPIDI_CH3_Init(178).............:
+</I>&gt;&gt;<i> MPIDI_CH3I_RMDA_init(115).......: rdma_get_control_parameters
+</I>&gt;&gt;<i> rdma_get_control_parameters(432):
+</I>&gt;&gt;<i> rdma_open_hca(367)..............: No IB device found
+</I>&gt;&gt;<i> rank 3 in job 1  master.cl.ae.gatech.edu_41302   caused collective  
+</I>&gt;&gt;<i> abort of all ranks
+</I>&gt;&gt;<i> exit status of rank 3: return code 1
+</I>&gt;&gt;<i> Matt suggested running 'ibstat', which doesn't exist on my machine.  
+</I>&gt;&gt;<i> I'm executing the script on four separate nodes via a machinefile  
+</I>&gt;&gt;<i> (not the master), all of which have OFED and mvapich2 installed.
+</I>&gt;&gt;<i> So... I'm essentially looking for a way to load the drivers.  
+</I>&gt;&gt;<i> Rebooting the master and each node post install didn't work. Anyone  
+</I>&gt;&gt;<i> have any thoughts? Thanks!
+</I>&gt;&gt;<i> -------------------------------------------
+</I>&gt;&gt;<i> Chris Tanner
+</I>&gt;&gt;<i> Space Systems Design Lab
+</I>&gt;&gt;<i> Georgia Institute of Technology
+</I>&gt;&gt;<i> <A HREF="http://mail.cse.ohio-state.edu/mailman/listinfo/mvapich-discuss">christopher.tanner at gatech.edu</A>
+</I>&gt;&gt;<i> -------------------------------------------
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> mvapich-discuss mailing list
+</I>&gt;&gt;<i> <A HREF="http://mail.cse.ohio-state.edu/mailman/listinfo/mvapich-discuss">mvapich-discuss at cse.ohio-state.edu</A>
+</I>&gt;&gt;<i> <A HREF="http://mail.cse.ohio-state.edu/mailman/listinfo/mvapich-discuss">http://mail.cse.ohio-state.edu/mailman/listinfo/mvapich-discuss</A>
+</I>
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001606.html">[mvapich-discuss] dynamic process connections (accept/connect or
+	MPI_Comm_join) and Infiniband...
+</A></li>
+	<LI>Next message: <A HREF="001582.html">[mvapich-discuss] error IBV_WC_LOC_LEN_ERR and FATAL event
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1571">[ date ]</a>
+              <a href="thread.html#1571">[ thread ]</a>
+              <a href="subject.html#1571">[ subject ]</a>
+              <a href="author.html#1571">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://mail.cse.ohio-state.edu/mailman/listinfo/mvapich-discuss">More information about the mvapich-discuss
+mailing list</a><br>
+</body></html>

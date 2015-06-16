@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<!--[if IE 8]> <html class="no-js lt-ie9" lang="zh"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="zh"> <!--<![endif]-->
+  <head>
+        
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>道可叨 | python 线程，GIL 和 ctypes </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="author" content="Qiang">
+        <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+        <link href="http://zhuoqiang.me/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="道可叨 Atom Feed" />
+        <link rel="stylesheet" href="http://zhuoqiang.me/theme/css/app.css">
+    <script src="http://zhuoqiang.me/theme/js/vendor/custom.modernizr.js"></script>
+      </head>
+  <body>
+        <header>
+      <hgroup>
+        <a href="http://zhuoqiang.me">
+          <h1 i18n>道可叨</h1>
+          <h2>Free Will</h2>
+        </a>
+      </hgroup>
+    </header>
+    <section>
+      <article>
+  <header>
+  <h1><a href="http://zhuoqiang.me/python-thread-gil-and-ctypes.html">python 线程，GIL 和 ctypes</a></h1>
+</header>  <div>
+    <section>
+      <div class="section" id="gil-python">
+<h2>GIL 与 Python 线程的纠葛</h2>
+<p>GIL 是什么东西？它对我们的 python 程序会产生什么样的影响？我们先来看一个问题。运行下面这段 python 程序，CPU 占用率是多少？</p>
+<div class="highlight"><pre><span class="c"># 请勿在工作中模仿，危险:)</span>
+<span class="k">def</span> <span class="nf">dead_loop</span><span class="p">():</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+<span class="n">dead_loop</span><span class="p">()</span>
+</pre></div>
+<p>答案是什么呢，占用 100％ CPU？那是单核！还得是没有超线程的古董 CPU。在我的双核 CPU 上，这个死循环只会吃掉我一个核的工作负荷，也就是只占用 50％ CPU。那如何能让它在双核机器上占用 100％ 的 CPU 呢？答案很容易想到，用两个线程就行了，线程不正是并发分享 CPU 运算资源的吗。可惜答案虽然对了，但做起来可没那么简单。下面的程序在主线程之外又起了一个死循环的线程</p>
+<div class="highlight"><pre><span class="kn">import</span> <span class="nn">threading</span>
+
+<span class="k">def</span> <span class="nf">dead_loop</span><span class="p">():</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+<span class="c"># 新起一个死循环线程</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">dead_loop</span><span class="p">)</span>
+<span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+<span class="c"># 主线程也进入死循环</span>
+<span class="n">dead_loop</span><span class="p">()</span>
+
+<span class="n">t</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+</pre></div>
+<p>按道理它应该能做到占用两个核的 CPU 资源，可是实际运行情况却是没有什么改变，还是只占了 50％ CPU 不到。这又是为什么呢？难道 python 线程不是操作系统的原生线程？打开 system monitor 一探究竟，这个占了 50% 的 python 进程确实是有两个线程在跑。那这两个死循环的线程为何不能占满双核 CPU 资源呢？其实幕后的黑手就是 GIL。</p>
+</div>
+<div class="section" id="gil">
+<h2>GIL 的迷思：痛并快乐着</h2>
+<p>GIL 的全程为 <a class="reference external" href="http://en.wikipedia.org/wiki/Global_Interpreter_Lock">Global Interpreter Lock</a> ，意即全局解释器锁。在 Python 语言的主流实现 CPython 中，GIL 是一个货真价实的全局线程锁，在解释器解释执行任何 Python 代码时，都需要先获得这把锁才行，在遇到 I/O 操作时会释放这把锁。如果是纯计算的程序，没有 I/O 操作，解释器会每隔 100 次操作就释放这把锁，让别的线程有机会执行（这个次数可以通过 <tt class="docutils literal">sys.setcheckinterval</tt> 来调整）。所以虽然 CPython 的线程库直接封装操作系统的原生线程，但 CPython 进程做为一个整体，同一时间只会有一个获得了 GIL 的线程在跑，其它的线程都处于等待状态等着 GIL 的释放。这也就解释了我们上面的实验结果：虽然有两个死循环的线程，而且有两个物理 CPU 内核，但因为 GIL 的限制，两个线程只是做着分时切换，总的 CPU 占用率还略低于 50％。</p>
+<p>看起来 python 很不给力啊。GIL 直接导致 CPython 不能利用物理多核的性能加速运算。那为什么会有这样的设计呢？我猜想应该还是历史遗留问题。多核 CPU 在 1990 年代还属于类科幻，Guido van Rossum 在创造 python 的时候，也想不到他的语言有一天会被用到很可能 1000＋ 个核的 CPU 上面，一个全局锁搞定多线程安全在那个时代应该是最简单经济的设计了。简单而又能满足需求，那就是合适的设计（对设计来说，应该只有合适与否，而没有好与不好）。怪只怪硬件的发展实在太快了，摩尔定律给软件业的红利这么快就要到头了。短短 20 年不到，代码工人就不能指望仅仅靠升级 CPU 就能让老软件跑的更快了。在多核时代，编程的免费午餐没有了。如果程序不能用并发挤干每个核的运算性能，那就意谓着会被淘汰。对软件如此，对语言也是一样。那 Python 的对策呢？</p>
+<p>Python 的应对很简单，以不变应万变。在最新的 python 3 中依然有 GIL。之所以不去掉，原因嘛，不外以下几点：</p>
+<ul>
+<li><p class="first">欲练神功，挥刀自宫：</p>
+<p>CPython 的 GIL 本意是用来保护所有全局的解释器和环境状态变量的。如果去掉 GIL，就需要多个更细粒度的锁对解释器的众多全局状态进行保护。或者采用 Lock-Free 算法。无论哪一种，要做到多线程安全都会比单使用 GIL 一个锁要难的多。而且改动的对象还是有 20 年历史的 CPython 代码树，更不论有这么多第三方的扩展也在依赖 GIL。对 Python 社区来说，这不异于挥刀自宫，重新来过。</p>
+</li>
+<li><p class="first">就算自宫，也未必成功：</p>
+<p>有位牛人曾经做了一个验证用的 CPython，将 GIL 去掉，加入了更多的细粒度锁。但是经过实际的测试，对单线程程序来说，这个版本有很大的性能下降，只有在利用的物理 CPU 超过一定数目后，才会比 GIL 版本的性能好。这也难怪。单线程本来就不需要什么锁。单就锁管理本身来说，锁 GIL 这个粗粒度的锁肯定比管理众多细粒度的锁要快的多。而现在绝大部分的 python 程序都是单线程的。再者，从需求来说，使用 python 绝不是因为看中它的运算性能。就算能利用多核，它的性能也不可能和 C/C++ 比肩。费了大力气把 GIL 拿掉，反而让大部分的程序都变慢了，这不是南辕北辙吗。</p>
+</li>
+<li><p class="first">难道 Python 这么优秀的语言真的仅仅因为改动困难和意义不大就放弃多核时代了吗？其实，不做改动最最重要的原因还在于：不用自宫，也一样能成功！</p>
+</li>
+</ul>
+</div>
+<div class="section" id="id1">
+<h2>其它神功</h2>
+<p>那除了切掉 GIL 外，果然还有方法让 Python 在多核时代活的滋润？让我们回到本文最初的那个问题：如何能让这个死循环的 Python 脚本在双核机器上占用 100％ 的 CPU？其实最简单的答案应该是：运行两个 python 死循环的程序！也就是说，用两个分别占满一个 CPU 内核的 python 进程来做到。确实，多进程也是利用多个 CPU 的好方法。只是进程间内存地址空间独立，互相协同通信要比多线程麻烦很多。有感于此，Python 在 2.6 里新引入了 <tt class="docutils literal">multiprocessing</tt> 这个多进程标准库，让多进程的 python 程序编写简化到类似多线程的程度，大大减轻了 GIL 带来的不能利用多核的尴尬。</p>
+<p>这还只是一个方法，如果不想用多进程这样重量级的解决方案，还有个更彻底的方案，放弃 Python，改用 C/C++。当然，你也不用做的这么绝，只需要把关键部分用 C/C++ 写成 Python 扩展，其它部分还是用 Python 来写，让 Python 的归 Python，C 的归 C。一般计算密集性的程序都会用 C 代码编写并通过扩展的方式集成到 Python 脚本里（如 NumPy 模块）。在扩展里就完全可以用 C 创建原生线程，而且不用锁 GIL，充分利用 CPU 的计算资源了。不过，写 Python 扩展总是让人觉得很复杂。好在 Python 还有另一种与 C 模块进行互通的机制 : ctypes</p>
+</div>
+<div class="section" id="ctypes-gil">
+<h2>利用 ctypes 绕过 GIL</h2>
+<p>ctypes 与 Python 扩展不同，它可以让 Python 直接调用任意的 C 动态库的导出函数。你所要做的只是用 ctypes 写些 python 代码即可。最酷的是，ctypes 会在调用 C 函数前释放 GIL。所以，我们可以通过 ctypes 和 C 动态库来让 python 充分利用物理内核的计算能力。让我们来实际验证一下，这次我们用 C 写一个死循环函数</p>
+<div class="highlight"><pre><span class="k">extern</span><span class="s">&quot;C&quot;</span>
+<span class="p">{</span>
+  <span class="kt">void</span> <span class="n">DeadLoop</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>用上面的 C 代码编译生成动态库 <tt class="docutils literal">libdead_loop.so</tt> （Windows 上是 <tt class="docutils literal">dead_loop.dll</tt>）</p>
+<p>，接着就要利用 ctypes 来在 python 里 load 这个动态库，分别在主线程和新建线程里调用其中的 <tt class="docutils literal">DeadLoop</tt></p>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">ctypes</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Thread</span>
+
+<span class="n">lib</span> <span class="o">=</span> <span class="n">cdll</span><span class="o">.</span><span class="n">LoadLibrary</span><span class="p">(</span><span class="s">&quot;libdead_loop.so&quot;</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">lib</span><span class="o">.</span><span class="n">DeadLoop</span><span class="p">)</span>
+<span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+<span class="n">lib</span><span class="o">.</span><span class="n">DeadLoop</span><span class="p">()</span>
+</pre></div>
+<p>这回再看看 system monitor，Python 解释器进程有两个线程在跑，而且双核 CPU 全被占满了，ctypes 确实很给力！需要提醒的是，GIL 是被 ctypes 在调用 C 函数前释放的。但是 Python 解释器还是会在执行任意一段 Python 代码时锁 GIL 的。如果你使用 Python 的代码做为 C 函数的 callback，那么只要 Python 的 callback 方法被执行时，GIL 还是会跳出来的。比如下面的例子：</p>
+<div class="highlight"><pre><span class="k">extern</span><span class="s">&quot;C&quot;</span>
+<span class="p">{</span>
+  <span class="k">typedef</span> <span class="kt">void</span> <span class="n">Callback</span><span class="p">();</span>
+  <span class="kt">void</span> <span class="nf">Call</span><span class="p">(</span><span class="n">Callback</span><span class="o">*</span> <span class="n">callback</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">callback</span><span class="p">();</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">ctypes</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Thread</span>
+
+<span class="k">def</span> <span class="nf">dead_loop</span><span class="p">():</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+<span class="n">lib</span> <span class="o">=</span> <span class="n">cdll</span><span class="o">.</span><span class="n">LoadLibrary</span><span class="p">(</span><span class="s">&quot;libcall.so&quot;</span><span class="p">)</span>
+<span class="n">Callback</span> <span class="o">=</span> <span class="n">CFUNCTYPE</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+<span class="n">callback</span> <span class="o">=</span> <span class="n">Callback</span><span class="p">(</span><span class="n">dead_loop</span><span class="p">)</span>
+
+<span class="n">t</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">lib</span><span class="o">.</span><span class="n">Call</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">callback</span><span class="p">,))</span>
+<span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+<span class="n">lib</span><span class="o">.</span><span class="n">Call</span><span class="p">(</span><span class="n">callback</span><span class="p">)</span>
+</pre></div>
+<p>注意这里与上个例子的不同之处，这次的死循环是发生在 Python 代码里 (<tt class="docutils literal">DeadLoop</tt> 函数) 而 C 代码只是负责去调用这个 callback 而已。运行这个例子，你会发现 CPU 占用率还是只有 50％ 不到。GIL 又起作用了。</p>
+<p>其实，从上面的例子，我们还能看出 ctypes 的一个应用，那就是用 Python 写自动化测试用例，通过 ctypes 直接调用 C 模块的接口来对这个模块进行黑盒测试，哪怕是有关该模块 C 接口的多线程安全方面的测试，ctypes 也一样能做到。</p>
+</div>
+<div class="section" id="id2">
+<h2>结语</h2>
+<p>虽然 CPython 的线程库封装了操作系统的原生线程，但却因为 GIL 的存在导致多线程不能利用多个 CPU 内核的计算能力。好在现在 Python 有了易经筋（multiprocessing）, 吸星大法（C 语言扩展机制）和独孤九剑（ctypes），足以应付多核时代的挑战，GIL 切还是不切已经不重要了，不是吗。</p>
+</div>
+
+    </section>
+  </div>
+  <footer>
+  <p>
+    <time datetime="2011-01-10T02:21:00" pubdate>2011-01-10</time><a href="http://zhuoqiang.me/category/programming.html"><span class="category" i18n>programming</span></a> 
+  </p>
+  <ul>
+        <li><a href="http://zhuoqiang.me/tag/concurrent.html"><span class="tag" i18n>concurrent</span></i></a>
+        <li><a href="http://zhuoqiang.me/tag/python.html"><span class="tag" i18n>python</span></i></a>
+      </ul>
+</footer>  <section id="disqus_thread"></section>
+<script>
+  var disqus_shortname = 'zhuoqiang';
+  var disqus_identifier = 'python-thread-gil-and-ctypes';
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+</article>
+    </section>
+    <footer>
+      <p>@ <a href="mailto:zhuo.qiang@gmail.com"><span i18n>Qiang</span></a> | <span class="heart"><a href="https://github.com/getpelican/pelican">Pelican</a> & <a href="https://bitbucket.org/zhuoqiang/jing">Jing</a></span></p>
+    </footer>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="http://zhuoqiang.me/theme/js/vendor/jquery-1.8.3.min.js"><\/script>')</script>
+    <script src="http://zhuoqiang.me/theme/js/vendor/moment.min.js"></script>
+    <script src="http://zhuoqiang.me/theme/js/vendor/moment-lang.min.js"></script>    
+    <script src="http://zhuoqiang.me/theme/js/vendor/i18next-1.6.0.min.js"></script>    
+    <script src="http://zhuoqiang.me/theme/js/main.js"></script>
+            <script>
+      var _gaq=[['_setAccount','UA-16424043-4'],['_trackPageview']];
+      (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+      g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g,s)}(document,'script'));
+    </script>
+            <script type="text/javascript">
+      var GoSquared = {};
+      GoSquared.acct = "GSN-743443-H";
+      (function(w){
+      function gs(){
+      w._gstc_lt = +new Date;
+      var d = document, g = d.createElement("script");
+      g.type = "text/javascript";
+      g.src = "//d1l6p2sc9645hc.cloudfront.net/tracker.js";
+      var s = d.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(g, s);
+      }
+      w.addEventListener ?
+      w.addEventListener("load", gs, false) :
+      w.attachEvent("onload", gs);
+      })(window);
+    </script>
+          </body>
+</html>

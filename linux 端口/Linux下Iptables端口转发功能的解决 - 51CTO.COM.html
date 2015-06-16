@@ -1,0 +1,594 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<meta http-equiv="x-ua-compatible" content="ie=7" />
+<title>Linux下Iptables端口转发功能的解决 - 51CTO.COM</title>
+<meta name="description" content="Linux下Iptables端口转发功能的解决：iptables的端口转发功能该如何实现？本文基于一个实例，讲述了如何在Linux下实现Iptables端口转发功能的问题。"/>
+<meta name="keywords" content="Linux,Iptables,端口转发"/>
+<base target="_blank" />
+<link href="http://images.51cto.com/images/art1105/css/grid.css" rel="stylesheet" type="text/css" />
+<link type="text/css" rel="stylesheet" href="http://images.51cto.com/images/art/css/art_master_top.css" />
+<link href="http://book.51cto.com/images/bookspec/css/css3.css" rel="stylesheet" type="text/css" />
+<script language="javaScript" src="http://www.51cto.com/php/base_art.js"></SCRIPT>
+<script src="http://www.51cto.com/images/homepage/index_1_down.js"></script>
+<style type="text/css">
+.bds_tools a{ padding:0; margin:0;}
+</style>
+</head>
+<body >
+<!-- 导航 开始-->
+<div id="home_top">    <div class="top_nav">        <div class="left" style="width:400px"><div class="logo_51cto" title="51CTO.COM - 技术成就梦想 -  中国领先的IT技术网站"></div><a href="http://www.51cto.com/">首页</a><img width="16" height="25" align="absmiddle" src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif" style="padding-top: 2px;"><a onmouseover="show(1,this);" onmouseout="popupClose();" href="http://www.51cto.com/col/35/" target="_blank">技术频道<img align="absmiddle" src="http://images.51cto.com/images/art/top_images/nav_ico1.gif" style="padding-left: 4px;"></a><img width="16" height="25" align="absmiddle" src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif"><a onmouseover="show(2,this);" onmouseout="popupClose();" href="http://www.51cto.com" target="_blank">51CTO旗下网站<img align="absmiddle" src="http://images.51cto.com/images/art/top_images/nav_ico1.gif" style="padding-left: 4px;"></a><img width="16" height="25" align="absmiddle" src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif"><a href="http://www.51cto.com/about/map.htm" target="_blank">地图</a> <a href="http://www.51cto.com/about/rss.html" target="_blank"><img src="http://images.51cto.com/files/uploadimg/20110922/143749870.gif" style="vertical-align:middle; margin-bottom: 5px; margin-left:5px;"></a>       </div>        <div class="right">            <div class="more"><img width="27" height="16" align="absmiddle" src="http://home.51cto.com/public/themes/blue/images/top_shequ.gif">社区：<a href="http://bbs.51cto.com" target="_blank">论坛</a><a href="http://blog.51cto.com" target="_blank">博客</a><a href="http://down.51cto.com" target="_blank">下载</a><a href="http://book.51cto.com/" target="_blank">读书</a><a onmouseover="show(3,this)" onmouseout="popupClose()" href="javascript:viod(0);">更多<img align="absmiddle" src="http://images.51cto.com/images/art/top_images/nav_ico1.gif" style="padding-left: 4px;"></a>            </div>            <span id="login_status"><div class="login" id="login_status"></div>    </span>                </div>    </div></div>
+<div class="subMenu1" id="s1" onmouseover="popupNoClose();" onmouseout="popupClose();">
+<ul>
+<li><a href="http://network.51cto.com" target="_blank">网络</a></li>
+<li><a href="http://netsecurity.51cto.com" target="_blank">安全</a></li>
+<li><a href="http://developer.51cto.com" target="_blank">开发</a></li>
+<li><a href="http://database.51cto.com" target="_blank">数据库</a></li>
+<li><a href="http://server.51cto.com" target="_blank">服务器</a></li>
+<li><a href="http://os.51cto.com" target="_blank">系统</a></li>
+<li><a href="http://virtual.51cto.com" target="_blank">虚拟化</a></li>
+<li><a href="http://cloud.51cto.com" target="_blank">云计算</a></li>
+<li><a href="http://developer.51cto.com/embed/" target="_blank">嵌入式</a></li>
+<li><a href="http://mobile.51cto.com/" target="_blank">移动开发</a></li>
+</ul>
+</div> 
+<div class="subMenu2" id="s2" onmouseover="popupNoClose()" onmouseout="popupClose()">
+<ul>
+<li><a href="http://www.51cto.com" target="_blank" title="中国领先的IT技术网站">51CTO.COM</a></li>
+<li><a href="http://www.cioage.com" target="_blank" title="中国首个专门服务于CIO的专业网站">CIOage.com</a></li>
+<li><a href="http://www.watchstor.com/" target="_blank"  title="领先的中文存储网络媒体">WatchStor.com</a></li>
+<li><a href="http://www.hc3i.cn/" target="_blank"  title="中国首家专注于数字医疗及医疗信息化的专业网站">HC3i.cn</a></li>
+<li><a href="http://www.linkphone.cn/" target="_blank"  title="移动互联网生活门户">灵客风LinkPhone</a></li>
+</ul>
+</div>
+<script src="http://www.51cto.com/js/jquery-1.4.4.js"></script>
+<script>
+$(function(){
+	$(".bann").height(515);	 
+	$(".bann").css("background-color","white");
+});
+
+</script>
+
+<script src="http://www.51cto.com/head_art_more1.js"></script>
+<!-- 登陆信息 -->
+<!-- 导航 结束--> 
+ <div class="g_39 mb10">
+	<div id="tonglanad" class="fl"></div>
+	<div id="list4" class="fr">
+		<ul>
+			<li id="wordlinkad1"></li>
+			<li id="wordlinkad2"></li>
+			<li id="wordlinkad3"></li>
+			<li id="wordlinkad4"></li>
+		</ul>
+	</div>
+<br class="dle"/>
+</div>
+
+<div class="g_39 menu">
+<DIV class=subNav_logo>
+<A href="http://os.51cto.com/" target=_blank><IMG src="http://www.51cto.com/images/sunbanner/caozuoxitong_logo.gif" border="0"></a></DIV>
+<DIV class=subNav_l>
+<A href="http://os.51cto.com/col/543/" target=_blank>新闻</A> | 
+<A href="http://os.51cto.com/linux/" target=_blank>Linux</A> | 
+<A href="http://os.51cto.com/windows/" target=_blank>Windows</A> | 
+<A href="http://os.51cto.com/col/975/" target=_blank>浏览器</A> | 
+<A href="http://os.51cto.com/col/610/" target=_blank>开源</A> | 
+<A href="http://os.51cto.com/col/545/" target=_blank>运维</A> | 
+<A href="http://publish.51cto.com/list/519/" target=_blank>全部</A> | 
+<A href="http://os.51cto.com/art/201106/266501.htm" target=_blank>投稿指南</A> | 
+<a href="http://os.51cto.com/art/201109/292676.htm"><img src="http://images.51cto.com/files/uploadimg/20110922/143749870.gif" width="15" height="16" alt="RSS" > RSS订阅</a>
+</DIV>
+  
+<div class="search fr">
+<dl>
+<form name=searchform action="http://www.51cto.com/php/search.php" target="_blank" method=post style="margin:0px; padding:0px;">
+<dt class="fl"><input name="keyword" type="text" class="searchInput f14 input" value="请输入关键字" onfocus="doempty(this, '请输入关键字');" onblur="doempty(this, '请输入关键字');" /></dt>
+<dd class="fl"><input type="image" src="http://images.51cto.com/images/art/newart1012/images/search.gif" /></dd></form>
+</dl>
+</div>
+<br class="dle"/>
+</div>
+<div class="g_39 b3-s-4273B3 rel">
+<!--width : 26*25 - 15 = 635px-->
+<div class="g_26 fl m_l">
+<div class="brief bgF8F8F8">
+<p class="crumb ">您所在的位置：<a href='http://os.51cto.com'>操作系统</a> &gt; <a href='http://os.51cto.com/col/1496/'>系统技巧集锦</a> &gt;  <b>Linux下Iptables端口转发功能的解决</b> </p>
+<h1>Linux下Iptables端口转发功能的解决</h1>
+<div class="msg">
+<div>2011-03-16 10:12  郭工  netren <span class="f12-a"><a href="#commment" target="_self">我要评论(<span id="pinglun_1">0</span>)</a></span> 字号：<span class="f14-b"><a href="javascript:setfont(12);" target="_self">T</a></span> | <span class="f16-b"><a href="javascript:setfont(16);" target="_self">T</a></span></div>
+<div class='artHd' id='books' style='padding:5px 25px;display:none;'></div>
+<div class="fav"><a href="javascript:favorBox('open');" title="一键收藏，随时查看，分享好友！" target="_self"><img src="http://images.51cto.com/images/art/newart1012/images/Fav.gif" alt="一键收藏，随时查看，分享好友！" border="0" /></a></div>
+</div>
+<div class="brieftext">
+<p class="f14 green">Linux下Iptables端口转发功能的解决：iptables的端口转发功能该如何实现？本文基于一个实例，讲述了如何在Linux下实现Iptables端口转发功能的问题。</p>
+<p class="ad">AD：<script src="http://www.51cto.com/js/article/keywords_ad_new.js"></script>
+</p>
+</div>
+</div>
+<div class="tag bgF8F8F8" id="indexlist" style="display:none;">
+<ul id="indexliststr">
+</ul>
+<br class="dle"/>
+</div>
+<div class="content bgF8F8F8 f14">
+<div id="content">
+<p><p><strong>Linux</strong>下<strong>Iptables端口转发</strong>功能的解决：</p>
+<p>先从一个实例说：有一企业就一个服务器软件做测试。基于win2k的，端口号为881，服务器直接连接外部网络，客户端通过服器ip来访问。排除Windows，如果是使用Linux，那么该如何解决iptables端口转发的问题。经过资料的查阅，iptables的端口转发功能是可以解决的，以下是Linux下Iptables端口转发功能的解决方法：</p>
+<p>目标：利用端口转发，当服务器接收到881端口请求以后，将其转到 10.10.2.200:881上，10.10.2.200再将数据返回给请求连接。</p>
+<p>Eth0:连接ADSL，即ppp0接口</p>
+<p>Eth1：连接内部网络，ip为10.10.1.1</p>
+<p>10.10.2.200为win2k服务器，其端口881提供网络服务。</p>
+<p><strong>iptbles脚本：</strong></p>
+<pre><ol class="dp-xml"><li class="alt"><span><span>iptables&nbsp;-t&nbsp;nat&nbsp;-A&nbsp;PREROUTING&nbsp;-p&nbsp;tcp&nbsp;-m&nbsp;tcp&nbsp;--dport&nbsp;881&nbsp;-j&nbsp;DNAT&nbsp;--to-destination&nbsp;10.10.2.200:881 &nbsp;</span></span></li><li><span>&nbsp;</span></li></ol></pre>
+<p>将881请求发至10.10.2.00:881端口</p>
+<pre><ol class="dp-xml"><li class="alt"><span><span>iptables&nbsp;-t&nbsp;nat&nbsp;-A&nbsp;POSTROUTING&nbsp;-s&nbsp;10.10.0.0/16&nbsp;-d&nbsp;10.10.2.200&nbsp;-p&nbsp;tcp&nbsp;-m&nbsp;tcp&nbsp;--dport&nbsp;881&nbsp;-j&nbsp;SNAT&nbsp;--to-source &nbsp;</span></span></li><li><span>&nbsp;</span></li></ol></pre>
+<p>10.10.1.1 ;返回a.b.b.d时数据源来自同一子网，就将其源地址更改为10.10.1.1，从eth0发出，并在连接跟踪表中查出a.b.c.d</p>
+<p>从ppp0进来的，又由ppp0将此数据发出。</p>
+<p>当然不要忘了加一条允许881端口访问的语句。</p>
+<pre><ol class="dp-xml"><li class="alt"><span><span>iptables&nbsp;&ndash;A&nbsp;INPUT&nbsp;&ndash;p&nbsp;tcp&nbsp;&ndash;dport&nbsp;881&nbsp;&ndash;i&nbsp;ppp0&nbsp;&ndash;j&nbsp;ACCEPT &nbsp;</span></span></li><li><span>&nbsp;</span></li></ol></pre>
+<p>可不可把服务器放在局域内，用端口转发来实现呢?答案当然是肯定的，既然能把881端口转发，那么21,80这些个端口更不在话，并且很多服务器软件都可以自定义端口，那就在得玩了，只要有合适的端口，即使给局域网每一个用户开一个ftp服务器也是可的。你想要实现什么服务都可以，当然是基于端口转发的。</p>
+<p>局域网内10.10.2.101是win2k，提供www服务，端口为800。通过服务器http://serverip:800 进行访问。</p>
+<pre><ol class="dp-xml"><li class="alt"><span><span>iptables&nbsp;-t&nbsp;nat&nbsp;-A&nbsp;PREROUTING&nbsp;-p&nbsp;tcp&nbsp;-m&nbsp;tcp&nbsp;--dport&nbsp;800&nbsp;-j&nbsp;DNAT&nbsp;--to-destination&nbsp;10.10.2.101:800 &nbsp;</span></span></li><li><span>&nbsp;</span></li><li class="alt"><span>iptables&nbsp;-t&nbsp;nat&nbsp;-A&nbsp;POSTROUTING&nbsp;-s&nbsp;10.10.0.0/16&nbsp;-d&nbsp;10.10.2.101&nbsp;-p&nbsp;tcp&nbsp;-m&nbsp;tcp&nbsp;--dport&nbsp;800&nbsp;-j&nbsp;SNAT&nbsp;--to-source &nbsp;</span></li><li><span>&nbsp;</span></li><li class="alt"><span>10.10.1.1 &nbsp;</span></li><li><span>&nbsp;</span></li><li class="alt"><span>iptables&nbsp;&ndash;A&nbsp;INPUT&nbsp;&ndash;p&nbsp;tcp&nbsp;&ndash;dport&nbsp;800&nbsp;&ndash;i&nbsp;ppp0&nbsp;&ndash;j&nbsp;ACCEPT &nbsp;</span></li><li><span>&nbsp;</span></li></ol></pre>
+<p>由于是基于端口转发实现的，所以服务器上只需装个iptables来转发数据就行了，一切服务由内部服务器完成，这样的话，linux服务器才真正的算是个防火墙，Linux下Iptables端口转发功能也就实现了。</p>
+<p>【编辑推荐】</p>
+<p><a href="http://os.51cto.com/art/201103/249324.htm" target="_blank">四种NAT的iptables实现</a></p>
+<p><a href="http://os.51cto.com/art/201103/249323.htm" target="_blank">iptables中nat表</a></p>
+<p><a href="http://os.51cto.com/art/201103/249316.htm" target="_blank">iptables常用命令</a></p><DIV align=right>【责任编辑：<A class=ln href="mailto:gaoyy@51cto.com">高圆圆</A> TEL：（010）68476606】</DIV><br> 
+<p class="blank10"></p> 
+ 
+ 
+
+
+<div class="f12"> <span class="fl">原文：<a href="http://os.51cto.com/art/201103/249341.htm" class="blue"><b>Linux下Iptables端口转发功能的解决</b></a></span> <span class="fr"><a href="http://os.51cto.com">返回操作系统首页</a></span> </div>
+<p class="blank1"></p>
+</div>
+<iframe height="239" src="http://widget.weibo.com/relationship/bulkfollow.php?language=zh_cn&amp;uids=1708729084,1706976420,1888399833,1422974343,1647478544,1803367537&amp;wide=0&amp;color=C2D9F2,FFFFFF,0082CB,666666&amp;showtitle=1&amp;showinfo=1&amp;sense=0&amp;verified=1&amp;count=6&amp;refer='+encodeURIComponent(location.href)+'&amp;dpc=1" frameborder="0" width="600" scrolling="no"></iframe>
+<div class="tips">
+<div style="float:left;">
+<span style="float:left; margin-top:4px;">分享到：</span>
+<!-- Baidu Button BEGIN -->
+    <div id="bdshare" class="bdshare_t bds_tools get-codes-bdshare" style="margin-right:5px; float:left;">
+        <a class="bds_qzone"></a>
+        <a class="bds_tsina"></a>
+        <a class="bds_tqq"></a>
+        <a class="bds_renren"></a>
+        <a class="bds_t163"></a>
+        <span class="bds_more"></span>
+		<a class="shareCount"></a>
+
+</div>
+<!--<div class="fl"> 
+    </div>
+--><script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=585532" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+	var bds_config = {'snsKey':{'tsina':'2378297317'}};
+	document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?t=" + new Date().getHours();
+</script>
+<!-- Baidu Button END -->
+
+
+
+</div><div class="fr blue"><a href="javascript:AddFavorite(document.location.href,document.title);" target="_self">收藏</a>|<a href="javascript:window.print();" target="_self">打印</a>|<a id="msnqqcopy" title="分享本资源给好友" target="_self">复制</a></div>
+</div>
+</div>
+<!--内容 end-->
+<div class="topbiaoqing">
+<div class="biaoqing fixfloat pad" >
+<ul>
+<li><a href='javascript:getcountscom(249341,1)' target="_self"><img src="http://images.51cto.com/images/art1105/images/bq1.jpg" /></a>
+<div><a href='javascript:getcountscom(249341,1)' target="_self">给力</a></div>
+<span id="249341_1">(0票)</span></li>
+<li><a href='javascript:getcountscom(249341,2)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq2.jpg" /></a>
+<div><a href='javascript:getcountscom(249341,2)'  target="_self">动心</a></div>
+<span id="249341_2">(0票)</span></li>
+<li><a href='javascript:getcountscom(249341,3)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq3.jpg" /></a>
+<div><a href='javascript:getcountscom(249341,3)'  target="_self">废话</a></div>
+<span id="249341_3">(0票)</span></li>
+<li><a href='javascript:getcountscom(249341,4)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq4.jpg" /></a>
+<div><a href='javascript:getcountscom(249341,4)'  target="_self">专业</a></div>
+<span id="249341_4">(0票)</span></li>
+<li><a href='javascript:getcountscom(249341,5)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq5.jpg" /></a>
+<div><a href='javascript:getcountscom(249341,5)'  target="_self">标题党</a></div>
+<span id="249341_5">(0票)</span></li>
+<li><a href='javascript:getcountscom(249341,6)'  target="_self"><img src="http://images.51cto.com/images/art1105/images/bq6.jpg" /></a>
+<div><a href='javascript:getcountscom(249341,6)'  target="_self">路过</a></div>
+<span id="249341_6">(0票)</span></li>
+</ul>
+</div>
+<script language="javascript"> 
+getcountscom(249341,11);
+
+</script>
+</div>
+<p class="blank10"></p>
+<div class="bor">
+<div class="titbg pl15">关于<a href='http://www.51cto.com/php/search.php?keyword=Linux' target='_blank' class='underline'>Linux</a>&nbsp;&nbsp;<a href='http://www.51cto.com/php/search.php?keyword=Iptables' target='_blank' class='underline'>Iptables</a>&nbsp;&nbsp;<a href='http://www.51cto.com/php/search.php?keyword=%B6%CB%BF%DA%D7%AA%B7%A2' target='_blank' class='underline'>端口转发</a>的更多文章</div>
+<div class="reltag">
+<ul class="fl list02">
+  <li><a href="http://os.51cto.com/art/201107/273443.htm" title="深入浅出Netfilter/iptables防火墙框架（基础篇）">深入浅出Netfilter/iptables防火墙框架（基</a></li><li><a href="http://os.51cto.com/art/201104/256648.htm" title="Linux系统下iptables基本配置方法">Linux系统下iptables基本配置方法</a></li><li><a href="http://os.51cto.com/art/201103/249792.htm" title="Linux下利用iptables屏蔽IP段">Linux下利用iptables屏蔽IP段</a></li><li><a href="http://os.51cto.com/art/201103/249726.htm" title="把iptables移植到嵌入式Linux系统">把iptables移植到嵌入式Linux系统</a></li><li><a href="http://os.51cto.com/art/201103/249716.htm" title="linux iptables layer7 模块 中文howto">linux iptables layer7 模块 中文howto</a></li>
+</ul>
+<div class="fr">
+<div class="h5 f12"><a href="http://os.51cto.com/art/201207/350414.htm" title="《Linux运维趋势》2012上半年汇总"><b>《Linux运维趋势》2012上半年汇总</b></a></div>
+<a href="http://os.51cto.com/art/201207/350414.htm" title="《Linux运维趋势》2012上半年汇总"><img src="http://images.51cto.com/files/uploadimg/20120726/142633538.jpg" alt="《Linux运维趋势》2012上半年汇总" width="100" height="80" border="0" /></a>
+<p class="c666">本专题汇总了2012上半年的《Linux运维趋势》电子杂志，《Linux <a class="blue"href="http://os.51cto.com/art/201207/350414.htm" title="《Linux运维趋势》2012上半年汇总">[详细]</a></p>
+</div>
+</div>
+<!--reltag end-->
+</div>
+<p class="blank10"></p>
+<div class="bor">
+<div class="f14 comm">
+<h3 class="fl">网友评论<em>TOP5</em></h3>
+<span class="fr"> <a href="http://www.51cto.com/php/feedbackt.php?id=249341">查看所有评论（<span id="pinglun_2"></span>）</a></span> </div>
+<p class="blank1"></p>
+<div class="blank1"></div>
+<ul class="commlist">
+<script src="http://www.51cto.com/php/artcomment1105.php?artid=249341"></script>
+</ul>
+<div class="txt bgF8F8F8">
+<a name="commment"></a>
+<dl>
+<dt class="fl tlt">提交评论</dt>
+<dd><script src="http://www.51cto.com/authart.php?referer=http://os.51cto.com/art/201103/249341.htm"></script>
+<br />
+</dd>
+
+</dl>
+	 <script type="text/javascript" language="javascript" src="http://www.51cto.com/php/comments/nomal_k.php?id=249341&arturl=http://os.51cto.com/art/201103/249341.htm"></script>
+	
+</div>
+</div>
+<!--box end-->
+<p class="blank10"></p>
+<div class="relart fl bor">
+<div class="titbg">
+<h3 class="fl t1">栏目热门</h3>
+<a href="/click/1496" class="tmore">更多&gt;&gt;</a></div>
+<ul>
+  
+	  <li><a href="http://os.51cto.com/art/201207/349072.htm" title="分布式文件系统DFS详细解读">分布式文件系统DFS详细解读</a></li>
+	  
+	  <li><a href="http://os.51cto.com/art/201207/347650.htm" title="Windows 7设备管理器使用技巧">Windows 7设备管理器使用技巧</a></li>
+	  
+	  <li><a href="http://os.51cto.com/art/201207/345999.htm" title="OneStack：Ubuntu 12.04 上一键自动部署 OpenStack">OneStack：Ubuntu 12.04 上一键自动部署 Op</a></li>
+	  
+	  <li><a href="http://os.51cto.com/art/201206/345410.htm" title="打造自动翻墙的路由器">打造自动翻墙的路由器</a></li>
+	  
+	  <li><a href="http://os.51cto.com/art/201208/351815.htm" title="一个及其简单的卸载linux的方法">一个及其简单的卸载linux的方法</a></li>
+	  
+</ul>
+</div>
+<div class="cathot fr bor">
+<div class="titbg">
+<h3 class="fl t1">同期最新</h3>
+<a href="/col/1496" class="tmore">更多&gt;&gt;</a></div>
+<ul>
+	
+	  <li><a href="http://os.51cto.com/art/201103/249324.htm" title="四种NAT的iptables实现">四种NAT的iptables实现</a></li>
+	  
+	  <li><a href="http://os.51cto.com/art/201103/249323.htm" title="iptables中nat表">iptables中nat表</a></li>
+	  
+	  <li><a href="http://os.51cto.com/art/201103/249304.htm" title="如何使用iptables来实现NAT">如何使用iptables来实现NAT</a></li>
+	  
+	  <li><a href="http://os.51cto.com/art/201103/249300.htm" title="iptables的过滤规则">iptables的过滤规则</a></li>
+	  
+	  <li><a href="http://os.51cto.com/art/201103/249299.htm" title="Linux下iptables实现的nat服务">Linux下iptables实现的nat服务</a></li>
+	  
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="bor">
+<div class="titbg">
+<h3 class="fl t1"><a href="http://os.51cto.com">操作系统</a></h3>
+<span class="pl10">频道导航</span></div>
+ <ul class="xtlist">
+<li><span class="tit">生产环境</span>
+<div><a href="http://os.51cto.com/linux/">Linux</a>
+|<a href="http://os.51cto.com/windows/">Windows</a>
+|<a href="http://os.51cto.com/col/522/">Unix</a>
+|<a href="http://os.51cto.com/col/545/">运维教程</a>
+|<a href="http://os.51cto.com/art/201011/233915.htm">Linux运维趋势</a>
+</div>
+</li>
+<li class="last"><span class="tit">OS前沿</span>
+<div><a href="http://os.51cto.com/col/975/">浏览器</a>
+|<a href="http://os.51cto.com/col/610/">开源技术</a>
+|<a href="http://os.51cto.com/windows7/">Windows 7</a>
+|<a href="http://os.51cto.com/windows2008/">Server 08</a>
+|<a href="http://os.51cto.com/col/1417/">移动OS</a>
+</div>
+</li>
+</ul> 
+</div> 
+<p class="blank10"></p>
+<DIV class=leftbotcon>
+<DIV class="bor jdlist">
+<DIV class=titbg>
+<H3 class=t2>热点推荐</H3></DIV>
+<UL>
+<LI><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-t-4']);" href="http://mobile.51cto.com/mobile-182392.htm"><IMG src="http://images.51cto.com/files/uploadimg/20100202/153546162.jpg"></A> 
+<DIV class=name><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-t-4']);" href="http://mobile.51cto.com/mobile-182392.htm">Android开发应用详解</A></DIV></LI>
+<LI><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-t-4']);" href="http://developer.51cto.com/art/201106/266369.htm"><IMG src="http://images.51cto.com/files/uploadimg/20110608/133620622.jpg"></A> 
+<DIV class=name><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-t-4']);" href="http://developer.51cto.com/art/201106/266369.htm">那些性感的让人尖叫的程序员</A></DIV></LI>
+<LI><A href="http://developer.51cto.com/art/200907/133407.htm"><IMG src="http://images.51cto.com/files/uploadimg/20090702/134217922.jpg"></A> 
+<DIV class=name><A href="http://developer.51cto.com/art/200907/133407.htm">HTML5 下一代Web开发标准详解</A></DIV></LI>
+<LI><A href="http://developer.51cto.com/art/201104/257581.htm"><IMG src="http://images.51cto.com/files/uploadimg/20110426/123123954.jpg"></A> 
+<DIV class=name><A href="http://developer.51cto.com/art/201104/257581.htm">高性能WEB开发应用指南</A></DIV></LI>
+<LI><A href="http://os.51cto.com/art/200706/49181.htm"><IMG src="http://images.51cto.com/files/uploadimg/20070613/195816929.jpg"></A> 
+<DIV class=name><A href="http://os.51cto.com/art/200706/49181.htm">Ubuntu开源技术交流频道</A></DIV></LI></UL></DIV>
+<P class=blank10></P>
+<DIV class="bor hotTag"><STRONG>热门标签：</STRONG> <A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-2]);" href="http://os.51cto.com/windows/">windows频道</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://mobile.51cto.com/">移动开发</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://cloud.51cto.com/">云计算</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://mobile.51cto.com/mobile/objc/">objective-c</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://network.51cto.com/art/200909/151122.htm">tp-link路由器设置图解</A><A onclick="javascript: _gaq.push(['_trackPageview', '/51cto/neirong/d-w']);" href="http://developer.51cto.com/art/200907/133407.htm">html5</A> </DIV></DIV>
+<div class="leftbotbox"> </div>
+</div>
+<!--left end-->
+<div class="g_13 fr">
+<div class="focus fixfloat"> 
+ <img width="298" style="border: 1px solid #CCCCCC; margin:5px 0px 5px;" src="http://www.51cto.com/images/weixin.png"><div class="hot">
+<ul>
+<li class="tit"><em>头条</em> <a href="http://os.51cto.com/art/201212/374372.htm">《Linux运维趋势》2012年12月号 </a> </li>
+<li class="con"><dl><dt><a href="http://os.51cto.com/art/201212/374372.htm"><img border="0" src="http://s5.51cto.com/wyfs01/M00/01/DE/wKioJlDeq1agnfIdAAAQboFCM1E795.jpg"/></a></dt>
+<dd>本期专题：有关部署   新浪CDN平台的代码部署机制</dd>
+</dl></li></ul><ol class="hotlist"><li><a href="http://os.51cto.com/art/201211/365125.htm">《Linux运维趋势》2012年11月号</a></li><li><a href="http://os.51cto.com/art/201210/362641.htm">OpenStack峰会视频合辑</a></li></ol></div>
+<p>
+<script language="JavaScript" src="http://www.51cto.com/ad/art/hzh/ad.js" type="text/javascript"></script>
+</p>
+</div>
+<div class="rank">
+<div class="tlt">
+      <h3>文章排行</h3>
+      <a onmouseover="change_top10(3);" id="top_3">本月</a><a onmouseover="change_top10(2);" id="top_2">本周</a><a onmouseover="change_top10(1);" class="myon" id="top_1">24小时</a> </div>
+ <div id="top10_1" style="display: block;" class="list"><ul>
+<li><a href="http://os.51cto.com/art/201301/376441.htm" target="_blank" title="关注春运火车票：抢票攻略、卧铺指南集">关注春运火车票：抢票攻略、卧铺指南集</a>
+<li><a href="http://os.51cto.com/art/201301/377322.htm" target="_blank" title="我眼中的Fedora 18：体验手记">我眼中的Fedora 18：体验手记</a>
+<li><a href="http://os.51cto.com/art/201301/377224.htm" target="_blank" title="春运抢票工具推荐 回家过个好年">春运抢票工具推荐 回家过个好年</a>
+<li><a href="http://os.51cto.com/art/201212/371430.htm" target="_blank" title="Fedora 18 Beta简单体验">Fedora 18 Beta简单体验</a>
+<li><a href="http://os.51cto.com/art/201301/377132.htm" target="_blank" title="12306抢票版插件导致Github服务器遭遇D">12306抢票版插件导致Github服务器遭遇D</a>
+<li><a href="http://os.51cto.com/art/200808/88419.htm" target="_blank" title="Hyper-V安装图解">Hyper-V安装图解</a>
+<li><a href="http://os.51cto.com/art/201301/377019.htm" target="_blank" title="猎豹浏览器推出春运抢票版">猎豹浏览器推出春运抢票版</a>
+<li><a href="http://os.51cto.com/art/201003/186779.htm" target="_blank" title="详细介绍Linux shell脚本基础学习（一">详细介绍Linux shell脚本基础学习（一</a>
+<li><a href="http://os.51cto.com/art/201301/377140.htm" target="_blank" title="多次跳票的Fedora 18正式发布">多次跳票的Fedora 18正式发布</a>
+<li><a href="http://os.51cto.com/art/201301/377188.htm" target="_blank" title="系统管理员常备十大开源工具">系统管理员常备十大开源工具</a>
+</ul></div>
+<div id="top10_2" style="display: none;" class="list"><ul>
+<li><a href="http://os.51cto.com/art/201301/376994.htm" target="_blank" title="Ubuntu桌面生存指南五：常用效率软件介">Ubuntu桌面生存指南五：常用效率软件介</a>
+<li><a href="http://os.51cto.com/art/201301/376855.htm" target="_blank" title="谈谈我更喜爱Windows 8开始屏幕的理由">谈谈我更喜爱Windows 8开始屏幕的理由</a>
+<li><a href="http://os.51cto.com/art/201301/377019.htm" target="_blank" title="猎豹浏览器推出春运抢票版">猎豹浏览器推出春运抢票版</a>
+<li><a href="http://os.51cto.com/art/201301/377102.htm" target="_blank" title="Linux守护进程介绍及实例详解">Linux守护进程介绍及实例详解</a>
+<li><a href="http://os.51cto.com/art/201301/377002.htm" target="_blank" title="倘若谷歌推安卓桌面系统，微软不得吓醒">倘若谷歌推安卓桌面系统，微软不得吓醒</a>
+<li><a href="http://os.51cto.com/art/201301/376862.htm" target="_blank" title="企业IT运维人员在变革的云环境下该如何">企业IT运维人员在变革的云环境下该如何</a>
+<li><a href="http://os.51cto.com/art/201301/376811.htm" target="_blank" title="“武装”微软WS2012 四版本如何尽善尽">“武装”微软WS2012 四版本如何尽善尽</a>
+<li><a href="http://os.51cto.com/art/201301/376866.htm" target="_blank" title="聊聊求职与招聘那些事儿">聊聊求职与招聘那些事儿</a>
+<li><a href="http://os.51cto.com/art/201301/377055.htm" target="_blank" title="普及Windows Server 2012没那么简单">普及Windows Server 2012没那么简单</a>
+<li><a href="http://os.51cto.com/art/201301/376982.htm" target="_blank" title="Ubuntu的移动帝国梦：好进不好赢">Ubuntu的移动帝国梦：好进不好赢</a>
+</ul></div>
+<div id="top10_3" style="display: none;" class="list"><ul>
+<li><a href="http://os.51cto.com/art/201212/374889.htm" target="_blank" title="恶搞必备 炫酷Win 8十大令人抓狂恶作剧">恶搞必备 炫酷Win 8十大令人抓狂恶作剧</a>
+<li><a href="http://os.51cto.com/art/201301/376441.htm" target="_blank" title="关注春运火车票：抢票攻略、卧铺指南集">关注春运火车票：抢票攻略、卧铺指南集</a>
+<li><a href="http://os.51cto.com/art/201212/374372.htm" target="_blank" title="《Linux运维趋势》2012年12月号 总24期">《Linux运维趋势》2012年12月号 总24期</a>
+<li><a href="http://os.51cto.com/art/201301/375461.htm" target="_blank" title="不要“泰囧”！盘点酿成断网事件的各种">不要“泰囧”！盘点酿成断网事件的各种</a>
+<li><a href="http://os.51cto.com/art/201301/376669.htm" target="_blank" title="你应该知道的Linux技巧">你应该知道的Linux技巧</a>
+<li><a href="http://os.51cto.com/art/201212/375403.htm" target="_blank" title="“洁净版”Win 8安装指南">“洁净版”Win 8安装指南</a>
+<li><a href="http://os.51cto.com/art/201212/373068.htm" target="_blank" title="2012年大盘点：Linux世界里的那些事儿">2012年大盘点：Linux世界里的那些事儿</a>
+<li><a href="http://os.51cto.com/art/201301/375651.htm" target="_blank" title="如何在Windows 8电脑上安装Linux OS?">如何在Windows 8电脑上安装Linux OS?</a>
+<li><a href="http://os.51cto.com/art/201301/376762.htm" target="_blank" title="大数据探讨：如何整理1700亿条Twitter">大数据探讨：如何整理1700亿条Twitter</a>
+<li><a href="http://os.51cto.com/art/201212/375425.htm" target="_blank" title="白清杰：应届毕业生如何增加自己的“就">白清杰：应届毕业生如何增加自己的“就</a>
+</ul></div>
+ 
+ </div>
+<p class="blank1"></p>
+
+<div class="bor">
+<div class="titbg">
+<h3 class="fl t1">热点专题</h3>
+<a href="http://os.51cto.com/speclist/1496" class="tmore">更多&gt;&gt;</a></div>
+<ul class="plist01">
+<li><a href="http://os.51cto.com/art/201206/340931.htm" title="微软Windows 8 RP版中文产品指南"><img src="http://images.51cto.com/files/uploadimg/20120607/102119365.jpg " alt="微软Windows 8 RP版中文产品指南" width="100" height="80" /></a>
+<h5><a href="http://os.51cto.com/art/201206/340931.htm" title="微软Windows 8 RP版中文产品指南">微软Windows 8 RP版中</a></h5>
+<div class="c666">微软于6月1日公开了Windows 8发布预览版（Release Pre</div>
+</li><li><a href="http://os.51cto.com/art/201206/340235.htm" title="Windows 8 Release Preiew组图欣赏"><img src="http://images.51cto.com/files/uploadimg/20120601/142026560.jpg" alt="Windows 8 Release Preiew组图欣赏" width="100" height="80" /></a>
+<h5><a href="http://os.51cto.com/art/201206/340235.htm" title="Windows 8 Release Preiew组图欣赏">Windows 8 Release Pr</a></h5>
+<div class="c666">北京时间6月1日,微软正式推出Windows 8 Release Preie</div>
+</li><li><a href="http://os.51cto.com/art/201205/339953.htm" title="全新Chrome OS功能图赏"><img src="http://images.51cto.com/files/uploadimg/20120531/155504932.jpg" alt="全新Chrome OS功能图赏" width="100" height="80" /></a>
+<h5><a href="http://os.51cto.com/art/201205/339953.htm" title="全新Chrome OS功能图赏">全新Chrome OS功能图</a></h5>
+<div class="c666">北京时间5月30日消息，据国外媒体报道，三星日前推出</div>
+</li> 
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="tagCloud">
+<div class="tlt">
+<h3>热点标签</h3>
+</div>
+<div class="taglist"><A title="IIS服务" href="http://os.51cto.com/art/201104/256478.htm">IIS服务</A>
+<A title="Windows 8" href="http://os.51cto.com/art/201104/256380.htm">Windows 8</A>
+<A title="浏览器战报" href="http://os.51cto.com/art/201103/250662.htm">浏览器战报</A>
+
+<A title="Ubuntu 11.04" href="http://os.51cto.com/art/201101/244030.htm">Ubuntu 11.04</A>
+<A title="运维秘诀" href="http://os.51cto.com/art/201101/244021.htm">运维秘诀</A>
+<A title="活动目录" href="http://os.51cto.com/art/201012/236185.htm">活动目录</A>
+<A title="Linux管理员" href="http://os.51cto.com/art/201104/253193.htm">Linux管理员</A>
+<A title="Fedora 15" href="http://os.51cto.com/art/201103/246763.htm">Fedora 15</A>
+<A title="Linux运维趋势" href="http://os.51cto.com/art/201011/233915.htm">Linux运维趋势</A>
+<A title="开源社区" href="http://os.51cto.com/art/201010/230570.htm">开源社区</A></div>
+</div>
+<div class="rss">
+<ul>
+<li class="lin f12-c"><a href="http://news.51cto.com/col/1323/"><strong>点击这里查看样刊</strong></a></li>
+<li>
+<dl>
+<dt> </dt>
+<dd><a href="http://home.51cto.com/index.php?s=/Subscribe"><img src="http://images.51cto.com/images/art0910/images/dingy.gif" /></a></dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="bor">
+<div class="titbg">
+<h3 class="t1">全站热点</h3>
+</div>
+<div class="webhot fixfloat">
+<ul>
+
+<li>
+  <a href="http://developer.51cto.com/exp/code/"  title="查看源代码不方便？我有利器!"><img src="http://images.51cto.com/files/uploadimg/20120605/092414262.jpg" /></a>
+  <div><a href="http://developer.51cto.com/exp/code/"  title="查看源代码不方便？我有利器!">查看源代码不方便？我有利器!</a></div>
+</li>
+
+<li>
+  <a href="http://mobile.51cto.com/hot-340312.htm"  title="《移动开发者》创刊号第0期"><img src="http://images.51cto.com/files/uploadimg/20120604/154349929.jpg" /></a>
+  <div><a href="http://mobile.51cto.com/hot-340312.htm"  title="《移动开发者》创刊号第0期">《移动开发者》创刊号第0期</a></div>
+</li>
+
+</ul>
+</div>
+<p class="blank1"></p>
+<ul class="list03">
+
+<li><a href="http://book.51cto.com/art/201204/330102.htm"  title="AutoCAD绘图要义（双色）">AutoCAD绘图要义（双色）</a></li>
+
+<li><a href="http://book.51cto.com/art/201204/330047.htm"  title="白帽子讲Web安全">白帽子讲Web安全</a></li>
+
+<li><a href="http://book.51cto.com/art/201204/330015.htm"  title="模式--工程化实现及扩展（设计模式Java 版）">模式--工程化实现及扩展（设计模式Ja</a></li>
+
+<li><a href="http://book.51cto.com/art/201204/329981.htm"  title="模式--工程化实现及扩展（设计模式C#版）">模式--工程化实现及扩展（设计模式C#</a></li>
+
+<li><a href="http://book.51cto.com/art/201204/329753.htm"  title="你该知道的1200个理财常识">你该知道的1200个理财常识</a></li>
+
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="bor">
+<div class="titbg">
+<h3 class="t1">读书</h3>
+</div>
+  
+<div class="catbook"><a href="http://book.51cto.com/art/200712/62661.htm" title="Cisco CCNA 640-802题库"><img src="http://images.51cto.com/files/uploadimg/20071219/110543226.gif" width="66" height="98" border="0" /></a>
+<h5><a href="http://book.51cto.com/art/200712/62661.htm">Cisco CCNA 640-802题库</a></h5>
+<div class="c666 text">Cisco 640-802
+Cisco Certified Network Associate (CCNA)
+Testinside CCNA 640-802 V14 最新题库与Testinside CCNA 640-802 Q</div>
+</div>
+
+
+<ul class="list03">
+
+<li><a href="http://book.51cto.com/art/200707/51411.htm" title="网管员必读—网络应用">网管员必读—网络应用</a></li>
+
+<li><a href="http://book.51cto.com/art/200707/51412.htm" title="网管员必读—网络基础">网管员必读—网络基础</a></li>
+
+<li><a href="http://book.51cto.com/art/200707/51413.htm" title="JSP应用开发详解（第二版）">JSP应用开发详解（第二版）</a></li>
+
+<li><a href="http://book.51cto.com/art/200707/51414.htm" title="基于Project2003的项目管理">基于Project2003的项目管理</a></li>
+
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="bor">
+<div class="titbg">
+<h3 class="t1 fl">博文推荐</h3>
+<a class="tmore" href="http://blog.51cto.com/">更多&gt;&gt;</a></div>
+
+<ul class="list03">
+ <li><a href="http://kaneboy.blog.51cto.com/1308893/280612/" target="_blank" title="SharePoint解决方案开发模型系列 - 团队的建立">SharePoint解决方案开发模型系列 - </a></li><li><a href="http://kaneboy.blog.51cto.com/1308893/280608/" target="_blank" title="SharePoint 2010新体验-1">SharePoint 2010新体验-1</a></li><li><a href="http://kaneboy.blog.51cto.com/1308893/280586/" target="_blank" title="为SharePoint 2010创建Application Page">为SharePoint 2010创建Application P</a></li><li><a href="http://rickho.blog.51cto.com/897649/280472/" target="_blank" title="IT服务台的进化(3)--虚拟服务台">IT服务台的进化(3)--虚拟服务台</a></li>
+</ul>
+</div>
+<p class="blank10"></p>
+<div class="tj">
+<div class="tlt">
+<h3>最新热帖</h3>
+<a class="more" href="http://bbs.51cto.com/hotthreads.php">更多&gt;&gt;</a></div>
+<ul>
+<li><a href="http://bbs.51cto.com/thread-503172-1.html" target="_blank" title="请问武汉是否有需要人的工作地方呢？？">请问武汉是否有需要人的工作地方呢？</a></li><li><a href="http://bbs.51cto.com/thread-448874-1.html" target="_blank" title="如何恢复已删除的  Linux下的 普通文件">如何恢复已删除的  Linux下的 普通文</a></li><li><a href="http://bbs.51cto.com/thread-288269-1.html" target="_blank" title="【Linux视频教程下载】针对于Linux学习者的视频教程">【Linux视频教程下载】针对于Linux学</a></li>
+</ul>
+</div>
+<div class="picAD">
+<iframe class="bann" frameborder="0" src="http://www.51cto.com/iframe/article/baidu.htm" scrolling="No" style=" background-color:#DBDBDB; height:250px; width:300px; padding:0px;margin:0px;overflow:hidden;"></iframe>
+</div>
+</div>
+<p class="blank1"></p> 
+<!--leftbotcon end-->
+</div> 
+ <div class="subweb">
+<h4>51CTO旗下网站</h4>
+<div>
+<a target="_blank" href="http://www.51cto.com/">领先的IT技术网站 51CTO</a>
+<a target="_blank" href="http://www.watchstor.com/">领先的中文存储媒体 WatchStor</a>
+<a target="_blank" href="http://www.cioage.com/">中国首个CIO网站 CIOage</a>
+<a target="_blank" href="http://www.hc3i.cn/">中国首家数字医疗网站 HC3i</a>
+<a target="_blank" href="http://www.linkphone.cn/">移动互联网生活门户 灵客风LinkPhone</a>
+</div>
+</div>
+<div id="ft"><div id="foot" align="center"><script src="http://images.51cto.com/images/copy_right/copy_right.js"></script></div></div>
+<script src="http://logs.51cto.com/rizhi/count/count.js"></script>
+<!-- START GA.js -->
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-20883758-1']);
+  _gaq.push(['_setDomainName', 'none']);
+  _gaq.push(['_setAllowLinker', true]);
+  _gaq.push(['_addOrganic', 'baidu', 'word']);
+  _gaq.push(['_addOrganic', 'google', 'q']);
+  _gaq.push(['_addOrganic', 'soso', 'w']);
+  _gaq.push(['_addOrganic', '3721', 'name']);
+  _gaq.push(['_addOrganic', 'yodao', 'q']);
+  _gaq.push(['_addOrganic', 'vnet', 'kw']);
+  _gaq.push(['_addOrganic', 'sogou', 'query']);
+  _gaq.push(['_trackPageview']);
+  _gaq.push(['_trackPageLoadTime']);
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+<!-- END GA.js -->
+
+<!-- baidu.js -->
+<script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3Ff77ea1ecd95cb2a1bc65cbcb3aaba7d4' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<!--end baidu.js -->
+<!-- 新监测代码 -->
+<!-- 新监测代码 -->
+<div id="MyMoveAd" style="display:none">
+<span id="wordlink_1"><script src="http://www.51cto.com/ad/art/wordlink/wordlink1.js"></script></span>
+<span id="wordlink_2"><script src="http://www.51cto.com/ad/art/wordlink/wordlink2.js"></script></span>
+<span id="wordlink_3"><script src="http://www.51cto.com/ad/art/wordlink/wordlink3.js"></script></span>
+<span id="wordlink_4"><script src="http://www.51cto.com/ad/art/wordlink/wordlink4.js"></script></span>
+<span id="pinglun"><script language="JavaScript" src="http://www.51cto.com/php/getArtCount.php?artid=249341&type=all"></script></span>
+<span id="tonglan"><script language="JavaScript" src="http://www.51cto.com/ad/art/tonglan/ad.js"></script></span>
+<span id="wordlink"><script language="JavaScript" src="http://www.51cto.com/ad/art/wordlink/ad.js"></script></span>
+<script src="http://www.51cto.com/ad/art/wordlink/ad.js"></script>
+<span id="bookss"><script language="JavaScript" src="http://www.51cto.com/php/getBookData.php?artid={dede:field name='cmsid'/}"></script></span>
+</div>   
+<script language="javascript" src="http://www.51cto.com/js/article/favorite.js"></script>
+
+<script language="javaScript" src="http://www.51cto.com/php/dialog_utf8.js"></SCRIPT>
+<script language="javaScript" src="http://www.51cto.com/mail.js"></script>  
+<script type="text/javascript" src="http://home.51cto.com/apps/favorite/Tpl/default/Public/js/favorbox.js"></script>
+<script language="javascript" src="http://images.51cto.com/images/art/newart1012/clipboard.js"></script>
+<script language="javaScript"> 
+	var thistid=249341; 
+	
+	//收藏按钮
+	var favor_url = 'http://os.51cto.com/art/201103/249341.htm';  // 如：http://bbs.51cto.com/thread-789649-1.html
+	var favor_title = 'Linux下Iptables端口转发功能的解决';       //  
+	
+	//绑定复制按钮
+	copy('msnqqcopy', 'http://os.51cto.com/art/201103/249341.htm', '分享到MSN/QQ的链接复制成功!');
+//	copy('bbscopy', '[url=http://os.51cto.com/art/201103/249341.htm][u]Linux下Iptables端口转发功能的解决[/u][/url]', '分享到论坛的UBB代码复制成功!');
+
+</script> 
+<script src=" http://home.51cto.com/index.php?s=/Index/getLoginStatus/reback/http%253A%252F%252Fos.51cto.com%252Fart%252F201103%252F249341.htm" charset='utf-8'></script>
+<script src="http://www.51cto.com/php/count.php?view=yes&artID=249341" language="javascript"></script>
+<script language="javascript">
+document.getElementById('books').innerHTML = document.getElementById("bookss").innerHTML; 
+</script>
+
+</body>
+</html>

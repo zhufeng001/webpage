@@ -1,0 +1,274 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+<meta name="keywords" content="linux Parted MBR与GPT区别  rescue恢复分区 mklabel mkpart  mkfs.ext3  swapon GPT GUID分区表" />
+<meta name="description" content=" 
+ 
+Parted 可以为linux进行大分区的命令
+ 
+前几天，公司购买了一台IBM 3850服务器，准备安装rhel系统。该机器共有8块600G硬盘。在安装过程中，将其中2块盘做成raid1，其余6块盘做成raid5 ，并将系统安装在raid1（即/dev/sda）上。等安装完成后，用fdisk 对raid5（/dev/sdb）进行分区的时候，发现，fd" />
+<base href="http://www.cio69.com/" />
+<link href="template/2010/css/share.css" type="text/css" rel="stylesheet" />
+<link href="template/2010/css/show.css" type="text/css" rel="stylesheet" />
+<script language="javascript" src="images/js/jquery.min.js" type="text/javascript"></script>
+<script language="javascript" src="images/js/comment.func.js" type="text/javascript"></script>
+<script language="javascript" src="images/js/dig.func.js" type="text/javascript"></script>
+<title>Parted 可以为linux进行大分区的命令-神马新浮云</title>
+<style type="text/css" >
+#content_div img 
+{ 
+	vertical-align: middle;
+	max-width:580px;   /* FF IE7 */
+	width:expression(this.width > 580 && this.width > this.height ? 580 : true);
+	overflow:hidden;
+}
+</style>
+</head>
+
+<body>
+	<script language=JavaScript src="js/scroll.js"></script>
+	<!-- 头部开始 -->
+	<div class="head_lang">
+		<div class="head_top">
+			<span class="span_left">
+			<div id="login_div">
+			<a href="member/index.php?file=login&action=login">登录</a> | <a href="member/index.php?file=login&action=register">注册</a>
+			</div>
+			<div id="usercenet" style="display:none">
+			浏览器不支持Js!
+			</div>
+			</span>
+			<span class="span_right"><a href="http://www.cio69.com/post/index.php">在线投稿</a> | <a href="search/index.php">站内搜索</a> | <a href="sitemaps.xml" target="_blank">网站地图</a> | <a href="javascript:void(0);" onClick="this.style.behavior='url(#default#homepage)';this.setHomePage('http://www.cio69.com/');" title="把神马新浮云设为首页">设为首页</a> | <a href="javascript:window.external.addFavorite('http://www.cio69.com/','神马新浮云');">加入收藏</a> </span>
+		</div>
+	</div>
+	<script language="javascript" src="login.js.php"></script>
+	<div class="head_logo">
+		<a href="http://www.cio69.com/"><img src="template/2010/images/logo.gif" /></a> <script language="javascript" src="http://www.cio69.com/ads.js.php?id=2"></script> <script language="javascript" src="http://www.cio69.com/ads.js.php?id=3"></script>
+	</div>
+	<div class="head_nav">
+		<div class="head_nav_left"></div>
+		<div class="head_nav_middle">
+			<ul>
+				<li><a href="http://www.cio69.com/" >首页</a></li>
+									 <!-- 该行是为了CSS，仅仅是栏目循环的话可以不用 -->
+					<li><a href="AIX" title="AIX系统" >AIX系统</a></li>
+									 <!-- 该行是为了CSS，仅仅是栏目循环的话可以不用 -->
+					<li><a href="linux" title="linux系统" style="color:#cc0000;background:url(template/2010/images/tab.gif) no-repeat">linux系统</a></li>
+									 <!-- 该行是为了CSS，仅仅是栏目循环的话可以不用 -->
+					<li><a href="download" title="软件下载" >软件下载</a></li>
+									 <!-- 该行是为了CSS，仅仅是栏目循环的话可以不用 -->
+					<li><a href="database" title="数据库" >数据库</a></li>
+									 <!-- 该行是为了CSS，仅仅是栏目循环的话可以不用 -->
+					<li><a href="websphere" title="WebSphere" >WebSphere</a></li>
+									 <!-- 该行是为了CSS，仅仅是栏目循环的话可以不用 -->
+					<li><a href="movie" title="视频资料" >视频资料</a></li>
+							</ul>
+			<div class="head_nav_search">
+				<form target="_blank" name="myform" action="search/index.php" method="get">
+					<input type="text" value="搜索关键字" onfocus="if(this.value=='搜索关键字')this.value=''"  onblur="if(this.value=='')this.value='搜索关键字'" name="k" class="search_k" /><input type="hidden" name="catid" value="25" /><input type="submit" class="search_bt" value="搜 索" />
+					&nbsp;<b>热门标签:</b> 
+																<a href="http://www.cio69.com//search/index.php?k=AIX" target="_blank">AIX</a>
+											<a href="http://www.cio69.com//search/index.php?k=linux" target="_blank">linux</a>
+											<a href="http://www.cio69.com//search/index.php?k=DB2" target="_blank">DB2</a>
+											<a href="http://www.cio69.com//search/index.php?k=WAS" target="_blank">WAS</a>
+											<a href="http://www.cio69.com//search/index.php?k=MQ" target="_blank">MQ</a>
+									</form>
+			</div>
+		</div>
+		<div class="head_nav_right"></div>
+	</div>	<!-- 头部结束 -->
+	<!-- 正文开始 -->
+	<div class="position">您当前的位置： <a href="http://www.cio69.com/" title="神马新浮云">首页</a> &gt;  <a href="linux" title="linux系统">linux系统</a> &gt; <a href="linux/disk" title="磁盘、存储">磁盘、存储</a> </div>
+	<div class="show">
+		<div class="show_left">
+			<div class="show_left_wrap">
+				<div class="show_left_wrap_title">Parted 可以为linux进行大分区的命令</div>
+				<div class="show_left_wrap_copyfrom">来源：神马新浮云  点击：<span id="clicks">0</span> 次　2012-01-30　<font color="#cc0000"><script language="javascript" src="http://www.cio69.com/ads.js.php?id=4"></script></font></div>
+				
+				<!-- 摘要 -->
+				<div class="show_left_wrap_desc"><b>[导读]</b> 
+ 
+Parted 可以为linux进行大分区的命令
+ 
+前几天，公司购买了一台IBM 3850服务器，准备安装rhel系统。该机器共有8块600G硬盘。在安装过程中，将其中2块盘做成raid1，其余6块盘做成raid5 ，并将系统安装在raid1（即/dev/sda）上。等安装完成后，用fdisk 对raid5（/dev/sdb）进行分区的时候，发现，fd</div>
+				
+				<!-- 内容 -->
+				<div class="show_left_wrap_content" id="content_div">
+				<p>&nbsp;</p>
+<div style="line-height: 115%">&nbsp;</div>
+<div style="text-align: center; line-height: 115%" align="center"><b><span style="line-height: 115%; font-size: 14pt">Parted </span></b><b><span style="line-height: 115%; font-size: 14pt">可以为</span></b><b><span style="line-height: 115%; font-size: 14pt">linux</span></b><b><span style="line-height: 115%; font-size: 14pt">进行大分区的命令</span></b></div>
+<div style="line-height: 115%"><b>&nbsp;</b></div>
+<div style="line-height: 115%; text-indent: 21pt">前几天，公司购买了一台IBM 3850服务器，准备安装rhel系统。该机器共有8块600G硬盘。在安装过程中，将其中2块盘做成raid1，其余6块盘做成raid5 ，并将系统安装在raid1（即/dev/sda）上。等安装完成后，用fdisk 对raid5（/dev/sdb）进行分区的时候，发现，fdisk无法完成对大于2.2T的硬盘进行分区。于是准备用parted这个工具进行分区，鉴于这个工具会越来越多的使用，因此将parted命令总结如下，分享给大家。</div>
+<div style="text-align: left; line-height: 115%" align="left">&nbsp;</div>
+<div style="text-align: left; line-height: 115%" align="left"><b>一、parted</b><b>的命令方式</b></div>
+<div style="text-align: left; line-height: 115%; text-indent: 21pt" align="left">Parted 命令分为两种模式：命令行模式和交互模式。</div>
+<div style="text-align: left; line-height: 115%; text-indent: -15.75pt; margin: 0cm 0cm 0pt 36.75pt" align="left">1、命令行模式： parted [option]&nbsp;device [command] ,该模式可以直接在命令行下对磁盘进行分区操作，比较适合编程应用。如：</div>
+<div style="text-align: left; line-height: 115%; margin: 0cm 0cm 0pt 60pt" align="left"># parted /dev/sdb print&nbsp;--显示磁盘/dev/sdb分区。</div>
+<div style="text-align: left; line-height: 115%; text-indent: 21pt" align="left">2、交互模式：parted [option] device</div>
+<div style="text-align: left; line-height: 115%; margin: 0cm 0cm 0pt 60pt" align="left"># parted /dev/sdb<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --</span>进入交互模式，建议使用交互模式，尤其是对parted命令不是很熟悉的情况下。</div>
+<div style="text-align: left; line-height: 115%" align="left">&nbsp;</div>
+<div style="text-align: left; line-height: 115%" align="left"><span>&nbsp;</span><b>二、常用的2</b><b>种分区表：MBR</b><b>与GPT</b><b>区别。</b></div>
+<div style="text-align: left; line-height: 115%; text-indent: -73.5pt; margin: 0cm 0cm 0pt 73.5pt" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp; <b>MBR</b></span><b>：MBR</b>分区表(即主引导记录)大家都很熟悉，是过去我们使用windows时常用的。</div>
+<div style="text-align: left; line-height: 115%; text-indent: -78.75pt; margin: 0cm 0cm 0pt 78.75pt" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;</span><span style="line-height: 115%">所支持的最大卷：2T，而且对分区有限制：最多4个主分区或3个主分区加一个扩展分区</span></div>
+<div style="text-align: left; line-height: 115%; text-indent: -73.5pt; margin: 0cm 0cm 0pt 73.5pt" align="left"><span style="line-height: 115%">&nbsp;&nbsp;&nbsp;&nbsp; </span><b>GPT</b><b>： GPT</b>（即GUID分区表）<span style="line-height: 115%">。</span>是源自EFI标准的一种较新的磁盘分区表结构的标准，是未来磁盘分区的主要形式。与MBR分区方式相比，具有如下优点。</div>
+<div style="text-align: left; line-height: 115%; text-indent: -73.5pt; margin: 0cm 0cm 0pt 73.5pt" align="left"><span style="line-height: 115%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span style="line-height: 115%">突破MBR 4个主分区限制，每个磁盘最多支持128个分区。支持大于2T的分区，最大卷可达18EB。</span></div>
+<div style="text-align: left; line-height: 115%; text-indent: -73.5pt; margin: 0cm 0cm 0pt 73.5pt" align="left"><span style="line-height: 115%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></div>
+<div style="text-align: left; line-height: 115%; text-indent: -73.8pt; margin: 0cm 0cm 0pt 73.8pt" align="left"><b><span style="line-height: 115%">三、parted命令常用功能。</span></b></div>
+<div style="text-align: left; line-height: 115%; margin: 0cm 0cm 0pt 21pt" align="left">当在命令行输入parted后，进入parted命令的交互模式。输入help会显示帮助信息。下面就简单介绍一下常用的功能</div>
+<div style="text-align: left; line-height: 115%; text-indent: 21.1pt" align="left"><b>1</b><b>、Check</b><span>&nbsp;&nbsp;&nbsp;&nbsp; </span>简单检查文件系统。建议用其他命令检查文件系统，比如fsck</div>
+<div style="text-align: left; line-height: 115%; text-indent: 21.1pt" align="left"><b>2</b><b>、Help</b><span>&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;</span>显示帮助信息</div>
+<div style="text-align: left; line-height: 115%; text-indent: -63.25pt; margin: 0cm 0cm 0pt 85.3pt" align="left"><b>3</b><b>、mklabel</b><span>&nbsp;&nbsp; </span>创建分区表， 即是使用msdos（MBR）还是使用gpt，或者是其他方式分区表</div>
+<div style="text-align: left; line-height: 115%; text-indent: -68.5pt; margin: 0cm 0cm 0pt 90.55pt" align="left"><b>4</b><b>、 mkfs</b><span>&nbsp;&nbsp;&nbsp;&nbsp; </span>创建文件系统。该命令不支持ext3 格式，因此建议不使用，最好是用parted分好区，然后退出parted交互模式，用其他命令进行分区，比如：mkfs.ext3</div>
+<div style="text-align: left; line-height: 115%; text-indent: 21.1pt" align="left"><b>5</b><b>、mkpart</b><span>&nbsp;&nbsp; </span>创建新分区。</div>
+<div style="text-align: left; line-height: 115%; text-indent: -47.25pt; margin: 0cm 0cm 0pt 89.25pt" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>格式：mkpart&nbsp;PART-TYPE &nbsp;[FS-TYPE] &nbsp;START &nbsp;END</div>
+<div style="text-align: left; line-height: 115%; text-indent: -126pt; margin: 0cm 0cm 0pt 126pt" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PART-TYPE </span>类型主要有primary（主分区）, extended（扩展分区）, logical（逻辑区）. 扩展分区和逻辑分区只对msdos。</div>
+<div style="text-align: left; line-height: 115%" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;fs-type&nbsp;&nbsp; </span>文件系统类型，主要有fs32，NTFS，ext2，ext3等</div>
+<div style="text-align: left; line-height: 115%" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; start&nbsp;end&nbsp;</span>分区的起始和结束位置。</div>
+<div style="line-height: 115%; text-indent: -84pt; margin: 0cm 0cm 0pt 84pt"><span>&nbsp;&nbsp;&nbsp; &nbsp;<b>6</b></span><b>、mkpartfs</b> 建立分区及其文件系统。目前还不支持ext3文件系统，因此不建议使用该功能。最后是分好区后，退出parted，然后用其他命令建立文件系统。</div>
+<div style="line-height: 115%"><span>&nbsp;&nbsp;&nbsp;&nbsp; <b>7</b></span><b>、print</b> <span>&nbsp;&nbsp;&nbsp;</span>输出分区信息。该功能有3个选项，</div>
+<div style="line-height: 115%; text-indent: 84pt">free 显示该盘的所有信息，并显示磁盘剩余空间</div>
+<div style="line-height: 115%; text-indent: 84pt">number 显示指定的分区的信息</div>
+<div style="line-height: 115%; text-indent: 84pt">all 显示所有磁盘信息</div>
+<div style="line-height: 115%; text-indent: -84pt; margin: 0cm 0cm 0pt 84pt"><span>&nbsp;&nbsp;&nbsp;&nbsp; <b>8</b></span><b>、resize</b><span>&nbsp;&nbsp; </span>调整指定的分区的大小。目前对ext3格式支持不是很好，所以不建议使用该功能。</div>
+<div style="text-align: left; line-height: 115%; text-indent: -58pt; margin: 0cm 0cm 0pt 84.25pt" align="left"><b>9</b><b>、rescue</b><span>&nbsp;&nbsp; </span>恢复不小心删除的分区。如果不小心用parted的rm命令删除了一个分区，那么可以通过rescue功能进行恢复。恢复时需要给出分区的起始和结束的位置。然后parted就会在给定的范围内去寻找，并提示恢复分区。</div>
+<div style="line-height: 115%"><span>&nbsp;&nbsp;&nbsp; <b>10</b></span><b>、rm</b><span>&nbsp;&nbsp;&nbsp; </span>删除分区。命令格式 rm &nbsp;number 。如：rm 3 就是将编号为3的分区删除</div>
+<div style="text-indent: -78.75pt; margin: 0cm 0cm 0pt 78.75pt"><span>&nbsp;&nbsp;&nbsp; <b>11</b></span><b>、select</b><span>&nbsp; </span>选择设备。当输入parted命令后直接回车进入交互模式是，如果有多块硬盘，需要用select 选择要操作的硬盘。如：select /dev/sdb</div>
+<div style="line-height: 115%; text-indent: -78.75pt; margin: 0cm 0cm 0pt 78.75pt"><span>&nbsp;&nbsp;&nbsp; <b>12</b></span><b>、set</b><span>&nbsp;&nbsp;&nbsp;&nbsp; </span>设置标记。更改指定分区编号的标志。标志通常有如下几种：boot &nbsp;hidden<span>&nbsp;&nbsp; raid &nbsp;&nbsp;lvm&nbsp;</span>等。</div>
+<div style="line-height: 115%"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;boot </span>为引导分区，hidden 为隐藏分区，raid 软raid，lvm 为逻辑分区。</div>
+<div style="line-height: 115%">&nbsp;<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>如：set&nbsp;3 &nbsp;boot &nbsp;on <span>&nbsp;&nbsp;</span>设置分区号3 为启动分区</div>
+<div style="text-align: left; line-height: 115%; text-indent: -21pt; margin: 0cm 0cm 0pt 21pt" align="left">&nbsp;</div>
+<div style="text-align: left; line-height: 115%; text-indent: -21pt; margin: 0cm 0cm 0pt 42pt" align="left"><span style="color: red">注：<span style="background: #d9d9d9">以上内容为</span></span><span style="background: #d9d9d9; color: red">parted</span><span style="background: #d9d9d9; color: red">常用的功能，由于该工具目前对</span><span style="background: #d9d9d9; color: red">ext3</span><span style="background: #d9d9d9; color: red">支持得不是很好，因此有些功能无法应用，比如</span><span style="background: #d9d9d9; color: red">move</span><span style="background: #d9d9d9; color: red">（移动分区）</span><span style="background: #d9d9d9; color: red">和</span><span style="background: #d9d9d9; color: red">resize</span><span style="background: #d9d9d9; color: red">等。</span></div>
+<div style="text-align: left; line-height: 115%" align="left">&nbsp;</div>
+<div style="text-align: left; line-height: 115%; text-indent: 5.25pt" align="left"><b>四、parted</b><b>分区功能事例。</b></div>
+<div style="text-align: left; line-height: 115%; text-indent: -10.5pt; margin: 0cm 0cm 0pt 30.45pt" align="left">1、用命令模式 为/dev/sdb创建gpt类型文件分区表,并分500G分区。然后为该分区创建ext3文件系统。并将该分区挂载在/test文件夹下。</div>
+<div style="text-align: left; line-height: 115%; text-indent: 20.25pt" align="left"><span>&nbsp;&nbsp; <span style="background: #d9d9d9"># &nbsp;parted &nbsp;/dev/sdb &nbsp;mklabel&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;---</span></span><span style="background: #d9d9d9">创建分区表</span></div>
+<div style="text-align: left; line-height: 115%; text-indent: 20.25pt" align="left"><span>&nbsp;&nbsp; # &nbsp;parted &nbsp;/dev/sdb &nbsp;mkpart &nbsp;ext3 &nbsp;0 &nbsp;500000 &nbsp;&nbsp;&nbsp;---</span>创建500G分区/dev/sdb1 <span>&nbsp;&nbsp;</span></div>
+<div style="text-align: left; line-height: 115%; text-indent: 20.25pt" align="left"><span>&nbsp;&nbsp; <span style="background: #d9d9d9">#&nbsp;mkfs.ext3 &nbsp;/dev/sdb1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;----</span></span><span style="background: #d9d9d9">将分区</span><span style="background: #d9d9d9">/dev/sdb1</span><span style="background: #d9d9d9">格式化成</span><span style="background: #d9d9d9">ext3</span><span style="background: #d9d9d9">格式文件系统</span></div>
+<div style="text-align: left; line-height: 115%; text-indent: 20.25pt" align="left">&nbsp;&nbsp;<span style="background: #d9d9d9">#&nbsp;mount &nbsp;/dev/sdb1&nbsp;/test<span>&nbsp;&nbsp; ---</span></span><span style="background: #d9d9d9">将</span><span style="background: #d9d9d9">/dev/sdb1 </span><span style="background: #d9d9d9">挂载在</span><span style="background: #d9d9d9">/test</span><span style="background: #d9d9d9">下</span></div>
+<div style="text-align: left; line-height: 115%; text-indent: -21pt; margin: 0cm 0cm 0pt 40.95pt" align="left"><span>&nbsp;&nbsp;&nbsp; </span>如果让系统自动挂载/dev/sdb1 需手工编辑/etc/fstab文件。并在文件末尾添加如下内容：</div>
+<div style="text-align: left; line-height: 115%; text-indent: 20.25pt" align="left"><span>&nbsp;&nbsp;&nbsp; <span style="background: #d9d9d9">/dev/sdb1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /test&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;ext3&nbsp;&nbsp;&nbsp; defaults&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0 0</span></span></div>
+<div style="text-align: left; line-height: 115%; text-indent: 20.25pt" align="left">&nbsp;</div>
+<div style="text-align: left; line-height: 115%; text-indent: -15.75pt; margin: 0cm 0cm 0pt 36.75pt" align="left">2、创建大小为4G的交互分区。由于已经创建了500G的/dev/sdb1 ,因此再创建的分区为/dev/sdb2</div>
+<div style="text-align: left; line-height: 115%; text-indent: 21pt" align="left"><span>&nbsp;&nbsp; <span style="background: #d9d9d9"># parted&nbsp;/dev/sdb&nbsp;mkpart&nbsp;swap&nbsp;500000&nbsp;504000 &nbsp;---</span></span><span style="background: #d9d9d9">创建</span><span style="background: #d9d9d9">4G</span><span style="background: #d9d9d9">分区</span><span style="background: #d9d9d9">/dev/sdb2 </span></div>
+<div style="text-align: left; line-height: 115%; text-indent: 21pt" align="left"><span>&nbsp;&nbsp; <span style="background: #d9d9d9"># mkswap &nbsp;/dev/sdb2 &nbsp;&nbsp;----</span></span><span style="background: #d9d9d9">将</span><span style="background: #d9d9d9">/dev/sdb2</span><span style="background: #d9d9d9">创建为交换分区</span></div>
+<div style="text-align: left; line-height: 115%; text-indent: 21pt" align="left"><span>&nbsp;&nbsp; <span style="background: #d9d9d9"># swapon&nbsp;/dev/sdb2&nbsp;&nbsp; ----</span></span><span style="background: #d9d9d9">激活</span><span style="background: #d9d9d9">/dev/sdb2</span></div>
+<div style="text-align: left; line-height: 115%; text-indent: -10.5pt; margin: 0cm 0cm 0pt 31.5pt" align="left"><span>&nbsp;&nbsp; </span>如果让系统自动挂载/dev/sdb2这个交换分区，需手工编辑/etc/fstab文件。并在文件末尾添加如下内容：</div>
+<div style="text-align: left; line-height: 115%" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background: #d9d9d9">&nbsp;/dev/sdb2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; swap&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;swap&nbsp;&nbsp;&nbsp; defaults&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0 0</span></span></div>
+<div style="text-align: left; line-height: 115%" align="left">&nbsp;</div>
+<div style="text-align: left; line-height: 115%; text-indent: -36.75pt; margin: 0cm 0cm 0pt 36.75pt" align="left"><span>&nbsp;&nbsp;&nbsp; 3</span>、恢复被误删除的分区(也可以参考<a href="http://www.cio69.com/html/201105/11.html">testdisk命令</a>)。由于parted直接写磁盘，因此一旦不小心删除了某一分区，建议立即用rescue恢复。下面通过事例来理解恢复过程。</div>
+<div style="text-align: left; line-height: 115%; text-indent: -36.75pt; margin: 0cm 0cm 0pt 36.75pt" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;</span></div>
+<div style="text-align: left; line-height: 115%; text-indent: -36.75pt; margin: 0cm 0cm 0pt 36.75pt" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background: #d9d9d9">&nbsp;# parted&nbsp;/dev/sdb&nbsp;mkpart&nbsp;ext3&nbsp;504000&nbsp;514000&nbsp;----</span></span><span style="background: #d9d9d9">创建</span><span style="background: #d9d9d9">10G</span><span style="background: #d9d9d9">分区</span><span style="background: #d9d9d9">/dev/sdb3</span></div>
+<div style="text-align: left; line-height: 115%; text-indent: -36.75pt; margin: 0cm 0cm 0pt 36.75pt" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background: #d9d9d9">&nbsp;# mkfs.ext3&nbsp;/dev/sdb3&nbsp;&nbsp;---</span></span><span style="background: #d9d9d9">将</span><span style="background: #d9d9d9">/dev/sdb3</span><span style="background: #d9d9d9">格式化成</span><span style="background: #d9d9d9">ext3</span><span style="background: #d9d9d9">文件系统。</span></div>
+<div style="text-align: left; line-height: 115%; text-indent: -36.75pt; margin: 0cm 0cm 0pt 36.75pt" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background: #d9d9d9">&nbsp;# parted&nbsp;/dev/sdb&nbsp;rm&nbsp;3&nbsp;----</span></span><span style="background: #d9d9d9">删除</span><span style="background: #d9d9d9">/dev/sdb3</span></div>
+<div style="text-align: left; line-height: 115%; text-indent: -278.25pt; margin: 0cm 0cm 0pt 278.25pt" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="background: #d9d9d9">&nbsp;# parted&nbsp;/dev/sdb&nbsp;rescue&nbsp;504000&nbsp;514000&nbsp;&nbsp;&nbsp; ---</span></span><span style="background: #d9d9d9">依照屏幕提示，输入</span><span style="background: #d9d9d9">yes</span><span style="background: #d9d9d9">即可恢复被误删除分区</span></div>
+<div style="text-align: left; line-height: 115%" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></div>
+<div style="text-align: left; line-height: 115%" align="left"><span>&nbsp;&nbsp;&nbsp;&nbsp; </span></div>
+<p>上一篇：<a href="http://www.cio69.com/html/201105/4.html"><font color="#1e5494">fstab和mtab文件的作</font>用和区别</a></p>				</div>
+				
+				<!-- 内容分页 -->
+				<div class="show_page"></div>
+				
+				<!-- 在线投票 -->
+								<div class="show_left_wrap_content" style="text-align:right"><b>责任编辑：</b>包包<br /><script type="text/javascript" src="template/2010/images/share.js"></script></div>
+				
+				<!-- 顶一下 -->
+				<div class="content_dig"><table width="35%" cellpadding="0" cellspacing="0"><tr><td class="dig_td" id="dig_up_num" align="right"><a href="javascript:digup(116);"><span id="digups">0</span><br />顶一下</a></td><td class="back_td" id="dig_down_num" align="left"><a href="javascript:digdown(116);"><span id="digdowns">0</span><br />踩一下</a></td></tr></table></div>
+				
+				<div class="show_ads_600px"><script language="javascript" src="http://www.cio69.com/ads.js.php?id=5"></script></div>
+				<div class="show_left_wrap_xiangguan">
+					<strong>相关推荐</strong>：
+					<ul>
+<li>·<a href="html/201205/116.html" title="Parted 可以为linux进行大分区的命令" target="_blank">Parted 可以为linux进行大分区的命令</a>  <span style="color:#999; font-size:12px">(2012-01-30 14:42:17)</span></li>
+<li>·<a href="html/201105/11.html" title="linux下分区表修复testdisk" target="_blank">linux下分区表修复testdisk</a>  <span style="color:#999; font-size:12px">(2012-01-31 09:43:12)</span></li>
+<li>·<a href="html/201105/9.html" title="linux中通过 mkisofs制作iso" target="_blank">linux中通过 mkisofs制作iso</a>  <span style="color:#999; font-size:12px">(2012-01-16 09:52:39)</span></li>
+<li>·<a href="html/201105/8.html" title="Linux下加挂文件系统的小结" target="_blank">Linux下加挂文件系统的小结</a>  <span style="color:#999; font-size:12px">(2012-01-16 09:56:39)</span></li>
+<li>·<a href="html/201105/7.html" title="linux磁盘管理命令" target="_blank">linux磁盘管理命令</a>  <span style="color:#999; font-size:12px">(2012-01-16 10:01:18)</span></li>
+					</ul>
+				</div>
+				<div class="show_ads_600px"><script language="javascript" src="http://www.cio69.com/ads.js.php?id=6"></script></div>
+				
+				<div class="show_left_wrap_pinglun">
+								<b>我来说两句</b>
+					<br />
+					<div class="show_left_wrap_pinglun_list">
+											</div>					
+					<form action="comment/" method="post" name="commentform" id="commentform">
+					<input type="hidden" name="contentid" value="116" />
+					<input type="hidden" name="catid" value="25" />
+					<input type="hidden" name="do_submit" value="1" />
+					<input type="hidden" name="authkey" value="20d4d3faeb28839ef2cf50ed71cb1b83" />
+						<div style="clear:both">
+						<div class="pt_left"><strong>点 评</strong>：<input type="radio"  name="score" value="80" /><img src="template/2010/images/80.gif" alt="好评" /> &nbsp;<input type="radio"  name="score" value="60"/><img src="template/2010/images/60.gif" alt="中评" /> &nbsp;<input type="radio" name="score" value="30" /><img src="template/2010/images/30.gif" alt="差评" /> </div> <div class="pt_right">共 <span style="color:#ff0000" id="comments_box">0</span> 条评论，<a href="http://www.cio69.com/comment/index.php?contentid=116" target="_blank">点击查看</a> &nbsp;</div>
+						</div>
+						<textarea class="text_pinglun" name="comment[content]" id="c_content"></textarea>
+						<span style="float:left"><strong>验证码</strong>：<input type="text" name="chkcode" id="c_chkcode" class="checkcode" />
+						 <img src="http://www.cio69.com/checkcode.php" onclick="this.src='http://www.cio69.com/checkcode.php?id='+Math.random()*5;" style="cursor:pointer;" align="middle" alt="验证码,看不清楚?请点击刷新验证码"/><br />
+						</span><span style="float:right; color:#666"><input type="submit" class="bt_pinglun" value="" /></span>
+						<br />
+						<span id="commentmsg" style="color:#FF3300"></span>
+					</form>
+								</div>
+				
+			</div>
+		</div>
+		<div class="show_right">
+			<div class="show_ads">
+				<script language="javascript" src="http://www.cio69.com/ads.js.php?id=7"></script>
+			</div>
+			<div class="show_right_content">
+				<div class="bar_c">点击排行</div>
+				<ul>
+<li><a href="html/201105/9.html" title="linux中通过 mkisofs制作iso" target="_blank">linux中通过 mkisofs制作iso</a></li>
+<li><a href="html/201105/6.html" title="linux磁盘分区格式化" target="_blank">linux磁盘分区格式化</a></li>
+<li><a href="html/201105/11.html" title="linux下分区表修复testdisk" target="_blank">linux下分区表修复testdisk</a></li>
+<li><a href="html/201105/7.html" title="linux磁盘管理命令" target="_blank">linux磁盘管理命令</a></li>
+<li><a href="html/201105/4.html" title="fstab和mtab文件的作用和区别" target="_blank">fstab和mtab文件的作用和区别</a></li>
+<li><a href="html/201105/10.html" title="mount命令详解" target="_blank">mount命令详解</a></li>
+<li><a href="html/201105/5.html" title="linux 挂usb移动硬盘" target="_blank">linux 挂usb移动硬盘</a></li>
+<li><a href="html/201105/8.html" title="Linux下加挂文件系统的小结" target="_blank">Linux下加挂文件系统的小结</a></li>
+<li><a href="html/201205/116.html" title="Parted 可以为linux进行大分区的命令" target="_blank">Parted 可以为linux进行大分区的</a></li>
+				</ul>
+			</div>
+			<div class="show_right_content">
+				<div class="bar_c">评论排行</div>
+				<ul>
+<li><a href="html/201105/6.html" title="linux磁盘分区格式化" target="_blank">linux磁盘分区格式化</a></li>
+<li><a href="html/201105/4.html" title="fstab和mtab文件的作用和区别" target="_blank">fstab和mtab文件的作用和区别</a></li>
+<li><a href="html/201105/5.html" title="linux 挂usb移动硬盘" target="_blank">linux 挂usb移动硬盘</a></li>
+<li><a href="html/201105/7.html" title="linux磁盘管理命令" target="_blank">linux磁盘管理命令</a></li>
+<li><a href="html/201105/8.html" title="Linux下加挂文件系统的小结" target="_blank">Linux下加挂文件系统的小结</a></li>
+<li><a href="html/201105/9.html" title="linux中通过 mkisofs制作iso" target="_blank">linux中通过 mkisofs制作iso</a></li>
+<li><a href="html/201105/10.html" title="mount命令详解" target="_blank">mount命令详解</a></li>
+<li><a href="html/201105/11.html" title="linux下分区表修复testdisk" target="_blank">linux下分区表修复testdisk</a></li>
+<li><a href="html/201205/116.html" title="Parted 可以为linux进行大分区的命令" target="_blank">Parted 可以为linux进行大分区的</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	<!-- 正文结束 -->
+	<!-- 底部开始 -->
+	<div class="footer">
+<a href="">网站首页</a> | <a href="about/index.html" target="_blank">关于我们</a> | <a href="about/connectus.html" target="_blank">联系我们</a> | <a href="about/contract.html" target="_blank">法律条款</a> | <a href="sitemaps.xml" target="_blank">网站地图</a> |
+<a href="guestbook/index.php?action=post">留言本</a>
+<br />
+Copyright © 2009-2010 Dircms.Net Inc. All rights reserved.<br />
+<!-- 
+	易创CMS[Dircms]与广大站长的君子协议：
+	为了支持易创CMS团队的发展,请您保留易创内容管理系统的链接信息.
+	我们对支持易创CMS团队发展的朋友表示真心的感谢!
+	:)
+-->
+<span style="display:none"><script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src=" + _bdhmProtocol + "hm.baidu.com/h.js%3Faf17cd64bcedb105dfe059ea163e7c0c type=text/javascript%3E%3C/script%3E"));
+</script>
+</span>
+<a href="http://www.miibeian.gov.cn/" target="_blank">豫ICP备09015501号</a> 
+<br />
+<a href="http://www.dircms.cn" target="_blank" style="color:#666; font-size:10px">Powered by <font  style="color:#669933"><b>DirCMS 2010Sp1</b></font> &copy;2009-2012</a> 
+</div>	<!-- 底部结束 -->
+	<script language="javascript" src="c.js.php?id=116"></script>
+</body>
+</html>

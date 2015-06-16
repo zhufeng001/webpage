@@ -1,0 +1,65 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>16.4. EntryCompletion Objects</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-NewInPyGTK2.4.html" title="Chapter 16. New Widgets in PyGTK 2.4"><link rel="prev" href="sec-ColorButtonAndFontButton.html" title="16.3. ColorButton and FontButton Widgets"><link rel="next" href="sec-ExpanderWidget.html" title="16.5. Expander Widgets"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">16.4. EntryCompletion Objects</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-ColorButtonAndFontButton.html">Prev</a> </td><th width="60%" align="center">Chapter 16. New Widgets in PyGTK 2.4</th><td width="20%" align="right"> <a accesskey="n" href="sec-ExpanderWidget.html">Next</a></td></tr></table><hr></div><div class="sect1" title="16.4. EntryCompletion Objects"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-EntryCompletion"></a>16.4. EntryCompletion Objects</h2></div></div></div><p>An <code class="classname">EntryCompletion</code> is an object that is used
+with an <code class="classname">Entry</code> widget to provide completion
+functionality. As the user types into the <code class="classname">Entry</code> the
+<code class="classname">EntryCompletion</code> will popup a window with a set of
+strings matching the <code class="classname">Entry</code> text.</p><p>An <code class="classname">EntryCompletion</code> is created using the
+constructor:</p><pre class="programlisting">
+  completion = gtk.EntryCompletion()
+</pre><p>You can use the <code class="classname">Entry</code> method
+<code class="methodname">set_completion</code>() to associate an
+<code class="classname">EntryCompletion</code> with an
+<code class="classname">Entry</code>:</p><pre class="programlisting">
+  entry.set_completion(<strong class="parameter"><code>completion</code></strong>)
+</pre><p>The strings used by the <code class="classname">EntryCompletion</code> for
+matching are retrieved from a <code class="classname">TreeModel</code> (usually a
+<code class="classname">ListStore</code>) that must be set using the method:</p><pre class="programlisting">
+  completion.set_model(<strong class="parameter"><code>model</code></strong>)
+</pre><p>The <code class="classname">EntryCompletion</code> implements the
+<code class="classname">CellLayout</code> interface that is similar to the
+<code class="classname">TreeViewColumn</code> in managing the display of the
+<code class="classname">TreeModel</code> data. The following convenience method sets
+up an <code class="classname">EntryCompletion</code> in the most common
+configuration - a list of strings:</p><pre class="programlisting">
+  completion.set_text_column(column)
+</pre><p>This method is equivalent to the following:</p><pre class="programlisting">
+  cell = CellRendererText()
+  completion.pack_start(cell)
+  completion.add_attribute(cell, 'text', column)
+</pre><p>To set the number of characters that must be entered before the
+<code class="classname">EntryCompletion</code> starts matching you can use the
+method:</p><pre class="programlisting">
+  completion.set_minimum_key_length(<strong class="parameter"><code>length</code></strong>)
+</pre><p>The example program <a class="ulink" href="examples/entrycompletion.py" target="_top">entrycompletion.py</a> demonstrates
+the use of the <code class="classname">EntryCompletion</code>. <a class="xref" href="sec-EntryCompletion.html#entrycompletionfig" title="Figure 16.10. EntryCompletion">Figure 16.10, “EntryCompletion”</a> illustrates the program in
+operation.</p><div class="figure"><a name="entrycompletionfig"></a><p class="title"><b>Figure 16.10. EntryCompletion</b></p><div class="figure-contents"><div class="mediaobject" align="center"><img src="figures/entrycompletion.png" align="middle" alt="EntryCompletion"></div></div></div><br class="figure-break"><p>The example program starts with a small number of completion strings
+that can be increased by typing into the entry field and pressing the
+<span class="keycap"><strong>Enter</strong></span> key. If the string is unique it is added to the list
+of completion strings.</p><p>The built-in match function is a case insensitive string comparison
+function. If you need a more specialized match function, you can use the
+following method to install your own match function:</p><pre class="programlisting">
+  completion.set_match_func(<em class="parameter"><code>func</code></em>, <em class="parameter"><code>user_data</code></em>)
+</pre><p>The signature of <em class="parameter"><code>func</code></em> is:</p><pre class="programlisting">
+  def func(completion, key_string, iter, data):
+</pre><p>where <em class="parameter"><code>key_string</code></em> contains the current
+contents of the <code class="classname">Entry</code>, <em class="parameter"><code>iter</code></em> is
+a <code class="classname">TreeIter</code> pointing at a row in the associated
+<code class="classname">TreeModel</code>, and <em class="parameter"><code>data</code></em> is
+<em class="parameter"><code>user_data</code></em>. <em class="parameter"><code>func</code></em> should return
+<code class="literal">TRUE</code> if the row's completion string should be
+displayed.</p><p>The simple example code snippet below uses a match function to
+display completion names that begin with the entry contents and have the
+given suffix, in this case, a name ending in <code class="literal">.png</code> for a
+<code class="literal">PNG</code> file.</p><pre class="programlisting">
+  ...
+  completion.set_match_func(end_match, (0, '.png'))
+  ...
+  def end_match(completion, entrystr, iter, data):
+      column, suffix = data
+      model = completion.get_model()
+      modelstr = model[iter][column]
+      return modelstr.startswith(entrystr) and modelstr.endswith(suffix)
+  ...
+</pre><p>For example if the user types 'foo' and the completion model
+contains strings like 'foobar.png', smiley.png', 'foot.png' and 'foo.tif', the
+'foobar.png' and 'foot.png' strings would be displayed as
+completions.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-ColorButtonAndFontButton.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-NewInPyGTK2.4.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="sec-ExpanderWidget.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">16.3. ColorButton and FontButton Widgets </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 16.5. Expander Widgets</td></tr></table></div></body></html>

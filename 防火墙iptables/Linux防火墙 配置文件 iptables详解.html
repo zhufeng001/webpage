@@ -1,0 +1,716 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<title>Linux防火墙 配置文件 iptables详解_Cisco技术 无忧网客联盟</title>
+<meta name="keywords" content="详解,文件,配置,防火墙,iptables,可以,规则,一个" />
+<meta name="description" content="对于Internet上的系统，不管是什么情况都要明确一点：网络是不安全的。因此，虽然创建一个防火墙并不能保证系统100％安全，但却是绝对必要的。 Linux提供了一个非常优秀的防火墙工具netfilter/iptables。它完全免费、功能强大、使用灵活、可以对流入和流出的" />
+<link href="/templets/style/dedecms.css" rel="stylesheet" media="screen" type="text/css" />
+<script language="javascript" type="text/javascript" src="/include/dedeajax2.js"></script>
+<script language="javascript" type="text/javascript">
+<!--
+function CheckLogin(){
+	  var taget_obj = document.getElementById('_ajax_feedback');
+	  myajax = new DedeAjax(taget_obj,false,false,'','','');
+	  myajax.SendGet2("/member/ajax_feedback.php");
+	  DedeXHTTP = null;
+}
+function postBadGood(ftype,fid)
+{
+	var taget_obj = document.getElementById(ftype+fid);
+	var saveid = GetCookie('badgoodid');
+	if(saveid != null)
+	{
+		var saveids = saveid.split(',');
+		var hasid = false;
+		saveid = '';
+		j = 1;
+		for(i=saveids.length-1;i>=0;i--)
+		{
+			if(saveids[i]==fid && hasid) continue;
+			else {
+				if(saveids[i]==fid && !hasid) hasid = true;
+				saveid += (saveid=='' ? saveids[i] : ','+saveids[i]);
+				j++;
+				if(j==10 && hasid) break;
+				if(j==9 && !hasid) break;
+			}
+		}
+		if(hasid) { alert('您刚才已表决过了喔！'); return false;}
+		else saveid += ','+fid;
+		SetCookie('badgoodid',saveid,1);
+	}
+	else
+	{
+		SetCookie('badgoodid',fid,1);
+	}
+	myajax = new DedeAjax(taget_obj,false,false,'','','');
+	myajax.SendGet2("/plus/feedback.php?aid="+fid+"&action="+ftype+"&fid="+fid);
+}
+function postDigg(ftype,aid)
+{
+	var taget_obj = document.getElementById('newdigg');
+	var saveid = GetCookie('diggid');
+	if(saveid != null)
+	{
+		var saveids = saveid.split(',');
+		var hasid = false;
+		saveid = '';
+		j = 1;
+		for(i=saveids.length-1;i>=0;i--)
+		{
+			if(saveids[i]==aid && hasid) continue;
+			else {
+				if(saveids[i]==aid && !hasid) hasid = true;
+				saveid += (saveid=='' ? saveids[i] : ','+saveids[i]);
+				j++;
+				if(j==20 && hasid) break;
+				if(j==19 && !hasid) break;
+			}
+		}
+		if(hasid) { alert("您已经顶过该帖，请不要重复顶帖 ！"); return; }
+		else saveid += ','+aid;
+		SetCookie('diggid',saveid,1);
+	}
+	else
+	{
+		SetCookie('diggid',aid,1);
+	}
+	myajax = new DedeAjax(taget_obj,false,false,'','','');
+	var url = "/plus/digg_ajax.php?action="+ftype+"&id="+aid;
+	myajax.SendGet2(url);
+}
+function getDigg(aid)
+{
+	var taget_obj = document.getElementById('newdigg');
+	myajax = new DedeAjax(taget_obj,false,false,'','','');
+	myajax.SendGet2("/plus/digg_ajax.php?id="+aid);
+	DedeXHTTP = null;
+}
+-->
+</script>
+</head>
+<body class="articleview">
+<div class="header">
+	<div class="top w960 center">
+      <div class="title">
+        <h1> <a href="http://www.net527.cn">Cisco技术 无忧网客联盟</a> </h1>
+      </div>
+      <div class="banner"><script src='/plus/ad_js.php?aid=1' language='javascript'></script></div>
+      <div class="rlink">
+        <ul>
+          <li class="r1"><a href="/member">会员中心</a></li>
+          <li class="r2"><a href="/tags.php">TAG标签</a></li>
+          <li class="r3"><a href="/data/sitemap.html">网站地图</a></li>
+          <li class="r4"><a href="/data/rssmap.html">RSS订阅</a></li>
+        </ul>
+      </div>
+	</div><!-- //top -->
+	<!-- //菜单 -->
+	<div class="module blue mT10 wrapper w963">
+  	<div class="top">
+    	<div class="t_l"></div>
+    	<div class="t_r"></div>
+    	<!-- //如果不使用currentstyle，可以在channel标签加入 cacheid='channeltoplist' 属性提升性能 -->
+    <div id="navMenu">
+    	<ul>
+      	<li><a href='/'>主页</a></li>
+      	
+      	<li><a href='/a/ITyejiepinglun/' >IT业界评论</a></li>
+      	
+      	<li><a href='/a/ITrenzheng/'  rel='dropmenu2'>IT认证</a></li>
+      	
+      	<li><a href='/a/Ciscomoniqi/'  rel='dropmenu10'>Cisco模拟器</a></li>
+      	
+      	<li><a href='/a/luyoujiaohuan/'  rel='dropmenu13'>路由交换</a></li>
+      	<li class='hover'><a href='/a/anquan/'  rel='dropmenu19'>安全</a></li>
+      	<li><a href='/a/caozuoxitong/'  rel='dropmenu25'>操作系统</a></li>
+      	
+      	<li><a href='http://www.net527.cn/special/' >专题</a></li>
+      	
+      	<li><a href='/ziliaoxiazai/'  rel='dropmenu171'>资料下载</a></li>
+      	
+      	<li><a href='/ziliaoxiazai/' >资料下载</a></li>
+      	
+      	<li><a href='/yunjisuan/' >云计算</a></li>
+      	
+    	</ul>
+    </div>	
+    <div class="search">
+      <form action="/plus/search.php" name="formsearch">
+        <div class="form">
+          <h4>搜索</h4>
+           <input type="hidden" name="kwtype" value="0" />
+           <input name="keyword" type="text" class="search-keyword" id="search-keyword" />
+           <select name="searchtype" class="search-option" id="search-option">
+               <option value="titlekeyword" selected='1'>智能模糊搜索</option>
+               <option value="title">仅搜索标题</option>
+           </select>
+          <button type="submit" class="search-submit">搜索</button>
+        </div>
+        </form>
+        <div class="tags">
+          <h4>热门标签</h4>
+          <ul>
+          <li><a href='/tags.php?/%B5%F7%B6%C8/'>调度</a></li>
+          <li><a href='/tags.php?/clean/'>clean</a></li>
+          <li><a href='/tags.php?/%B5%E7%BB%B0/'>电话</a></li>
+          <li><a href='/tags.php?/enable/'>enable</a></li>
+          <li><a href='/tags.php?/inspect/'>inspect</a></li>
+          <li><a href='/tags.php?/metric/'>metric</a></li>
+          <li><a href='/tags.php?/log/'>log</a></li>
+          <li><a href='/tags.php?/ASDM/'>ASDM</a></li>
+          
+          </ul>
+        </div>
+    </div><!-- //search -->
+		</div>
+	</div>
+</div><!-- //header -->
+
+<!-- /header -->
+<div class="w960 center clear"><script src='/plus/ad_js.php?aid=19' language='javascript'></script></div>
+<div class="channel-nav w960 center clear">
+	<div class='sonnav'>
+	
+		<span><a href='/a/anquan/Ciscoanquan/'>Cisco安全</a></span>
+		<span><a href='/a/anquan/Juniperanquan/'>Juniper安全</a></span>
+		<span><a href='/a/anquan/huaweianquan/'>华为安全</a></span><span><a href='/a/anquan/kaiyuanfanghuoqiang/' class='thisclass'>开源防火墙</a></span>
+		<span><a href='/a/anquan/dianzishu/'>电子书</a></span>
+		<span><a href='/a/anquan/xitonganquan/'>系统安全</a></span>
+	</div>
+	<span class="back">
+		<a href="/">返回首页</a>
+	</span>
+</div><!-- /channel-nav -->
+
+<div class="w960 center clear mt1">
+	<div class="pleft">
+		<div class="place">
+			<strong>当前位置:</strong> <a href='http://www.net527.cn/'>无忧网客联盟</a> > <a href='/a/anquan/'>安全</a> > <a href='/a/anquan/kaiyuanfanghuoqiang/'>开源防火墙</a> > 
+		</div><!-- /place -->
+		<div class="viewbox">
+			<div class="title">
+				<h2>Linux防火墙 配置文件 iptables详解</h2>
+			</div><!-- /title -->
+			<div class="info">
+				<small>时间:</small>2010-04-01 09:58<small>来源:</small>未知 <small>作者:</small>admin <small>点击:</small><script src="/plus/count.php?view=yes&aid=8964&mid=1" type='text/javascript' language="javascript"></script>次</div><!-- /info -->
+
+            	<div class="intro">对于Internet上的系统，不管是什么情况都要明确一点：网络是不安全的。因此，虽然创建一个防火墙并不能保证系统100％安全，但却是绝对必要的。 Linux提供了一个非常优秀的防火墙工具netfilter/iptables。它完全免费、功能强大、使用灵活、可以对流入和流出的</div>
+			<div class="intro">
+
+			<table width='100%'>
+				<tr><td><SPAN style="FLOAT: right">
+<script src='/plus/ad_js.php?aid=6' language='javascript'></script> 
+</SPAN><p>对于Internet上的系统，不管是什么情况都要明确一点：网络是不安全的。因此，虽然创建一个<a href='http://www.net527.cn/a/anquan/'><u>防火墙</u></a>并不能保证系统100％安全，但却是绝对必要的。 Linux提供了一个非常优秀的<a href='http://www.net527.cn/a/anquan/'><u>防火墙</u></a>工具&mdash;netfilter/<a href='http://www.net527.cn/a/anquan/'><u>iptables</u></a>。它完全免费、功能强大、使用灵活、<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>可以</u></a>对流入和流出的信息进行细化控制，且<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>可以</u></a>在一台低<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>配置</u></a>机器上很好地运行。本文将简单介绍使用netfilter/<a href='http://www.net527.cn/a/anquan/'><u>iptables</u></a>实现防火墙架设和Internet连接共享等应用。</p>
+<p style="text-align: left" align="left">netfilter/iptabels应用程序，被认为是 Linux中实现包过滤功能的第四代应用程序。netfilter/iptables包含在2.4以后的内核中，它可以实现防火墙、NAT（网络地址翻译）和数据包的分割等功能。netfilter工作在内核内部，而iptables则是让用户定义规则集的表结构。netfilter/iptables 从ipchains和ipwadfm（IP防火墙管理）演化而来，功能更加强大。下文将netfilter/iptabels统一称为iptables。</p>
+<p style="text-align: left" align="left">可以用iptables为Unix、Linux和BSD个人工作站创建一个防火墙，也可以为一个子网创建防火墙以保护其它的系统平台。iptales只读取数据包头，不会给信息流增加负担，也无需进行验证。要想获得更好的安全性，可以将其和一个代理服务器（比如squid）相结合。</p>
+<p style="text-align: left" align="left">基本概念 <br />
+典型的防火墙设置有两个网卡：一个流入，一个流出。iptables读取流入和流出数据包的报头，将它们与规则集（Ruleset）相比较，将可接受的数据包从一个网卡转发至另一个网卡，对被拒绝的数据包，可以丢弃或按照所定义的方式来处理。 <br />
+通过向防火墙提供有关对来自某个源地址、到某个目的地或具有特定协议类型的信息包要做些什么的指令，规则控制信息包的过滤。通过使用iptables系统提供的特殊命令iptables建立这些规则，并将其添加到内核空间特定信息包过滤表内的链中。关于添加、去除、编辑规则的命令，一般语法如下： <br />
+iptables [-t table] command [match] [target]</p>
+<p style="text-align: left" align="left"><br />
+1．表（table） <br />
+[-t table]选项允许使用标准表之外的任何表。表是包含仅处理特定类型信息包的规则和链的信息包过滤表。有三个可用的表选项：filter、nat和 mangle。该选项不是必需的，如果未指定，则filter作为缺省表。各表实现的功能如表1所示。<br />
+表1 三种表实现的功能<br />
+<img height="224" src="/uploads/allimg/100401/10121Wa3-0.jpg" width="502" alt="" /><br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!--[if !vml]--&gt;2．命令（command） <br />
+command部分是iptables命令最重要的部分。它告诉iptables命令要做什么，例如插入规则、将规则添加到链的末尾或删除规则。表2是最常用的一些命令及例子。 <br />
+表2 命令的功能和样例<br />
+<img src="/uploads/allimg/100401/10121UG0-1.jpg" alt="" /><br />
+&lt;!--[if !vml]--&gt;&lt;!--[endif]--&gt;<br />
+3．匹配（match）</p>
+<p style="text-align: left" align="left">iptables命令的可选match部分指定信息包与规则匹配所应具有的特征（如源地址、目的地址、协议等）。匹配分为通用匹配和特定于协议的匹配两大类。这里将介绍可用于采用任何协议的信息包的通用匹配。表3是一些重要且常用的通用匹配及示例说明。 <br />
+表3 通用匹配及示例说明</p>
+<p><br />
+<img src="/uploads/allimg/100401/10121V1E-2.jpg" alt="" /><br />
+<br />
+&lt;!--[if !vml]--&gt;&lt;!--[endif]--&gt;<br />
+4．目标（target）</p>
+<p>目标是由规则指定的操作，对与那些规则匹配的信息包执行这些操作。除了允许用户定义的目标之外，还有许多可用的目标选项。表4是常用的一些目标及示例说明。</p>
+<p>除表4外，还有许多用于建立高级规则的其它目标，如LOG、REDIRECT、MARK、MIRROR和MASQUERADE等。</p>
+<p>表4 目标及示例说明<br />
+<br />
+<img style="width: 522px; position: static; height: 277px" height="277" hspace="0" src="/uploads/allimg/100401/10121S523-3.jpg" width="522" border="0" alt="" /><br />
+应用iptables</p>
+<p>与ipchains和ipfwadm不同的是，iptables可以配置有状态的防火墙。iptables可以检测到源地址和目的地址、源端口和目的端口及流入数据包的顺序，即iptables记住了在现有连接中，哪些数据包已经被允许接收。这使得暂时性的端口只有在需要时才会被打开，并且会拒绝所有永久性占用端口的请求，大大地加强了安全性。同时，那些被更改了报头的数据包，即使包含有一个被允许的目的地址和端口，也会被检测到并被丢弃。此外，有状态的防火墙能够指定并记住为发送或接收信息包所建立连接的状态。防火墙可以从信息包的连接跟踪状态获得该信息。在决定新的信息包过滤时，防火墙所使用的这些状态信息可以增加其效率和速度。</p>
+<p>1．启动和停止iptables</p>
+<p>下面将正式使用iptables来创建防火墙。启动和停止iptables的方法取决于所使用的Linux发行版，可以先查看所使用Linux版本的文档。</p>
+<p>一般情况下，iptables已经包含在Linux发行版中，运行iptables --version来查看系统是否安装了iptables。在Red Hat 9.0中，安装的版本是iptables v1.2.7a。如果系统没有安装iptables，则可以从<a href="http://www.netfilter.org/">http://www.netfilter.org</a>下载。</p>
+<p>2．查看规则集</p>
+<p>上面仅对iptables的用法做了一个简单介绍，使用中可以运行man iptables来查看所有命令和选项的完整介绍，或者运行iptables -help来查看一个快速帮助。要查看系统中现有的iptables规划集，可以运行以下命令：</p>
+<p>iptables --list</p>
+<p>&nbsp;</p>
+<p>下面是没有定义规划时iptables的样子：</p>
+<p>Chain INPUT (policy ACCEPT) <br />
+target prot opt source destination</p>
+<p>Chain FORWARD (policy ACCEPT) <br />
+target prot opt source destination</p>
+<p>Chain OUTPUT (policy ACCEPT) <br />
+target prot opt source destination <br />
+如上例所示，每一个数据包都要通过三个内建的链（INPUT、OUTPUT和FORWARD）中的一个。</p>
+<p>filter是最常用的表，在filter表中最常用的三个目标是ACCEPT、DROP和REJECT。DROP会丢弃数据包，不再对其进行任何处理。REJECT会把出错信息传送至发送数据包的主机。 <br />
+&lt;!--[if !vml]--&gt;&lt;!--[endif]--&gt; <br />
+在Red Hat 9.0中，提供一个GUI程序来让用户对系统的安装级别进行简单的配置。该工具的启动方法是：主选单&rarr;系统设置&rarr;安全工具（如图1所示）。在此将安全级别设为&ldquo;高级&rdquo;，并选择使用默认的防火墙规则。点击确定后，再用iptables -list显示，发现iptables与没有定义规则前已经有很大不同，如下所示：</p>
+<p>[root@workstation root]# iptables --list <br />
+Chain INPUT (policy ACCEPT) <br />
+target prot opt source destination <br />
+RH-Lokkit-0-50-INPUT all -- anywhere anywhere</p>
+<p>Chain FORWARD (policy ACCEPT) <br />
+target prot opt source destination <br />
+RH-Lokkit-0-50-INPUT all -- anywhere anywhere</p>
+<p>Chain OUTPUT (policy ACCEPT) <br />
+target prot opt source destination <br />
+......</p>
+<p>&nbsp;</p>
+<p>现实中一般不使用这个GUI工具，因为它的功能有限，也不够透明。相比较而言，SuSE 9.0中相应的配置工具要好得多，它可以在GUI下对防火墙进行更加细化的配置（比如增加了IP转发和伪装等功能的配置）。尽管这样，一般还是自己来增加和删除规则。</p>
+<p>．增加规则</p>
+<p>本例中的规则将会阻止来自某一特定IP范围内的数据包，因为该IP地址范围被管理员怀疑有大量恶意攻击者在活动：</p>
+<p># iptables -t filter -A INPUT -s 123.456.789.0/24 -j DROP</p>
+<p>&nbsp;</p>
+<p>也可以很轻易地阻止所有流向攻击者IP地址的数据包，该命令稍有不同：</p>
+<p># iptables -t filter -A OUTPUT -d 123.456.789.0/24 -j DROP</p>
+<p>&nbsp;</p>
+<p>注意这里的A选项，如前所述，使用它说明是给现有的链添加规则。</p>
+<p>4．删除规则</p>
+<p>网络上的恶意攻击者总是在变化的，因此需要不断改变IP。假设一个网上攻击者转移到新的IP地址，而其老的IP地址被分配给一些清白的用户，那么这时这些用户的数据包将无法通过你的网络。这种情况下，可以使用带-D选项的命令来删除现有的规则：</p>
+<p># iptables -t filter -D OUTPUT -d 123.456.789.0/24 -j DROP</p>
+<p>&nbsp;</p>
+<p>5．缺省的策略</p>
+<p>创建一个具有很好灵活性、可以抵御各种意外事件的规则需要大量的时间。对于那些没有时间这样做的人，最基本的原则是&ldquo;先拒绝所有的数据包，然后再允许需要的&rdquo;。下面来为每一个链设置缺省的规则：</p>
+<p># iptables -P INPUT DROP <br />
+# iptables -P FORWARD DROP <br />
+# iptables -P OUTPUT ACCEPT</p>
+<p>&nbsp;</p>
+<p>这里选项-P用于设置链的策略，只有三个内建的链才有策略。这些策略可以让信息毫无限制地流出，但不允许信息流入。很多时候需要接收外部信息，则可使用以下命令：</p>
+<p># iptables -t filter -A INPUT -s 123.456.789.0/24 -j ACCEPT</p>
+<p>&nbsp;</p>
+<p>6．SYN的使用</p>
+<p>不能关闭所有端口，也不能只指定某些端口处于打开状态，那么怎样才能设置一个有效的规则，既可以允许普通用户正常通过，又可以阻止恶意攻击者访问网络呢？</p>
+<p>刚开始使用iptables的人可以充分利用syn标识来阻止那些未经授权的访问。iptables只检测数据包的报头，事实上，除 iptables以外，很多其它有用的数据包分析都是基于报头的。比如，在进行Web冲浪时，一个请求从你的PC发送至其它地方的Web服务器上，该服务器会响应请求并发回一个数据包，同时得到你系统上的一个临时端口。与响应请求不同的是，服务器并不关心所传送的内容。可以利用这种特点来设置规则，让它阻止所有没有经过你系统授权的TCP连接：</p>
+<p># iptables -t filter -A INPUT -i eth0 -p tcp --syn -j DROP</p>
+<p>&nbsp;</p>
+<p>这里的-i指的是网卡，-p则是指协议，--syn则表示带有syn标识设置的TCP数据包。SYN用于初始化一个TCP连接，如果自己机器上没有运行任何服务器，别人也就不会向你发送SYN数据包。</p>
+<p>7．有状态的数据包的检测</p>
+<p>前边的例子把每一个数据包看成是独立的，而不是相互关联的，依靠的是数据包的头信息。iptables会检查数据包的源和目的IP地址、源和目的端口、流入数据包的顺序号、TCP先后顺序的信息及头标记（SYN、ACK、FIN、RST等）的状态，即它会跟踪整个连接会话，从而使整个过滤过程是相互关联的。</p>
+<p>8．共享一个Internet连接</p>
+<p>网络地址翻译和IP伪装都可以实现多台主机共享一个Internet连接，这个局域网可以是Linux和Windows系统组成的多系统局域网。假设现在有一台机器，配有两个网卡，其中eth0为&ldquo;公共&rdquo;网卡，eth1为&ldquo;私有&rdquo;网卡，即eth0被分配了一个静态的、可路由的IP地址，而eth1被分配了一个私有的、不能路由的IP，该IP是属于该局域网子网的。要实现上述功能，需要向nat和filter表中添加一些链：</p>
+<p># iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE <br />
+# iptables -t filter -A FORWARD -i eth0 -o eth1 -m state --state RELATED,ESTABLISHED -j ACCEPT <br />
+# iptables -t filter -A FORWARD -i eth1 -o eth0 -j ACCEPT</p>
+<p>&nbsp;</p>
+<p>这显示了有状态的数据包检测的价值。请注意，这里是如何实现流入数据包只有在属于一个已经存在的连接时才被允许，而所有来自局域网内流向外的数据包则都允许通过。第一条规则让所有流出的信息看起来都是来自防火墙机器的，而并不会显示出防火墙后面还有一个局域网。</p>
+<p>下面的命令为FORWARD和POSTROUTING链设置缺省的策略，在使用伪装时，有一个缺省的POSTROUTING DROP策略非常重要，否则就可能有心怀恶意的用户突破网关后伪装自己的身份。</p>
+<p># iptables -t filter -P FORWARD DROP <br />
+# iptables -t nat -P POSTROUTING DROP</p>
+<p>&nbsp;</p>
+<p>下面的命令为拨号连接设置，它可以动态地分配IP地址：</p>
+<p># iptables -t nat -A POSTROUTING -o ppp0 -j MASQUERADE</p>
+<p>&nbsp;</p>
+<p>9．运行服务器时的情况</p>
+<p>有时也会把服务器放置在防火墙后面，这时iptables就需要知道从哪儿通过数据包，设置如下所示：</p>
+<p># iptables -t nat -A PREROUTING -i eth0 -p tcp -dport 80 -j DNAT -to 192.168.0.10:80 <br />
+# iptables -t nat -A PREROUTING -i eth0 -p tcp -dport 25 -j DNAT -to 192.168.0.11:25</p>
+<p>&nbsp;</p>
+<p>10．规则的保存</p>
+<p>到现在为止，所有的例子都是在命令行中进行的。在测试新的规则时，这是一种很好的方式，但一旦测试结果令人满意，就可以将它们保存为脚本。可以使用 iptables-save 命令来实现：</p>
+<p>$ iptables-save &gt;; iptables-script</p>
+<p>&nbsp;</p>
+<p>信息包过滤表中的所有规则都被保存在<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>文件</u></a>iptables-script中。无论何时再次引导系统，都可以使用iptables-restore命令将规则集从该脚本<a href='http://www.net527.cn/a/luyoujiaohuan/'><u>文件</u></a>恢复到信息包过滤表。恢复命令如下所示：</p>
+<p>$ iptables-restore iptables-script</p>
+<p>&nbsp;</p>
+<p>如果愿意在每次引导系统时自动恢复该规则集，则可以将上面指定的这条命令放到任何一个初始化Shell脚本中。</p>
+<p>下面的例子并不是一个完整的脚本，它只是描述了如何使用变量及提供了一些附加的规则样例。</p>
+<p>#!/bin/sh <br />
+#为变量赋值 <br />
+IPTABLES=/sbin/iptables <br />
+LAN_NET=&quot;192.168.1.0/24&quot; <br />
+IFACE= &quot;eth0&quot; <br />
+LO_IFACE=&quot;lo&quot; <br />
+LO_IP=&quot;127.0.0.1&quot; <br />
+#加载所需的内核 <br />
+/sbin/modprobe ip_conntrack <br />
+/sbin/modprobe iptable_nat <br />
+#缺省情况下，IP转发都处于不可用状态，将其设置为可用状态： <br />
+echo &quot;1&quot; &gt;; /proc/sys/net/ipv4/ip_forward <br />
+#使IP的动态分配功能可用 <br />
+echo &quot;1&quot; &gt;; /proc/sys/net/ipv4/ip_dynaddr <br />
+#每次重启这个脚本时，最好清除以前所设的规则 <br />
+$IPTABLES -P INPUT DROP <br />
+$IPTABLES -F INPUT <br />
+$IPTABLES -P OUTPUT ACCEPT <br />
+$IPTABLES -F OUTPUT <br />
+$IPTABLES -P FORWARD DROP <br />
+$IPTABLES -F FORWARD <br />
+$IPTABLES -F -t nat <br />
+#只允许在LAN中使用SSH连接 <br />
+$IPTABLES -A INPUT -s LAN_NET -p tcp --destination-port ssh -j ACCEPT <br />
+#允许loopback! <br />
+$IPTABLES -A INPUT -i lo -p all -j ACCEPT <br />
+$IPTABLES -A OUTPUT -o lo -p all -j ACCEPT <br />
+#丢弃那些流入的宣称是来自本地机器的数据包 <br />
+#丢弃那些流出的不是出自本地机的数据包 <br />
+$IPTABLES -A INPUT -i $IFACE -s $LAN_NET -j DROP <br />
+$IPTABLES -A OUTPUT -o $IFACE -s ! $LAN_NET -j DROP <br />
+#限制一些流出的信息 <br />
+$IPTABLES -A OUTPUT -o eth0 -p tcp -dport 31337 -j DROP <br />
+$IPTABLES -A OUTPUT -o eth0 -p tcp -sport 31337 -j DROP <br />
+#此外，31335、27444、27665、20034 NetBus、9704、137-139（smb）端口也应被禁止。</p>(责任编辑：admin)</td></tr>
+			</table>
+
+			</div><!-- /content -->
+<div align="center" style="padding-bottom:0px; padding-top:10px;">
+
+<script src='/plus/ad_js.php?aid=3' language='javascript'></script> </div>
+			<div class="dede_pages">
+				<ul class="pagelist">
+          
+				</ul>
+			</div><!-- /pages -->
+
+			<!-- //顶踩 -->
+			<div class="newdigg" id="newdigg">
+				<div class="diggbox digg_good" onmousemove="this.style.backgroundPosition='left bottom';" onmouseout="this.style.backgroundPosition='left top';" onclick="javascript:postDigg('good',8964)">
+					<div class="digg_act">顶一下</div>
+					<div class="digg_num">(3)</div>
+					<div class="digg_percent">
+						<div class="digg_percent_bar"><span style="width:100%"></span></div>
+						<div class="digg_percent_num">100%</div>
+					</div>
+				</div>
+				<div class="diggbox digg_bad" onmousemove="this.style.backgroundPosition='right bottom';" onmouseout="this.style.backgroundPosition='right top';" onclick="javascript:postDigg('bad',8964)">
+					<div class="digg_act">踩一下</div>
+					<div class="digg_num">(0)</div>
+					<div class="digg_percent">
+						<div class="digg_percent_bar"><span style="width:0%"></span></div>
+						<div class="digg_percent_num">0%</div>
+					</div>
+				</div>
+			</div>
+			<script language="javascript" type="text/javascript">getDigg(8964);</script>
+			<!-- //顶踩部份的源码结束 -->
+			
+			<div class="boxoff">
+				<strong>------分隔线----------------------------</strong>
+			</div>
+			<div class="handle">
+				<div class="context">
+					<ul>
+						<li>上一篇：<a href='/a/anquan/kaiyuanfanghuoqiang/2010/0401/8963.html'>Linux IPTABLES 基础详解</a> </li>
+						<li>下一篇：<a href='/a/anquan/kaiyuanfanghuoqiang/2010/0401/8967.html'>linux防火墙 iptables配置详解</a> </li>
+					</ul>
+				</div><!-- /context -->
+				<div class="actbox">
+					<ul>
+						<li id="act-fav"><a href="/plus/stow.php?aid=8964" target="_blank">收藏</a></li>
+						<li id="act-err"><a href="/plus/erraddsave.php?aid=8964&title=Linux防火墙 配置文件 iptables详解" target="_blank">挑错</a></li>
+						<li id="act-pus"><a href="/plus/recommend.php?aid=8964" target="_blank">推荐</a></li>
+						<li id="act-pnt"><a href="#" onClick="window.print();">打印</a></li>
+					</ul>
+				</div><!-- /actbox -->
+			</div><!-- /handle -->
+		</div><!-- /viewbox -->
+
+<!-- //AJAX评论区 -->
+<!-- //主模板必须要引入/include/dedeajax2.js -->
+<a name='postform'></a>
+<div class="mt1">
+		<dl class="tbox">
+			<dt>
+				<strong>发表评论</strong>
+				<span class="more"></span>
+			</dt>
+			<dd>
+				<div class="dede_comment_post">
+          <form action="#" method="post" name="feedback">
+          <input type="hidden" name="dopost" value="send" />
+          <input type="hidden" name="comtype" value="comments">
+          <input type="hidden" name="aid" value="8964" />
+          <input type="hidden" name="fid" id='feedbackfid' value="0" />
+          <div class="dcmp-title">
+						<small>请自觉遵守互联网相关的政策法规，严禁发布色情、暴力、反动的言论。</small>
+					</div><!-- /dcmp-title -->
+					<div class="dcmp-stand">
+						<strong>评价:</strong>
+							<input type="radio" name="feedbacktype" checked="1" value="feedback" id="dcmp-stand-neu" /><label for="dcmp-stand-neu"><img src="/templets/images/cmt-neu.gif" />中立</label>
+							<input type="radio" name="feedbacktype" value="good" id="dcmp-stand-good" /><label for="dcmp-stand-good"><img src="/templets/images/cmt-good.gif" />好评</label>
+							<input type="radio" name="feedbacktype" value="bad" id="dcmp-stand-bad" /><label for="dcmp-stand-bad"><img src="/templets/images/cmt-bad.gif" />差评</label>
+					</div><!-- /dcmp-stand -->
+					<div class="dcmp-content">
+						<textarea cols="60" name="msg" rows="5" class="ipt-txt"></textarea>
+					</div><!-- /dcmp-content -->
+					<div class="dcmp-mood">
+						<strong>表情:</strong>
+						<ul>
+								<li><input type="radio" name='face' value='6' checked="1" /><img src="/templets/images/mood/ico-mood-6.gif" /></li>
+								<li><input type="radio" name='face' value='4'/><img src="/templets/images/mood/ico-mood-4.gif" /></li>
+								<li><input type="radio" name='face' value='3'/><img src="/templets/images/mood/ico-mood-3.gif" /></li>
+								<li><input type="radio" name='face' value='5'/><img src="/templets/images/mood/ico-mood-5.gif" /></li>
+								<li><input type="radio" name='face' value='2'/><img src="/templets/images/mood/ico-mood-2.gif" /></li>
+								<li><input type="radio" name='face' value='1'/><img src="/templets/images/mood/ico-mood-1.gif" /></li>
+								<li><input type="radio" name='face' value='7'/><img src="/templets/images/mood/ico-mood-7.gif" /></li>
+						</ul>
+					</div><!-- /dcmp-mood -->
+					<div class="dcmp-post"><!--未登陆-->
+							<div class="dcmp-userinfo" id="_ajax_feedback">
+								用户名:<input type="text" name="username" size="16" class="ipt-txt" />密码:<input name="pwd" type="password" size="16" class="ipt-txt" />
+								验证码:<input type='text' name='validate' size='4' class='ipt-txt' /><img src="/include/vdimgck.php" id="validateimg" style="cursor:pointer" onclick="this.src=this.src+'?'" title="点击我更换图片" alt="点击我更换图片" />
+                <input type="checkbox" name="notuser" id="dcmp-submit-guest" /><label for="dcmp-submit-guest" />匿名? </label>
+							</div>
+              <script language="javascript" type="text/javascript">CheckLogin();</script>
+							<div class="dcmp-submit">
+								<button type="button" onClick='PostComment()'>发表评论</button>
+							</div>
+						</div>
+        </form>
+				</div>
+			</dd>
+		</dl>
+	</div><!-- //评论表单区结束 -->
+
+<!-- //评论内容区 -->
+	<a name='commettop'></a>
+	<div class="mt1">
+			<dl class="tbox">
+				<dt>
+					<strong>最新评论</strong>
+					<span class="more"><a href="/plus/feedback.php?aid=8964">进入详细评论页&gt;&gt;</a></span>
+				</dt>
+				<!-- //这两个ID的区块必须存在，否则JS会出错 -->
+				<dd id='commetcontentNew'></dd>
+				<dd id='commetcontent'></dd>
+			</dl>
+	</div>
+<!--
+//由于评论载入时使用异步传输，因此必须在最后一步加载（DIGG和评论框须放在评论内容前面）
+//如果一定需要提前的把myajax.SendGet改为myajax.SendGet2，但可能会引起页面阻滞
+-->
+<script language='javascript'>
+function LoadCommets(page)
+{
+		var taget_obj = document.getElementById('commetcontent');
+		var waithtml = "<div style='line-height:50px'><img src='/images/loadinglit.gif' />评论加载中...</div>";
+		var myajax = new DedeAjax(taget_obj, true, true, '', 'x', waithtml);
+		myajax.SendGet2("/plus/feedback_ajax.php?dopost=getlist&aid=8964&page="+page);
+		DedeXHTTP = null;
+}
+function PostComment()
+{
+		var f = document.feedback;
+		var nface = '6';
+		var nfeedbacktype = 'feedback';
+		var nvalidate = '';
+		var nnotuser = '';
+		var nusername = '';
+		var npwd = '';
+		var taget_obj = $DE('commetcontentNew');
+		var waithtml = "<div style='line-height:30px'><img src='/images/loadinglit.gif' />正在发送中...</div>";
+		if(f.msg.value=='')
+		{
+			alert("评论内容不能为空！");
+			return;
+		}
+		if(f.validate)
+		{
+			if(f.validate.value=='') {
+				alert("请填写验证码！");
+				return;
+			}
+			else {
+				nvalidate = f.validate.value;
+			}
+		}
+		if(f.msg.value.length > 500)
+		{
+			alert("你的评论是不是太长了？请填写500字以内的评论。");
+			return;
+		}
+		if(f.feedbacktype) {
+			for(var i=0; i < f.feedbacktype.length; i++)
+				if(f.feedbacktype[i].checked) nfeedbacktype = f.feedbacktype[i].value;
+		}
+		if(f.face) {
+			for(var j=0; j < f.face.length; j++)
+				if(f.face[j].checked) nface = f.face[j].value;
+		}
+		if(f.notuser.checked) nnotuser = '1';
+		if(f.username) nusername = f.username.value;
+		if(f.pwd) npwd = f.pwd.value;
+		
+		var myajax = new DedeAjax(taget_obj, false, true, '', '', waithtml);
+		myajax.sendlang = 'gb2312';
+		myajax.AddKeyN('dopost', 'send');
+		myajax.AddKeyN('aid', '8964');
+		myajax.AddKeyN('fid', f.fid.value);
+		myajax.AddKeyN('face', nface);
+		myajax.AddKeyN('feedbacktype', nfeedbacktype);
+		myajax.AddKeyN('validate', nvalidate);
+		myajax.AddKeyN('notuser', nnotuser);
+		myajax.AddKeyN('username', nusername);
+		myajax.AddKeyN('pwd', npwd);
+		myajax.AddKeyN('msg', f.msg.value);
+		myajax.SendPost2('/plus/feedback_ajax.php');
+		f.msg.value = '';
+		f.fid.value = 0;
+		if(f.validate)
+		{
+			if($DE('validateimg')) $DE('validateimg').src = "/include/vdimgck.php?"+f.validate.value;
+			f.validate.value = '';
+		}
+}
+function quoteCommet(fid)
+{
+	document.feedback.fid.value = fid;
+}
+LoadCommets(1);
+</script><!-- //评论内容区结束 -->
+
+
+</div><!-- //左边内容结束 -->
+
+<!-- //右边内容开始 -->
+<div class="pright">
+ 		
+		<div class="commend mt1">
+			<dl class="tbox light">
+<script src='/plus/ad_js.php?aid=5' language='javascript'></script>
+				<dt class='light'><strong>推荐内容</strong></dt>
+				<dd class='light'>
+					<ul class="d4">
+           <li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1119/367.html">FREEBSD中使用IPFW来过滤ICMP服务</a>
+            	<p>FREEBSD中可以使用IPFW来停止PING的响应，即可以调制内核和使用IPFW来拒绝 ICMP服务，这样别人用PING就看不到任何信息了。 先介绍下IPFW...</p>
+            </li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1116/112.html">FreeBSD7.0+opengate+ipfw(网页网关认证)Captive Po</a>
+            	<p>介绍 如果用过 [url=javascript:;] m0n0wall [/url] 这个东西的朋友应该知道里面有个Captive [url=javascrip...</p>
+            </li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1116/111.html">NETBSD+ADSL+IPF+QDNS</a>
+            	<p>配置网卡的IP地址： # vi /etc/ifconfig.rtk0 inet 192.168.0.1 netmask 255.255.255.0 # vi /...</p>
+            </li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1116/110.html">OpenBSD下PF防火墙典型应用(针对FTP环境)</a>
+            	<p>PF防火墙起源于OPENBSD项目。近年来FREEBSD/NETBSD也开始支持PF防火墙了，在BSD系统中PF防火墙变得越来越流行了。这里我们重点结合 [ur...</p>
+            </li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1116/109.html">Freebsd PF防火墙实现策略路由</a>
+            	<p>利用PF实现策略路由 1．说明： 此方案适用于可以使用PF做为 [url=javascript:;] 防火墙 [/url] 的操作系统，包括FREEBSD/OP...</p>
+            </li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1116/108.html">pf防火墙防止ssh、ftp暴力攻擊</a>
+            	<p>用pf防止ssh、ftp暴力攻击 1.在/etc/pf.conf加入底下規則 tablepersist tablepersist block quick fro...</p>
+            </li>
+
+					</ul>
+				</dd>
+			</dl>
+		</div><!-- /commend -->
+
+
+<script src='/plus/ad_js.php?aid=20' language='javascript'></script>
+
+
+		<div class="hot mt1">
+			<dl class="tbox light">
+				<dt class='light'><strong>热点内容</strong></dt>
+				<dd class='light'>
+					<ul class="c1 ico2">
+             <li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0401/8964.html">Linux防火墙 配置文件 iptables详解</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0225/6467.html">linux iptables限速及限制每IP连接数</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1214/1526.html">Linux iptables配置FTP的主动和被动模式</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0311/7526.html">Ubuntu iptables 入门 设置静态防火墙</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0311/7515.html">Ubuntu iptables 入门 教程</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0225/6428.html">iptables 学习总结 收藏</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0106/2647.html">Ubuntu iptables详细教程-基本命令</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2009/1119/372.html">VMWare上实现FreeBSD的PPPoE网关（IPFW+</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0225/6463.html">常用的 iptables配置脚本</a></li>
+<li><a href="/a/anquan/kaiyuanfanghuoqiang/2010/0126/4569.html">iptables 限速Shell无需TC(限制NAT机器上I</a></li>
+
+					</ul>
+				</dd>
+			</dl>
+		</div>
+
+
+
+
+	</div><!-- /pright -->
+</div>
+
+<!-- //二级子类下拉菜单，考虑SEO原因放置于底部  -->
+<script type='text/javascript' src='/images/js/dropdown.js'></script>
+<ul id="dropmenu1" class="dropMenu">
+  
+</ul><ul id="dropmenu2" class="dropMenu">
+    <li><a href="/a/ITrenzheng/sikekaoshizhanbao/">思科考试战报</a></li>
+    <li><a href="/a/ITrenzheng/CCNAdianzishu/">CCNA电子书</a></li>
+    <li><a href="/a/ITrenzheng/CCSPdianzishu/">CCSP电子书</a></li>
+    <li><a href="/a/ITrenzheng/CCNPdianzishu/">CCNP电子书</a></li>
+    <li><a href="/a/ITrenzheng/CCIEdianzishu/">CCIE电子书</a></li>
+    <li><a href="/a/ITrenzheng/ITwangluoshiyanshi/">IT网络实验室</a></li>
+    <li><a href="/a/ITrenzheng/luntanzixun/">论坛咨询</a></li>
+  
+</ul><ul id="dropmenu10" class="dropMenu">
+    <li><a href="/a/Ciscomoniqi/Cisco_ios_xiazai/">Cisco ios 下载</a></li>
+    <li><a href="/a/Ciscomoniqi/Ciscomoniqiruanjian/">Cisco模拟器软件</a></li>
+  
+</ul><ul id="dropmenu13" class="dropMenu">
+    <li><a href="/a/luyoujiaohuan/Ciscojishu/">Cisco技术</a></li>
+    <li><a href="/a/luyoujiaohuan/huaweijishu/">华为技术</a></li>
+    <li><a href="/a/luyoujiaohuan/Juniperjishu/">Juniper技术</a></li>
+    <li><a href="/a/luyoujiaohuan/dianzishu/">电子书</a></li>
+    <li><a href="/a/luyoujiaohuan/peizhishili/">配置实例</a></li>
+  
+</ul><ul id="dropmenu19" class="dropMenu">
+    <li><a href="/a/anquan/Ciscoanquan/">Cisco安全</a></li>
+    <li><a href="/a/anquan/Juniperanquan/">Juniper安全</a></li>
+    <li><a href="/a/anquan/huaweianquan/">华为安全</a></li>
+    <li><a href="/a/anquan/kaiyuanfanghuoqiang/">开源防火墙</a></li>
+    <li><a href="/a/anquan/dianzishu/">电子书</a></li>
+    <li><a href="/a/anquan/xitonganquan/">系统安全</a></li>
+  
+</ul><ul id="dropmenu25" class="dropMenu">
+    <li><a href="/a/caozuoxitong/Linux/">Linux</a></li>
+    <li><a href="/a/caozuoxitong/Unix/">Unix</a></li>
+    <li><a href="/a/caozuoxitong/windows/">windows</a></li>
+    <li><a href="/a/anquan/Backtrack/">Backtrack</a></li>
+  
+</ul><ul id="dropmenu171" class="dropMenu">
+    <li><a href="/ziliaoxiazai/sikeziliaoxiazai/">思科</a></li>
+    <li><a href="/ziliaoxiazai/Linux/">Linux</a></li>
+    <li><a href="/ziliaoxiazai/ITdianzishuxiazai/">IT电子书下载</a></li>
+    <li><a href="/ziliaoxiazai/shujukuziliaoxiazai/">数据库资料下载</a></li>
+    <li><a href="/ziliaoxiazai/weiruanziliaoxiazai/">微软下载</a></li>
+    <li><a href="/ziliaoxiazai/shipinxiazai/">视频下载</a></li>
+  
+</ul><ul id="dropmenu164" class="dropMenu">
+    <li><a href="/ziliaoxiazai/sikeziliaoxiazai/">思科资料下载</a></li>
+    <li><a href="/ziliaoxiazai/weiruanziliaoxiazai/">微软资料下载</a></li>
+    <li><a href="/ziliaoxiazai/shujukuziliaoxiazai/">数据库资料下载</a></li>
+    <li><a href="/ziliaoxiazai/Linux___unix_ziliaoxiazai/">Linux & unix 资料下载</a></li>
+    <li><a href="/ziliaoxiazai/shipinziliaoxiazai/">视频资料下载</a></li>
+  
+</ul><ul id="dropmenu36" class="dropMenu">
+    <li><a href="/shujukuguanli/Oracle/">Oracle</a></li>
+    <li><a href="/shujukuguanli/Mysql/">Mysql</a></li>
+    <li><a href="/shujukuguanli/Mssql/">Mssql</a></li>
+  
+</ul><ul id="dropmenu40" class="dropMenu">
+    <li><a href="/yunjisuan/yunjisuan/">云计算</a></li>
+  
+</ul>
+<script type="text/javascript">cssdropdown.startchrome("navMenu")</script>
+
+<!-- //底部模板 -->
+<div class="footer w960 center mt1 clear">
+	<!-- 
+		为了支持织梦团队的发展,请您保留织梦内容管理系统的链接信息.
+		我们对支持织梦团队发展的朋友表示真心的感谢!织梦因您更精彩!
+	-->
+	<p class="copyright">
+		本站为了方便大家学习，资料全部都是从网络上搜集来的，如果作者觉得侵犯了自己的利益，请和我们联系。Powered by  &#169; 2004-2009 </p>
+
+<!-- /powered -->
+	<p class="copyright">
+		Copyright &copy; 2002-2011 <b><a href="http://www.net527.cn/">Cisco 论坛</a></b><script language="javascript" type="text/javascript" src="http://js.users.51.la/3434535.js"></script><br />
+  </p>
+</div>
+<!-- /footer -->
+
+</body>
+</html>

@@ -1,0 +1,509 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-CN" dir="ltr">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>WSGI初探 - 双木成林: 喋喋不休 - ITeye技术网站</title>
+    <meta name="description" content="wsgi初探 前言 本文不涉及WSGI的具体协议的介绍，也不会有协议完整的实现，甚至描述中还会掺杂着本人自己对于WSGI的见解。所有的WSGI官方定义请看http://www.python.org/dev/peps/pep-3333/。 WSGI是什么？ WSGI的官方定义是，the Python Web Server Gateway Interface。从名字就可以看出来，这东西是一个Gatewa ..." />
+    <meta name="keywords" content="Python, OS, 应用服务器, 设计模式, CGI WSGI初探" />
+    <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon" />
+    <link rel="search" type="application/opensearchdescription+xml" href="/open_search.xml" title="ITeye" />
+    <link href="/rss" rel="alternate" title="双木成林: 喋喋不休" type="application/rss+xml" />
+    <link href="http://www.iteye.com/stylesheets/blog.css?1418977807" media="screen" rel="stylesheet" type="text/css" />
+<link href="http://www.iteye.com/stylesheets/themes/blog/blue.css?1326191326" media="screen" rel="stylesheet" type="text/css" />
+    <script src="http://www.iteye.com/javascripts/application.js?1358214518" type="text/javascript"></script>
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-535605-1']);
+  _gaq.push(['_setDomainName', 'iteye.com']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+
+      <link href="http://www.iteye.com/javascripts/syntaxhighlighter/SyntaxHighlighter.css?1348819953" media="screen" rel="stylesheet" type="text/css" />
+  <script src="http://www.iteye.com/javascripts/syntaxhighlighter/shCoreCommon.js?1325907333" type="text/javascript"></script>
+<script src="http://www.iteye.com/javascripts/hotkey.js?1324994303" type="text/javascript"></script>
+  <script src="http://www.iteye.com/javascripts/code_favorites.js?1358214518" type="text/javascript"></script>
+<script src="http://www.iteye.com/javascripts/weiboshare.js?1324994303" type="text/javascript"></script>
+  </head>
+  <body>
+    <div id="header">
+      <div id="blog_site_nav">
+  <a href="http://www.iteye.com/" class="homepage">首页</a>
+  <a href="http://www.iteye.com/news">资讯</a>
+  <a href="http://www.iteye.com/magazines">精华</a>
+  <a href="http://www.iteye.com/forums">论坛</a>
+  <a href="http://www.iteye.com/ask">问答</a>
+  <a href="http://www.iteye.com/blogs">博客</a>
+  <a href="http://www.iteye.com/blogs/subjects">专栏</a>
+  <a href="http://www.iteye.com/groups">群组</a>
+  <a href="#" onclick="return false;" id="msna"><u>更多</u> <small>▼</small></a>
+  <div class="quick_menu" style="display:none;">
+    <a target="_blank" href="http://job.iteye.com/iteye">招聘</a>
+    <a href="http://www.iteye.com/search">搜索</a>
+  </div>
+</div>
+
+      <div id="user_nav">
+      <a href="/login" class="welcome" title="登录">您还未登录 !</a>
+    <a href="/login">登录</a>
+    <a href="/signup" class="nobg">注册</a>
+  </div>
+
+    </div>
+
+    <div id="page">
+      <div id="branding" class="clearfix">
+        <div id="blog_name">
+          <h1><a href="/">双木成林: 喋喋不休</a></h1>
+        </div>
+        <div id='fd'></div>
+        <div id="blog_navbar">
+          <ul>
+            <li class='blog_navbar_for'><a href="http://linluxiang.iteye.com"><strong>博客</strong></a></li>
+            <li ><a href="/weibo">微博</a></li>
+            <li ><a href="/album">相册</a></li>
+            <li ><a href="/link">收藏</a></li>
+            <li ><a href="/blog/guest_book">留言</a></li>
+            <li ><a href="/blog/profile">关于我</a></li>
+          </ul>
+    
+          <div class="search">
+            <form action="/blog/search" method="get">
+              <input class="search_text" id="query" name="query" style="margin-left: 10px;width: 110px;" type="text" value="" />
+              <input class="submit_search" type="submit" value="" />
+            </form>
+          </div> 
+          <div id="fd"></div>         
+        </div>
+      </div>
+      
+      <div id="content" class="clearfix">
+        <div id="main">
+          
+
+
+
+          
+
+
+<div class="h-entry" style='display:none'>
+  <a href="http://linluxiang.iteye.com" class="p-author" target="_blank">lin_llx</a>
+</div>
+
+
+<div class="blog_main">
+  <div class="blog_title">
+    <h3>
+      <a href="/blog/799163">WSGI初探</a>
+      <em class="actions">      </em>
+    </h3>
+    <ul class='blog_categories'><strong>博客分类：</strong> <li><a href="/category/56917">Python学习</a></li> </ul>
+        <div class='news_tag'><a href="http://www.iteye.com/blogs/tag/Python">Python</a><a href="http://www.iteye.com/blogs/tag/OS">OS</a><a href="http://www.iteye.com/blogs/tag/%E5%BA%94%E7%94%A8%E6%9C%8D%E5%8A%A1%E5%99%A8">应用服务器</a><a href="http://www.iteye.com/blogs/tag/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F">设计模式</a><a href="http://www.iteye.com/blogs/tag/CGI">CGI</a></div>
+  </div>
+
+  <div id="blog_content" class="blog_content">
+    <span style="font-size: x-large;">wsgi初探</span><br /><span style="font-size: large;">前言</span><br /><br />本文不涉及WSGI的具体协议的介绍，也不会有协议完整的实现，甚至描述中还会掺杂着本人自己对于WSGI的见解。所有的WSGI官方定义请看<a href="http://www.python.org/dev/peps/pep-3333/" target="_blank">http://www.python.org/dev/peps/pep-3333/</a>。<br /><br /><br /><span style="font-size: large;">WSGI是什么？</span><br /><br />WSGI的官方定义是，the Python Web Server Gateway Interface。从名字就可以看出来，这东西是一个Gateway，也就是网关。网关的作用就是在协议之间进行转换。<br /><br /><br /><br />也就是说，WSGI就像是一座桥梁，一边连着web服务器，另一边连着用户的应用。但是呢，这个桥的功能很弱，有时候还需要别的桥来帮忙才能进行处理。<br /><br /><br /><br />下面对本文出现的一些名词做定义。 <strong>wsgi app</strong> ，又称 <strong>应用</strong> ，就是一个WSGI application。 <strong>wsgi container</strong> ，又称 <strong>容器</strong> ，虽然这个部分常常被称为handler，不过我个人认为handler容易和app混淆，所以我称之为容器。 <strong>wsgi_middleware</strong> ，又称 <strong>中间件</strong> 。一种特殊类型的程序，专门负责在容器和应用之间干坏事的。<br /><br /><br /><br />一图胜千言，直接来一个我自己理解的WSGI架构图吧。<br /><br /><img src="http://farm5.static.flickr.com/4153/5132284950_a129982b88.jpg" /><br /><br />可以看出，服务器，容器和应用之间存在着十分纠结的关系。下面就要把这些纠结的关系理清楚。<br /><br /><br /><span style="font-size: large;">WSGI应用</span><br /><br /><br />WSGI应用其实就是一个callable的对象。举一个最简单的例子，假设存在如下的一个应用：<br /><br /><br /><pre class="python" name="code">
+  def application(environ, start_response):
+    status = '200 OK'
+    output = 'World!'
+    response_headers = [('Content-type', 'text/plain'),
+                        ('Content-Length', str(12)]
+    write = start_response(status, response_headers)
+    write('Hello ')
+    return [output]
+</pre><br /><br /><br />这个WSGI应用简单的可以用简陋来形容，但是他的确是一个功能完整的WSGI应用。只不过给人留下了太多的疑点，environ是什么？start_response是什么？为什么可以同时用write和return来返回内容？<br /><br /><br /><br />对于这些疑问，不妨自己猜测一下他的作用。联想到CGI，那么environ可能就是一系列的环境变量，用来表示HTTP请求的信息，比如说method之类的。start_response，可能是接受HTTP response头信息，然后返回一个write函数，这个write函数可以把HTTP response的body返回给客户端。return自然是将HTTP response的body信息返回。不过这里的write和函数返回有什么区别？会不会是其实外围默认调用write对应用返回值进行处理？而且为什么应用的返回值是一个列表呢？说明肯定存在一个对应用执行结果的迭代输出过程。难道说他隐含的支持iterator或者generator吗？<br /><br /><br /><br />等等，应用执行结果？一个应用既然是一个函数，说明肯定有一个对象去执行它，并且可以猜到，这个对象把environ和start_response传给应用，将应用的返回结果输出给客户端。那么这个对象是什么呢？自然就是WSGI容器了。<br /><br /><br /><span style="font-size: large;">WSGI容器</span><br /><br /><br />先说说WSGI容器的来源，其实这是我自己编造出来的一个概念。来源就是JavaServlet容器。我个人理解两者有相似的地方，就顺手拿过来用了。<br /><br /><br /><br />WSGI容器的作用，就是构建一个让WSGI应用成功执行的环境。成功执行，意味着需要传入正确的参数，以及正确处理返回的结果，还得把结果返回给客户端。<br /><br /><br /><br />所以，WSGI容器的工作流程大致就是，用webserver规定的通信方式，能从webserver获得正确的request信息，封装好，传给WSGI应用执行，正确的返回response。<br /><br /><br /><br />一般来说，WSGI容器必须依附于现有的webserver的技术才能实现，比如说CGI，FastCGI，或者是embed的模式。<br /><br /><br /><br />下面利用CGI的方式编写一个最简单的WSGI容器。关于WSGI容器的协议官方文档并没有具体的说如何实现，只是介绍了一些需要约束的东西。具体内容看PEP3333中的协议。<br /><br /><br /><pre class="python" name="code">
+#!/usr/bin/python
+#encoding:utf8
+
+import cgi
+import cgitb
+import sys
+import os
+
+#Make the environ argument
+environ = {}
+environ['REQUEST_METHOD'] = os.environ['REQUEST_METHOD']
+environ['SCRIPT_NAME'] = os.environ['SCRIPT_NAME']
+environ['PATH_INFO'] = os.environ['PATH_INFO']
+environ['QUERY_STRING'] = os.environ['QUERY_STRING']
+environ['CONTENT_TYPE'] = os.environ['CONTENT_TYPE']
+environ['CONTENT_LENGTH'] = os.environ['CONTENT_LENGTH']
+environ['SERVER_NAME'] = os.environ['SERVER_NAME']
+environ['SERVER_PORT'] = os.environ['SERVER_PORT']
+environ['SERVER_PROTOCOL'] = os.environ['SERVER_PROTOCOL']
+environ['wsgi.version'] = (1, 0)
+environ['wsgi.url_scheme'] = 'http'
+environ['wsgi.input']        = sys.stdin
+environ['wsgi.errors']       = sys.stderr
+environ['wsgi.multithread']  = False
+environ['wsgi.multiprocess'] = True
+environ['wsgi.run_once']     = True
+
+
+#make the start_response argument
+#注意，WSGI协议规定，如果没有body内容，是不能返回http response头信息的。
+sent_header = False
+res_status = None
+res_headers = None
+
+def write(body):
+    global sent_header
+    if sent_header:
+        sys.stdout.write(body)
+    else:
+        print res_status
+        for k, v in res_headers:
+            print k + ': ' + v
+        print 
+        sys.stdout.write(body)
+        sent_header = True
+
+def start_response(status, response_headers):
+    global res_status
+    global res_headers
+    res_status = status
+    res_headers = response_headers
+    return write
+
+#here is the application
+  def application(environ, start_response):
+    status = '200 OK'
+    output = 'World!'
+    response_headers = [('Content-type', 'text/plain'),
+                        ('Content-Length', str(12)]
+    write = start_response(status, response_headers)
+    write('Hello ')
+    return [output]
+
+#here run the application
+result = application(environ, start_response)
+for value in result: 
+    write(value)
+</pre><br /><br /><br />看吧。其实实现一个WSGI容器也不难。<br /><br /><br /><br />不过我从WSGI容器的设计中可以看出WSGI的应用设计上面存在着一个重大的问题就是：为什么要提供两种方式返回数据？明明只有一个write函数，却既可以在application里面调用，又可以在容器中传输应用的返回值来调用。如果说让我来设计的话，直接把start_response给去掉了。就用application(environ)这个接口。传一个方法，然后返回值就是status, response_headers和一个字符串的列表。实际传输的方法全部隐藏了。用户只需要从environ中读取数据处理就行了。。<br /><br /><br /><br />可喜的是，搜了一下貌似web3的标准里面应用的设计和我的想法类似。希望web3协议能早日普及。<br /><br /><br /><span style="font-size: large;">Middleware中间件</span><br /><br /><br />中间件是一类特殊的程序，可以在容器和应用之间干一些坏事。。其实熟悉python的decorator的人就会发现，这和decoraotr没什么区别。<br /><br /><br /><br />下面来实现一个route的简单middleware。<br /><br /><pre class="python" name="code">
+class Router(object):
+    def __init__(self):
+        self.path_info = {}
+    def route(self, environ, start_response):
+        application = self.path_info[environ['PATH_INFO']]
+        return application(environ, start_response)
+    def __call__(self, path):
+        def wrapper(application):
+            self.path_info[path] = application
+        return wrapper
+</pre><br /><br /><br />这就是一个很简单的路由功能的middleware。将上面那段wsgi容器的代码里面的应用修改成如下：<br /><br /><br /><pre class="python" name="code">
+router = Router()
+
+#here is the application
+@router('/hello')
+def hello(environ, start_response):
+    status = '200 OK'
+    output = 'Hello'
+    response_headers = [('Content-type', 'text/plain'),
+                        ('Content-Length', str(len(output)))]
+    write = start_response(status, response_headers)
+    return [output]
+
+@router('/world')
+def world(environ, start_response):
+    status = '200 OK'
+    output = 'World!'
+    response_headers = [('Content-type', 'text/plain'),
+                        ('Content-Length', str(len(output)))]
+    write = start_response(status, response_headers)
+    return [output]
+#here run the application
+result = router.route(environ, start_response)
+for value in result: 
+    write(value)
+</pre><br /><br /><br />这样，容器就会自动的根据访问的地址找到对应的app执行了。<br /><br /><br /><span style="font-size: large;">延伸</span><br /><br /><br />写着写着，怎么越来越像一个框架了？看来Python开发框架真是简单。。<br /><br /><br /><br />其实从另外一个角度去考虑。如果把application当作是一个运算单元。利用middleware调控IO和运算资源，那么利用WSGI组成一个分布式的系统。<br /><br /><br /><br />好吧，全文完。<br /><br />
+  </div>
+
+  
+
+  
+  
+  <IFRAME SRC="/iframe_ggbd/794" SCROLLING=no WIDTH=468 HEIGHT=60 FRAMEBORDER=0></IFRAME>
+  
+  <div id="bottoms" class="clearfix">
+    <div id="digg_bottom" class="clearfix"><div class='digged'><strong>6</strong> <br/>顶</div><div class='digged'><strong>0</strong> <br/>踩</div></div>
+    <div id="share_weibo">分享到：
+      <a data-type='sina' href="javascript:;" title="分享到新浪微博"><img src="/images/sina.jpg"></a>
+      <a data-type='qq' href="javascript:;" title="分享到腾讯微博"><img src="/images/tec.jpg"></a>
+    </div>
+  </div>
+
+  <div class="blog_nav">
+    <div class="pre_next">
+      <a href="/blog/892077" class="next" title="Javascript调用ObjC">Javascript调用ObjC</a>
+      |
+      <a href="/blog/793608" class="pre" title="Python闭包再研究">Python闭包再研究</a>
+    </div>
+  </div>
+  <div class="blog_bottom">
+    <ul>
+      <li>2010-10-31 23:59</li>
+      <li>浏览 19630</li>
+      <li><a href="#comments">评论(3)</a></li>
+      
+      
+      <li>分类:<a href="http://www.iteye.com/blogs/category/language">编程语言</a></li>      
+      <li class='last'><a href="http://www.iteye.com/wiki/blog/799163" target="_blank" class="more">相关推荐</a></li>
+    </ul>
+  </div>
+
+  <div class="blog_comment">
+    <h5>评论</h5>
+    <a id="comments" name="comments"></a>
+    <div id="bc2340181">
+  <div class="comment_title">
+    3 楼
+    <a href='http://powertech.iteye.com' target='_blank' title='powertech'>powertech</a>
+    2014-02-21&nbsp;&nbsp;
+    
+    
+  </div>
+  <div class="comment_content"><img src="/images/smiles/icon_arrow.gif" />&nbsp;<img src="/images/smiles/icon_idea.gif" /> 研究的挺深</div>
+</div>
+
+<div id="bc2311005">
+  <div class="comment_title">
+    2 楼
+    <a href='http://banxi1988.iteye.com' target='_blank' title='banxi1988'>banxi1988</a>
+    2013-05-12&nbsp;&nbsp;
+    
+    
+  </div>
+  <div class="comment_content">wsgi的设计确实参考了servlet.<br />见:<br />http://www.python.org/dev/peps/pep-0333/<br />有这么一段话：<br />By contrast, although Java has just as many web application frameworks available, Java's "servlet" API makes it possible for applications written with any Java web application framework to run in any web server that supports the servlet API.<br /><br /></div>
+</div>
+
+<div id="bc2298356">
+  <div class="comment_title">
+    1 楼
+    <a href='http://luoboiqingcai.iteye.com' target='_blank' title='luoboiqingcai'>luoboiqingcai</a>
+    2013-01-21&nbsp;&nbsp;
+    
+    
+  </div>
+  <div class="comment_content">好文<img src="/images/smiles/icon_biggrin.gif" /> </div>
+</div>
+
+
+    
+    
+  </div>
+
+  <div class="blog_comment">
+    <h5>发表评论</h5>
+            <p style="text-align:center; margin-top:30px;margin-bottom:0px;"><a href="/login" style="background-color:white;"> <img src="/images/login_icon.png" style="vertical-align:middle; margin-right: 10px;" /></a><a href="/login">  您还没有登录,请您登录后再发表评论 </a></p>
+      </div>
+</div>
+
+
+<script type="text/javascript">
+  dp.SyntaxHighlighter.HighlightAll('code', true, true);
+
+  $$('#main .blog_content pre[name=code]').each(function(pre, index){ // blog content
+    var post_id = 799163;
+    var location = window.location;
+    source_url = location.protocol + "//" + location.host + location.pathname + location.search;
+    pre.writeAttribute('codeable_id', post_id);
+    pre.writeAttribute('codeable_type', "Blog");
+    pre.writeAttribute('source_url', source_url);
+    pre.writeAttribute('pre_index', index);
+    pre.writeAttribute('title', 'WSGI初探');
+  });
+
+  fix_image_size($$('div.blog_content img'), 700);
+
+  function processComment() {
+    $$('#main .blog_comment > div').each(function(comment){// comment
+      var post_id = comment.id.substr(2);
+      $$("#"+comment.id+" pre[name=code]").each(function(pre, index){
+        var location = window.location;
+        source_url = location.protocol + "//" + location.host + location.pathname + location.search;
+        source_url += "#" + comment.id;
+        pre.writeAttribute('codeable_id', post_id);
+        pre.writeAttribute('codeable_type', "BlogComment");
+        pre.writeAttribute('source_url', source_url);
+        pre.writeAttribute('pre_index', index);
+        pre.writeAttribute('title', 'WSGI初探');
+      });
+    });
+  }
+
+  function quote_comment(id) {
+    new Ajax.Request('/editor/quote', {
+      parameters: {'id':id, 'type':'BlogComment'},
+      onSuccess:function(response){editor.bbcode_editor.textarea.insertAfterSelection(response.responseText);
+        Element.scrollTo(editor.bbcode_editor.textarea.element);}
+    });
+  }
+
+  code_favorites_init();
+  processComment();
+  new WeiboShare({share_buttons: $('share_weibo'), img_scope: $('blog_content')});
+</script>
+
+
+
+
+        </div>
+
+        <div id="local">
+          <div class="local_top"></div>
+          <div id="blog_owner">
+  <div id="blog_owner_logo"><a href='http://linluxiang.iteye.com'><img alt="lin_llx的博客" class="logo" src="http://www.iteye.com/upload/logo/user/337027/75ab8235-84c2-36db-98b1-86b17faa3827.jpg?1288010179" title="lin_llx的博客: 双木成林: 喋喋不休" width="" /></a></div>
+  <div id="blog_owner_name">lin_llx</div>
+</div>
+
+          <div id="blog_actions">
+            <ul>
+              <li>浏览: 61532 次</li>
+              <li>性别: <img alt="Icon_minigender_1" src="http://www.iteye.com/images/icon_minigender_1.gif?1324994303" title="男" /></li>
+              <li>来自: 广州</li>
+              <li><img src='/images/status/offline.gif'/></li>
+              
+            </ul>
+          </div>
+          <div id="user_visits" class="clearfix">
+            <h5>最近访客 <span style='font-weight:normal;font-size:12px;padding-left:30px;'><a href="/blog/user_visits">更多访客&gt;&gt;</a></span></h5>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://dylinshi126.iteye.com' target='_blank'><img alt="dylinshi126的博客" class="logo" src="http://www.iteye.com/images/user-logo-thumb.gif?1324994303" title="dylinshi126的博客: " width="48px" /></a></div>
+                <div class="left"><a href='http://dylinshi126.iteye.com' target='_blank' title='dylinshi126'>dylinshi126</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://skytrails.iteye.com' target='_blank'><img alt="skytrails的博客" class="logo" src="http://www.iteye.com/images/user-logo-thumb.gif?1324994303" title="skytrails的博客: " width="48px" /></a></div>
+                <div class="left"><a href='http://skytrails.iteye.com' target='_blank' title='skytrails'>skytrails</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://batistutawt.iteye.com' target='_blank'><img alt="batistutawt的博客" class="logo" src="http://www.iteye.com/images/user-logo-thumb.gif?1324994303" title="batistutawt的博客: " width="48px" /></a></div>
+                <div class="left"><a href='http://batistutawt.iteye.com' target='_blank' title='batistutawt'>batistutawt</a></div>
+              </div>
+            
+              <div class="user_visit">
+                <div class="logo"><a href='http://yonka.iteye.com' target='_blank'><img alt="yonka的博客" class="logo" src="http://www.iteye.com/images/user-logo-thumb.gif?1324994303" title="yonka的博客: " width="48px" /></a></div>
+                <div class="left"><a href='http://yonka.iteye.com' target='_blank' title='yonka'>yonka</a></div>
+              </div>
+            
+          </div>
+
+          
+
+                      <div id="blog_menu">
+              <h5>文章分类</h5>
+              <ul>
+                <li><a href="/">全部博客 (35)</a></li>
+                
+                  <li><a href="/category/56916">个人感悟 (8)</a></li>
+                
+                  <li><a href="/category/56917">Python学习 (15)</a></li>
+                
+                  <li><a href="/category/58569">C/C++学习 (4)</a></li>
+                
+                  <li><a href="/category/56918">计算机基础技术学习 (0)</a></li>
+                
+                  <li><a href="/category/56919">游戏开发学习 (0)</a></li>
+                
+                  <li><a href="/category/58498">工具学习 (4)</a></li>
+                
+                  <li><a href="/category/104270">MacOSX &amp; iPhone (2)</a></li>
+                
+              </ul>
+            </div>
+            <div id='month_blogs'>
+              <h5>社区版块</h5>
+              <ul>
+                <li><a href="/blog/news">我的资讯</a> (0)</li>
+                <li>
+                  <a href="/blog/post">我的论坛</a> (2)
+                </li>
+                <li><a href="/blog/answered_problems">我的问答</a> (0)</li>
+              </ul>
+            </div>
+            <div id="month_blogs">
+              <h5>存档分类</h5>
+              <ul>
+                
+                  <li><a href="/blog/monthblog/2011-02">2011-02</a> (1)</li>
+                
+                  <li><a href="/blog/monthblog/2011-01">2011-01</a> (1)</li>
+                
+                  <li><a href="/blog/monthblog/2010-10">2010-10</a> (4)</li>
+                
+                <li><a href="/blog/monthblog_more">更多存档...</a></li>
+              </ul>
+            </div>
+            
+            
+
+            <div id="guest_books">
+              <h5>最新评论</h5>
+              <ul>
+                
+                <li>
+                  <a href='http://powertech.iteye.com' target='_blank' title='powertech'>powertech</a>： 
+                    研究的挺深<br />
+                  <a href="/blog/799163#bc2340181">WSGI初探</a>
+                </li>
+                
+                <li>
+                  <a href='http://banxi1988.iteye.com' target='_blank' title='banxi1988'>banxi1988</a>： 
+                  wsgi的设计确实参考了servlet.见:http://ww ...<br />
+                  <a href="/blog/799163#bc2311005">WSGI初探</a>
+                </li>
+                
+                <li>
+                  <a href='http://luoboiqingcai.iteye.com' target='_blank' title='luoboiqingcai'>luoboiqingcai</a>： 
+                  好文<br />
+                  <a href="/blog/799163#bc2298356">WSGI初探</a>
+                </li>
+                
+                <li>
+                  <a href='http://arbow.iteye.com' target='_blank' title='Arbow'>Arbow</a>： 
+                  实测scala没有这个问题:)scala&amp;gt; va ...<br />
+                  <a href="/blog/793608#bc2215328">Python闭包再研究</a>
+                </li>
+                
+                <li>
+                  <a href='http://neuronr.iteye.com' target='_blank' title='NeuronR'>NeuronR</a>： 
+                  我窘, 你不早就搞了么.<br />
+                  <a href="/blog/908296#bc2013550">搬家啦，申请了自己的域名</a>
+                </li>
+                
+              </ul>
+            </div>
+
+            <div class="local_bottom"></div>
+          
+        </div>
+      </div>
+
+      <div id="footer" class="clearfix">
+        <div id="copyright">
+          <hr/>
+          声明：ITeye文章版权属于作者，受法律保护。没有作者书面许可不得转载。若作者同意转载，必须以超链接形式标明文章原始出处和作者。<br />
+          &copy; 2003-2015 ITeye.com.   All rights reserved.  [ 京ICP证110151号  京公网安备110105010620 ]
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+  document.write("<img src='http://stat.iteye.com/?url="+ encodeURIComponent(document.location.href) + "&referrer=" + encodeURIComponent(document.referrer) + "&user_id=' width='0' height='0' />");
+</script>
+
+<script src="http://csdnimg.cn/pubfooter/js/tracking.js?version=20130923164150" type="text/javascript"></script>
+
+    
+    
+  </body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<title>Linux下Framebuffer学习-ChinaUnix操作系统频道</title> 
+<meta name="description" content="Linux下Framebuffer学习" /> 
+<meta name="keywords" content="Linux系统管理,Linux"/>
+ 
+<link rel="StyleSheet" href="/include/style.css" type="text/css" media="screen" />
+<script src="/include/ForcePic.js" type="text/javascript"></script>
+</head>
+<body>
+<div class="login" id="LoginFalse">
+<span><a href="http://www.chinaunix.net/">ChinaUnix首页</a> |  <a href="http://bbs.chinaunix.net/">论坛</a> |  <a href="http://blog.chinaunix.net/">博客</a> |  <a href="http://my.chinaunix.net/">微博</a> |  <a href="http://job.chinaunix.net/">求职</a> |  <a href="http://book.chinaunix.net/">读书</a> |  <a href="http://peixun.chinaunix.net/">培训</a> |  <a href="http://download.chinaunix.net/">下载</a> |  <a href="http://product.it168.com/">IT采购</a> |  <a href="http://search.chinaunix.net/">搜索</a> </span>
+<a href="http://www.chinaunix.net/">ChinaUnix.net</a>  请   <script type="text/javascript">document.write('<a href=\'http://sso.chinaunix.net/Login?return_url='+escape(top.document.URL)+'\'>登录</a>');</script>  或   <a href="http://sso.chinaunix.net/Register?return_url=http%3A%2F%2Fbbs.chinaunix.net%2Flogging.php%3Faction%3Dlogin%26loginsubmit%3D1%26referer%3Dhttp%3A%2F%2Fwww.chinaunix.net%2F">注册</a>	
+</div>
+
+<div id="LoginTrue" style="display:none;" class="login">
+<span><a href="http://www.chinaunix.net/">ChinaUnix首页</a> |  <a href="http://bbs.chinaunix.net/">论坛</a> |  <a href="http://blog.chinaunix.net/">博客</a> |  <a href="http://my.chinaunix.net/">微博</a> |  <a href="http://job.chinaunix.net/">求职</a> |  <a href="http://book.chinaunix.net/">读书</a> |  <a href="http://peixun.chinaunix.net/">培训</a> |  <a href="http://download.chinaunix.net/">下载</a> |  <a href="http://product.it168.com/">IT采购</a> |  <a href="http://search.chinaunix.net/">搜索</a> </span>
+<a href="http://www.chinaunix.net/">ChinaUnix.net</a>&nbsp;&nbsp;&nbsp;<script type="text/javascript">document.write('<scr'+'ipt type="text/javascript" src="http://sso.chinaunix.net/ti.js?site=cu&amp;print=yes"></scr'+'ipt>');</script>
+<script type="text/javascript">
+     function geid(aID)
+     {
+      	return (document.getElementById) ? document.getElementById(aID): document.all[aID];
+     }
+     if(typeof(sso_username) == 'undefined'){		  
+    	 geid('LoginTrue').style.display='none';
+    	 geid('LoginFalse').style.display='';
+     }else{
+    	 geid('LoginFalse').style.display='none';
+    	 geid('LoginTrue').style.display='';	
+     }	  	  
+</script> 
+</div><div class="posi">当前位置：<a href="http://www.chinaunix.net">ChinaUnix 首页</a> &gt; <a href="/">操作系统频道</a> &gt; <b>Linux下Framebuffer学习</a></b></div>
+<div class="Content">
+<div class="l6">
+<div class="bor18">
+<div class="tit19">Linux下Framebuffer学习</div>
+<div class="tit20">2009年08月24日 08:35 来源：ChinaUnix博客 作者：msj0520   编辑：周荣茂 </div>
+<div class="word">
+<p>&nbsp;&nbsp;&nbsp;&nbsp;Sam之前写过vfb(虚拟framebuffer) driver. 但现在什么都不记得了。 现在需要在X5平台上使用framebuufer. 只好再学习一次。</p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>零：Framebuffer 简介：</strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;Frame Buffer设备为图形硬件提供抽象。它表示一些视频硬件的Frame Buffer，允许应用软件通过定义好的接口访问图形硬件，所以这些软件不必知道任何关于低层（硬件寄存器）的知识。</p><p>&nbsp;&nbsp;&nbsp;&nbsp;使</p><p>&nbsp;&nbsp;&nbsp;&nbsp;用frame buffer设备的应用程序（例如 X server）默认使用/dev/fb0（老一点的软件使用</p><p>&nbsp;&nbsp;&nbsp;&nbsp;/dev/fb0current）。你可以通过设定环境变量$FRAMEBUFFER等于frame buffer设备的路径名来改变frame</p><p>&nbsp;&nbsp;&nbsp;&nbsp;buffer设备，例如（针对 sh/bash用户）：export FRAMEBUFFER=/dev/fb1或者（针对 csh</p><p>&nbsp;&nbsp;&nbsp;&nbsp;用户）：setenv FRAMEBUFFER /dev/fb1之后，X server将使用第二个frame buffer。</p><p>&nbsp;&nbsp;&nbsp;&nbsp;大家都已经知道，frame buffer设备是一个内存设备，就像/dev/mem， 所以他拥有相同的特征。你可以读他，写他，在他里面定位和mmap他（主要用途）。</p><p>&nbsp;&nbsp;&nbsp;&nbsp;/dev/fb*也允许在他之上做一些ioctls操作，通过这种方法硬件的许多信息可以获取和设置。颜色映射处理（the color map handling）也通过ioctls工作。</p><p>&nbsp;&nbsp;&nbsp;&nbsp;- 你可以取得硬件的不可更改信息，例如名字，屏幕内存组织方式（位面，象素格式，……）和地址和屏幕内存的长度。</p><p>&nbsp;&nbsp;&nbsp;&nbsp;-</p><p>&nbsp;&nbsp;&nbsp;&nbsp;你可以获取和修改硬件的可变信息，例如可见，虚拟几何，深度，颜色映射格式，定时，等等。如果你试图修改这些信息，驱动可能规整一些值以适应硬件的能力</p><p>&nbsp;&nbsp;&nbsp;&nbsp;（或者返回EINVAL 如果这个操作不可能） （译注：the driver maybe will round up some values</p><p>&nbsp;&nbsp;&nbsp;&nbsp;to meet the hardware's capabilities）</p><p>&nbsp;&nbsp;&nbsp;&nbsp;- 你可以取得和设置部分颜色映射。通信使用16位每一颜色（红，绿，蓝，透明）来支持所有存在的硬件。驱动处理所有应用于硬件的计算（截取他们到较少的位，可能会舍弃透明）。</p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>视频模式计时：（非常重要）</strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;显示器使用电子束（彩色模式使用3个电子束，单色模式使用1个电子束）绘制屏幕上的图像。屏幕的前面被颜色荧光(象素)覆盖.如果荧光被电子击中,它就会发出光子从而可见.</p><p>&nbsp;&nbsp;&nbsp;&nbsp;电子束从左至右绘制水平行,从上到下绘制整个屏幕.通过改变电子束的亮度,便可以显示各种颜色和亮度的像素</p><p>&nbsp;&nbsp;&nbsp;&nbsp;每条扫描线完成后电子束必须重新移回到下一行的左端:这称做水平回扫.等到完成整个屏幕(帧)的绘制,电子束会移回到左上方点:这被称做垂直回扫.在水平和垂直回扫期间,电子束被关闭(空).</p><p>&nbsp;&nbsp;&nbsp;&nbsp;电子束绘制像素的速度由图形板的时钟决定(译注:dotclock).</p><p>&nbsp;&nbsp;&nbsp;&nbsp;例如：时钟是28.37516MHZ(每秒百万周期)。也就是说每秒可以绘制28.37516M像素。</p><p>&nbsp;&nbsp;&nbsp;&nbsp;每像素需35242 ps(微秒):1/(28.37516E6 HZ) = 35.242E-9 s</p><p>&nbsp;&nbsp;&nbsp;&nbsp;如</p><p>&nbsp;&nbsp;&nbsp;&nbsp;果屏幕的分辨率是640x480, 将需要640*35.242E-9 s = 22.555E-6</p><p>&nbsp;&nbsp;&nbsp;&nbsp;s来绘制一条扫描线上640(xres)个像素.但是水平回扫也需要时间(例如 272 像素),</p><p>&nbsp;&nbsp;&nbsp;&nbsp;所以一条完整的水平扫描线需要:(640+272)*35.242E-9 s = 32.141E-6 s</p><p>&nbsp;&nbsp;&nbsp;&nbsp;我们称水平刷新率约是31 kHz:1/(32.141E-6 s) = 31.113E3 Hz</p><p>&nbsp;&nbsp;&nbsp;&nbsp;整</p><p>&nbsp;&nbsp;&nbsp;&nbsp;个屏幕有480(yres)条扫描线,但是我们必须还要考虑垂直回扫(例如 49 条扫描线).</p><p>&nbsp;&nbsp;&nbsp;&nbsp;所以完整的一屏需要:(480+49)*32.141E-6 s = 17.002E-3 s垂直刷新率约是 59 Hz:1/(17.002E-3</p><p>&nbsp;&nbsp;&nbsp;&nbsp;s) = 48.815 Hz这意味着屏幕上的数据每秒钟刷新约59。</p><p>&nbsp;&nbsp;&nbsp;&nbsp;从最上面的图可以看出：</p><p>&nbsp;&nbsp;&nbsp;&nbsp;水平回扫时间是左边缘</p><p>&nbsp;&nbsp;&nbsp;&nbsp;（left_margin）,右边缘（right_margin）和 hsync 长度（hsync_len）的总和.</p><p>&nbsp;&nbsp;&nbsp;&nbsp;而垂直回扫时间是上边缘（upper_margin）,下边缘（lower_margin）和 vsync长度（vsync_len）的总和。这些值与<strong>fb_var_screeninfo结构体中的项目对应。</strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;frame buffer设备期待所有的水平计时以时钟(以picoseconds, 1E-12 s)为单位,垂直计时则以扫描线数目为单位.</p><p>&nbsp;&nbsp;&nbsp;&nbsp;pixclock（以ps为单位的像素时钟）</p><p>&nbsp;&nbsp;&nbsp;&nbsp;- pixclock: 以ps为单位的像素时钟(pico seconds)</p><p>&nbsp;&nbsp;&nbsp;&nbsp;- left_margin: 从sync到画面的时间</p><p>&nbsp;&nbsp;&nbsp;&nbsp;- right_margin: 从画面到sync的时间</p><p>&nbsp;&nbsp;&nbsp;&nbsp;- upper_margin: 从sync到画面的时间</p><p>&nbsp;&nbsp;&nbsp;&nbsp;-lower_margin: 从画面到sync的时间</p><p>&nbsp;&nbsp;&nbsp;&nbsp;- hsync_len: 水平sync的长度</p><p>&nbsp;&nbsp;&nbsp;&nbsp;- vsync_len: 垂直sync的长度</p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>一. 基本使用方法：</strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;（之后再补上）</p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>二. 最重要的结构体：</strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>fb_var_screeninfo</strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;简单的项如下：</p><p>&nbsp;&nbsp;&nbsp;&nbsp;__u32 xres; /* visible resolution */</p><p>&nbsp;&nbsp;&nbsp;&nbsp;__u32 yres; //可见部分的长宽</p><p>&nbsp;&nbsp;&nbsp;&nbsp;__u32 xres_virtual; /* virtual resolution */</p><p>&nbsp;&nbsp;&nbsp;&nbsp;__u32 yres_virtual; //虚拟部分的长宽</p><p>&nbsp;&nbsp;&nbsp;&nbsp;__u32 xoffset; /* offset from virtual to visible */ //可见和虚拟部分的offset</p><p>&nbsp;&nbsp;&nbsp;&nbsp;__u32 yoffset; /* resolution */</p><p>&nbsp;&nbsp;&nbsp;&nbsp;__u32 bits_per_pixel; //每个象素占多少位</p><p>&nbsp;&nbsp;&nbsp;&nbsp;__u32 grayscale; //不等于0的话，灰度</p><p>&nbsp;&nbsp;&nbsp;&nbsp;struct fb_bitfield red; /* bitfield in fb mem if true color, */ </p><p>&nbsp;&nbsp;&nbsp;&nbsp;struct fb_bitfield green; /* else only length is significant */ </p><p>&nbsp;&nbsp;&nbsp;&nbsp;struct fb_bitfield blue; </p><p>&nbsp;&nbsp;&nbsp;&nbsp;struct fb_bitfield transp; /* transparency */ </p><p>&nbsp;&nbsp;&nbsp;&nbsp;fb_bitfield:结构很重要：</p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>struct fb_bitfield </strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>{</strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>__u32 offset; /* beginning of bitfield */ </strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>__u32 length; /* length of bitfield */ </strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>__u32 msb_right; /* != 0 : Most significant bit is */ </strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>};</strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>像素详解：</strong></p><p>&nbsp;&nbsp;&nbsp;&nbsp;以上的结构其实与像素有关，这个结构是说：这种色值（RGB或者transp=alpha）在一个像素点结构中的<strong>offset,length </strong>。</p><p>&nbsp;&nbsp;&nbsp;&nbsp;---------------- 一个像素点</p><p>&nbsp;&nbsp;&nbsp;&nbsp;R G B a</p><p>&nbsp;&nbsp;&nbsp;&nbsp;这样，上面这个结构就明白了吧。</p><p>&nbsp;&nbsp;&nbsp;&nbsp;其它机构的含义，请看上面的视频模式部分。呵呵</p><p>&nbsp;&nbsp;&nbsp;&nbsp;		</p><p>&nbsp;&nbsp;&nbsp;&nbsp;		</p><p>&nbsp;&nbsp;&nbsp;&nbsp;		</p><p>&nbsp;&nbsp;&nbsp;&nbsp;</p><p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>本文来自ChinaUnix博客，如果查看原文请点：</strong><a href="http://blog.chinaunix.net/u/17928/showart_2035738.html" target="_blank">http://blog.chinaunix.net/u/17928/showart_2035738.html</a></p></div>
+</div>
+</div> 
+<div class="r4">
+<div class="tit18">技术热点索引</div>
+<div class="bor16 auto padd10">
+	<div class="w50" style="height:200px;">
+		<div class="tit7">Linux</div>
+		<ul class="list4">
+        <li><a href="http://list.chinaunix.net/id-7/chanel-211/page-1">Redhat</a></li>
+        <li><a href="http://list.chinaunix.net/id-8/chanel-211/page-1">Centos</a></li>
+        <li><a href="http://list.chinaunix.net/id-9/chanel-211/page-1">Ubuntu</a></li>
+        <li><a href="http://list.chinaunix.net/id-10/chanel-211/page-1">SUSE Linux</a></li>
+        <li><a href="http://list.chinaunix.net/id-11/chanel-211/page-1">Fedora</a></li>
+        <li><a href="http://list.chinaunix.net/id-12/chanel-211/page-1">Debian</a></li>
+        <li><a href="http://list.chinaunix.net/id-13/chanel-211/page-1">国产Linux</a></li>
+		</ul>
+	</div> 
+	<div class="w50" style="height:200px;">
+		<div class="tit7">Unix</div>
+		<ul class="list4">
+    	<li><a href="http://list.chinaunix.net/id-14/chanel-211/page-1">BSD</a></li>
+        <li><a href="http://list.chinaunix.net/id-15/chanel-211/page-1">Solaris</a></li>
+        <li><a href="http://list.chinaunix.net/id-16/chanel-211/page-1">AIX</a></li>
+        <li><a href="http://list.chinaunix.net/id-17/chanel-211/page-1">HP-UNIX</a></li>
+        <li><a href="http://list.chinaunix.net/id-18/chanel-211/page-1">Mac OS X</a></li>
+		</ul>
+	</div>
+	<div class="w50">
+		<div class="tit7">Windows</div>
+		<ul class="list4">
+	    <li><a href="http://list.chinaunix.net/id-19/chanel-211/page-1">Windows7</a></li>
+        <li><a href="http://list.chinaunix.net/id-20/chanel-211/page-1">Windows Server</a></li>
+		</ul>
+	</div>
+	<div class="w50">
+		<div class="tit7">其它OS</div>
+		<ul class="list4">
+		<li><a href="http://list.chinaunix.net/id-21/chanel-211/page-1">Android</a></li>
+        <li><a href="http://list.chinaunix.net/id-22/chanel-211/page-1">MeeGo</a></li>
+		</ul>
+	</div>
+   <div class="clear"></div>
+</div>
+<div class="ad"><div id="ADV_16474"></div></div>
+<div class="tit18 mt8">操作系统频道热议话题</div>
+<div class="bor16">
+<ul class="list1 list11">
+<li><a href="http://linux.chinaunix.net/bbs/thread-4065069-1-1.html" target="_blank" title="什么时候需要创建一个nologin的用户?">什么时候需要创建一个nologin的用户?</a></li><li><a href="http://linux.chinaunix.net/bbs/thread-4065016-1-1.html" target="_blank" title="请教一个命令的意思">请教一个命令的意思</a></li><li><a href="http://linux.chinaunix.net/bbs/thread-4064915-1-1.html" target="_blank" title="谷歌主页可以ping通不能用浏览器打开">谷歌主页可以ping通不能用浏览器打开</a></li><li><a href="http://linux.chinaunix.net/bbs/thread-4064887-1-1.html" target="_blank" title="centos 6.3 使用YUM更新问题">centos 6.3 使用YUM更新问题</a></li>
+</ul>
+</div>
+<div class="tit18 mt8">热门博客</div>
+<div class="bor16">
+<ul class="list1 list11">
+<script src="http://blog.chinaunix.net/interface.php?sys=6,16,43&limit=9&orderby=2" type="text/javascript"></script>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+<!-- footer -->
+<!-- 统计 begin -->
+<script type='text/javascript' src='http://www.chinaunix.net/ssi/cu_footer.ssi'></script>
+<!--广告文件-->
+<script type='text/javascript' src='http://168.it168.com/js/791.js'></script>
+<script type='text/javascript' src='http://168.it168.com/js/792.js'></script>
+<script language="javascript" src="http://stat.it168.com/pv.js"></script>
+<script type="text/javascript">
+    function sendPV(){
+        var pvTrack = new PvTrack();
+        pvTrack.type = 10; // 频道类别ID
+        pvTrack.channel = 180; // 频道ID
+        pvTrack.pageType = 0;
+        pvTrack.track();
+    }
+    window.setTimeout("sendPV()", 0); 
+</script>
+<script type="text/javascript"  src="http://bbs.chinaunix.net/googlepv/pv.js" ></script> 
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-20237423-2']);
+  _gaq.push(['_setDomainName', '.chinaunix.net']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+<div style='display:none'>
+<script type="text/javascript"> 
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F0ee5e8cdc4d43389b3d1bfd76e83216b' type='text/javascript'%3E%3C/script%3E"));
+</script>
+</div>
+</body>
+</html>

@@ -1,0 +1,695 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<title>Linux内核分析 - 网络[十二]：UDP模块 - 收发(3)_织梦CMS</title>
+<meta name="keywords" content="Linux,内核,分析,网络,十二,UDP,模块,收发,内核" />
+<meta name="description" content="分片一是第一个分片，包含UDP报文，在拷贝时要跳过，因为使用的是udp socket接收，只要报文内容就可以了。三张图片代表了三次调用skb_copy_datagram_iovec()的情况，iov是存储内容的 buff，最终结果是三个分片共400" />
+<link href="/css/dedecms.css" rel="stylesheet" type="text/css" />
+<script language="javascript" type="text/javascript" src="/include/dedeajax2.js"></script>
+<script type="text/javascript">
+<!--
+    function product_bg(ob){
+	 	ob.className="onowiterm";
+	}
+	
+	function product_bg_out(ob){
+			ob.className="";
+	} 
+	//输入框状态
+	function inputAutoClear(ipt)
+	{
+	 	ipt.onfocus=function()
+	 	{if(this.value==this.defaultValue){this.value='';}};
+	 	ipt.onblur=function()
+	 	{if(this.value==''){this.value=this.defaultValue;}};
+	 	ipt.onfocus();
+	} 	
+	function postBadGood(ftype,fid)
+	{
+		var taget_obj = document.getElementById(ftype+fid);
+		var saveid = GetCookie('badgoodid');
+		if(saveid != null)
+		{
+			var saveids = saveid.split(',');
+			var hasid = false;
+			saveid = '';
+			j = 1;
+			for(i=saveids.length-1;i>=0;i--)
+			{
+				if(saveids[i]==fid && hasid) continue;
+				else {
+					if(saveids[i]==fid && !hasid) hasid = true;
+					saveid += (saveid=='' ? saveids[i] : ','+saveids[i]);
+					j++;
+					if(j==10 && hasid) break;
+					if(j==9 && !hasid) break;
+				}
+			}
+			if(hasid) { alert('您刚才已表决过了喔！'); return false;}
+			else saveid += ','+fid;
+			SetCookie('badgoodid',saveid,1);
+		}
+		else
+		{
+			SetCookie('badgoodid',fid,1);
+		}
+		myajax = new DedeAjax(taget_obj,false,false,'','','');
+		myajax.SendGet2("/plus/feedback.php?aid="+fid+"&action="+ftype+"&fid="+fid);
+	}
+	function postDigg(ftype,aid)
+	{
+		var taget_obj = document.getElementById('newdigg');
+		var saveid = GetCookie('diggid');
+		if(saveid != null)
+		{
+			var saveids = saveid.split(',');
+			var hasid = false;
+			saveid = '';
+			j = 1;
+			for(i=saveids.length-1;i>=0;i--)
+			{
+				if(saveids[i]==aid && hasid) continue;
+				else {
+					if(saveids[i]==aid && !hasid) hasid = true;
+					saveid += (saveid=='' ? saveids[i] : ','+saveids[i]);
+					j++;
+					if(j==20 && hasid) break;
+					if(j==19 && !hasid) break;
+				}
+			}
+			if(hasid) { alert("您已经顶过了，请不要重复顶！"); return; }
+			else saveid += ','+aid;
+			SetCookie('diggid',saveid,1);
+		}
+		else
+		{
+			SetCookie('diggid',aid,1);
+		}
+		myajax = new DedeAjax(taget_obj,false,false,'','','');
+		var url = "/plus/digg_ajax.php?action="+ftype+"&id="+aid;
+		myajax.SendGet2(url);
+	}
+	function getDigg(aid)
+	{
+		var taget_obj = document.getElementById('newdigg');
+		myajax = new DedeAjax(taget_obj,false,false,'','','');
+		myajax.SendGet2("/plus/digg_ajax.php?id="+aid);
+		DedeXHTTP = null;
+	}
+//-->
+</script>
+</head>
+<body>
+<script type="text/javascript" src="http://www.dedecms.com/topmenu/js/topNav.js"></script>
+<div class="wrapper">
+  <div id="head">
+    <div class="htitle">
+      <h1> <a href="http://www.dedecms.com">DedeCMS官方网站</a> </h1>
+    </div>
+    <div style="padding-top: 10px; padding-right: 17px;"><a style="color:red" href="http://service.dedecms.com/servim/client.php?locale=zh-cn&amp;group=3" target="_blank" onclick="if(navigator.userAgent.toLowerCase().indexOf('opera') != -1 &amp;&amp; window.event.preventDefault) window.event.preventDefault();this.newWindow = window.open('http://service.dedecms.com/servim/client.php?locale=zh-cn&amp;group=3&amp;url='+escape(document.location.href)+'&amp;referrer='+escape(document.referrer), 'webim', 'toolbar=0,scrollbars=0,location=0,status=1,menubar=0,width=640,height=480,resizable=1');this.newWindow.focus();this.newWindow.opener=window;return false;"><b>点击在线客服咨询</b></a></div>
+    <div style="padding-top: 25px; padding-right: 18px;font-size:14px;"><a href="http://bbs.dedecms.com" target="_blank">论坛</a> | <a href="http://tools.dedecms.com" target="_blank">站长工具</a> | <a href="http://www.dedecms.com/blog" target="_blank">博客</a></div>
+  </div>
+  <div id="navo">
+    <div id="navi">
+      <div id="menu">
+        <ul id="nav">
+          <li><a href="/" ><span>首 页 </span></a></li>
+          <li class="menu_line"/>
+          
+          <li><a class="" href="http://www.dedecms.com/products/dedecms/" target='_blank'><span>产 品</span></a></li>
+            <li class='menu_line'></li>
+          
+          <li><a class="" href="/caseshow/" target='_self'><span>案例中心</span></a></li>
+            <li class='menu_line'></li>
+          
+          <li><a class="" href="/tech/" target='_self'><span>技术联盟</span></a></li>
+            <li class='menu_line'></li>
+          
+          <li><a class="" href="/webhost/" target='_self'><span>虚拟主机</span></a></li>
+            <li class='menu_line'></li>
+          
+          <li><a class="" href="/addons/" target='_self'><span>模块&插件</span></a></li>
+            <li class='menu_line'></li>
+          
+          <li><a class="" href="/template/" target='_self'><span>模 板</span></a></li>
+            <li class='menu_line'></li>
+          
+          <li><a class="" href="http://www.desdev.cn/service-price.html" target='_blank'><span>服 务</span></a></li>
+            <li class='menu_line'></li>
+          
+          <li><a class="" href="http://www.desdev.cn/service-dedecms.html" target='_blank'><span>购 买</span></a></li>
+            <li class='menu_line'></li>
+          
+          <li><a class="" href="/help/" target='_self'><span>帮助中心</span></a></li>
+            <li class='menu_line'></li>
+          <li><a class='nav_on' href='/knowledge/' ><span>知识库</span></a></li><li class='menu_line'></li>
+          
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="wrapper mT5">
+  <div id="position"><a href='http://www.dedecms.com/'>主页</a> > <a href='/knowledge/'>知识库</a> > <a href='/knowledge/servers/'>服务器</a> > <a href='/knowledge/servers/linux-bsd/'>Linux/BSD</a> >  </div>
+</div>
+<div class="wrapper mT5">
+  <div class="l_left" style="width:227px">
+    <div id="product">
+      <div class="otitle" style="width:201px"> 栏目列表 </div>
+      <div class="ocontent" style="width:226px">
+        <div class="oliterm">
+          <ul>
+          
+            <li onmouseout="product_bg_out(this);" onmouseover="product_bg(this);"><a href="/knowledge/servers/apache-iis/">Apache/IIS</a></li>
+          
+            <li onmouseout="product_bg_out(this);" onmouseover="product_bg(this);"><a href="/knowledge/servers/tools/">工具软件</a></li>
+          
+            <li onmouseout="product_bg_out(this);" onmouseover="product_bg(this);"><a href="/knowledge/servers/windows/">Windows</a></li>
+          <li class='onowiterm'><a href=
+            <li onmouseout="product_bg_out(this);" onmouseover="product_bg(this);"><a href="/knowledge/servers/net-safe/">网络安全</a></li>
+          
+            <li onmouseout="product_bg_out(this);" onmouseover="product_bg(this);"><a href="/knowledge/servers/others/">服务器综合</a></li>
+          
+          </ul>
+        </div>
+      </div>
+      <div class="otitle_buttom" style="width:226px"> </div>
+    </div>
+    <div id="buyguide" class="mT5">
+      <div class="utitle">
+        <div class="utitlei">
+          <div class="title"><span class="title_t fLeft"><span class="title_t_i fLeft">
+            <h2><a href="#" style="color:#FFF">热门关注</a></h2>
+            </span></span></div>
+        </div>
+      </div>
+      <div class="ucontent">
+        <div id="hodclick" class="comarc">
+          <ul>
+              <li><a href="/knowledge/servers/linux-bsd/2012/0819/8387.html">Ubuntu Server 12.04安装图解教</a></li>
+<li><a href="/knowledge/servers/linux-bsd/2012/0819/8401.html">RHEL 6.3安装(超级详细图解教程)</a></li>
+<li><a href="/knowledge/servers/linux-bsd/2012/0819/8483.html">硬盘安装CentOS 6.0（超级详细图</a></li>
+<li><a href="/knowledge/servers/linux-bsd/2009/0929/470.html">Linux的Wine 让Windows上的软件</a></li>
+<li><a href="/knowledge/servers/linux-bsd/2012/0819/8412.html">CentOS 6.3安装配置LAMP服务器(A</a></li>
+<li><a href="/knowledge/servers/linux-bsd/2012/0819/8405.html">CentOS 6.3安装(超级详细图解教</a></li>
+<li><a href="/knowledge/servers/linux-bsd/2012/0819/8409.html">CentOS 5.8安装图解教程</a></li>
+<li><a href="/knowledge/servers/linux-bsd/2012/0819/8423.html">CentOS Linux中zip压缩和unzip解</a></li>
+<li><a href="/knowledge/servers/linux-bsd/2012/0819/8379.html">CactiEZ 中文版V10.1安装使用以</a></li>
+<li><a href="/knowledge/servers/linux-bsd/2012/0819/8378.html">CentOS忘记root密码解决办法</a></li>
+
+          </ul>
+        </div>
+      </div>
+      <div class="title_buttom">
+        <div class="title_buttom_i"></div>
+      </div>
+    </div>
+    <div id="quick_tools" class="mT5">
+      <div class="utitle">
+        <div class="utitlei">
+          <div class="title"><span class="title_t fLeft"><span class="title_t_i fLeft">
+            <h2><a href="http://tools.dedecms.com" style="color:yellow" target="_blank">织梦站长工具箱</a></h2>
+            </span></span></div>
+        </div>
+      </div>
+      <div class="ucontent">
+        <div id="tools" class="comarc">
+          <ul>
+                 <li><a href="http://tools.dedecms.com/dedetag_maker.html" title="用于生成各个版本DedeCMS页面模板标签，方便站长建站" target="_blank" style="color:blue">织梦CMS标签生成器</a></li>
+                 <li><a href="http://tools.dedecms.com/uploads/docs/dede_tpl/index.htm" title="DedeCMS模板制作基础内容，以及各类标签查询" target="_blank" style="color:red">DedeCMS模板手册</a></li>
+                 <li><a href="http://tools.dedecms.com/regex.html" title="在线正则表达式匹配、替换，另有多种常用正则表达式提供方便使用" target="_blank">在线正则表达式测试</a></li>
+                 <li><a href="http://tools.dedecms.com/html2js.html" title="可以把html内容转换成js输出，反之也可以转换回来" target="_blank">HTML/JS互转</a></li>
+                 <li><a href="http://tools.dedecms.com/word_segment.html" title="对文档内容信息进行系统分词，提取文档中的关键词" target="_blank">在线内容分词工具</a></li>
+                 <li><a href="http://tools.dedecms.com/jscsscompress.html" title="用户可以通过该工具在线压缩Javascript和CSS代码" target="_blank" style="color:blue">在线JS/CSS压缩</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="title_buttom">
+        <div class="title_buttom_i"></div>
+      </div>
+    </div>
+    <div id="helpsearch" class="mT5">
+      <div class="title_top">
+        <div class="title_top_i"></div>
+      </div>
+      <div class="ucontent">
+        <form action="/plus/search.php" name="formsearch">
+          <div id="search" style="margin-top:0px; padding-top:10px">
+            <input name="keyword" type="text"  id="search-keyword" class="searchtext" style="width: 139px;" onfocus="inputAutoClear(this)" value="如何安装DedeCMS"/>
+            <button type="submit" class="btn1">搜索</button>
+          </div>
+        </form>
+      </div>
+      <div class="title_buttom">
+        <div class="title_buttom_i"></div>
+      </div>
+    </div>
+	<div style="width:224px;background-color:#fff">
+		<div style="width:160px;margin:10px auto;">
+		<script type="text/javascript"
+src="http://www.dedecms.com/images/dede/article_leftAD_160x600.js">
+</script>
+		</div>
+		</div>
+  </div>
+  <div class="l_right" style="width:730px">
+   <div style="margin:0 0 10px 0;">
+<script type="text/javascript"
+src="http://www.dedecms.com/images/dede/article_innerAD1_728x90.js">
+</script></div>
+    <div class="utitle">
+      <div class="utitlei">
+        <div class="title"><span class="title_t fLeft"><span class="title_t_i fLeft">
+          <h2 class="wT1"><a href="#" style="color:#FFF">Linux/BSD</a></h2>
+          </span></span></div>
+      </div>
+    </div>
+    <div class="ucontent">
+      <div class="arcbody">
+        <h1>Linux内核分析 - 网络[十二]：UDP模块 - 收发(3)</h1>
+        <div class="times">来源：<font color="red">csdn</font> 作者：<font color="red">yo-yo</font> 发表于：<font color="red">2012-12-17 13:42</font>　  点击：<font color="red"><script src="/plus/count.php?view=yes&aid=17741&mid=22" type='text/javascript' language="javascript"></script></font></div>
+        <div id="textbody" class="content">
+          <div class="desinfo"><div class="intro">分片一是第一个分片，包含UDP报文，在拷贝时要跳过，因为使用的是udp socket接收，只要报文内容就可以了。三张图片代表了三次调用skb_copy_datagram_iovec()的情况，iov是存储内容的 buff，最终结果是三个分片共400</div></div>
+          <div class="content">
+		  <div id="contentMidPicAD" style="float:right; clear:both; top:0; vertical-align:top;">
+<script type="text/javascript"
+src="http://www.dedecms.com/images/dede/article_innerAD_336x280.js">
+</script>
+		  </div>
+            </font><br />
+<br />
+<img height="186" src="/uploads/allimg/121217/13453Q548-5.gif" width="518" /><br />
+<img height="183" src="/uploads/allimg/121217/13453UA8-6.gif" width="547" /><br />
+&nbsp; &nbsp; &nbsp;分片一是第一个分片，包含UDP报文，在拷贝时要跳过，因为使用的是udp socket接收，只要报文内容就可以了。三张图片代表了三次调用skb_copy_datagram_iovec()的情况，iov是存储内容的 buff，最终结果是三个分片共4000字节拷贝到了iov中。<br />
+memcpy_toiovec()函数需要注意，不仅因为它改变了iovec的成 员值，还因为最后的iov++。在udp socket的接收recvfrom()中，msg.msg_iov = &amp;iov，而iov定义成struct iovec iov，即传入参数iov实际只有一个的空间，那么在iov++后，iov将指向非法的地址。这里只考虑udp使用时的情 况，memcpy_toiovec()调用的前一句是，这里len是接收buff的长度：<br />
+<div>
+	<table border="0" cellpadding="0" cellspacing="0" id="highlighter_416515">
+		<caption>
+			双击代码全选</caption>
+		<tbody>
+			<tr>
+				<td>
+					<div>
+						1</div>
+					<div>
+						2</div>
+				</td>
+				<td>
+					<div>
+						<div>
+							<code>if</code> <code>(copy &gt; len)&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>copy = len;</code></div>
+					</div>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<div style="clear:both;">
+		&nbsp;</div>
+</div>
+而 memcpy_toiovec()中又有int copy = min_t(unsigned int, iov-&gt;iov_len, len)，这里len是上面传入的copy，iov_len是接收buff长度，这两句保证了函数中copy值与len相等，即完成一次拷贝 后，len-=copy会使len==0，虽然iov++指向了非法内存，但由于while(len &gt; 0)已退出，所以不会使用iov做任何事情。其次，函数中的iov++并不会对参数iov产生影响，即函数完成iov还是传入的值。最后，拷贝完后会修改 iov_len和iov_base的值，iov_len表示可用长度，iov_base表示起始拷贝位置。<br />
+<div>
+	<table border="0" cellpadding="0" cellspacing="0" id="highlighter_30935">
+		<caption>
+			双击代码全选</caption>
+		<tbody>
+			<tr>
+				<td>
+					<div>
+						1</div>
+					<div>
+						2</div>
+					<div>
+						3</div>
+					<div>
+						4</div>
+					<div>
+						5</div>
+					<div>
+						6</div>
+					<div>
+						7</div>
+					<div>
+						8</div>
+					<div>
+						9</div>
+					<div>
+						10</div>
+					<div>
+						11</div>
+					<div>
+						12</div>
+					<div>
+						13</div>
+					<div>
+						14</div>
+					<div>
+						15</div>
+					<div>
+						16</div>
+				</td>
+				<td>
+					<div>
+						<div>
+							<code>int</code> <code>memcpy_toiovec(</code><code>struct</code> <code>iovec *iov, unsigned </code><code>char</code> <code>*kdata, </code><code>int</code> <code>len)&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							<code>{&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>while</code> <code>(len &gt; 0) {&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;<code>if</code> <code>(iov-&gt;iov_len) {&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;&nbsp;<code>int</code> <code>copy = min_t(unsigned </code><code>int</code><code>, iov-&gt;iov_len, len);&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;&nbsp;<code>if</code> <code>(copy_to_user(iov-&gt;iov_base, kdata, copy))&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;&nbsp;&nbsp;<code>return</code> <code>-EFAULT;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;&nbsp;<code>kdata += copy;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;&nbsp;<code>len -= copy;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;&nbsp;<code>iov-&gt;iov_len -= copy;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;&nbsp;<code>iov-&gt;iov_base += copy;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;<code>}&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;<code>iov++;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>}&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>return</code> <code>0;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							<code>}</code></div>
+					</div>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<div style="clear:both;">
+		&nbsp;</div>
+</div>
+skb_copy_and_csum_datagram_iovec() &nbsp; 拷贝skb内容到msg中，同时计算校验和<br />
+&nbsp; &nbsp; &nbsp;这个函数提高了校验和计算效率，因为它合并了拷贝与计算操作，这样只要一次遍历操作就可以了。与skb_copy_datagram_iovec()相比，它在每次拷贝skb内容时，计算下这次拷贝内容的校验和。<br />
+<div>
+	<table border="0" cellpadding="0" cellspacing="0" id="highlighter_208663">
+		<caption>
+			双击代码全选</caption>
+		<tbody>
+			<tr>
+				<td>
+					<div>
+						1</div>
+					<div>
+						2</div>
+					<div>
+						3</div>
+				</td>
+				<td>
+					<div>
+						<div>
+							<code>csum = csum_partial(skb-&gt;data, hlen, skb-&gt;csum);&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							<code>if</code> <code>(skb_copy_and_csum_datagram(skb, hlen, iov-&gt;iov_base, chunk, &amp;csum))&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>goto</code> <code>fault;</code></div>
+					</div>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<div style="clear:both;">
+		&nbsp;</div>
+</div>
+UDP报文发送<br />
+&nbsp; &nbsp; &nbsp;发送时有两种调用方式：sys_send()和sys_sendto()，两者的区别在于sys_sendto()需要给入目的地址的参数；而 sys_send()调用前需要调用sys_connect()来绑定目的地址信息；两者的后续调用是相同的。如果调用sys_sendto()发送，地 址信息在sys_sendto()中从用户空间拷贝到内核空间，而报文内容在udp_sendmsg()中从用户空间拷贝到内核空间。<br />
+&nbsp; &nbsp; &nbsp;sys_send() -&gt; sys_sendto()<br />
+&nbsp; &nbsp; &nbsp;sys_sendto() -&gt; sock_sendmsg() -&gt; __sock_sendmsg() -&gt; sock-&gt;ops-&gt;sendmsg()<br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ==&gt; inet_sendmsg() -&gt; sk-&gt;sk_prot-&gt;sendmsg()<br />
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ==&gt; udp_sendmsg()<br />
+&nbsp; &nbsp; &nbsp;udp_sendmsg()的核心流程如下图所示，只列出了核心的函数调用了参数赋值，大致步骤是：获取信息 -&gt; 获取路由项rt -&gt; 添加数据 -&gt; 发送数据。<br />
+<img height="289" src="/uploads/allimg/121217/13453U400-7.gif" width="463" /><br />
+&nbsp; &nbsp; &nbsp;udp_sock结构体中的pending用于标识当前udp_sock上是否有待发送数据，如果有的话，则直接goto do_append_data继续添加数据；否则先要做些初始化工作，再才添加数据。实际上，pending!=0表示此调用前已经有数据在 udp_sock中的，每次调和sendto()发送数据时，pending初始等于0；在添加数据时，设置up-&gt;pending = AF_INET。直到最后调用udp_push_pending_frames()将数据发送给IP层或 skb_queue_empty(&amp;sk-&gt;sk_write_queue)发送链表上为空，这时设置up-&gt;pending = 0。因此，这里可以看到，报文发送时pending值的变化：<br />
+<img height="262" src="/uploads/allimg/121217/13453S607-8.gif" width="192" /><br />
+&nbsp; &nbsp; &nbsp;通常使用sendto()发送都是一次调用对应一个报文，即pending=0-&gt;AF_INET-&gt;0；但如果调用sendto()时参 数用到了MSG_MORE标志，则pending=0-&gt;AF_INET，直到调用sendto()时未使用MSG_MORE标志，表示此次发送数 据是最后一部分数据时，pending=AF_INET-&gt;0。<br />
+<div>
+	<table border="0" cellpadding="0" cellspacing="0" id="highlighter_118085">
+		<caption>
+			双击代码全选</caption>
+		<tbody>
+			<tr>
+				<td>
+					<div>
+						1</div>
+					<div>
+						2</div>
+					<div>
+						3</div>
+					<div>
+						4</div>
+					<div>
+						5</div>
+					<div>
+						6</div>
+					<div>
+						7</div>
+					<div>
+						8</div>
+					<div>
+						9</div>
+					<div>
+						10</div>
+					<div>
+						11</div>
+				</td>
+				<td>
+					<div>
+						<div>
+							<code>if</code> <code>(up-&gt;pending) {&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>lock_sock(sk);&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>if</code> <code>(likely(up-&gt;pending)) {&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;<code>if</code> <code>(unlikely(up-&gt;pending != AF_INET)) {&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;&nbsp;<code>release_sock(sk);&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;&nbsp;<code>return</code> <code>-EINVAL;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;<code>}&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;<code>goto</code> <code>do_append_data;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>}&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>release_sock(sk);&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							<code>}</code></div>
+					</div>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<div style="clear:both;">
+		&nbsp;</div>
+</div>
+如果pending=0没有待发送数据，执行初始化操作：报文长度、地址信息、路由项。<br />
+&nbsp; &nbsp; &nbsp;ulen初始为sendto()传入的数据长度，由于是第一部分数据(如果没有后续数据，则就是报文)，ulen要添加udp报头的8字节。<br />
+<br />
+ulen += sizeof(struct udphdr); &nbsp;<br />
+&nbsp; &nbsp; &nbsp;这段代码获取要发送数据的目的地址和端口号。一种情况是调用sendto()发送数据，此时目的的信息以参数传入，存储在 msg-&gt;msg_name中，因此从中取出daddr和dport；另一种情况是调用connect(), send()发送数据，在connect()调用时绑定了目的的信息，存储在inet中，并且由于是调用了 connect()，sk-&gt;sk_state会设置为TCP_ESTABLISHED。以后调用send()发送数据时，无需要再给入目的信息参 数，因此从inet中取出dadr和dport。而connected表示了该socket是否已绑定目的。<br />
+<div>
+	<table border="0" cellpadding="0" cellspacing="0" id="highlighter_327150">
+		<caption>
+			双击代码全选</caption>
+		<tbody>
+			<tr>
+				<td>
+					<div>
+						1</div>
+					<div>
+						2</div>
+					<div>
+						3</div>
+					<div>
+						4</div>
+					<div>
+						5</div>
+					<div>
+						6</div>
+					<div>
+						7</div>
+					<div>
+						8</div>
+					<div>
+						9</div>
+					<div>
+						10</div>
+					<div>
+						11</div>
+					<div>
+						12</div>
+					<div>
+						13</div>
+					<div>
+						14</div>
+					<div>
+						15</div>
+					<div>
+						16</div>
+					<div>
+						17</div>
+					<div>
+						18</div>
+					<div>
+						19</div>
+					<div>
+						20</div>
+				</td>
+				<td>
+					<div>
+						<div>
+							<code>if</code> <code>(msg-&gt;msg_name) {&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>struct</code> <code>sockaddr_in * usin = (</code><code>struct</code> <code>sockaddr_in *)msg-&gt;msg_name;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>if</code> <code>(msg-&gt;msg_namelen &lt; </code><code>sizeof</code><code>(*usin))&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;<code>return</code> <code>-EINVAL;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>if</code> <code>(usin-&gt;sin_family != AF_INET) {&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;<code>if</code> <code>(usin-&gt;sin_family != AF_UNSPEC)&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;&nbsp;<code>return</code> <code>-EAFNOSUPPORT;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>}&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+						<div>
+							&nbsp;<code>daddr = usin-&gt;sin_addr.s_addr;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>dport = usin-&gt;sin_port;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>if</code> <code>(dport == 0)&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;<code>return</code> <code>-EINVAL;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							<code>} </code><code>else</code> <code>{&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>if</code> <code>(sk-&gt;sk_state != TCP_ESTABLISHED)&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;&nbsp;<code>return</code> <code>-EDESTADDRREQ;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>daddr = inet-&gt;inet_daddr;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>dport = inet-&gt;inet_dport;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							&nbsp;<code>connected = 1;&nbsp;&nbsp;&nbsp;&nbsp; </code></div>
+						<div>
+							<code>}</code></div>
+					</div>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<div style="clear:both;">
+		&nbsp;</div>
+</div>
+下 一步是获取路由项rt，如果已连接(调用过connect)，则路由信息在connect()时已获取，直接拿就可以了；如果未连接或拿到的路由项已被删 除，则需要重新在路由表中查找，还是使用ip_route_output_flow()来查找，如果是连接状态的socket，则要用新找到的rt来更新 socket，当然，前提条件是之前的rt已过期。<br />
+<font color="#FF0000">
+            <p align="center"> </p>
+          </div>
+        </div>
+        <div class="pagebreak">    
+        <ul><li><a>共4页: </a></li><li><a href='17741_2.html'>上一页</a></li><li><a href='17741.html'>1</a></li><li><a href='17741_2.html'>2</a></li><li class="thisclass"><a href='#'>3</a></li><li><a href='17741_4.html'>4</a></li><li><a href='17741_4.html'>下一页</a></li></ul>
+        </div>
+        			<!-- //顶踩 -->
+			<div class="newdigg" id="newdigg">
+				<div class="diggbox digg_good" onmousemove="this.style.backgroundPosition='left bottom';" onmouseout="this.style.backgroundPosition='left top';" onclick="javascript:postDigg('good',17741)">
+					<div class="digg_act">有帮助</div>
+					<div class="digg_num">(1)</div>
+					<div class="digg_percent">
+						<div class="digg_percent_bar"><span style="width:100%"></span></div>
+						<div class="digg_percent_num">100%</div>
+					</div>
+				</div>
+				<div class="diggbox digg_bad" onmousemove="this.style.backgroundPosition='right bottom';" onmouseout="this.style.backgroundPosition='right top';" onclick="javascript:postDigg('bad',17741)">
+					<div class="digg_act">没帮助</div>
+					<div class="digg_num">(0)</div>
+					<div class="digg_percent">
+						<div class="digg_percent_bar"><span style="width:0%"></span></div>
+						<div class="digg_percent_num">0%</div>
+					</div>
+				</div>
+			</div>
+			<script language="javascript" type="text/javascript">getDigg(17741);</script>
+			<!-- //顶踩部份的源码结束 -->
+        <div class="linkes">
+          <li style="overflow: hidden; white-space: nowrap;">上一篇：<a href='/knowledge/servers/linux-bsd/2012/1217/17740.html'>Linux内核分析 - 网络[十二]：UDP模块 - socket</a> </li>
+          <li style="overflow: hidden; white-space: nowrap;">下一篇：<a href='/knowledge/servers/linux-bsd/2012/1217/17742.html'>Linux内核分析 - 网络[十三]：校验和</a> </li>
+          <div class="clear"></div>
+        </div>
+		
+      </div>
+	  <div class="title_buttom">
+      <div class="title_buttom_i"></div>
+    </div>
+	  <div style="margin:10px 0;">
+	  <script type="text/javascript"
+src="http://www.dedecms.com/images/dede/article_innerAD2_728x90.js">
+</script>
+	  </div>
+    </div>
+    
+    <div class="utitle mT5">
+      <div class="utitlei">
+        <div class="title"><span class="title_t fLeft"><span class="title_t_i fLeft">
+          <h2><a href="#" style="color:#FFF">相关文章</a></h2>
+          </span></span></div>
+      </div>
+    </div>
+    <div class="ucontent">
+      <div class="likearcs clear">
+        <ul>
+          <li><span class="date">2013-05-07 12:55:38</span><a href='/knowledge/servers/linux-bsd/2013/0507/27759.html'>linux用来删除当前文件夹下所</a></li>
+<li><span class="date">2013-05-07 12:53:05</span><a href='/knowledge/servers/linux-bsd/2013/0507/27758.html'>共享自用的linux备份脚本(webd</a></li>
+<li><span class="date">2013-05-07 12:50:57</span><a href='/knowledge/servers/linux-bsd/2013/0507/27757.html'>linux访问U盘的问题</a></li>
+<li><span class="date">2013-05-02 13:43:50</span><a href='/knowledge/servers/linux-bsd/2013/0502/27467.html'>Linux执行.sh报错:bad interpr</a></li>
+<li><span class="date">2013-05-02 13:23:10</span><a href='/knowledge/servers/linux-bsd/2013/0502/27466.html'>Linux/Ubuntu root默认密码问</a></li>
+<li><span class="date">2013-04-28 16:50:54</span><a href='/knowledge/servers/linux-bsd/2013/0428/27295.html'>Linux下的ZipArchive配置</a></li>
+
+        </ul>
+        <div class="clear"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="clear"></div>
+<div class="wrapper mT5 mB10">
+  <div class="title_top">
+    <div class="title_top_i"></div>
+  </div>
+  <div class="ucontent">
+    <div id="buttom_c" class="clear">
+      <div id="buttom_logo"><img src="/img/buttom_logo.gif" width="149" height="25" /></div>
+      <div id="buttom_text"> <a href="http://www.desdev.cn/company-about.html" target="_blank">关于我们 </a> <a href="http://www.desdev.cn/company-job.html" target="_blank">招贤纳士 </a> <a href="http://www.desdev.cn/service-contact.html" target="_blank">联系我们 </a> <a href="/help/">帮助中心 </a> <a href="http://help.dedecms.com/usersguide/license.html" target="_blank">协议说明 </a> <a href="/data/sitemap.html" target="_blank">网站地图</a> <a href="http://service.dedecms.com/" target="_blank">用户反馈</a> <a href=" http://www.dedecms.com/partners/index.html" target="_blank">合作伙伴</a> <a href="http://www.dedecms.com/donate/help.html" target="_blank">捐助织梦</a></div>
+      <div id="buttom_top"><a href="#top"><img src="/img/gto_top.gif" width="76" height="23" /></a></div>
+      <div id="copyright" class="clear" style="padding-top: 5px;">&copy; 2010  DesDev Inc. All rights reserved Powered by <a target="_blank" href="http://www.dedecms.com/">DedeCMS</a> 
+	  <script type="text/javascript" src="/images/stat.js"></script>
+	  </div>
+      <div class="clear"></div>
+    </div>
+  </div>
+  <div class="title_buttom">
+    <div class="title_buttom_i"></div>
+  </div>
+</div>
+ 
+</body>
+</html>

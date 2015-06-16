@@ -1,0 +1,628 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+	
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<title>使用 Amazon S3 云服务轻松实现存储</title>
+<link rel="schema.DC" href="http://purl.org/DC/elements/1.0/"/>
+<link rel="SHORTCUT ICON" href="//www.ibm.com/favicon.ico"/>
+<meta name="DC.Rights" content="© Copyright IBM Corporation 2009"/>
+<meta name="Keywords" content=", tttjca, tttwaca"/>
+<meta name="DC.Date" scheme="iso8601" content="2009-05-04"/>
+<meta name="Source"  content="v17 delivery:developerWorks"/>
+<meta name="Security" content="Public"/>
+<meta name="Abstract" content="Amazon Simple Storage Service (S3) 是一个公开的服务，Web 应用程序开发人员可以使用它存储数字资产，包括图片、视频、音乐和文档。 S3 提供一个 RESTful API 以编程的方式实现与该服务的交互。通过本文，您将了解如何使用开源的 JetS3t 库利用 Amazon 的 S3 云服务存储和检索数据。"/>
+<meta name="Description" content="Amazon Simple Storage Service (S3) 是一个公开的服务，Web 应用程序开发人员可以使用它存储数字资产，包括图片、视频、音乐和文档。 S3 提供一个 RESTful API 以编程的方式实现与该服务的交互。通过本文，您将了解如何使用开源的 JetS3t 库利用 Amazon 的 S3 云服务存储和检索数据。"/>
+<meta name="IBM.Effective" scheme="W3CDTF" content="2009-05-04"/>
+<meta name="Owner" content="developerWorks/China/IBM"/>
+<meta name="DC.Language" scheme="rfc1766" content="zh-CN"/>
+<meta name="IBM.SpecialPurpose" content="SP001"/>
+<meta name="IBM.Country" content="CN"/>
+<meta name="Robots" content="index,follow"/>
+<meta name="DC.Type" scheme="IBM_ContentClassTaxonomy" content="CT316" />
+<meta name="DC.Subject" scheme="IBM_SubjectTaxonomy" content="TT300" />
+<meta name="dW.ContentArea" content="1,5" />
+<meta name="dW.Topic" content="214,38" />
+
+<meta scheme="IBM_WTMCategory" name="IBM.WTMCategory" content="SOFDCJVACN" />
+
+<link rel="canonical" href="http://www.ibm.com/developerworks/cn/java/j-s3/index.html"/>
+<!-- HEADER_SCRIPTS_AND_CSS_INCLUDE -->
+<link href="//1.www.s81c.com/common/v17/css/www.css" rel="stylesheet" title="www"  type="text/css"/>
+<link href="//1.www.s81c.com/common/v17/css/country/cnzh.css" rel="stylesheet" title="www" type="text/css">
+<!-- Masthead/footer -->
+<link href="//dw1.s81c.com/developerworks/css/dw-mf/v17/dw-mfN2014-05.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/v17/dw-article-6.css" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/v17/dw-common-features.css" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/v17/dw-local-site-v17-N2014-05.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<script type="text/javascript" src="//1.www.s81c.com/common/js/dojo/www.js">//</script>
+<script type="text/javascript" src="//dw1.s81c.com/developerworks/js/v17/dw-www.js">//</script> 
+<script type="text/javascript">
+//  ibmweb.config.set({ sbs: { enabled: false }});
+</script>
+<!-- Exp -->
+<script type="text/javascript">dojo.addOnLoad(function(){var dw_source="dwchina";var dw_register="注册免费的 Bluemix 试用版";var dw_connect="连接 Bluemix 开发者";var dw_vp="在 IBM Bluemix 云平台上开发并部署您的下一个应用。";var dw_cta="现在就开始免费试用";var dw_tile_alt="在 IBM Bluemix 云平台上开发并部署您的下一个应用。现在就开始免费试用";var dw_campaign="bluemix";var dw_content=window.location.pathname.split("/")[window.location.pathname.split("/").length-2];if(dw_content=="library"){dw_content=window.location.pathname.split("/")[window.location.pathname.split("/").length-1];dw_content=window.location.pathname.split("/")[window.location.pathname.split("/").length-3]+"-"+dw_content.substring(0,dw_content.indexOf(".html"))}var dw_medium="article";var bluDevComURL="https://developer.ibm.com/bluemix/";var bluLink="https://www.bluemix.net/";var watsonLink="https://www.bluemix.net/#/solutions/solution=watson";var lnkID;var lnkIDd;var lnkIDt;var bLinkEnd;var bLinkTemp;var idTrkr=[];var idCnt;var artTop=dojo.query("div.ibm-col-1-1")[0];var artChildren=dojo.query(artTop).children();var edgy=false;if(dojo.hasClass(artChildren[0],"ibm-inset"))edgy=true;if((artChildren[0].nodeName=="H2")&&(dojo.hasClass(artChildren[1],"ibm-inset")))edgy=true;if(dojo.hasClass(artChildren[0],"codesection"))edgy=true;if((artChildren[0].nodeName=="H5")&&(dojo.hasClass(artChildren[1],"codesection")))edgy=true;if((artChildren[0].nodeName=="H5")&&(artChildren[1].width>=701))edgy=true;if(artChildren[1].width>=701)edgy=true;if(dojo.hasClass(artChildren[0],"ibm-data-table"))edgy=true;if((artChildren[0].nodeName=="H5")&&(dojo.hasClass(artChildren[1],"ibm-data-table")))edgy=true;if(!(edgy)){var sBarAB='<div class="dw-article-sidebar dw-bluemix" id="dwc-exp-c">'+'<img src="//dw1.s81c.com/developerworks/i/bluemix-graphic.png" height="64" width="64" alt=""/>'+'<p>'+dw_vp+'</p>'+'<p class="ibm-button-link-alternate dw-button-green">'+'<a id="tutc-sbar-bmix-home-btn-ABc" href="'+bluLink+'" class="dw-button-large">'+dw_cta+'</a></p></div>';dojo.place(sBarAB,artTop,"first");}dojo.forEach(dojo.query("#ibm-content-main a"),function(item,index){var bLink=dojo.attr(item,"href");if(bLink&&(bLink.indexOf("//bluemix.net")>-1))bLink=bLink.replace("//bluemix.net","//www.bluemix.net");if(bLink&&(bLink.indexOf("//ace.ng.bluemix.net")>-1))bLink=bLink.replace("//ace.ng.bluemix.net","//www.bluemix.net");if(bLink&&(bLink.indexOf("//console.ng.bluemix.net")>-1))bLink=bLink.replace("//console.ng.bluemix.net","//www.bluemix.net");if(bLink&&((bLink.indexOf("//www.bluemix.net")>-1)||(bLink.indexOf("//www.ng.bluemix.net")>-1)||(bLink.indexOf("//hub.jazz.net")>-1))){bLinkEnd="";bLink=bLink.split("?");if((bLink[1])&&(bLink[1].indexOf("/")!=-1))bLinkEnd=bLink[1].substring(bLink[1].indexOf("/"));bLink=bLink[0];if(bLink.indexOf("//hub.jazz.net")>-1){if((bLink.indexOf("//hub.jazz.net/git")>-1)||(bLink.indexOf("//hub.jazz.net/project")>-1)){bLink="https://login.jazz.net/psso/proxy/jazzregister?utm_source="+dw_source+"&utm_medium="+dw_medium+"&utm_content="+dw_content+"&utm_campaign="+dw_campaign+"&redirect_uri="+bLink}else{bLink=bLink+"?utm_source="+dw_source+"&utm_campaign="+dw_campaign+"&utm_content="+dw_content+"&utm_medium="+dw_medium}}else{if(bLink.indexOf("/#/")==-1){if(bLink.substring(bLink.length-7)=="/docs/#"){bLink=bLink.replace("/docs/#","/docs/"+"?cm_mmc="+dw_source+"-_-"+dw_campaign+"-_-"+dw_content+"-_-"+dw_medium+"#")}else{bLink=bLink+"?cm_mmc="+dw_source+"-_-"+dw_campaign+"-_-"+dw_content+"-_-"+dw_medium}}else{bLink=bLink.substring(0,bLink.indexOf("#"))+"?cm_mmc="+dw_source+"-_-"+dw_campaign+"-_-"+dw_content+"-_-"+dw_medium+bLink.substring(bLink.indexOf("#")-1)}}if(bLinkEnd)bLink=bLink+bLinkEnd;dojo.attr(item,"href",bLink);}})});</script><!-- LEADSPACE_STYLES -->
+
+</head>
+
+<body id="ibm-com">
+
+	<div id="ibm-top" class="ibm-landing-page">
+
+<!-- MASTHEAD_BEGIN -->
+<div id="ibm-masthead">
+
+    <!-- TOP ROW -->    
+	<div id="dw-masthead-top-row">
+		<ul id="ibm-mast-options-dw" role="toolbar" class="cn">
+		<li role="presentation" id="dw-mast-top-4">
+				<a href="http://www.ibm.com/developerworks/cn/"><img src="//dw1.s81c.com/developerworks/i/mf/dwn-dw-badge.png" width="43" height="22" alt="dW" aria-label="dW" /></a></li>
+			<li role="presentation" id="dw-mast-top-0">
+				<div><a class="dw-mf-noscript" href="#" title="登录（或注册）需启用 JavaScript" role="button" tabindex="0">登录 (或注册)</a></div>
+			</li>
+			<li role="presentation" id="dw-mast-top-1">
+				<div><a href="#SELECTLANG" role="button">中文</a></div>
+			</li>
+			<li role="presentation" id="dw-mast-top-3">
+				<a role="button" href="http://www.ibm.com">IBM</a>
+			</li>
+			<li role="presentation" id="dw-mast-top-2" class="dw-mf-hide">
+				<a href="#">[userid]</a>
+			</li>
+		</ul>
+	</div>
+
+    <!-- TOP ROW SLIDER -->
+	<div id="ibm-my-menu-dw" style="display:none">
+        <!-- Sign-in -->
+		<div id="signin_div" class="dw-mast-columns" role="group">
+			<div class="dw-mast-col-1-1">
+				<div id="dw-mast-sso">
+					<div id="signin_error_mf" class="no-display"></div>
+					<div id="dw-mast-sso-form">
+						<form id="sForm_mf" action="" method="post" name="sForm_name_mf" onsubmit="return false;">
+							<div id="dw-mast-sso-id" class="dw-mast-sso-id-cn">
+								<label for="ibmid_mf">IBM ID:</label>
+								<input id="ibmid_mf" value="" name="ibmid_name_mf" maxlength="100"
+								    onkeypress="dwsi.siInst.handleEP(event,this.form,'mf');" type="text" />
+							</div>
+							<div id="dw-mast-sso-pw" class="dw-mast-sso-pw-cn">
+								<label for="pw_mf">密码：</label>
+								<input id="pw_mf" value="" name="pw_name_mf" maxlength="100"
+								    onkeypress="dwsi.siInst.handleEP(event,this.form,'mf');" type="password" />
+							</div>
+							<div id="dw-mast-sso-target" class="dw-mast-sso-target-cn">
+								<p class="dw-mf-perm-box">
+									<input id="perm_mf" name="perm_name_mf" type="checkbox"><label for="perm_mf"> 保持登录。</label></input>
+								</p>
+							</div>					
+							<div id="dw-mast-sso-terms">
+								<p class="dw-mast-sso-terms-cn">单击提交则表示您同意developerWorks 的条款和条件。 <a
+								    href="//www.ibm.com/developerworks/community/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+							<div>
+								<input class="dw-mf-submit-btn-cn" name="ibm_submit_name_mf" value="提交"
+								    onclick="dwsi.siInst.signin('mf');return false;" type="submit" />
+							</div>
+						</form>
+					</div>
+					<div id="dw-mast-sso-update">
+						<div id="dw-mast-sso-update-id">
+							<ul>
+								<li><a href="#" onclick="(function ()
+								    {window.location='//www.ibm.com/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.href);})();">需要一个 IBM ID？</a></li>
+								<li><a href="//www.ibm.com/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a></li>
+							</ul>
+						</div>
+						<div id="dw-mast-sso-update-pw">
+							<ul class="dw-mf-pwupdate">
+								<li><a href="#" onclick="(function ()
+								    {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(dwsi.siInst.getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Den_US%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a></li>
+								<li><a href="#" onclick="(function ()
+								    {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></li>
+							</ul>
+						</div>
+					</div>
+					<div id="dw-mast-sso-text">
+						<p>在您首次登录 developerWorks 时，会为您创建一份个人概要。<strong>您的个人概要中的信息（您的姓名、国家/地区，以及公司名称）是公开显示的，而且会随着您发布的任何内容一起显示，除非您选择隐藏您的公司名称。</strong>您可以随时更新您的 IBM 帐户。</p>
+						<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+					</div>
+				</div>
+				<div id="dw-mast-dname" class="dw-mf-hide">
+					<p>当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+					<div id="signin_dname_error_mf" class="no-display"></div>
+					<div id="dw-mast-dname-form"  class="dw-mast-dname-form-cn">
+						<form id="dForm_mf" action="" method="post" name="dForm_name_mf" onsubmit="return false;">
+							<div id="dw-mast-dname-mf">
+								<label for="dname_mf">昵称：</label>
+								<input id="dname_mf" name="dname_name_mf" maxlength="31" size="25" value=""
+								    onkeypress="dwsi.siInst.handleEP(event,this.form,'mf');" type="text" />
+							</div>
+							<div id="dw-mast-dname-terms">
+								<p class="dw-mast-dname-terms-cn">单击<strong>提交</strong>则表示您同意developerWorks
+								    的条款和条件。 <a href="//www.ibm.com/developerworks/community/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+							<div>
+								<input class="dw-mf-submit-btn-cn" name="dname_submit_name_mf" value="提交"
+								    onclick="dwsi.siInst.signin('mf');return false;" type="submit" />
+							</div>
+						</form>								
+					</div>
+					<div id="dw-mast-dname-secure">
+						<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+					</div>
+				</div>
+				<div id="dw-mast-auth" class="dw-mf-hide">
+					<div>
+						<h2>developerWorks 社区:</h2>
+                		<ul>
+							<li><a id="dw-mast-top-0-0" href="//www.ibm.com/developerworks/community/homepage?lang=zh">我的首页</a></li>						    
+							<li><a
+							    href="//www.ibm.com/developerworks/community/profiles/html/myProfileView.do?lang=zh">我的概要信息</a></li>
+							<li><a
+							    href="//www.ibm.com/developerworks/community/groups/service/html/mycommunities?lang=zh">我的社区</a></li>
+			                 <li><a href="/developerworks/community/news/?lang=zh">设置</a></li>
+										    
+						</ul>     
+					</div>
+					
+					<div class="dw-mast-more">
+						<ul class="ibm-link-list">
+							<li><a class="dw-more-link" href="#" onclick="dwsi.siInst.signOut(); return false;"><strong>退出</strong></a></li>
+						</ul>
+					</div>
+				</div>								
+			</div>		
+		</div>
+        <!-- Language selector --> 
+		<div id="lang_div" class="dw-mast-columns" role="group">
+			<div class="dw-mast-col-2-1">
+				<h2>选择语言：</h2>
+				<ul>
+					<li><a id="dw-mast-top-1-0" href="http://www.ibm.com/developerworks/" lang="en">English</a></li>
+					<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+					<li><a href="http://www.ibm.com/developerworks/jp/" lang="ja">日本語</a></li>
+					<li><a href="http://www.ibm.com/developerworks/ru/" lang="ru">Русский</a></li>
+				</ul>
+			</div>
+			<div class="dw-mast-col-2-2">
+				<ul>
+					<li><a href="http://www.ibm.com/developerworks/br/" lang="pt">Português (Brasil)</a></li>
+					<li><a href="http://www.ibm.com/developerworks/ssa/" lang="es">Español</a></li>
+					<li><a href="http://www.ibm.com/developerworks/vn/" lang="vi">Việt</a></li>
+				</ul>
+			</div>
+		</div>
+		<div id="empty_div" class="dw-mast-columns" role="group"><!-- Authenticated --></div>		
+		<!-- IBM -->
+		<div id="ibmhome_div" class="dw-mast-columns" role="group">
+			<div class="dw-mast-col-2-1">
+				<ul>
+					<li><a id="dw-mast-top-3-0" href="http://www.ibm.com/cn/zh/">IBM 主页</a></li>
+					<li><a href="http://www.ibm.com/solutions/cn/zh/">解决方案</a></li>
+					<li><a href="http://www.ibm.com/software/cn/">软件</a></li>
+				</ul>
+			</div>
+			<div class="dw-mast-col-2-2 dw-mast-ibm">
+				<ul>
+							<li><a href="http://www.ibm.com/support/cn/zh/">支持门户</a></li>
+							<li><a href="http://www.ibm.com/support/documentation/cn/zh/">产品文档</a></li>
+							<li><a href="http://www.ibm.com/redbooks/">Redbooks（英文）</a></li>
+				</ul>
+			</div>	
+		</div>		
+	</div>
+		
+    <!-- BOTTOM ROW -->
+	<div id="ibm-universal-nav-dw" aria-label="Site map">
+		<ul id="ibm-unav-links-dw">
+			<li id="ibm-unav-home-dwlogo">
+				<a href="http://www.ibm.com/developerworks/cn/"><img src="//dw1.s81c.com/developerworks/i/mf/dwn-dw-wordmark.png" width="225" height="28" alt="developerWorks®" /></a>
+			</li>
+		</ul>
+		<ul id="ibm-menu-links-dw" class="ibm-menu-links-dw-cn" role="toolbar" aria-label="Site map">
+			<li id="dw-mast-nav-0" role="presentation"><a href="http://www.ibm.com/developerworks/cn/topics/" tabindex="0">技术主题</a></li>
+			<li id="dw-mast-nav-1" role="presentation"><a href="http://www.ibm.com/developerworks/cn/downloads/">软件下载</a></li>
+			<li id="dw-mast-nav-2" role="presentation"><a href="http://www.ibm.com/developerworks/community/?lang=zh">社区</a></li>
+			<li id="dw-mast-nav-3" role="presentation"><a href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></li>
+		</ul>
+		<form id="ibm-search-form" action="//www.ibm.com/search/csass/search/" method="get" name="form1" aria-label="搜索 developerWorks" role="search">
+			<p>
+				<label for="q"><span class="ibm-access">搜索 developerWorks</span></label>
+				<input id="q" type="text" name="q" value="搜索 developerWorks" maxlength="100"/>
+				<input type="hidden" name="sn" value="dw" />
+				<input type="hidden" name="lang" value="zh" />
+				<input type="hidden" name="cc" value="CN" />
+				<input type="hidden" name="en" value="utf" />
+				<input type="hidden" name="hpp" value="20" />
+				<input type="hidden" name="dws" value="cndw" />
+				<input type="hidden" name="lo" value="zh" />
+				<input id="ibm-search" class="ibm-btn-search" type="submit" value="提交" />
+			</p>
+		</form>
+	</div>    
+	
+</div>
+<div id="fdiv" class="ibm-access"></div><!-- MASTHEAD_END -->
+	    
+<!-- LAYOUT -->
+<!-- LEADSPACE_BEGIN --> 
+<div id="ibm-leadspace-head">
+	<!-- LEADSPACE_BODY_BEGIN --> 
+	<div id="ibm-leadspace-body">
+		<!-- Navigation_Trail_BEGIN -->
+      <ul id="ibm-navigation-trail"><li><a href="http://www.ibm.com/developerworks/cn/">developerWorks 中国</a></li><li><a href="http://www.ibm.com/developerworks/cn/topics/">技术主题</a></li><li><a href="http://www.ibm.com/developerworks/cn/java/">Java technology</a></li><li><a href="http://www.ibm.com/developerworks/cn/views/java/libraryview.jsp">文档库</a></li></ul>
+		<!-- END_Navigation_Trail -->
+			<!-- Title_Subtitle -->
+			<h1>使用 Amazon S3 云服务轻松实现存储</h1><p><em><span>借助 Amazon 的 Simple Storage Service 进入云计算</span></em></p>
+	</div>
+	<!-- LEADSPACE_BODY_END --> 
+	<!-- SUMMARY_BEGIN -->
+	<div id="dw-summary-area" class="dw-summary-columns">
+		<div class="ibm-col-6-4">
+		<p>Amazon Simple Storage Service (S3) 是一个公开的服务，Web 应用程序开发人员可以使用它存储数字资产，包括图片、视频、音乐和文档。 S3 提供一个 RESTful API 以编程方式实现与该服务的交互。通过本文，您将了解如何使用开源的 JetS3t 库利用 Amazon 的 S3 云服务存储和检索数据。</p>
+		<p class="ibm-no-print ibm-ind-link">
+
+			
+			<span id="nCmts"></span>
+		</p>
+		</div>
+		<div class="ibm-col-6-2 dw-toc-margin">
+			<p class="dw-summary-author"><a href="#authorN10020" class="ibm-popup-link" onclick="ibmweb.overlay.show('authorN10020',this);return false;">Andrew Glover</a>, 合伙人, ThirstyHead.com</p>
+<div id="authorN10020" class="ibm-common-overlay"><div class="ibm-head"><p><a href="#close" class="ibm-common-overlay-close">关闭 [x]</a></p></div><div class="ibm-body"><div class="ibm-main"><div class="ibm-title"><!--this is where the h2 usually goes--></div><div class="ibm-container ibm-alternate"><div class="ibm-container-body">
+<p><!--.-->
+Andrew Glover 是一位开发人员、作家、演讲家和企业家。他是 <a href="http://www.easyb.org">easyb</a> 行为驱动开发（Behavior-Driven Development，BDD）框架的创始人，并与他人合著了三本书：<a href="http://www.amazon.com/Continuous-Integration-Improving-Addison-Wesley-Signature/dp/0321336380">Continuous Integration</a>、<a href="http://www.manning.com/koenig/">Groovy in Action</a> 和 <a href="http://www.wiley.com/WileyCDA/WileyTitle/productCd-047144846X.html">Java Testing Patterns</a>。他在 <a href="http://thirstyhead.com">ThirstyHead.com</a> 上讲解各种与 Groovy、Grails 和测试相关的课程。可以通过 <a href="http://www.thediscoblog.com">thediscoblog.com</a> 与他联系，他会在此定期发布软件开发方面的博客。</p><br /><br /></div></div></div></div><div class="ibm-footer"><!----></div></div>
+			<p class="dw-summary-date">2009 年 5 月 04 日</p>
+			
+
+
+			<div aria-hidden="true" class="ibm-container" id="dw-toc"><div class="ibm-container-body"><ul class="ibm-twisty"><li><a href="#toggle" class="ibm-twisty-trigger"><img src="//www.ibm.com/i/c.gif" alt="-"/></a><span class="ibm-twisty-head">内容</span><div class="ibm-twisty-body"><ul style="font-size:0.8em" class="ibm-link-list">
+<li><a class="ibm-anchor-down-em-link" href="#N10051">简介</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#N10073">S3 概述</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#N10093">开始使用 S3 和 JetS3t</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#N1011F">创建对象的 URL</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#N1017A">结束语</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#resources">参考资料 </a></li>
+<li><a class="ibm-anchor-down-em-link" href="#icomments">评论</a></li></ul></div></li></ul></div></div>
+		</div>
+	</div>
+	<!-- SUMMARY_END -->
+</div>
+<!-- LEADSPACE_END -->
+
+<div id="ibm-pcon">
+
+<!-- BEGIN_IBM-CONTENT -->
+<div id="ibm-content">
+
+<!-- BEGIN_IBM-CONTENT-BODY -->
+<div id="ibm-content-body">
+
+<!-- BEGIN_IBM-CONTENT-MAIN -->
+<div id="ibm-content-main">
+
+<!-- 1_1_COLUMN_BEGIN -->
+<div class="ibm-columns">
+<div class="ibm-col-1-1">
+
+<h2 id="N10051">简介</h2><p><em>云</em>是一个抽象的概念，表示松散连接在一起的计算机组，这些计算机共同执行某项任务或者服务，就像是使用一个单独的实体完成一样。此概念背后的架构也很抽象：每个云提供者都可以根据各自情况随意设计它的产品。软件即服务（Software as a Service，SaaS）是一个与云相关的概念，表示云向用户提供某种服务。云模型可以降低用户成本，因为他们无需购买软件和硬件也可以运行 &#8212; 服务提供者已经为用户提供了必要的组件。</p><div class="dw-sidebar ibm-inset"><h2 id="N1005E">云计算简介</h2><p>尽管<em>云计算</em>这一术语并不新鲜（Amazon 在 2006 年就开始提供它的云服务），但从 2008 年起它才开始真正成为流行词，这期间，Google 和 Amazon 的云服务逐渐获得了公众的关注。 Google 的 App Engine 使用户能够在 Google 基础设施上构建和托管 Web 应用程序。连同 S3，Amazon Web Services 还包括 Elastic Cloud Compute (EC2) 计算 Web 服务，该服务可以在 Amazon 的基础设施上托管应用程序。其他公司也开始蠢蠢欲动，准备与 Amazon 和 Google 一决高下，其中就包括 Microsoft&#174;的 Azure，甚至 Sun Microsystems（其云计算还没有正式推向市场）也想分一杯羹。 IBM&#174; 最近宣布，它将提供 <a href="http://www.ibm.com/developerworks/downloads/cloud.html">某些产品</a> 供开发人员在 Amazon EC2 环境中使用。</p></div><p>以 Amazon 的 S3 产品为例。顾名思义，这是一个公开的服务，使 Web 开发人员能够存储数字资产（如图片、视频、音乐和文档等），以便在应用程序中使用。使用 S3 时，它就像一个位于 Internet 的机器，有一个包含数字资产的硬盘驱动。实际上，它涉及到许多机器（位于各个地理位置），其中包含数字资产（或者数字资产的某些部分）。 Amazon 还处理所有复杂的服务请求，可以存储数据并检索数据。您只需要付少量的费用（大约每月 15 美分 /GB）就可以在 Amazon 的服务器上存储数据，1 美元即可通过 Amazon 服务器传输数据。</p><p>Amazon 的 S3 服务没有重复开发，它公开了 RESTful API，使您能够使用任何支持 HTTP 通信的语言访问 S3 。 JetS3t 项目是一个开源 Java 库，可以抽象出使用 S3 的 RESTful API 的细节，将 API 公开为常见的 Java 方法和类。编写的代码越少越好，难道不是吗？充分利用其他人的成果也是不错的。在本文中您将看到，JetS3t 使 S3 和 Java 语言的工作变得更加简单，从根本上提高了效率。</p><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="N10073">S3 概述</h2><p>理论上，S3 是一个全球存储区域网络 (SAN)，它表现为一个超大的硬盘，您可以在其中存储和检索数字资产。但是，从技术上讲，Amazon 的架构有一些不同。您通过 S3 存储和检索的资产被称为<em>对象</em>。对象存储在<em>存储段（bucket）</em>中。您可以用硬盘进行类比：对象就像是文件，存储段就像是文件夹（或目录）。与硬盘一样，对象和存储段也可以通过统一资源标识符（Uniform Resource Identifier，URI）查找。</p><p>例如，在我的硬盘中，我有一个名为 whitepaper.pdf 的文件，它位于主目录中名为 documents 的文件夹中。相应的，该 pdf 文件的 URI 为 /home/aglover/documents/whitepaper.pdf 。在 S3 中，URI 有一点不同。首先，存储段只能是顶级的 &#8212; 无法像嵌套硬盘中的文件夹（或目录）一样进行嵌套。其次，存储段必须遵循 Internet 命名法则；句点旁边没有斜杠，名称不包括下划线等等。最后，由于存储段名称已经是 Amazon 域内的 (s3.amazonaws.com) 公共 URI 的一部分，存储段名称必须在所有 S3 中是惟一的。（好消息是每个帐户只能包含 100 个存储段，因此不用担心别人占用了所有的好名字）。</p><div class="dw-sidebar ibm-inset"><h2 id="N10086">DNS 魔术</h2><p>不用担心 S3 资产的 URL 。通过 Domain Name System (DNS) 和 CNAME（<em>canonical name</em>的缩写）记录，您可以将自定义程度更高的 URL 映射到 S3 的 URL 。这样一来，您就隐藏了您（或您的应用程序）依赖 S3 的事实！</p></div><p>存储段在 S3 中是 URI 的根。也就是说，存储段的名称将是指向 S3 中某个对象的 URI 的一部分。例如，如果我有一个名为 agdocs 的存储段以及一个名为 whitepaper.pdf 的对象，URI 将是：http://agdocs.s3.amazonaws.com/whitepaper.pdf 。</p><p>S3 还提供了指定存储段和对象的所有者和权限的能力，就像对待硬件的文件和文件夹一样。在 S3 中定义对象或存储段时，您可以指定一个访问控制策略，注明谁可以访问您的 S3 资产以及如何访问（例如，读和写权限）。相应地，您可以通过许多方式提供对您的对象的访问，使用 RESTful API 只是其中一种。</p><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="N10093">开始使用 S3 和 JetS3t</h2><p>要开始使用 S3，您需要一个帐户。 S3 不是免费的，因此在创建帐户时您必须向 Amazon 提供一种支付手段（比如信用卡号码）。不用担心 &#8212; 不收初装费；您只需要为使用付费。对于本文的示例，只需要支付不到 1 美元的费用。</p><p>在创建帐户的过程中，您还需要创建凭据：访问密钥和秘密密钥（就像用户名和密码）。（您还可以获取 x.509 证书；但是，只有在使用 Amazon 的 SOAP API 时才需要使用该证书）。和任何访问信息一样，都必须保管好您的秘密密钥。因为任何人使用您的凭据访问 S3 时，您都将为此付费。因此，每当创建存储段或对象时，默认的行为是让所有内容都私有；您必须显式获取对外部世界的访问。</p><p>有了访问密钥和秘密密钥，您可以<a href="http://jets3t.s3.amazonaws.com/downloads.html">下载 JetS3t</a>并使用它通过 RESTful API 与 S3 交互。</p><p>使用编程手段通过 JetS3t 登录 S3 可以分为两步。首先，必须创建一个 <code>AWSCredentials</code> 对象，然后将它传递到 <code>S3Service</code> 对象。<code>AWSCredentials</code> 对象非常简单。它将访问密钥和秘密密钥视为 <code>String</code>。<code>S3Service</code> 对象实际上是一个接口类型。因为 S3 同时提供 RESTful API 和一个 SOAP API，JetS3t 库可以提供两种实现类型：<code>RestS3Service</code> 和 <code>SoapS3Service</code>。就本文而言（包括大部分 S3 事务），RESTful API 的简洁性让它成为一个很好的选择。</p><p>创建一个连接的 <code>RestS3Service</code> 实例很简单，如清单 1 所示：</p><h5 id="listing1">清单 1. 创建一个 JetS3t 的 <code>RestS3Service</code> 实例</h5><div class="codesection"><pre class="displaycode"> def awsAccessKey = "blahblah" 
+ def awsSecretKey = "blah-blah" 
+ def awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey) 
+
+ def s3Service = new RestS3Service(awsCredentials)</pre></div><p>现在可以执行一些有趣的操作了：例如，创建存储段、添加一个影片，然后获取一个有时间限制的 URL 。实际上，这听起来像一个业务流程，不是吗？这是一个与发布有限资产（比如影片）有关的业务流程。</p><h3 id="N100CC">创建存储段</h3><p>对于虚构的电影业务，我将创建一个称为 bc50i 的存储段。借助 JetS3t，该流程很简单。通过 <code>S3Service</code> 类型，您有几个选项。我更喜欢使用 <code>getOrCreateBucket</code> 调用，如清单 2 所示。顾名思义，调用该方法可能返回一个存储段实例（表示为 <code>S3Bucket</code> 类型的实例）或在 S3 中创建代码段。</p><h5 id="listing2">清单 2. 在 S3 服务器上创建存储段</h5><div class="codesection"><pre class="displaycode">def bucket = s3Service.getOrCreateBucket("bc50i")</pre></div><p>不要被我这个简单的代码示例所蒙蔽。 JetS3t 库的扩展性非常强。例如，您可以快速确定拥有多少存储段 —— 只需通过 <code>listAllBuckets</code> 调用请求一个 <code>S3Service</code> 实例即可。该方法返回一个 <code>S3Bucket</code> 实例数组。对于任何存储段实例，您可以询问它的名称和创建日期。更重要的是，您可以通过 JetS3t 的 <code>AccessControlList</code> 类型控制与之相关的权限。例如，我可以获取 bc50i 存储段实例，并允许任何人可以公开读取和编写，如清单 3 所示：</p><h5 id="listing3">清单 3. 修改存储段的访问控制列表</h5><div class="codesection"><pre class="displaycode">def bucket.acl = AccessControlList.REST_CANNED_PUBLIC_READ_WRITE</pre></div><p>当然，通过 API，您也可以随意删除存储段。 Amazon 甚至允许您指定创建存储段的地理位置。 Amazon 简化了存储实际数据的复杂性，但是您可以告诉 Amazon 要将存储段（及其内部所有的对象）放在美国或欧洲（当前可用选项）。</p><h3 id="N100FA">向存储段添加对象</h3><p>使用 JetS3t 的 API 创建 S3 对象就像操作存储段一样简单。 JetS3t 库也很智能，可以负责处理与 S3 存储段内文件相关的内容类型。例如，我想向 S3 上传一段影片 nerfwars2.mp4，以便用户能够在有限的时间内观看。创建一个 S3 对象与创建常见的 <code>java.io.File</code> 类型一样简单，并能将 <code>S3Object</code> 类型与存储段关联，如清单 4 所示：</p><h5 id="listing4">清单 4. 创建一个 S3 对象</h5><div class="codesection"><pre class="displaycode">def s3obj = new S3Object(bucket, new File("/path/to/nerfwars2.mp4"))</pre></div><p>使用文件和存储段初始化 <code>S3Object</code> 之后，要做的所有事情就是通过 <code>putObject</code> 方法上传，如清单 5 所示：</p><h5 id="listing5">清单 5. 上传影片</h5><div class="codesection"><pre class="displaycode">s3Service.putObject(bucket, s3obj)</pre></div><p>使用清单 5 可以完成上传。现在影片位于 Amazon 服务器了，影片的键就是它的名称。当然，您可以根据需要重写该名称以调用其他对象。实际上，JetS3t API（以及 Amazon S3 RESTful API）公开了许多信息，供您创建对象时使用。我们知道，您还可以提供访问控制列表。 S3 中的任何对象都可以保存 API 允许您创建的其他元数据。之后可以通过该元数据的 S3 API（以及派生的 JetS3t）查询任何对象。</p><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="N1011F">创建对象的 URL</h2><p>到现在为止，我的 S3 实例有一个包含影片的存储段。实际上，我的影片可以通过以下 URI 获取：http://bc50i.s3.amazonaws.com/nerfwars2.mp4 。但是，只有我才能获取。（在本例中，我只能通过编程方式访问它，因为与所有内容关联的默认访问控制被设置为拒绝任何未授权访问）。我的目的是为选择的用户提供一种方式查看新影片（在有限的时间内），直到我开始收取访问费用（S3 也会提供帮助）。</p><p>图 1 展示了默认的访问控制。返回的 XML 文档（相应地显示在我的浏览器中）告诉我对当前资产的访问被拒绝（http://bc50i.s3.amazonaws.com/nerfwars2.mp4）。</p><h5 id="fig1">图 1. Amazon 的安全机制</h5><img alt="Amazon 的安全机制" src="figure1.jpg" width="572" /><p>创建一个公共 URL 是 S3 提供的一个便捷功能；实际上，使用 S3，您可以创建一个公共 URL，但只在一段时间内有效（例如，24 小时内）。对于我刚刚存储在 S3 服务器上的影片，我将创建一个 48 小时内有效的 URL 。然后我将向选定的用户提供该 URL，以便他们下载并观看（假定他们在两天内下载）。</p><p>要创建一个针对 S3 对象的时间敏感型 URL，您可以使用 JetS3t 的 <code>createSignedGetUrl</code> 方法，这是一个 <code>S3Service</code> 类型的静态方法。该方法采用一个存储段名称、一个对象键（在本例中是影片名，还记得吗？）、一些凭证（以 JetS3t 的 <code>AWSCredentials</code> 对象的形式）、截止日期。如果您了解所需的存储段和对象键，则可以通过清单 6 中的 Groovy 代码快速获取 URL：</p><h5 id="listing6">清单 6. 创建一个时间敏感型 URL</h5><div class="codesection"><pre class="displaycode"> def now = new Date() 
+ def url = S3Service.createSignedGetUrl( 
+   bucket.getName(), s3obj.key, awsCredentials, now + 2)</pre></div><p>使用 Groovy，我可以通过 <code>+ 2</code> 语法轻松指定一个 48 小时的限定日期。得到的 URL 如下所示（只有一行）：</p><div class="codesection"><pre class="displaycode">https://bc50i.s3.amazonaws.com/nerfwars2.mp4?AWSAccessKeyId= 
+   1asd06A5MR2&amp;Expires=1234738280&amp;Signature=rZvk8Gkms%3D</pre></div><p>现在，通过该 URL，可以在浏览器中获得图 2 所示的内容：</p><h5 id="fig2">图 2. 用于下载的 URL</h5><img alt="用于下载的 URL" src="figure2.jpg" width="572" /><p>这个过程是不是很简单？通过几行代码，我在云中创建了一个安全资产，该资产只能通过特殊的 URL 下载。</p><h3 id="leveraging">利用 S3 完成时间敏感型下载</h3><p>如果您的带宽和存储需求不稳定，则 S3 能提供很多帮助。例如，想想我演示的业务模型 &#8212; 影片在一年中特定的时间发布。在传统的存储模型中，您需要在某处机架上购买许多空间（或提供通向它的硬件和管道），很可能下载量很大，但随后会相对降低。但是，您不能根据需要付费。使用 S3，该模型将根据需要付费 &#8212; 公司<em>仅</em>在需要时为存储和带宽付费。更重要的是，S3 的安全特性可以帮助您进一步指定人们何时可以下载视频，甚至可以指定谁可以下载。</p><p>使用 S3 实现这些需求非常容易。在高水平上，创建一个受限的影片公共下载需要 4 个步骤：</p><ol><li>登录 S3 。</li><li>创建存储段。</li><li>向存储段添加所需的视频（或对象）。</li><li>创建一个指向该视频的时间敏感型 URL 。</li></ol><p>就是这样！</p><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="N1017A">结束语</h2><p>与传统存储模型相比，S3 的随需付费模型有很多明显的优势。例如，在自己的硬盘上存储音乐收藏，我必须预先花 130 美元购买一个 500GB 的存储单元。我没有 500GB 的数据可以存储，因此我为自己不需要的空间花费了 25 美分 /GB（虽然很便宜）。我还需要维护设备并支付电费。如果我使用 Amazon，我不需要预先为不重要的资产支付 130 美元。我只需要支付 10 美分 /GB，无需为管理和维护存储硬件付费。现在想想在整个企业范围内实现这些服务的好处。以 Twitter 为例，在 S3 上为 100 万个用户帐户存储图片。通过按照使用付费的方式，Twitter 不需要花费大量资金购买硬件基础设施来存储和提供图片服务，也不需要支出人力和部件成本来配置和维护图片。</p><p>云的好处还不止这些。您还可以实现低延迟和高可用性。假设存储在 Amazon 云中的资产遍布全世界，那么为各个位置提供内容的速度将会更快。更重要的是，由于您的资产分布在各种机器上，您的数据在一些机器（或部分网络）瘫痪时也能保持高可用性。</p><p>一言以蔽之，Amazon S3 的好处很简单：低成本、高可用性、安全。除非您是一个 SAN 专家，喜欢维护硬件资产来存储数据内容，但是 Amazon 可能比您做的更好。在资金紧张的时候，为什么还要将自己的资金提前预支在硬件上呢（不要忘了，硬件会随时间贬值）？</p><!--CMA ID: 386782--><!--Site ID: 10--><!--XSLT stylesheet used to transform this file: dw-document-html-7.0.xsl-->
+
+
+</div>
+</div>
+<!-- 1_1_COLUMN_END -->
+
+<!-- SPLIT_COLUMNS_BEGIN -->
+<div class="ibm-columns">
+
+<!-- 6_4_COLUMN_BEGIN -->
+<div class="ibm-col-6-4">
+
+<h2 id="resources" class="ibm-rule">参考资料 </h2><h3 class="dw-resources-category-heading">学习</h3><ul class="ibm-bullet-list"><li><a href="http://aws.amazon.com/s3/">Amazon S3</a>：访问 Amazon Simple Storage Service 的主页。</li><li><a href="http://jets3t.s3.amazonaws.com/index.html">JetS3t</a>：了解更多有关 JetS3t 工具箱和应用程序套件的内容。</li><li><a href="http://www.ibm.com/developerworks/spaces/cloud">云计算</a>：访问 IBM Cloud Computing Central 查找大量云资源。</li><li>“<a href="http://www.ibm.com/developerworks/cn/architecture/ar-cloudaws2/">用 Amazon Simple Storage Service (S3) 在云中存储数据</a>”（developerWorks，2009 年 4 月）：本文讨论 Amazon Simple Storage Service (S3) 提供的可伸缩、高响应性的服务。了解用于与 S3 交互的工具，使用代码示例构建一个简单的 shell。</li><li>浏览<a href="http://www.ibm.com/developerworks/apps/SendTo?bookstore=safari">技术书店</a>查找有关这些主题和其他技术主题的图书。</li><li><a href="http://www.ibm.com/developerworks/cn/java/">developerWorks Java 技术专区</a>：查找各种有关 Java 编程方面的文章。</li></ul><h3 class="dw-resources-category-heading">获得产品和技术</h3><ul class="ibm-bullet-list"><li><a href="http://jets3t.s3.amazonaws.com/downloads.html">JetS3t</a>：下载 JetS3t 。</li><li><a href="http://www.ibm.com/developerworks/downloads/cloud.html?ca=dth-cloud">developerWorks Cloud Computing Resource Center</a>：访问 Amazon Elastic Compute Cloud (EC2) 虚拟环境中的 IBM 软件产品。</li></ul><h3 class="dw-resources-category-heading">讨论</h3><ul class="ibm-bullet-list"><li>参与<a href="http://www.ibm.com/developerworks/blogs/">developerWorks blogs</a>并加入<a href="http://www.ibm.com/developerworks/community">developerWorks 社区</a>。</li></ul>
+
+<!-- INLINE_COMMENTS_BEGIN -->
+<h2 id="icomments" class="ibm-alternate-rule ibm-no-print">条评论</h2>
+    
+<div class="ibm-no-print" id="dw-icomments-container">	
+	<div id="threadShow"></div>
+</div>
+<!-- Sign in OVERLAY STARTS HERE -->
+    
+<!-- Sign in OVERLAY STARTS HERE -->
+<div class="ibm-common-overlay" id="signin_overlay">
+<div class="ibm-head">
+<p><a class="ibm-common-overlay-close" href="#" onclick="dwsi.siInst.clearForm();">关闭 [x]</a></p>
+</div>
+<div class="ibm-body">
+<div class="ibm-main">
+
+ <div class="ibm-title">
+<h2>developerWorks: 登录</h2>
+<div id="ibm-overlay-error-signin" class="no-display"></div>
+</div>
+<div class="ibm-container ibm-alternate ibm-buttons-last">
+<div class="ibm-container-body">
+<p class="ibm-overlay-intro">标有星（<span class="ibm-required">*</span>）号的字段是必填字段。</p> 
+<form class="ibm-column-form" id="sFormId" action="" method="post" name="sForm" onsubmit="return false;">
+<p><label for="ibmid">IBM ID:<span class="ibm-required">*</span></label><span>
+    <input name="ibm-id" id="ibmid" size="25" value="" class="required" type="text" onkeypress="dwsi.siInst.handleEP(event,this.form);" />
+    <br /><a onclick="window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.protocol + '//' + location.hostname + location.pathname + '#icomments'); return false;" href="#" class="ibm-forward-link">需要一个 IBM ID？</a> <br />
+    <a class="ibm-forward-link" href="/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a> 
+</span>
+</p> 
+<p><label for="password">密码：<span class="ibm-required">*</span></label><span>
+    <input name="password" id="password" size="25" value="" class="required" type="password" onkeypress="dwsi.siInst.handleEP(event,this.form);" />
+    <br /><a class="ibm-forward-link" href="#" onclick="(function ()
+        {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(dwsi.siInst.getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Dzh_CN%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a>
+    <br /><a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></span></p> 
+<p class="dw-perm-box">
+	<span><input id="perm" type="checkbox" name="perm_name"/><label for="perm"> 保持登录。</label></span>
+</p>
+<p>单击提交则表示您同意developerWorks 的条款和条件。 <a
+    href="/developerworks/community/terms?lang=zh">查看条款和条件</a>。</p>
+<div class="ibm-buttons-row">
+   <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="dwsi.siInst.signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+<input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="dwsi.siInst.clearForm();ibmweb.overlay.hide('signin_overlay');return false;"/></p>
+</div>
+</form>
+ <div class="ibm-overlay-rule"><hr /></div> 
+
+<p>在您首次登录 developerWorks 时，会为您创建一份个人概要。<strong>您的个人概要中的信息（您的姓名、国家/地区，以及公司名称）是公开显示的，而且会随着您发布的任何内容一起显示，除非您选择隐藏您的公司名称。</strong>您可以随时更新您的 IBM 帐户。</p>
+<div><p class="dw-c-overlay-secure">所有提交的信息确保安全。</p></div>
+</div>
+</div>
+</div>
+</div>
+<div class="ibm-footer"></div>
+</div>
+<!-- Display name OVERLAY STARTS HERE -->
+<div class="ibm-common-overlay" id="displayname_overlay">
+<div class="ibm-head">
+<p><a class="ibm-common-overlay-close" href="#" onclick="dwsi.siInst.clearForm();">关闭 [x]</a></p>
+</div>
+<div class="ibm-body">
+<div class="ibm-main">
+<div class="ibm-title">
+<h2>选择您的昵称</h2><br /><br />
+<div id="ibm-overlay-error-dname" class="no-display"></div>
+</div>
+<div class="ibm-container ibm-alternate ibm-buttons-last">
+<div class="ibm-container-body">
+<p class="ibm-overlay-intro">当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 
+    您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+<p class="ibm-overlay-intro">标有星（<span class="ibm-required">*</span>）号的字段是必填字段。</p> 
+<form id="dFormId" method="post" action="" name="dForm" onsubmit="return false;" class="ibm-column-form">
+<p><label for="displayname">昵称：<span class="ibm-required">*</span></label><span>
+    <input name="displayname" id="displayname" size="25" value="" type="text" onkeypress="dwsi.siInst.handleEP(event,this.form);" /></span>
+    <span class="ibm-form-note">(昵称长度在 3 至 31 个字符之间)</span>
+</p>
+<p>单击<strong>提交</strong>则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/community/terms?lang=zh">查看条款和条件</a>.</p>
+<div class="ibm-buttons-row">
+   <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="dwsi.siInst.signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+<input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="dwsi.siInst.clearForm();ibmweb.overlay.hide('displayname_overlay');return false;" /></p>
+</div>
+</form>
+<div class="ibm-overlay-rule"><hr /></div>
+<div><p class="dw-c-overlay-secure">所有提交的信息确保安全。</p></div>
+</div>
+</div>
+</div>
+</div>
+<div class="ibm-footer"></div>
+</div>
+
+
+<!-- INLINE_COMMENTS_END -->
+
+</div>
+<!-- 6_4_COLUMN_END -->
+
+<!-- 6_2_COLUMN_BEGIN -->
+<div class="ibm-col-6-2">
+
+<!-- Next_Steps -->
+<!-- Dig_Deeper -->
+
+
+<!-- Promotion_Module -->
+    
+<!-- PROMOTION_MODULE_START -->
+<div class="ibm-alternate-rule"><hr /></div>
+<ul class="ibm-portrait-module-list">
+<li><img height="60" width="60" src="//www.ibm.com/developerworks/i/sm-f-cl-puresystems70.jpg" alt=""/>
+<h3><a class="ibm-feature-link"
+    href="http://www.ibm.com/developerworks/cn/puresystems/">IBM PureSystems</a></h3>
+<p>IBM PureSystems™ 系列解决方案是一个专家集成系统</p></li>
+<li><img height="60" width="60" src="//www.ibm.com/developerworks/i/sm-f-knowledgepath50.jpg" alt=""/>
+<h3><a class="ibm-feature-link" href="http://www.ibm.com/developerworks/cn/views/global/libraryview.jsp?type_by=Knowledge+paths">developerWorks 学习路线图</a></h3>
+<p>通过学习路线图系统掌握软件开发技能</p></li>
+<li><img height="60" width="60" src="//www.ibm.com/developerworks/i/sm-f-evaluationsoftware60.png" alt=""/>
+<h3><a class="ibm-feature-link" href="http://www.ibm.com/developerworks/cn/downloads/">软件下载资源中心</a></h3>
+<p>软件下载、试用版及云计算</p></li>
+</ul>
+<!-- PROMOTION_MODULE_END -->
+
+</div>
+<!-- 6_2_COLUMN_END -->
+
+</div>
+<!-- SPLIT_COLUMNS_END -->
+
+<!-- BOTTOM_BACK_TO_TOP -->
+<div class="ibm-columns">
+<div class="ibm-col-1-1">
+	<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p>
+</div>
+</div>
+
+<!-- Rating_Meta_BEGIN -->
+<!--Rating_Meta_BEGIN--><div class="metavalue">static.content.url=http://www.ibm.com/developerworks/js/artrating/</div><div class="metavalue">SITE_ID=10</div><div class="metavalue">Zone=Java technology, Web development</div><div class="metavalue">ArticleID=386782</div><div class="metavalue">ArticleTitle=使用 Amazon S3 云服务轻松实现存储</div><div class="metavalue">publish-date=05042009</div><script language="javascript" type="text/javascript">document.write('<div class="metavalue">url='+location.href.replace(/</g,  '%3C')+'</div>');</script><!--Rating_Meta_END-->
+<!-- Rating_Meta_END -->
+
+</div>
+<!-- END_IBM_CONTENT_MAIN -->
+
+</div>
+<!-- END_IBM_CONTENT_BODY -->
+
+</div>
+<!-- END_IBM_CONTENT -->
+
+</div>
+<!-- END_IBM_PCON -->
+<!-- FOOTER_BEGIN -->
+<!-- FOOTER_BEGIN -->
+<div id="ibm-footer"><!-- IBM footer container; disabled --></div>
+
+<div id="ibm-footer-module-dwwrapper" role="contentinfo" aria-label="developerWorks Footer">
+
+<div id="ibm-footer-module-dw">
+	<div class="dw-footer-columns">
+		<div class="dw-footer-col-5-1">
+			<ul>
+                <li><a href="https://www.ibm.com/developerworks/secure/feedback.jsp?domain=dwchina">帮助</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/author/">联系编辑</a></li>
+				<li><a href="https://www.ibm.com/developerworks/secure/myideas2.jsp?domain=dwchina&start=true">提交内容</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/rss/">订阅源</a></li>
+			</ul>
+        </div>
+		<div class="dw-footer-col-5-2">
+			<ul>
+			<li><a href="http://www.ibm.com/vrm/newsletter/10104?S_TACT=105AGX52&S_CMP=dwcntop">在线浏览每周时事通讯</a></li>
+				<li><a class="dwcn-sina-link" href="http://weibo.com/ibmdw/" target="_blank">新浪微博</a></li>
+				<li><a href="https://www.ibm.com/developerworks/community/report?lang=zh">报告滥用</a></li>
+				<li><a href="https://www.ibm.com/developerworks/community/terms?lang=zh">使用条款</a></li>
+				<li><a href="https://www.ibm.com/developerworks/cn/community/terms/thirdparty/">第三方提示</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-5-3">
+			<ul>
+				<li><a href="http://www.ibm.com/privacy/cn/zh/">隐私条约</a></li>
+				<li><a href="http://www.ibm.com/ibm/accessibility/cn/">浏览辅助</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/academic/">IBM 教育学院教育培养计划</a></li><li><a href="http://www.ibm.com/developerworks/cn/gep/">IBM 创业企业全球扶持计划</a></li><li><a href="http://www.ibm.com/partnerworld/isv/">ISV 资源 (英语)</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-5-4">
+		
+ 
+			<ul>
+				<li><a href="//www.ibm.com/developerworks/cn/newsletter/">dW 中国每周时事通讯</a><br /> 
+				
+				</li>
+			</ul>
+			</form>
+		</div>
+		<div class="dw-footer-col-5-5">
+			<img width="223" height="46" alt="IBM®" src="//dw1.s81c.com/developerworks/i/mf/dwn-ibm-logo-v17.png">
+			<img class="dw-preload" src="//1.www.s81c.com/i/v17/icons/ibm_sprite_social_blue_ON.png" alt="" width="1" height="1"/>
+		</div>
+	</div>
+	<!-- Language selector no-script -->
+	<noscript>
+	<div id="dw-footer-selectlang">
+		<h2><a name="SELECTLANG">选择语言：</a></h2>
+		<ul>
+			<li><a href="http://www.ibm.com/developerworks/" lang="en">English</a></li>
+			<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+			<li><a href="http://www.ibm.com/developerworks/jp/" lang="ja">日本語</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ru/" lang="ru">Русский</a></li>
+			<li><a href="http://www.ibm.com/developerworks/br/" lang="pt">Português (Brasil)</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ssa/" lang="es">Español</a></li>
+			<li><a href="http://www.ibm.com/developerworks/vn/" lang="vi">Việt</a></li>
+		</ul>
+	</div>
+	</noscript>
+</div>
+
+</div><!-- FOOTER_END --><!-- FOOTER_END -->
+
+<!-- END_IBM-TOP -->
+</div>
+
+<!-- SCRIPTS_INCLUDE_BEGIN -->
+<script type="text/javascript" src="/developerworks/js/v17/dw-comments.js">//</script>
+<script type="text/javascript" language="JavaScript">
+		dojo.ready(function(){
+		rBHash = null;
+		rBHash = new Object();
+		rBHash['viperLang'] = 'zh';
+		rBHash['urlLang'] = 'cn';
+		
+		dwsi.siInst = new dwweb.dynnav.dwsi();
+		dwsi.siInst.initSI();		
+
+		// construct the comment widget
+dwc.cmts = '条评论';
+dwc.signInPreText = '请';
+dwc.signIn = '登录';
+dwc.or = '或';
+dwc.register = '注册';
+dwc.signInPostText = '';
+dwc.leaveCmt = '后发表评论。';
+dwc.view = '查看';
+dwc.totalCmts = '共有评论';
+dwc.postYourCmt = '添加您的评论';
+dwc.show = '显示：';
+dwc.recentCmts = '最新评论';
+dwc.allCmts = '所有评论';
+dwc.tooLongCmt = '您的评论超过了 1000 字符限制';
+dwc.numCharsLeft = '剩余 <span id="charCount">{1}</span> 字符';
+dwc.reportAbuse = '报告滥用';
+dwc.notifyMsg = '有新评论时提醒我';
+dwc.htmlWarning = '注意：评论中不支持 HTML 语法'; 
+dwc.cmt = '评论：';
+dwc.addCmts = '添加评论';
+dwc.addCmt = '添加评论';
+dwc.doNotErase = '--在下方添加评论--'; 
+dwc.viewOrAddCmts = '查看或添加评论';
+dwc.reportInapprCont = '举报不良信息';
+dwc.reportInapprContLink = 'http://www.ibm.com/developerworks/forums/forum.jspa?forumID=1834';
+dwc.postingCmt = '正在发布评论……';
+dwc.noCmt = '快来添加第一条评论';
+dwc.netwkErr = '在检索评论时出错，请稍后刷新。';
+dwc.addACmt = '添加评论';
+dwc.instructCmt = '标有星号（<span class="ibm-required">*</span>）的是必填项目。';
+dwc.btnPost = '发布';
+dwc.btnPostAnon = '匿名发布';
+dwc.btnClrCmt = '清除评论';
+dwc.btnCancel = '取消';
+dwc.showRecent = '显示最新的 {1} 条评论'; // {1} is the count to be substituted
+dwc.showNext = '显示后 {1} 条评论'; // {1} is the count to be substituted
+dwc.showAllCmts = '显示所有评论';
+dwc.enterCmt = '请输入评论内容。';
+dwc.loginErr = '暂时无法验证您的登录状态，请稍后再试。';
+dwc.postErr = '暂时无法发布您的评论，请稍后再试。';
+dwc.postBy = '由 <strong>{1}</strong>  于 {2} '; // {1} is the author to be substituted; {2} is the date
+dwc.siteId = 10;
+dwc.lang = 'zh_CN';
+dwc.viperLang = 'zh';
+//dwc.abuseHref =  null;
+dwc.maxChars = 1000;
+dwc.cmtTxt =  '评论：';
+dwc.cmtsTxt =  '评论：';  
+		dwc && new dwc.comments('threadShow','95%',5,'nCmts','icomments');
+		});
+</script>
+
+
+
+<!-- BEGIN: Use this section to set page specific variables for the Unica Page Tag -->
+<script language="JavaScript">var NTPT_PGEXTRA="ibmSkillLevel=3&ibmCmaId=386782&ibmContentAreas=java,web";</script>
+<!--END --><!-- SCRIPTS_INCLUDE_END -->
+
+<div id="ibm-metrics">
+<script src="//dw1.s81c.com/common/stats/stats.js" type="text/javascript">//</script>
+</div>
+
+</body>
+</html>

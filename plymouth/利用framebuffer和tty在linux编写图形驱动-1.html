@@ -1,0 +1,415 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312">
+<META NAME="Keywords" CONTENT="framebuffer,tty,linux,利用framebuffer和tty在linux编写图形驱动">
+<meta name="description" content="文章标题：利用framebuffer和tty在linux编写图形驱动。Linux是中国IT实验室的一个技术频道。包含桌面应用，Linux系统管理，内核研究，嵌入式系统和开源等一些基本分类">
+<meta name="classification" content="Information Technology and Scientice">
+<meta name="robots" content="ALL">
+<meta name="distribution" content="Global">
+<meta name="rating" content="General">
+<meta name="author" content="http://www.chinaitlab.com/">
+<meta name="language" content="chinese">
+<meta name="resource-type" content="document">
+<meta http-equiv="pragma" content="no-cache">
+<link rel="SHORTCUT ICON" href="http://www.chinaitlab.com/favicon.ico" />
+<link rel="stylesheet" type="text/css" href="http://linux.chinaitlab.com/style_new.css">
+<title>利用framebuffer和tty在linux编写图形驱动-Linux频道-中国IT实验室</title>
+<style type="text/css">
+.STYLE1 a:link,.STYLE1 a:visited,.STYLE1 a:active{
+	COLOR: #ff0000; TEXT-DECORATION: none; font-family: "宋体"; font-size: 15px; font-weight:bold; padding-left:12px; padding-top:5px;
+}
+.STYLE1 a:hover{
+	COLOR: #000000; TEXT-DECORATION: underline; font-family: "宋体"; font-size: 15px; font-weight:bold;padding-left:12px; padding-top:5px;
+}
+.STYLE1 {
+	color: #000000;
+	font-weight: bold;padding-left:12px;
+	 padding-top:7px;
+}
+</style>
+<script language="JavaScript">
+<!--
+//改变图片大小
+function resizepic(thispic)
+{
+if(thispic.width>700) thispic.width=700;
+}
+//无级缩放图片大小
+function bbimg(o)
+{
+  //var zoom=parseInt(o.style.zoom, 10)||100;
+  //zoom+=event.wheelDelta/12;
+  //if (zoom>0) o.style.zoom=zoom+'%';
+  return true;
+}
+-->
+</script>
+</head>
+<body>
+<table cellSpacing=0 cellPadding=0 width=960 align=center border=0>
+  <tr> 
+    <td height=53><div style="TEXT-ALIGN: left; LINE-HEIGHT: 23px; WIDTH: 100%; FONT-FAMILY: 宋体; BACKGROUND: #fafafa; FONT-SIZE: 12px"><A title=中国IT实验室LOGO href="http://www.chinaitlab.com/" target=_blank><IMG style="FLOAT: left; MARGIN-RIGHT: 5px" border=0 alt=中国IT实验室LOGO src="http://www.chinaitlab.com/cms/images/logo_top.gif" width=145 height=42></A> <A title=中国IT实验室首页 href="http://www.chinaitlab.com/" target=_blank>首页</A> | <A title=互联网频道首页 href="http://internet.chinaitlab.com/" target=_blank>互联网</A> | <A title=IT动态频道首页 href="http://news.chinaitlab.com/" target=_blank>IT动态</A> | <A title=IT培训频道首页 href="http://edu.chinaitlab.com/" target=_blank><FONT color=#ff0000>IT培训</FONT></A> | <A title=Cisco频道首页 href="http://cisco.chinaitlab.com/" target=_blank>Cisco</A> | <A title=Windows频道首页 href="http://windows.chinaitlab.com/" target=_blank>Windows</A> | <A title=Linux频道首页 href="http://linux.chinaitlab.com/" target=_blank>Linux</A> | <A title=Java频道首页 href="http://java.chinaitlab.com/" target=_blank>Java</A> | <A title=.Net频道首页 href="http://dotnet.chinaitlab.com/" target=_blank>.Net</A> | <A title=Oracle频道首页 href="http://oracle.chinaitlab.com/" target=_blank>Oracle</A> | <A title=软件测试频道首页 href="http://softtest.chinaitlab.com/" target=_blank>软件测试</A> | <A title=C/C++频道首页 href="http://c.chinaitlab.com/" target=_blank>C/C++</A> | <A title=嵌入式开发频道首页 href="http://embed.chinaitlab.com/" target=_blank><FONT color=#ff0000>嵌入式</FONT></A> | <A title=存储世界频道首页 href="http://www.storworld.com/" target=_blank>存储世界</A><A title=服务器频道首页 href="http://www.idcquan.com/" target=_blank><FONT color=#ff0000></FONT></A><A href="http://server.chinaitlab.com/" target=_blank>服务器</A> | <A title=华为频道首页 href="http://huawei.chinaitlab.com/" target=_blank>华为</A> | <A title=网络设备频道首页 href="http://network.chinaitlab.com/" target=_blank>网络设备</A> | <A title=IDC频道首页 href="http://www.idcquan.com/" target=_blank>IDC</A> | <A title=安全频道首页 href="http://live.chinaitlab.com/" target=_blank></A><A href="http://security.chinaitlab.com/" target=_blank>安全</A> | <A title=21世纪人才网首页 href="http://www.21itjob.com/" target=_blank><FONT color=#ff0000>求职招聘</FONT></A> | <A title=数字网校首页 href="http://school.chinaitlab.com/" target=_blank>数字网校</A> | <A title=北大青鸟首页 href="http://edu.chinaitlab.com/special/bdqn/Index.html" target=_blank>北大青鸟</A> | <A title=技术专题首页 href="http://special.chinaitlab.com/" target=_blank>技术专题</A> | <A title=电子书下载频道首页 href="http://download.chinaitlab.com/" target=_blank>电子书下载</A> | <A title=视频教学首页 href="http://download.chinaitlab.com/video.html" target=_blank>教学视频</A> | <A title=源码下载首页 href="http://down.idcquan.com/" target=_blank><FONT color=#ff0000>源码下载</FONT></A> | <A title=中国IT实验室技术文章搜索 href="http://search.chinaitlab.com/" target=_blank>搜索</A> | <A title=中国IT实验室技术博客 href="http://blog.chinaitlab.com/" target=_blank>博客</A> | <A title=活动沙龙首页 href="http://salon.chinaitlab.com/" target=_blank>活动沙龙</A> | <A title=中国IT实验室技术论谈 href="http://bbs.chinaitlab.com/" target=_blank>论坛</A></div></td>
+  </tr>
+  <tr> 
+    <td><!-- 广告位：LINUX文章页第一通栏 -->
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "54228";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script></td>
+</table>
+<!--频道导航代码段-->
+<div class=tong><table border=0 cellSpacing=0 cellPadding=0 width=960 align=center>
+    <tr>
+      <td width=223><A title=欢迎光临中国IT实验室Linux频道 href="http://linux.chinaitlab.com/" target=_blank><IMG border=0 alt=中国IT实验室Linux频道 src="http://linux.chinaitlab.com/images/00.gif" width=224 height=49></A></td>
+      <td vAlign=center background=http://linux.chinaitlab.com/images/02.gif width=724>
+        <table border=0 cellSpacing=0 cellPadding=0 width="100%" height=32>
+          <tr>
+            <td height=28 vAlign=bottom width=389><SCRIPT LANGUAGE="JavaScript" src=http://float2006.tq.cn/floatcard?adminid=8369877&sort=0></SCRIPT><IMG style="BACKGROUND: none transparent scroll repeat 0% 0%; CURSOR: pointer" id=tq_kefu_main onclick=TQKF.kefuimg.Distrabute() version="20100823"></td>
+            <td height=26 vAlign=bottom width=315 noWrap align=middle>
+              <table border=0 cellSpacing=0 cellPadding=0 width=300>
+                <tr>
+<FORM id=cse-search-box action=http://www.google.com.hk/cse target=_blank>
+<div>
+  <Input value=partner-pub-8985212780093870:x1p2o758mwk type=hidden name=cx> 
+  <Input value=GB2312 type=hidden name=ie> 
+  <Input size=24 name=q> 
+  <Input value=搜索 type=submit name=sa> </div></FORM>
+<script type="text/javascript
+" src="http://www.google.cn/cse/brand?form=cse-search-box&lang=zh-Hans"></script> 
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+      <td width=13><IMG src="http://linux.chinaitlab.com/images/01.gif" width=13 height=49></td>
+    </tr>
+  </table>
+  <table border=0 cellSpacing=0 cellPadding=0 width=960 align=center>
+    <tr>
+      <td width=11><IMG src="http://linux.chinaitlab.com/images/03.gif" width=12 height=38></td>
+      <td background=http://linux.chinaitlab.com/images/04.gif width=935>
+        <table border=0 cellSpacing=0 cellPadding=0 width="100%" height=24>
+          <tr align=middle>
+            <td height=24><A class=DHbnr title=中国IT实验室Linux频道首页 href="http://linux.chinaitlab.com/" target=_blank>首页</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=新手入门 href="http://linux.chinaitlab.com/List_97.html" target=_blank>入门</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=Linux编程 href="http://linux.chinaitlab.com/List_122.html" target=_blank>Linux编程</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=微软认证 href="http://linux.chinaitlab.com/List_103.html" target=_blank>系统管理</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=网络管理 href="http://linux.chinaitlab.com/List_112.html" target=_blank>网络管理</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=Linux认证 href="http://linux.chinaitlab.com/List_92.html" target=_blank>Linux认证</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=Unix/BSD href="http://linux.chinaitlab.com/List_93.html" target=_blank>Unix/BSD</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=Linux数据库 href="http://linux.chinaitlab.com/List_118.html" target=_blank>Linux数据库</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=Linux集群 href="http://linux.chinaitlab.com/List_1978.html" target=_blank>Linux集群</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=Linux手册 href="http://linux.chinaitlab.com/manual.htm" target=_blank>Linux手册</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=Linux下载 href="http://download.chinaitlab.com/system/list/85_1.html" target=_blank>Linux下载</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=Linux手册 href="http://linux.chinaitlab.com/Special/Ubuntu/Index.html" target=_blank>Ubuntu</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=Linux论坛 href="http://bbs.chinaitlab.com/index.php?gid=275&sid=DkrDDa" target=_blank>论坛</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=Linux专题 href="http://special.chinaitlab.com/List_1933.html" target=_blank>专题</A></td>
+            <td><IMG src="http://linux.chinaitlab.com/images/07.gif" width=3 height=38></td>
+            <td><A class=DHbnr title=RSS阅读 href="http://linux.chinaitlab.com/rss.xml" target=_blank><FONT color=#ff0000>RSS</FONT></A></td>
+          </tr>
+        </table>
+      </td>
+      <td width=13><IMG src="http://linux.chinaitlab.com/images/05.gif" width=13 height=38></td>
+    </tr>
+  </table> 
+</div>
+<div class=blank>
+</div>
+<div class=tong>
+<div class="Prt_left border_kuang">
+<div class=WeiZhi><IMG height=30 src="http://www.chinaitlab.com/images/f02.gif" width=9 border=0>您现在的位置：&nbsp;<a class='LinkPath' href='http://www.chinaitlab.com'>中国IT实验室</a>&nbsp;>>&nbsp;<a class='LinkPath' href='http://Linux.chinaitlab.com/Index.html'>Linux</a>&nbsp;>>&nbsp;<a class='LinkPath' href='http://Linux.chinaitlab.com/List_122.html'>Linux编程</a>&nbsp;>>&nbsp;<a class='LinkPath' href='http://Linux.chinaitlab.com/List_123.html'>CC编程</a>&nbsp;>>&nbsp;正文 
+</div>
+<H1 class=Article_tle>利用framebuffer和tty在linux编写图形驱动 </H1>
+<div class=Ud_tle><SPAN style="BORDER-RIGHT: #cccccc 1px dashed; FLOAT:left;width:230px">
+<script language='javascript' src='http://linux.chinaitlab.com/JS/tech_title_rencai.js'></script> </SPAN><SPAN style="FLOAT: left; WIDTH: 52%">
+<script language='javascript' src='http://linux.chinaitlab.com/JS/und_title02.js'></script> 
+<script language='javascript' src='http://linux.chinaitlab.com/JS/tech_title_s3.js'></script> </SPAN>
+</div>
+<div class=infor><IMG height=16 alt=文章来源 src="http://cisco.chinaitlab.com/images/source.gif" width=15><a href='http://www.chinaitlab.com/ShowCopyFrom.asp?ChannelID=1003&SourceName=中国IT实验室收集整理'>中国IT实验室收集整理</a> <IMG height=15 alt=作者 src="http://cisco.chinaitlab.com/images/author.gif" width=14>佚名 <IMG height=16 alt=更新时间 src="http://cisco.chinaitlab.com/images/time.gif" width=14>2010-10-28 15:50:28 <IMG height=16 alt=保存本文 src="http://cisco.chinaitlab.com/images/save.gif" width=16><A href="javascript:window.external.AddFavorite('http://cisco.chinaitlab.com/c/831817.html','利用framebuffer和tty在linux编写图形驱动|中国IT实验室')" target=_top>保存本文</A> <IMG height=16 alt=推荐给好友 src="http://cisco.chinaitlab.com/images/tuijian.gif" width=20><A onclick="javascript:window.open('http://www.chinaitlab.com/www/news/sendfriend.asp?id1=32580&location1='+document.all.location1.value)" href="http://cisco.chinaitlab.com/c/831817.html">推荐给好友</A> <IMG height=15 alt=收藏本页 src="http://cisco.chinaitlab.com/images/faver.gif" width=14><A href="javascript:window.external.AddFavorite('http://www.chinaitlab.com','中国IT实验室')" target=_top>收藏本页</A> 
+</div>
+
+<div class=Article_content><div class="STYLE1"><a href="http://bbs.chinaitlab.com" target="_blank" class="STYLE1">欢迎进入Linux社区论坛，与200万技术人员互动交流  >>进入</a></div><P>　　虽然framebuffer有很多局限性，比如在内核启动之后就无法修改分辨率，但是通过framebuffer这个内核抽象出来的设备文件可以很方便的控制显卡，显示图像。</P>
+<P>　　由于framebuffer是显卡的抽象，因此向 /dev/fb0(假设是fb0)，就相当于向显存写数据，因此无论你是在什么环境下屏幕都会被覆盖掉，但是同时还有其他进程和你争抢显卡的显示权，因此需要一种方式独占显卡的使用权限，这个也是我找了很久才发现的。</P>
+<P>　　对framebuffer的操作很容易从网上找到例子，我这里简单说一下</P>
+<P>　　1.在未开启framebuffer的<a class="channel_keylink" href="http://linux.chinaitlab.com/" target="_blank">linux</a>系统下开启framebuffer(以<a class="channel_keylink" href="http://linux.chinaitlab.com/Special/Ubuntu/Index.html" target="_blank">Ubuntu</a> 9.04alpha6为例)</P>
+<P>　　开启framebuffer需要修改以下几个文件，你可以在在命令行里用vi编辑，也可以个用gedit，我个人还是推荐后者。</P>
+<P>　　sudo gedit /etc/initramfs-tools/modules</P>
+<P>　　在最后面新起两行加入</P>
+<P>　　fbcon</P>
+<P>　　vesafb</P>
+<P>　　sudo gedit /etc/modprobe.d/blacklist-framebuffer.conf</P>
+<P>　　注释掉(前面添加一个#)</P>
+<P>　　blacklist vesafb</P>
+<P>　　同时还要注释掉你的显卡驱动，我的是nVidia</P>
+<P>　　sudo gedit /boot/grub/menu.lst</P>
+<P>　　在kernel启动参数的行末尾添上 vga=0x317 (1024x768，16位，你也可以使用别的分辨率模式)</P>
+<P>　　然后</P>
+<P>　　sudo update-initramfs -u</P>
+<P>　　重新启动就可以了！</P>
+<P>　　2.framebuffer的基本操作</P>
+<P>　　一下代码均是我写的源代码，绝对是可以编译通过的，至于运行效果我只在我自己的电脑上<a class="channel_keylink" href="http://softtest.chinaitlab.com" target="_blank">测试</a>过有效。</P>
+<P>　　基本预处理操作</P>
+<P>　　包含头文件</P>
+<P>　　#include &lt;unistd.h&gt;</P>
+<P>　　#include &lt;stdio.h&gt;</P>
+<P>　　#include &lt;stdlib.h&gt;</P>
+<P>　　#include &lt;fcntl.h&gt;</P>
+<P>　　#include &lt;<a class="channel_keylink" href="http://linux.chinaitlab.com/" target="_blank">linux</a>/fb.h&gt;</P>
+<P>　　#include &lt;sys/mman.h&gt;</P>
+<P>　　#include &lt;sys/ioctl.h&gt;</P>
+<P>　　//要打开的framebuffer的编号，默认是0</P>
+<P>　　char devname[50];</P>
+<P>　　autorefresh=false;</P>
+<P>　　sprintf(devname,"/dev/fb%d",num);</P>
+<P>　　fd=open(devname,O_RDWR);</P>
+<P>　　if(fd&lt;0)</P>
+<P>　　{</P>
+<P>　　fd=-1;</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("open %s error!\n",devname);</P>
+<P>　　#endif</P>
+<P>　　return;</P>
+<P>　　}</P>
+<P>　　//获取信息</P>
+<P>　　if(fb::refreshinfo())</P>
+<P>　　{</P>
+<P>　　//映射内存</P>
+<P>　　mem = (char*)mmap(0,finfo.smem_len,PROT_READ | PROT_WRITE,MAP_SHARED,fd, 0);</P>
+<P>　　if((int)mem==-1)</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("reflect memory error! \n");</P>
+<P>　　#endif</P>
+<P>　　mem=NULL;</P>
+<P>　　}</P>
+<P>　　}</P>
+<P>　　else</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("can not reflect memory!\n");</P>
+<P>　　#endif</P>
+<P>　　mem=NULL;</P>
+<P>　　}</P>
+<P>　　/＊---------------------------------------------------------------------------------------------------------------＊/</P>
+<P>　　//更新fb信息</P>
+<P>　　if(ioctl(fd,FBIOGET_FSCREENINFO,&amp;finfo))</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("Reading fb_fix_screeninfo error!\n");</P>
+<P>　　#endif</P>
+<P>　　return false;</P>
+<P>　　}</P>
+<P>　　if(ioctl(fd,FBIOGET_VSCREENINFO,&amp;vinfo))</P>
+<P>　　{</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("Reading fb_var_screeninfo error!\n");</P>
+<P>　　#endif</P>
+<P>　　return false;</P>
+<P>　　}</P>
+<P>　　return true;</P>
+<P>　　这两个是最重要的，怎么样，简单吧？至于修改参数，我按照网上参考的源代码去做没有效果，待我研究透彻再搬上来。</P>
+<P>　　如何独占显卡？我在跟踪mplayer在fbdev方式下播放时的操作发现的，原理是这样的：</P>
+<P>　　mplayer首先找到当前活动的终端，然后打开该终端，保存当前终端的状态，然后修改状态，最后把终端切换到图形模式，这是他就获得了控制权，即使你按下ctrl+alt+fn切换终端也是无效的。</P>
+<P>　　但是这其中还有一个问题没有解决，无论是我写的程序，还是mplayer在x.org的图形终端里无法正常显示、播放图像、视频。我记得x.org没有使用framebuffer，他有自己的一套驱动，但是显卡只有一个，他的驱动如何和framebuffer协同工作，这其中我不是很清楚，在x.org里（其实是xsever）里可以修改分辨率的，当然正宗的针对nVidia的驱动做到这点没什么神奇的，问题是framebuffer的分辨率和他不一样，也就是说framebuffer和xsever驱动不可以同时运行，但是我确实赋值成功了，而且屏幕确实改变了，只不过不是想象中的图像。</P>
+<P>　　好了，下面写操作虚拟终端的代码，当然，你也可一不使用当前终端，可以创建一个新的终端，创建新终端很简单，只要打开相应的设备文件即可。</P>
+<P>　　头文件</P>
+<P>　　#include&lt;linux/vt.h&gt;</P>
+<P>　　#include&lt;linux/kd.h&gt;</P>
+<P>　　//获取当前活动的虚拟终端</P>
+<P>　　int kd;</P>
+<P>　　struct vt_stat vts;</P>
+<P>　　kd=open("/dev/tty0", O_WRONLY, 0);</P>
+<P>　　if(kd&lt;0)</P>
+<P>　　{</P>
+<P>　　//打开失败</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("Open /dev/tty0 error!");</P>
+<P>　　#endif</P>
+<P>　　return lge::gphdev::gphdevice::tty(-1);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //-1表示不初始化</P>
+<P>　　//产生错误</P>
+<P>　　}</P>
+<P>　　if (ioctl(kd, VT_GETSTATE, &amp;vts) == 0)</P>
+<P>　　{</P>
+<P>　　close(kd);</P>
+<P>　　return lge::gphdev::gphdevice::tty(vts.v_active);</P>
+<P>　　}</P>
+<P>　　else</P>
+<P>　　{</P>
+<P>　　//获取状态失败</P>
+<P>　　#ifdef DEBUG</P>
+<P>　　printf("ioctl VT_GETSTATE error!\n");</P>
+<P>　　#endif</P>
+<P>　　close(kd);</P>
+<P>　　return lge::gphdev::gphdevice::tty(-1);</P>
+<P>　　}</P>
+<P></p><p align='center'><b><font color='red'>[1]</font>&nbsp;<a href='http://Linux.chinaitlab.com/c/831817_2.html'>[2]</a>&nbsp;<a href='http://Linux.chinaitlab.com/c/831817_2.html'>下一页</a> </b></p> <div align=right style="margin:3px 0;">
+<span style="border:1px dashed #cccccc; margin:3px;">
+<script type="text/javascript"><!--
+google_ad_client = "pub-8985212780093870";
+/* 468x60, 创建于 10-9-21 */
+google_ad_slot = "4499687408";
+google_ad_width = 468;
+google_ad_height = 60;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</span>
+<A title="Linux频道
+中国IT实验室" href="http://Linux.chinaitlab.com/" target=_blank><IMG 
+
+height=14 src="http://www.chinaitlab.com/cms/images/logo14.gif" width=14 
+
+border=0></A>【责编:coco】<script language='javascript' src='http://www.chinaitlab.com/adjs/200605/88.js'></script></div> 
+</div>
+<div class=blank>
+</div>
+<div class=Fushu style="BORDER-RIGHT: 0px; BORDER-TOP: 0px; BORDER-LEFT: 0px; BORDER-BOTTOM: 0px">
+<div class=F_lst style="FLOAT: left">
+<div class=F_tle><IMG height=7 src="http://cisco.chinaitlab.com/images/f06.gif" width=9 border=0>相关文章
+</div>
+<div style="MARGIN: 5px 10px; WIDTH: 90%"><a class='LinkArticleCorrelative' href='http://Linux.chinaitlab.com/soft/862330.html' title='文章标题：如何选购Linux可以搭配的机器之RAM考量
+作&nbsp;&nbsp;&nbsp;&nbsp;者：佚名
+更新时间：2011-8-31 7:14:44' target="_self">如何选购Linux可以搭配的机器之RAM考量</a><br><a class='LinkArticleCorrelative' href='http://Linux.chinaitlab.com/attestation/862071.html' title='文章标题：Linux认证：用Linux命令创建快照
+作&nbsp;&nbsp;&nbsp;&nbsp;者：佚名
+更新时间：2011-8-26 23:59:08' target="_self">Linux认证：用Linux命令创建快照</a><br><a class='LinkArticleCorrelative' href='http://Linux.chinaitlab.com/info/862029.html' title='文章标题：5款让你的旧电脑重获新生的Linux发行版
+作&nbsp;&nbsp;&nbsp;&nbsp;者：佚名
+更新时间：2011-8-26 16:33:33' target="_self">5款让你的旧电脑重获新生的Linux发行版</a><br><a class='LinkArticleCorrelative' href='http://Linux.chinaitlab.com/info/862028.html' title='文章标题：袁萌：中国Linux社区需要实现大联合
+作&nbsp;&nbsp;&nbsp;&nbsp;者：佚名
+更新时间：2011-8-26 16:30:07' target="_self">袁萌：中国Linux社区需要实现大联合</a><br><a class='LinkArticleCorrelative' href='http://Linux.chinaitlab.com/attestation/861816.html' title='文章标题：Linux认证：Linux下MRTG搭建
+作&nbsp;&nbsp;&nbsp;&nbsp;者：佚名
+更新时间：2011-8-24 1:11:25' target="_self">Linux认证：Linux下MRTG搭建</a><br><a class='LinkArticleCorrelative' href='http://Linux.chinaitlab.com/soft/861775.html' title='文章标题：5款让旧电脑重获新生的Linux发行版
+作&nbsp;&nbsp;&nbsp;&nbsp;者：佚名
+更新时间：2011-8-24 14:15:27' target="_self">5款让旧电脑重获新生的Linux发行版</a><br><a class='LinkArticleCorrelative' href='http://Linux.chinaitlab.com/set/861677.html' title='文章标题：Linux安装配置maven以及搭建nexus私服
+作&nbsp;&nbsp;&nbsp;&nbsp;者：佚名
+更新时间：2011-8-23 13:47:16' target="_self">Linux安装配置maven以及搭建nexus私服</a><br><a class='LinkArticleCorrelative' href='http://Linux.chinaitlab.com/info/861671.html' title='文章标题：开源存储公司Gluster加入Linux基金会
+作&nbsp;&nbsp;&nbsp;&nbsp;者：佚名
+更新时间：2011-8-23 13:40:35' target="_self">开源存储公司Gluster加入Linux基金会</a><br><a class='LinkArticleCorrelative' href='http://Linux.chinaitlab.com/info/861670.html' title='文章标题：微软将成为&nbsp;Linux&nbsp;第五大企业支持者
+作&nbsp;&nbsp;&nbsp;&nbsp;者：佚名
+更新时间：2011-8-23 13:38:22' target="_self">微软将成为&nbsp;Linux&nbsp;第五大企业支持者</a><br><a class='LinkArticleCorrelative' href='http://Linux.chinaitlab.com/info/861667.html' title='文章标题：微软开发者对Linux&nbsp;3.0代码的改动最多
+作&nbsp;&nbsp;&nbsp;&nbsp;者：佚名
+更新时间：2011-8-23 13:35:20' target="_self">微软开发者对Linux&nbsp;3.0代码的改动最多</a><br>
+</div>
+</div>
+<div class=F_lst style="FLOAT: right">
+<div class=F_tle><IMG height=7 src="http://cisco.chinaitlab.com/images/f06.gif" width=9 border=0>编辑推荐
+</div>
+  ·&nbsp;[<a class="" href="http://Linux.chinaitlab.com/List_114.html">Linux安全</a>]<a class="" href="http://Linux.chinaitlab.com/safe/826400.html" title="让你的linux操作系统更加安全" target="_blank">让你的linux操作系统更加安全</a><br />·&nbsp;[<a class="" href="http://Linux.chinaitlab.com/List_109.html">系统管理</a>]<a class="" href="http://Linux.chinaitlab.com/administer/811248.html" title="Linux中patch文件的使用" target="_blank">Linux中patch文件的使用</a><br />·&nbsp;[<a class="" href="http://Linux.chinaitlab.com/List_109.html">系统管理</a>]<a class="" href="http://Linux.chinaitlab.com/administer/811247.html" title="Windows与Vmware下的Linux文件共享方式总结" target="_blank">Windows与Vmware下的Linux文件共享方式总结</a><br />·&nbsp;[<a class="" href="http://Linux.chinaitlab.com/List_111.html">内核技术</a>]<a class="" href="http://Linux.chinaitlab.com/kernel/811181.html" title="Linux下显示多核模式方法" target="_blank">Linux下显示多核模式方法</a><br />·&nbsp;[<a class="" href="http://Linux.chinaitlab.com/List_109.html">系统管理</a>]<a class="" href="http://Linux.chinaitlab.com/administer/811170.html" title="Linux通过脚本实现远程自动备份" target="_blank">Linux通过脚本实现远程自动备份</a><br />·&nbsp;[<a class="" href="http://Linux.chinaitlab.com/List_109.html">系统管理</a>]<a class="" href="http://Linux.chinaitlab.com/administer/811169.html" title="Unix与Windows文件名的差异" target="_blank">Unix与Windows文件名的差异</a><br />·&nbsp;[<a class="" href="http://Linux.chinaitlab.com/List_109.html">系统管理</a>]<a class="" href="http://Linux.chinaitlab.com/administer/811151.html" title="盘点Linux操作系统对用户说的七个“不”" target="_blank">盘点Linux操作系统对用户说的七个“不”</a><br />·&nbsp;[<a class="" href="http://Linux.chinaitlab.com/List_116.html">Linux服务器</a>]<a class="" href="http://Linux.chinaitlab.com/server/811150.html" title="Linux下用网站主机作为加密代理服务器" target="_blank">Linux下用网站主机作为加密代理服务器</a><br />·&nbsp;[<a class="" href="http://Linux.chinaitlab.com/List_116.html">Linux服务器</a>]<a class="" href="http://Linux.chinaitlab.com/server/811148.html" title="新手用Linux做代理服务器&nbsp;三招搞定" target="_blank">新手用Linux做代理服务器&nbsp;三招搞定</a><br />·&nbsp;[<a class="" href="http://Linux.chinaitlab.com/List_109.html">系统管理</a>]<a class="" href="http://Linux.chinaitlab.com/administer/811112.html" title="Linux测试工具route应用详细介绍" target="_blank">Linux测试工具route应用详细介绍</a><br /> 
+</div>
+</div>
+<div class=blank>
+</div>
+<div class=Fushu style="BORDER-RIGHT: 0px; BORDER-TOP: 0px; BORDER-LEFT: 0px; BORDER-BOTTOM: 0px"><IFRAME marginWidth=0 marginHeight=0 src="http://linux.chinaitlab.com/cio_new.html" frameBorder=0 width=660 scrolling=no height=213></IFRAME>
+</div>
+<div class=blank>
+</div>
+<div class=Fushu>
+<div class="title_line2 font14"><IMG height=29 src="http://windows.chinaitlab.com/images/f04.gif" width=7>相关产品和培训 
+</div>
+<IFRAME marginWidth=0 marginHeight=0 src="http://linux.chinaitlab.com/peixun_new.htm" frameBorder=0 width=660 scrolling=no height=159></IFRAME>
+</div>
+<div class=blank>
+</div>
+<div class=Fushu>
+<div class="title_line2 font14"><IMG height=29 src="http://cisco.chinaitlab.com/images/f04.gif" width=7>文章评论 
+</div>
+<IFRAME src="http://www.chinaitlab.com/CMS2006_Comment/Comment/ArticleComment.asp?ID=831817" frameBorder=0 width="100%" scrolling=yes height=330></IFRAME>
+</div>
+<div class=blank></div>
+<div class=tjtitle>　友情推荐链接</div>
+<div class=yqtj>
+<div class=yqtj_lf>·<A title=Asp源码 href="http://down.idcquan.com/download/asp/asp-1-1.html" target=_blank>Asp源码</A> <A title=PHP源码 href="http://down.idcquan.com/download/php/php-2-1.html" target=_blank>PHP源码</A><BR>·<A title=CGI源码 href="http://down.idcquan.com/download/cgi/cgi-5-1.html" target=_blank>CGI源码</A> <A title=JSP源码 href="http://down.idcquan.com/download/jsp/jsp-3-1.html" target=_blank>JSP源码</A><BR>·<A title=书籍教程 href="http://down.idcquan.com/download/book/book-6-1.html" target=_blank>建站书籍教程</A><BR>·<A title=服务器软件 href="http://down.idcquan.com/download/soft/soft-8-1.html" target=_blank>服务器软件</A> <A title=.net源码 href="http://down.idcquan.com/download/dotnet/dotnet-4-1.html" target=_blank>.net源码</A><BR>·<A title=工具软件 href="http://down.idcquan.com/download/tool/tool-9-1.html" target=_blank>建站工具软件</A><BR></div>
+<div class=yqtj_rt>·<A href="http://www.idcquan.com/2007idcpages/" target=_blank>IDC资讯大全</A><BR>·<A href="http://www.idcquan.com/2007idcsurvey/" target=_blank>机房品质万里行</A><BR>·<A href="http://www.idcquan.com/" target=_blank>IDC托管必备知识</A><BR>·<A href="http://www.idcquan.com/" target=_blank>全国IDC报价</A><BR>·<A href="http://www.idcquan.com/" target=_blank>网站推广优化</A><BR></div></div> 
+<div class=blank>
+</div>
+</div>
+<div class=Prt_right style="HEIGHT: 220px"><!-- 广告位：LINUX文章页右侧画中画 -->
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "54229";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+</div>
+<table width="270" border="0" align="right">
+  <tr>
+    <td><table border=0 cellSpacing=0 cellPadding=0 width=265 height=180>
+    <tr>
+      <td height=5></td>
+    </tr>
+    <tr>
+      <td height=180><IFRAME height=195 marginHeight=0 src="http://edu.chinaitlab.com/extend/7.html" frameBorder=0 width=265 marginWidth=0 scrolling=no></IFRAME></td>
+    </tr>
+  </table></td>
+  </tr>
+</table>
+<div class="Prt_right border_kuang">
+<div class=title_line><IMG height=7 src="http://cisco.chinaitlab.com/images/f06.gif" width=9 border=0>　专题推荐
+</div>
+<A title="PHP之入门到精通" href="http://linux.chinaitlab.com/Special/PHP/Index.html" target=_blank><img class='pic1' src='http://linux.chinaitlab.com/Special/PHP/20110811.jpg'  width='120' height='90' border='0'></A><A title="解密SELinux安全系统设计" href="http://linux.chinaitlab.com/special/selinux/Index.html" target=_blank><img class='pic1' src='http://linux.chinaitlab.com/special/selinux/images/smallbanner.jpg'  width='120' height='90' border='0'></A><BR>　·<A title="PHP之入门到精通" href="http://linux.chinaitlab.com/Special/PHP/Index.html" target=_blank>PHP之入门到精通</A><BR>　·<A title="GNU详细解析" href="http://linux.chinaitlab.com/Special/GUN/Index.html" target=_blank>GNU详细解析</A><BR>　·<A title="Android平台开发指南" href="http://linux.chinaitlab.com/special/android/index.html" target=_blank>Android平台开发指南</A><BR>　·<A title="中国Linux内核开发者大会" href="http://linux.chinaitlab.com/special/kernel2009/Index.html" target=_blank>中国Linux内核开发者大会</A><BR>　·<A title="LDAP服务器运用专题" href="http://linux.chinaitlab.com/special/ldap/Index.html" target=_blank>LDAP服务器运用专题</A><BR>　·<A title="解密SELinux安全系统设计" href="http://linux.chinaitlab.com/special/selinux/Index.html" target=_blank>解密SELinux安全系统设计</A><BR>　·<A title="lvm-linux逻辑磁盘卷管理专题" href="http://linux.chinaitlab.com/special/lvmdisk/Index.html" target=_blank>lvm-linux逻辑磁盘卷管理专题</A><BR>　·<A title="从无到有--理解系统引导过程" href="http://linux.chinaitlab.com/special/systemload/index.html" target=_blank>从无到有--理解系统引导过程</A><BR>　·<A title="Fedora中文频道" href="http://linux.chinaitlab.com/special/fedora/Index.html" target=_blank>Fedora中文频道</A><BR>　·<A title="新手入门：虚拟机上的Linux应用攻略" href="http://linux.chinaitlab.com/special/xuniji/Index.html" target=_blank>新手入门：虚拟机上的Linux应用攻略</A><BR> 
+</div>
+<div class="Prt_right" style="HEIGHT: 250px">
+<script language="javascript" src="http://www.chinaitlab.com/adjs/201105/274.js"></script></div>
+<div class="Prt_right border_kuang">
+<div class=title_line><IMG height=7 src="http://cisco.chinaitlab.com/images/f06.gif" width=9 border=0>　今日更新
+</div>
+<div class=right_lst>
+  ·&nbsp;<a class="" href="http://Linux.chinaitlab.com/soft/862330.html" title="如何选购Linux可以搭配的机器之RAM考量" target="_blank">如何选购Linux可以搭配的机器之RAM考量</a><br />·&nbsp;<a class="" href="http://Linux.chinaitlab.com/set/862296.html" title="UbuntuLinux服务器通过MAC分配IP" target="_blank">UbuntuLinux服务器通过MAC分配IP</a><br />·&nbsp;<a class="" href="http://Linux.chinaitlab.com/set/862295.html" title="为基于X应用程序增加启动项" target="_blank">为基于X应用程序增加启动项</a><br />·&nbsp;<a class="" href="http://Linux.chinaitlab.com/administer/862195.html" title="解决Ubuntu10.04系统上网慢的问题" target="_blank">解决Ubuntu10.04系统上网慢的问题</a><br />·&nbsp;<a class="" href="http://Linux.chinaitlab.com/administer/862194.html" title="16条技巧让你更高效使用SSH" target="_blank">16条技巧让你更高效使用SSH</a><br />·&nbsp;<a class="" href="http://Linux.chinaitlab.com/server/862122.html" title="Linux用Crontab来实现VPS自动化" target="_blank">Linux用Crontab来实现VPS自动化</a><br />·&nbsp;<a class="" href="http://Linux.chinaitlab.com/attestation/862071.html" title="Linux认证：用Linux命令创建快照" target="_blank">Linux认证：用Linux命令创建快照</a><br />·&nbsp;<a class="" href="http://Linux.chinaitlab.com/info/862029.html" title="5款让你的旧电脑重获新生的Linux发行版" target="_blank">5款让你的旧电脑重获新生的Linux发行版</a><br />·&nbsp;<a class="" href="http://Linux.chinaitlab.com/info/862028.html" title="袁萌：中国Linux社区需要实现大联合" target="_blank">袁萌：中国Linux社区需要实现大联合</a><br />·&nbsp;<a class="" href="http://Linux.chinaitlab.com/command/862000.html" title="常用的Linux系统监控命令" target="_blank">常用的Linux系统监控命令</a><br />
+</div>
+</div>
+<div class="Prt_right border_kuang">
+<div class=title_line><IMG height=7 src="http://cisco.chinaitlab.com/images/f06.gif" width=9 border=0>　认证培训
+</div>
+<div class=right_lst>
+<script language="javascript" src="http://linux.chinaitlab.com/JS/linux_peixun.js"></script>
+</div>
+</div>
+<div class="Prt_right border_kuang">
+<div class=title_line><IMG height=7 src="http://cisco.chinaitlab.com/images/f06.gif" width=9 border=0>　频道精选
+</div>
+<div class=right_lst>· <a href=http://cisco.chinaitlab.com/CCNACCDA/725394.html target=_blank title="新版CCNA考试大纲 07年8月1日生效">新版CCNA考试大纲 07年8月1日生效</a><br \>
+· <a href=http://linux.chinaitlab.com/special/linuxcom/Index.html target=_blank title="新手学习宝典：Linux常用命令全集">新手学习宝典：Linux常用命令全集</a><br \>
+· <a href=http://windows.chinaitlab.com/Special/systemsafety/Index.html target=_blank title="知已知彼，深入了解系统安全知识">知已知彼，深入了解系统安全知识</a><br \>
+· <a href=http://java.chinaitlab.com/Special/shijian/Index.html target=_blank title="从入门到精通 java初学者实践系列教程">从入门到精通 java初学者实践系列教程</a><br \>
+· <a href=http://www.chinaitlab.com/www/techspecial/OracleBasic/ target=_blank title="共同学习——Oracle入门基础专题">共同学习——Oracle入门基础专题</a><br \>
+· <a href=http://dotnet.chinaitlab.com/ADONET/727687.html target=_blank title="ADO.net与PowerBuilder的综合比">ADO.net与PowerBuilder的综合比较</a><br \>
+· <a href=http://internet.chinaitlab.com/observe/729460.html target=_blank title="评论：中国互联网“钱”途何在？">评论：中国互联网“钱”途何在？</a><br \>
+· <a href=http://news.chinaitlab.com/ityw/729103.html target=_blank title="中科院：龙芯要成“中国奔腾” 能卖1亿颗">中科院：龙芯要成"中国奔腾" 能卖1亿颗</a><br \>
+</div>
+</div>
+<div class="Prt_right border_kuang">
+<div class=title_line><IMG height=7 src="http://cisco.chinaitlab.com/images/f06.gif" width=9 border=0>　Windows频道导航
+</div>
+<div class=right_lst><table cellSpacing=1 cellPadding=0 width="98%" align=center border=0>
+    <tr>
+      <td style="LINE-HEIGHT: 26px" colSpan=2>
+      <P><STRONG><A href="http://linux.chinaitlab.com/List_97.html" target=_parent>新手入门</A></STRONG><BR><A href="http://linux.chinaitlab.com/List_99.html" target=_blank>Linux安装</A>　<A href="http://linux.chinaitlab.com/List_100.html" target=_blank>常用命令</A>　<A href="http://linux.chinaitlab.com/List_102.html" target=_blank>软件使用</A><BR><STRONG><A href="http://linux.chinaitlab.com/List_103.html" target=_blank>系统管理</A></STRONG> <BR><A href="http://linux.chinaitlab.com/List_105.html" target=_blank>设备驱动</A>　<A href="http://linux.chinaitlab.com/List_107.html" target=_blank>Linux汉化</A>　<A href="http://linux.chinaitlab.com/List_109.html" target=_blank>系统管理</A><BR><A href="http://linux.chinaitlab.com/List_110.html" target=_blank>桌面应用</A>　<A href="http://linux.chinaitlab.com/List_111.html" target=_blank>内核技术</A><BR><STRONG><A href="http://linux.chinaitlab.com/List_112.html" target=_blank>网络管理</A></STRONG> <BR><A href="http://linux.chinaitlab.com/List_114.html" target=_blank>Linux安全</A>　<A href="http://linux.chinaitlab.com/List_115.html" target=_blank>网络管理</A>　<A href="http://linux.chinaitlab.com/List_116.html" target=_blank>Linux服务器</A><BR><STRONG><A href="http://linux.chinaitlab.com/List_118.html" target=_blank>Linux数据库</A></STRONG><BR><A href="http://linux.chinaitlab.com/List_119.html" target=_blank>MYSQL</A>　<A href="http://linux.chinaitlab.com/List_120.html" target=_blank>POSTGRE</A><BR><STRONG><A href="http://linux.chinaitlab.com/List_122.html" target=_blank>Linux编程</A></STRONG><BR><A href="http://linux.chinaitlab.com/List_123.html" target=_blank>CC++编程</A>　<A href="http://linux.chinaitlab.com/List_125.html" target=_blank>Python编程</A>　<A href="http://linux.chinaitlab.com/List_127.html" target=_blank>Perl编程</A> <BR><A href="http://linux.chinaitlab.com/List_128.html" target=_blank>PHP</A>　<A href="http://linux.chinaitlab.com/List_129.html" target=_blank>SHELL编程</A><BR><STRONG><A href="http://linux.chinaitlab.com/List_132.html" target=_blank>Linux下载</A></STRONG><BR><A href="http://linux.chinaitlab.com/List_134.html" target=_blank>系统管理</A>　<A href="http://linux.chinaitlab.com/List_135.html" target=_blank>游戏娱乐</A>　<A href="http://linux.chinaitlab.com/List_136.html" target=_blank>服务器类</A><BR><A href="http://linux.chinaitlab.com/List_138.html" target=_blank>开发工具</A>　<A href="http://linux.chinaitlab.com/List_139.html" target=_blank>X-windows</A>　<A href="http://linux.chinaitlab.com/List_140.html" target=_blank>参考手册</A><BR><A href="http://linux.chinaitlab.com/List_142.html" target=_blank>网络工具</A>　<A href="http://linux.chinaitlab.com/List_143.html" target=_blank>多媒体</A><BR><A href="http://linux.chinaitlab.com/List_1978.html" target=_blank><STRONG><FONT color=#ff0000>Linux集群</FONT></STRONG></A>　<A href="http://linux.chinaitlab.com/manual.htm" target=_blank><STRONG><FONT color=#0000ff>Linux手册</FONT></STRONG></A>　<STRONG><A href="http://linux.chinaitlab.com/List_92.html" target=_blank>Linux认证</A></STRONG><BR><STRONG><A href="http://linux.chinaitlab.com/List_93.html" target=_blank>Unix</A></STRONG>　<STRONG><A href="http://linux.chinaitlab.com/List_95.html" target=_blank>资讯动态</A></STRONG><BR><BR></P></td>
+    </tr>
+  </table>
+</div>
+</div>
+</div>
+<div class=blank>
+</div>
+<div class=tong><IFRAME marginWidth=0 marginHeight=0 src="http://www.chinaitlab.com/down.htm" frameBorder=0 width="100%" scrolling=no height=200></IFRAME>
+</div>
+<!-- 广告位：A专家级频道通用漂浮右下 -->
+<script type="text/javascript" >BAIDU_CLB_SLOT_ID = "136211";</script>
+<script type="text/javascript" src="http://cbjs.baidu.com/js/o.js"></script>
+<!-- tj -->
+<script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F6ba3b0a89d6706a3868a9f5c81b0f319' type='text/javascript'%3E%3C/script%3E"));
+</script>
+</body>
+</html>

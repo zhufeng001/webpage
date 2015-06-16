@@ -1,0 +1,151 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>9.13. Color Selection</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-MiscellaneousWidgets.html" title="Chapter 9. Miscellaneous Widgets"><link rel="prev" href="sec-Calendar.html" title="9.12. Calendar"><link rel="next" href="sec-FileSelections.html" title="9.14. File Selections"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9.13. Color Selection</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-Calendar.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Miscellaneous Widgets</th><td width="20%" align="right"> <a accesskey="n" href="sec-FileSelections.html">Next</a></td></tr></table><hr></div><div class="sect1" title="9.13. Color Selection"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-ColorSelection"></a>9.13. Color Selection</h2></div></div></div><p>The color selection widget is, not surprisingly, a widget for
+interactive selection of colors. This composite widget lets the user select
+a color by manipulating RGB (Red, Green, Blue) and HSV (Hue, Saturation,
+Value) triples. This is done either by adjusting single values with sliders
+or entries, or by picking the desired color from a hue-saturation
+wheel/value bar. Optionally, the opacity of the color can also be
+set.</p><p>The color selection widget currently emits only one signal,
+"color_changed", which is emitted whenever the current color in the widget
+changes, either when the user changes it or if it's set explicitly through
+the <code class="methodname">set_color</code>() method.</p><p>Lets have a look at what the color selection widget has to offer us.
+The widget comes in two flavors: <code class="classname">gtk.ColorSelection</code>
+and <code class="classname">gtk.ColorSelectionDialog</code>.</p><pre class="programlisting">
+  colorsel = gtk.ColorSelection()
+</pre><p>You'll probably not be using this constructor directly. It
+creates an orphan <code class="classname">ColorSelection</code> widget which you'll
+have to parent yourself. The <code class="classname">ColorSelection</code> widget
+inherits from the <code class="classname">VBox</code> widget.</p><pre class="programlisting">
+  colorseldlg = gtk.ColorSelectionDialog(<strong class="parameter"><code>title</code></strong>)
+</pre><p>where <em class="parameter"><code>title</code></em> is a string to be used in the
+titlebar of the dialog.</p><p>This is the most common color selection constructor. It creates
+a <code class="classname">ColorSelectionDialog</code>. It consists of a
+<code class="classname">Frame</code> containing a
+<code class="classname">ColorSelection</code> widget, an
+<code class="classname">HSeparator</code> and an <code class="classname">HBox</code> with
+three buttons, <span class="guibutton">Ok</span>, <span class="guibutton">Cancel</span> and
+<span class="guibutton">Help</span>. You can reach these buttons by accessing the
+<em class="parameter"><code>ok_button</code></em>, <em class="parameter"><code>cancel_button</code></em> and
+<em class="parameter"><code>help_button</code></em> attributes of the
+<code class="classname">ColorSelectionDialog</code>, (i.e.
+<em class="parameter"><code>colorseldlg.ok_button</code></em>). The
+<code class="classname">ColorSelection</code> widget is accessed using the attribute
+<em class="parameter"><code>colorsel</code></em>:</p><pre class="programlisting">
+  colorsel = colorseldlg.colorsel
+</pre><p>The <code class="classname">ColorSelection</code> widget has a number of
+methods that change its characteristics or provide access to the color
+selection.</p><pre class="programlisting">
+  colorsel.set_has_opacity_control(<strong class="parameter"><code>has_opacity</code></strong>)
+</pre><p>The color selection widget supports adjusting the opacity of a
+color (also known as the alpha channel). This is disabled by default.
+Calling this method with <em class="parameter"><code>has_opacity</code></em> set to
+<code class="literal">TRUE</code> enables opacity. Likewise, <em class="parameter"><code>has_opacity
+</code></em>set to <code class="literal">FALSE</code> will disable opacity.</p><pre class="programlisting">
+  colorsel.set_current_color(<strong class="parameter"><code>color</code></strong>)
+  colorsel.set_current_alpha(<strong class="parameter"><code>alpha</code></strong>)
+</pre><p>You can set the current color explicitly by calling the
+<code class="methodname">set_current_color</code>() method with a
+<code class="classname">gtk.gdk.Color</code>. Setting the opacity (alpha channel) is
+done with the <code class="methodname">set_current_alpha</code>() method. The
+<em class="parameter"><code>alpha</code></em> value should be between 0 (fully transparent)
+and 65636 (fully opaque).</p><pre class="programlisting">
+  color = colorsel.get_current_color()
+  alpha = colorsel.get_current_alpha()
+</pre><p>When you need to query the current color, typically when you've
+received a "color_changed" signal, you use these methods.</p><p>The <a class="ulink" href="examples/colorsel.py" target="_top"><span class="command"><strong>colorsel.py</strong></span></a> example
+program demonstrates the use of the
+<code class="classname">ColorSelectionDialog</code>. The program displays a window
+containing a drawing area. Clicking on it opens a color selection dialog,
+and changing the color in the color selection dialog changes the background
+color.
+<a class="xref" href="sec-ColorSelection.html#colorselfig" title="Figure 9.13. Color Selection Dialog Example">Figure 9.13, “Color Selection Dialog Example”</a> illustrates this program in action:</p><div class="figure"><a name="colorselfig"></a><p class="title"><b>Figure 9.13. Color Selection Dialog Example</b></p><div class="figure-contents"><div class="mediaobject" align="center"><img src="figures/colorselection.png" align="middle" alt="Color Selection Dialog Example"></div></div></div><br class="figure-break"><p>The source code for <a class="ulink" href="examples/colorsel.py" target="_top"><span class="command"><strong>colorsel.py</strong></span></a> is:</p><pre class="programlisting">
+    1	#!/usr/bin/env python
+    2	
+    3	# example colorsel.py
+    4	
+    5	import pygtk
+    6	pygtk.require('2.0')
+    7	import gtk
+    8	
+    9	class ColorSelectionExample:
+   10	    # Color changed handler
+   11	    def color_changed_cb(self, widget):
+   12	        # Get drawingarea colormap
+   13	        colormap = self.drawingarea.get_colormap()
+   14	
+   15	        # Get current color
+   16	        color = self.colorseldlg.colorsel.get_current_color()
+   17	
+   18	        # Set window background color
+   19	        self.drawingarea.modify_bg(gtk.STATE_NORMAL, color)
+   20	
+   21	    # Drawingarea event handler
+   22	    def area_event(self, widget, event):
+   23	        handled = False
+   24	
+   25	        # Check if we've received a button pressed event
+   26	        if event.type == gtk.gdk.BUTTON_PRESS:
+   27	            handled = True
+   28	
+   29	            # Create color selection dialog
+   30	            if self.colorseldlg == None:
+   31	                self.colorseldlg = gtk.ColorSelectionDialog(
+   32	                    "Select background color")
+   33	
+   34	            # Get the ColorSelection widget
+   35	            colorsel = self.colorseldlg.colorsel
+   36	
+   37	            colorsel.set_previous_color(self.color)
+   38	            colorsel.set_current_color(self.color)
+   39	            colorsel.set_has_palette(True)
+   40	
+   41	            # Connect to the "color_changed" signal
+   42	            colorsel.connect("color_changed", self.color_changed_cb)
+   43	            # Show the dialog
+   44	            response = self.colorseldlg.run()
+   45	
+   46	            if response -- gtk.RESPONSE_OK:
+   47	                self.color = colorsel.get_current_color()
+   48	            else:
+   49	                self.drawingarea.modify_bg(gtk.STATE_NORMAL, self.color)
+   50	
+   51	            self.colorseldlg.hide()
+   52	
+   53	        return handled
+   54	
+   55	    # Close down and exit handler
+   56	    def destroy_window(self, widget, event):
+   57	        gtk.main_quit()
+   58	        return True
+   59	
+   60	    def __init__(self):
+   61	        self.colorseldlg = None
+   62	        # Create toplevel window, set title and policies
+   63	        window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+   64	        window.set_title("Color selection test")
+   65	        window.set_resizable(True)
+   66	
+   67	        # Attach to the "delete" and "destroy" events so we can exit
+   68	        window.connect("delete_event", self.destroy_window)
+   69	  
+   70	        # Create drawingarea, set size and catch button events
+   71	        self.drawingarea = gtk.DrawingArea()
+   72	
+   73	        self.color = self.drawingarea.get_colormap().alloc_color(0, 65535, 0)
+   74	
+   75	        self.drawingarea.set_size_request(200, 200)
+   76	        self.drawingarea.set_events(gtk.gdk.BUTTON_PRESS_MASK)
+   77	        self.drawingarea.connect("event",  self.area_event)
+   78	  
+   79	        # Add drawingarea to window, then show them both
+   80	        window.add(self.drawingarea)
+   81	        self.drawingarea.show()
+   82	        window.show()
+   83	  
+   84	def main():
+   85	    gtk.main()
+   86	    return 0
+   87	
+   88	if __name__ == "__main__":
+   89	    ColorSelectionExample()
+   90	    main()
+</pre></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-Calendar.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-MiscellaneousWidgets.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="sec-FileSelections.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">9.12. Calendar </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 9.14. File Selections</td></tr></table></div></body></html>

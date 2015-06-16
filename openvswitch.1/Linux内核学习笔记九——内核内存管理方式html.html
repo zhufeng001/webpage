@@ -1,0 +1,322 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Linux内核学习笔记九——内核内存管理方式 - Dufresne - 博客园</title>
+<link type="text/css" rel="stylesheet" href="http://common.cnblogs.com/blog/css/common.css?id=20130323"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="http://common.cnblogs.com/Skins/coffee/style.css?id=20130323"/>
+<link type="text/css" rel="stylesheet" href="http://common.cnblogs.com/blog/css/common2.css"/>
+<link type="text/css" rel="stylesheet" href="http://common.cnblogs.com/css/shStyle.css"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/bastard/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/bastard/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/bastard/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">
+var currentBlogApp = 'bastard';
+</script>
+<script src="http://common.cnblogs.com/blog/script/common.js?id=20130323" type="text/javascript"></script> 
+<script src="http://common.cnblogs.com/script/json2.js" type="text/javascript"></script>
+<script type="text/javascript" src="http://common.cnblogs.com/script/syntaxHighlighter.js"></script>
+</head>
+<body>
+<a name="top"></a>
+
+<!--done-->
+<div id="home">
+<div id="header">
+	<div id="blogTitle">
+	<a id="lnkBlogLogo" href="http://www.cnblogs.com/bastard/"><img id="blogLogo" src="/Skins/custom/images/logo.gif" alt="返回主页" /></a>			
+		
+<!--done-->
+<h1><a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/bastard/">Dufresne</a></h1>
+<h2>改变从现在开始！</h2>
+
+
+
+		
+	</div><!--end: blogTitle 博客的标题和副标题 -->
+</div><!--end: header 头部 -->
+
+<div id="main">
+	<div id="mainContent">
+	<div class="forFlow">
+		<div id="navigator">
+			
+<!--done-->
+			<ul id="navList">
+				<li><a id="MyLinks1_HomeLink" class="menu" href="http://www.cnblogs.com/">博客园</a></li>
+				<li><a id="MyLinks1_IngLink" class="menu" href="http://home.cnblogs.com/ing/">闪存</a></li>
+				<li><a id="MyLinks1_MyHomeLink" class="menu" href="http://www.cnblogs.com/bastard/">首页</a></li>
+				<li><a id="MyLinks1_NewPostLink" class="menu" rel="nofollow" href="http://www.cnblogs.com/bastard/admin/EditPosts.aspx?opt=1">新随笔</a></li>
+				<li><a id="MyLinks1_ContactLink" accesskey="9" class="menu" rel="nofollow" href="http://space.cnblogs.com/msg/send/Dufresne">联系</a></li>
+				<li><a id="MyLinks1_Admin" class="menu" rel="nofollow" href="http://www.cnblogs.com/bastard/admin/EditPosts.aspx">管理</a></li>
+				<li><a id="MyLinks1_Syndication" class="menu" href="http://www.cnblogs.com/bastard/rss">订阅</a>
+				<a id="MyLinks1_XMLLink" class="aHeaderXML" href="http://www.cnblogs.com/bastard/rss"><img src="/Skins/Custom/images/rss.gif" alt="订阅" /></a></li>
+			</ul>
+
+
+			<div class="blogStats">
+				
+				
+<!--done-->
+随笔- 125&nbsp;
+文章- 0&nbsp;
+评论- 29&nbsp;
+
+				
+			</div><!--end: blogStats -->
+		</div><!--end: navigator 博客导航栏 -->
+		
+	
+<!--done-->
+<div id="topics">
+	<div class = "post">
+		<h1 class = "postTitle">
+			<a id="cb_post_title_url" class="postTitle2" href="http://www.cnblogs.com/bastard/archive/2012/09/21/2697407.html">Linux内核学习笔记九——内核内存管理方式</a>
+		</h1>
+		<div class="clear"></div>
+		<div class="postBody">
+			<div id="cnblogs_post_body"><h1><span style="font-size: 14pt;">一 页</span></h1>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 内核把物理页作为内存管理的基本单位；内存管理单元（MMU）把虚拟地址转换为物理</span></p>
+<p><span style="font-size: 16px;">地址，通常以页为单位进行处理。MMU以页大小为单位来管理系统中的也表。</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 32位系统：页大小4KB</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 64位系统：页大小8KB</span></p>
+<p><span style="font-size: 16px;">内核用相应的数据结构表示系统中的每个物理页：</span></p>
+<p><span style="font-size: 16px;">　　&lt;linux/mm_types.h&gt;</span></p>
+<p><span style="font-size: 16px;">　　struct page {</span><span style="font-size: 16px;">}</span></p>
+<p><span style="font-size: 16px;">内核通过这样的数据结构管理系统中所有的页，因此内核判断一个页是否空闲，谁有拥有这个页</span></p>
+<p><span style="font-size: 16px;">，拥有者可能是：用户空间进程、动态分配的内核数据、静态内核代码、页高速缓存&hellip;&hellip;</span></p>
+<p><span style="font-size: 16px;">系统中每一个物理页都要分配这样一个结构体，进行内存管理。</span></p>
+<h1><span style="font-size: 14pt;">二 区</span></h1>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Linux内存寻址存在问题：</span></p>
+<p><span style="font-size: 16px;">一些硬件只能用某些特定的内存来执行DMA（直接内存访问）</span></p>
+<p><span style="font-size: 16px;">一些体系结构其内存的物理寻址范围必须你寻址范围大得多。这样导致一些内存不能永久映射到内核空间上。</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 通常32位Linux内核地址空间划分0~3G为用户空间，3~4G为内核空间。当内核模块代码或线程访问内存时，</span></p>
+<p><span style="font-size: 16px;">代码中的内存地址都为逻辑地址，而对应到真正的物理内存地址，需要地址一对一的映射。因此内核空间地址为3~4G，</span></p>
+<p><span style="font-size: 16px;">最多只能映射到1G空间的内存，超出1G大小的内存将如何去问呢！</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 由于存在上述条件的限制。Linux将内核空间地址划分为三个区：</span></p>
+<p><span style="font-size: 16px;">ZONE_DMA、ZONE_NORMAL和ZONE_HIGHMEM。</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ZONE_HIGHMEM即为高端内存，这就是内存高端内存概念的由来。</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;">在x86结构中，三种类型的区域如下：</span></p>
+<p><span style="font-size: 16px;">　　ZONE_DMA&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 内存开始的16MB</span></p>
+<p><span style="font-size: 16px;">　　ZONE_NORMAL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 16MB~896MB</span></p>
+<p><span style="font-size: 16px;">　　ZONE_HIGHMEM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 896MB ~ 结束</span></p>
+<p><span style="font-size: 16px;">同样每个区包含众多页，形成不同内存池，按照用途进行内存分配。</span></p>
+<p><span style="font-size: 16px;">用相应的数据结构来表示区：</span></p>
+<p><span style="font-size: 16px;">　　&lt;linux/mmzone.h&gt;</span></p>
+<p><span style="font-size: 16px;">　　struct zone {</span><span style="font-size: 16px;">}</span></p>
+<h1><span style="font-size: 14pt;">三 获取页/内存</span></h1>
+<p><span style="font-size: 16px;">static inline struct page *<strong>alloc_pages</strong>(gfp_t gfp_mask, unsigned int order)</span></p>
+<p><span style="font-size: 16px;">该函数分配2的order次方个连续的物理页，返回指向第一个页的page结构体指针。</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;">void *<strong>page_address</strong>(const struct page *page)</span></p>
+<p><span style="font-size: 16px;">返回指向给定物理页当前所在的逻辑地址</span></p>
+<p><span style="font-size: 16px;">extern unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order);</span></p>
+<p><span style="font-size: 16px;">extern unsigned long get_zeroed_page(gfp_t gfp_mask);</span></p>
+<p><span style="font-size: 16px;">释放：</span></p>
+<p><span style="font-size: 16px;">extern void __free_pages(struct page *page, unsigned int order);</span></p>
+<p><span style="font-size: 16px;">extern void free_pages(unsigned long addr, unsigned int order);</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;">内存的分配可能失败，内存的释放要准确！</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><strong><span style="font-size: 16px;">1 kmalloc</span></strong></p>
+<p><span style="font-size: 16px;">kmalloc()函数与用户空间malloc一组函数类似，获得以字节为单位的一块内核内存。</span></p>
+<p><span style="font-size: 16px;">void *kmalloc(size_t size, gfp_t flags)</span></p>
+<p><span style="font-size: 16px;">void kfree(const void *objp)</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;">分配内存物理上连续。</span></p>
+<p><span style="font-size: 16px;">gfp_t标志：表明分配内存的方式。如：</span></p>
+<p><span style="font-size: 16px;">GFP_ATOMIC：分配内存优先级高，不会睡眠</span></p>
+<p><span style="font-size: 16px;">GFP_KERNEL：常用的方式，可能会阻塞。</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><strong><span style="font-size: 16px;">2 vmalloc&nbsp;&nbsp;&nbsp;&nbsp;</span></strong></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;">void *vmalloc(unsigned long size)</span></p>
+<p><span style="font-size: 16px;">void vfree(const void *addr)</span></p>
+<p><span style="font-size: 16px;">vmalloc()与kmalloc方式类似，vmalloc分配的内存虚拟地址是连续的，而物理地址则无需连续，与用户空间分配函数一致。</span></p>
+<p><span style="font-size: 16px;">vmalloc通过分配非连续的物理内存块，在修正页表，把内存映射到逻辑地址空间的连续区域中，虚拟地址是连续的。</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 是否必须要连续的物理地址和具体使用场景有关。在不理解虚拟地址的硬件设备中，内存区都必须是连续的。</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 通过建立页表转换成虚拟地址空间上连续，肯定存在一些消耗，带来性能上影响。</span></p>
+<p><span style="font-size: 16px;">所以通常内核使用kmalloc来申请内存，在需要大块内存时使用vmalloc来分配。</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<h1><span style="font-size: 14pt;">四 slab层</span></h1>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 内核中经常进行内存的分配和释放。为了便于数据的频繁分配和回收，通常建立一个空</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;">闲链表&mdash;&mdash;内存池。当不使用的已分配的内存时，将其放入内存池中，而不是直接释放掉。</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Linux内核提供了slab层来管理内存的分配和释放。</span></p>
+<p><span style="font-size: 16px;">频繁分配和回收必然导致内存碎片，缓存他们.</span></p>
+<p><span style="font-size: 16px;">slab层得设计实现</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; slab层把不同的对象划分为所谓的高速缓存组。每个高速缓存组存放不同类型的对象。高速缓存划分为slab，</span></p>
+<p><span style="font-size: 16px;">slab由一个或多个物理上连续的页组成。每个slab处于三种状态之一：满，部分满，空。</span></p>
+<p><span style="font-size: 16px;">高速缓存，slab，对象之间的关系：</span></p>
+<p><span style="font-size: 16px;">　　　　&nbsp;<img src="https://www.ibm.com/developerworks/cn/linux/l-linux-slab-allocator/figure1.gif" alt="     图  1. slab 分配器的主要结构" /></span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 与传统的内存管理模式相比， slab 缓存分配器提供了很多优点。首先，内核通常依赖于对小对象的分配，</span></p>
+<p><span style="font-size: 16px;">它们会在系统生命周期内进行无数次分配。slab 缓存分配器通过对类似大小的对象进行缓存而提供这种功能，</span></p>
+<p><span style="font-size: 16px;">从而避免了常见的碎片问题。slab 分配器还支持通用对象的初始化，从而避免了为同一目而对一个对象重复</span></p>
+<p><span style="font-size: 16px;">进行初始化。最后，slab 分配器还可以支持硬件缓存对齐和着色，这允许不同缓存中的对象占用相同的缓存行，</span></p>
+<p><span style="font-size: 16px;">从而提高缓存的利用率并获得更好的性能。</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px; color: #0000ff;">slab数据结构和接口：</span></p>
+<p><span style="font-size: 16px;">每个高速缓存用kmem_cache结构来表示：</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct kmem_cache {</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct kmem_list3 **nodelists;</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &hellip;&hellip;</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</span></p>
+<p><span style="font-size: 16px; color: #0000ff;">缓存区包含三种slab：满，未满，空闲</span></p>
+<p><span style="font-size: 16px;">struct kmem_list3 {</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct list_head slabs_partial; /* partial list first, better asm code */</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct list_head slabs_full;</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct list_head slabs_free;</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &hellip;&hellip;</span></p>
+<p><span style="font-size: 16px;">};</span></p>
+<p><span style="font-size: 16px; color: #0000ff;">每一个slab包含多个对象：</span></p>
+<p><span style="font-size: 16px;">struct slab {</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct list_head list;</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned long colouroff;</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; void *s_mem;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* including colour offset */</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned int inuse;&nbsp;&nbsp;&nbsp;&nbsp; /* num of objs active in slab */</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; kmem_bufctl_t free;</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned short nodeid;</span></p>
+<p><span style="font-size: 16px;">};</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px; color: #0000ff;">相关接口：mm/slab.c</span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 内核函数 kmem_cache_create 用来创建一个新缓存。这通常是在内核初始化时执行的，或者在首次加载内核模块时执行。</span></p>
+<p><span style="font-size: 16px;"><strong>struct kmem_cache *<span style="color: #0000ff;">kmem_cache_create</span> (</strong></span></p>
+<p><span style="font-size: 16px;"><strong>　　const char *name, </strong></span></p>
+<p><span style="font-size: 16px;"><strong>　　size_t size, </strong></span></p>
+<p><span style="font-size: 16px;"><strong>　　size_t align,</strong></span></p>
+<p><span style="font-size: 16px;"><strong>　　unsigned long flags, </strong></span></p>
+<p><span style="font-size: 16px;"><strong>　　void (*ctor)(void *))</strong></span></p>
+<p><span style="font-size: 16px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></p>
+<p><span style="font-size: 16px;"><span style="color: #0000ff;">name</span> 参数定义了缓存名称，proc 文件系统（在 /proc/slabinfo 中）使用它标识这个缓存。</span></p>
+<p><span style="font-size: 16px;"><span style="color: #0000ff;">size</span> 参数指定了为这个缓存创建的对象的大小，</span></p>
+<p><span style="font-size: 16px;"><span style="color: #0000ff;">align</span> 参数定义了每个对象必需的对齐。</span></p>
+<p><span style="font-size: 16px;"><span style="color: #0000ff;">flags</span> 参数指定了为缓存启用的选项：</span></p>
+<p><span style="font-size: 16px;">　　kmem_cache_create 的部分选项（在 flags 参数中指定）</span></p>
+<p><span style="font-size: 16px;">　　SLAB_RED_ZONE&nbsp;&nbsp;&nbsp; 在对象头、尾插入标志，用来支持对缓冲区溢出的检查。</span></p>
+<p><span style="font-size: 16px;">　　SLAB_POISON&nbsp; 使用一种己知模式填充 slab，允许对缓存中的对象进行监视（对象属对象所有，不过可以在外部进行修改）。</span></p>
+<p><span style="font-size: 16px;">　　SLAB_HWCACHE_ALIGN&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 指定缓存对象必须与硬件缓存行对齐。</span></p>
+<p><span style="font-size: 16px;"><span style="color: #0000ff;">ctor 和 dtor</span> 参数定义了一个可选的对象构造器和析构器。构造器和析构器是用户提供的回调函数。当从缓存中分配新对象时，可以通过构造器进行初始化。</span></p>
+<p><span style="font-size: 16px;">　　　　要从一个命名的缓存中分配一个对象，可以使用 kmem_cache_alloc 函数。</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;"><strong>void <span style="color: #0000ff;">kmem_cache_alloc</span>( struct kmem_cache *cachep, gfp_t flags );</strong></span></p>
+<p><span style="font-size: 16px;">这个函数从缓存中返回一个对象。注意如果缓存目前为空，那么这个函数就会调用 cache_alloc_refill 向缓存中增加内存。 </span></p>
+<p><span style="font-size: 16px;">kmem_cache_alloc 的 flags 选项与 kmalloc 的</span></p>
+<p><span style="font-size: 16px;"><span style="color: #0000ff;">cachep</span>：所建立的缓存区</span></p>
+<p><span style="font-size: 16px;"><span style="color: #0000ff;">flags</span>参数：</span></p>
+<p><span style="font-size: 16px;">　　GFP_USER 为用户分配内存（这个调用可能会睡眠）。</span></p>
+<p><span style="font-size: 16px;">　　GFP_KERNEL&nbsp;&nbsp;&nbsp; 从内核 RAM 中分配内存（这个调用可能会睡眠）。</span></p>
+<p><span style="font-size: 16px;">　　GFP_ATOMIC&nbsp;&nbsp; 使该调用强制处于非睡眠状态（对中断处理程序非常有用）。</span></p>
+<p><span style="font-size: 16px;">　　GFP_HIGHUSER&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 从高端内存中分配内存。</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<h1><span style="font-size: 14pt;">五 高端内存的映射</span></h1>
+<p><span style="font-size: 16px; color: #0000ff;">永久映射：可能会阻塞</span></p>
+<p><span style="font-size: 16px;">　　映射一个给定的page结构到内核地址空间：</span></p>
+<p><span style="font-size: 16px;">　　void *kmap(struct page *page)</span></p>
+<p><span style="font-size: 16px;">　　解除映射：</span></p>
+<p><span style="font-size: 16px;">　　void kunmap(struct page *page)</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;"><span style="color: #0000ff;">临时映射：不会阻塞&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;</span></p>
+<p><span style="font-size: 16px;">void *kmap_atomic(struct page *page)</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<h1><span style="font-size: 14pt;">六 分配函数的选择</span></h1>
+<p><span style="font-size: 16px;">　　l&nbsp; 连续的物理页：kmalloc或者低级页分配器</span></p>
+<p><span style="font-size: 16px;">　　l&nbsp; 高端内存分配：alloc_pages 指向page结构指针，不是逻辑地址指针。再通过kmap()把高端地址内存映射到内核的逻辑地址空间。</span></p>
+<p><span style="font-size: 16px;">　　l&nbsp; 无需连续物理地址：vmalloc 虚拟地址连续物理地址可能不连续，相对存在性能损失</span></p>
+<p><span style="font-size: 16px;">　　l&nbsp; 频繁创建和销毁很多较大数据结构：建立slab缓存区，提高对象分配和回收性能。</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p>Linux高端内存：<br />　　<span style="color: #0000ff;">http://ilinuxkernel.com/?p=1013</span><br />Linux slab 分配器剖析:<br />　　<span style="color: #0000ff;">https://www.ibm.com/developerworks/cn/linux/l-linux-slab-allocator/</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span><span style="font-size: 16px;">&nbsp;</span></p></div><div id="MySignature"></div>
+<script type="text/javascript">
+var isLogined = false;
+var cb_blogId = 101485;
+var cb_entryId = 2697407;
+var cb_blogApp = currentBlogApp;
+var cb_blogUserGuid = "ac88c115-49d4-e011-8ee0-842b2b196315";
+var cb_entryCreatedDate = '2012/9/21 19:16:00';
+var enableGoogleAd = true;
+var googletag = googletag || {};
+googletag.cmd = googletag.cmd || [];
+</script>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="blog_post_info">
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"></div>
+</div>
+<script type="text/javascript">
+    //SyntaxHighlighter.config.strings.expandSource = '<span><img src="http://static.cnblogs.com/images/expand-code.gif" alt="" class="expand-code-icon"/>View Code</span>';
+    $(function () {             
+        fixPostBodyFormat();
+        loadAdUnderPost();
+        loadBlogSignature();
+        LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+        GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);        
+        GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);        
+    });
+</script>
+		</div>
+		<div class = "postDesc">posted @ <span id="post-date">2012-09-21 19:16</span> <a href='http://www.cnblogs.com/bastard/'>Dufresne</a> 阅读(924) 评论(<span id="post-comment-count">0</span>)  <a href ="http://www.cnblogs.com/bastard/admin/EditPosts.aspx?postid=2697407" rel="nofollow">编辑</a> <a href="#" onclick="AddToWz(2697407);return false;">收藏</a></div>
+	</div>
+	<img src ="http://www.cnblogs.com/bastard/aggbug/2697407.html?type=1&amp;webview=1" width="1" height="1" alt=""/>
+	
+</div><!--end: topics 文章、评论容器-->
+<div id="blog-comments-placeholder"></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.loadComments();</script>
+<div id="comment_form" class="commentform">
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+
+<script type="text/javascript">
+    if (typeof commentManager === 'undefined') {
+        commentManager = new blogCommentManager();
+    }
+    commentManager.loadCommentForm();   
+</script>
+
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="程序员的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="ad_under_post_holder"></div>
+<div id="HistoryToday" class="c_ad_block"></div>
+</div>
+
+
+
+
+
+	</div><!--end: forFlow -->
+	</div><!--end: mainContent 主体内容容器-->
+
+	<div id="sideBar">
+		<div id="sideBarMain">
+			
+<!--done-->
+<div class="newsItem">
+<h3 class="catListTitle">公告</h3>
+	<div id="blog-news"></div>
+</div>
+
+			<div id="calendar"><div id="blog-calendar" style="displya:none"></div></div>
+			
+			<DIV id="leftcontentcontainer">
+				<div id="blog-sidecolumn"></div>
+			</DIV>
+			
+		</div><!--end: sideBarMain -->
+	</div><!--end: sideBar 侧边栏容器 -->
+	<div class="clear"></div>
+	</div><!--end: main -->
+	<div class="clear"></div>
+	<div id="footer">
+		
+<!--done-->
+Copyright &copy;2013 Dufresne
+	</div><!--end: footer -->
+</div><!--end: home 自定义的最大容器 -->
+<script type="text/javascript" src="http://common.cnblogs.com/script/google-analytics.js"></script>
+</body>
+</html>

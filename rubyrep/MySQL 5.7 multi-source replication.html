@@ -1,0 +1,1650 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html
+xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US" prefix="og: http://ogp.me/ns#"><head
+profile="http://gmpg.org/xfn/11"> <script type='text/javascript' src='http://www.mysqlperformanceblog.com/wp-content/plugins/wp-minify/cache/0826282afc8028981bed7c1a9f3cd167.js?m=1399626127'></script> <meta
+http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>MySQL 5.7 multi-source replication</title><link
+rel="Shortcut Icon" href="http://www.mysqlperformanceblog.com/wp-content/themes/news/images/favicon.ico" type="image/x-icon" /><link
+rel="stylesheet" href="http://www.mysqlperformanceblog.com/wp-content/themes/news/style.css" type="text/css" media="screen" /><meta
+name="description" content="Miguel Angel Nieto explains, in some easy steps, how the new multi-source replication in MySQL 5.7 works and how you can configure it for your own tests."/><link
+rel="canonical" href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/" /><meta
+property="og:locale" content="en_US" /><meta
+property="og:type" content="article" /><meta
+property="og:title" content="MySQL 5.7 multi-source replication" /><meta
+property="og:description" content="Miguel Angel Nieto explains, in some easy steps, how the new multi-source replication in MySQL 5.7 works and how you can configure it for your own tests." /><meta
+property="og:url" content="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/" /><meta
+property="og:site_name" content="MySQL Performance Blog" /><meta
+property="article:tag" content="Miguel Angel Nieto" /><meta
+property="article:tag" content="multi-source replication" /><meta
+property="article:tag" content="MySQL 5.7" /><meta
+property="article:tag" content="Oracle" /><meta
+property="article:section" content="MySQL" /><meta
+property="article:published_time" content="2013-10-02T01:00:11+00:00" /><meta
+property="article:modified_time" content="2013-10-02T09:24:11+00:00" /><meta
+property="og:updated_time" content="2013-10-02T09:24:11+00:00" /><meta
+property="og:image" content="http://www.mysqlperformanceblog.com/wp-content/uploads/2013/09/multi_master-285x300.jpg" /><meta
+property="og:image" content="http://www.mysqlperformanceblog.com/wp-content/uploads/2013/09/multi_source-300x253.jpg" /><link
+rel="alternate" type="application/rss+xml" title="MySQL Performance Blog &raquo; Feed" href="http://www.mysqlperformanceblog.com/feed/" /><link
+rel="alternate" type="application/rss+xml" title="MySQL Performance Blog &raquo; Comments Feed" href="http://www.mysqlperformanceblog.com/comments/feed/" /><link
+rel="alternate" type="application/rss+xml" title="MySQL Performance Blog &raquo; MySQL 5.7 multi-source replication Comments Feed" href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/feed/" /><link
+rel='stylesheet' id='tfg_style-css'  href='http://www.mysqlperformanceblog.com/wp-content/plugins/percona-social-share/tfg_style.css?ver=3.9' type='text/css' media='all' /><link
+rel='stylesheet' id='crayon-css'  href='http://www.mysqlperformanceblog.com/wp-content/plugins/crayon-syntax-highlighter/css/min/crayon.min.css?ver=2.6.0' type='text/css' media='all' /><link
+rel='stylesheet' id='crayon-theme-familiar-css'  href='http://www.mysqlperformanceblog.com/wp-content/plugins/crayon-syntax-highlighter/themes/familiar/familiar.css?ver=2.6.0' type='text/css' media='all' /><link
+rel='stylesheet' id='crayon-font-monaco-css'  href='http://www.mysqlperformanceblog.com/wp-content/plugins/crayon-syntax-highlighter/fonts/monaco.css?ver=2.6.0' type='text/css' media='all' /><link
+rel='stylesheet' id='wp-polls-css'  href='http://www.mysqlperformanceblog.com/wp-content/plugins/wp-polls/polls-css.css?ver=2.63' type='text/css' media='all' /><link
+rel='stylesheet' id='wpt-twitter-feed-css'  href='http://www.mysqlperformanceblog.com/wp-content/plugins/wp-to-twitter/css/twitter-feed.css?ver=3.9' type='text/css' media='all' /><link
+rel='stylesheet' id='easy_table_style-css'  href='http://www.mysqlperformanceblog.com/wp-content/plugins/easy-table/themes/cuscosky/style.css?ver=1.4' type='text/css' media='all' /><link
+rel='stylesheet' id='SZArchiveWidget_style-css'  href='http://www.mysqlperformanceblog.com/wp-content/plugins/norman-advanced-archive-widget/styles.css?ver=3.9' type='text/css' media='all' /><link
+rel='stylesheet' id='sphinxStyleSheets-css'  href='http://www.mysqlperformanceblog.com/wp-content/plugins/wordpress-sphinx-plugin/templates/sphinxsearch.css?ver=3.9' type='text/css' media='all' /> <script type='text/javascript'>/*  */
+var CrayonSyntaxSettings = {"version":"2.6.0","is_admin":"0","ajaxurl":"http:\/\/www.mysqlperformanceblog.com\/wp-admin\/admin-ajax.php","prefix":"crayon-","setting":"crayon-setting","selected":"crayon-setting-selected","changed":"crayon-setting-changed","special":"crayon-setting-special","orig_value":"data-orig-value","debug":""};
+var CrayonSyntaxStrings = {"copy":"Press %s to Copy, %s to Paste","minimize":"Click To Expand Code"};
+/*  */</script> <script type='text/javascript'>/*  */
+var samAjax = {"ajaxurl":"http:\/\/www.mysqlperformanceblog.com\/wp-content\/plugins\/simple-ads-manager\/sam-ajax.php","loadurl":"http:\/\/www.mysqlperformanceblog.com\/wp-content\/plugins\/simple-ads-manager\/sam-ajax-loader.php","load":"","level":"3","clauses":"YTo0OntzOjI6IldDIjtzOjIyNzI6IihJRihzYS5hZF91c2VycyA9IDAsIFRSVUUsIChzYS5hZF91c2Vyc191bnJlZyA9IDEpKSkgQU5EICgoc2Eudmlld190eXBlID0gMSkgT1IgKHNhLnZpZXdfdHlwZSA9IDAgQU5EIChzYS52aWV3X3BhZ2VzKzAgJiA2KSkgT1IgKHNhLnZpZXdfdHlwZSA9IDIgQU5EIEZJTkRfSU5fU0VUKDE4MTIwLCBzYS52aWV3X2lkKSkpIEFORCBJRihzYS52aWV3X3R5cGUgPCAyIEFORCBzYS5hZF9jYXRzIEFORCBJRihzYS52aWV3X3R5cGUgPSAwLCBzYS52aWV3X3BhZ2VzKzAgJiA2LCBUUlVFKSwgRklORF9JTl9TRVQoIm15c3FsIiwgc2Eudmlld19jYXRzKSwgVFJVRSkgIEFORCBJRihzYS52aWV3X3R5cGUgPCAyIEFORCBzYS5hZF9hdXRob3JzIEFORCBJRihzYS52aWV3X3R5cGUgPSAwLCBzYS52aWV3X3BhZ2VzKzAgJiA2LCBUUlVFKSwgRklORF9JTl9TRVQoIm1pZ3VlbGFuZ2VsbmlldG8iLCBzYS52aWV3X2F1dGhvcnMpLCBUUlVFKSAgQU5EIElGKHNhLnZpZXdfdHlwZSA8IDIgQU5EIHNhLmFkX3RhZ3MgQU5EIElGKHNhLnZpZXdfdHlwZSA9IDAsIHNhLnZpZXdfcGFnZXMrMCAmIDYsIFRSVUUpLCBGSU5EX0lOX1NFVCgibWlndWVsLWFuZ2VsLW5pZXRvIiwgc2Eudmlld190YWdzKSBPUiBGSU5EX0lOX1NFVCgibXVsdGktc291cmNlLXJlcGxpY2F0aW9uIiwgc2Eudmlld190YWdzKSBPUiBGSU5EX0lOX1NFVCgibXlzcWwtNS03Iiwgc2Eudmlld190YWdzKSBPUiBGSU5EX0lOX1NFVCgib3JhY2xlIiwgc2Eudmlld190YWdzKSwgVFJVRSkgIEFORCBJRihzYS52aWV3X3R5cGUgPCAyIEFORCBzYS5hZF9jdXN0b21fdGF4X3Rlcm1zIEFORCBJRihzYS52aWV3X3R5cGUgPSAwLCBzYS52aWV3X3BhZ2VzKzAgJiA2LCBUUlVFKSwgRklORF9JTl9TRVQoIm15c3FsIiwgc2Eudmlld19jdXN0b21fdGF4X3Rlcm1zKSBPUiBGSU5EX0lOX1NFVCgibWlndWVsLWFuZ2VsLW5pZXRvIiwgc2Eudmlld19jdXN0b21fdGF4X3Rlcm1zKSBPUiBGSU5EX0lOX1NFVCgibXVsdGktc291cmNlLXJlcGxpY2F0aW9uIiwgc2Eudmlld19jdXN0b21fdGF4X3Rlcm1zKSBPUiBGSU5EX0lOX1NFVCgibXlzcWwtNS03Iiwgc2Eudmlld19jdXN0b21fdGF4X3Rlcm1zKSBPUiBGSU5EX0lOX1NFVCgib3JhY2xlIiwgc2Eudmlld19jdXN0b21fdGF4X3Rlcm1zKSwgVFJVRSkgIEFORCBJRihzYS54X2lkLCBOT1QgRklORF9JTl9TRVQoMTgxMjAsIHNhLnhfdmlld19pZCksIFRSVUUpICBBTkQgSUYoc2Eudmlld190eXBlIDwgMiBBTkQgc2EueF9jYXRzIEFORCBJRihzYS52aWV3X3R5cGUgPSAwLCBzYS52aWV3X3BhZ2VzKzAgJiA2LCBUUlVFKSwgKE5PVCBGSU5EX0lOX1NFVCgibXlzcWwiLCBzYS54X3ZpZXdfY2F0cykpLCBUUlVFKSAgQU5EIElGKHNhLnZpZXdfdHlwZSA8IDIgQU5EIHNhLnhfYXV0aG9ycyBBTkQgSUYoc2Eudmlld190eXBlID0gMCwgc2Eudmlld19wYWdlcyswICYgNiwgVFJVRSksIE5PVCBGSU5EX0lOX1NFVCgibWlndWVsYW5nZWxuaWV0byIsIHNhLnhfdmlld19hdXRob3JzKSwgVFJVRSkgIEFORCBJRihzYS52aWV3X3R5cGUgPCAyIEFORCBzYS54X3RhZ3MgQU5EIElGKHNhLnZpZXdfdHlwZSA9IDAsIHNhLnZpZXdfcGFnZXMrMCAmIDYsIFRSVUUpLCAoTk9UIEZJTkRfSU5fU0VUKCJtaWd1ZWwtYW5nZWwtbmlldG8iLCBzYS54X3ZpZXdfdGFncykpIEFORCAoTk9UIEZJTkRfSU5fU0VUKCJtdWx0aS1zb3VyY2UtcmVwbGljYXRpb24iLCBzYS54X3ZpZXdfdGFncykpIEFORCAoTk9UIEZJTkRfSU5fU0VUKCJteXNxbC01LTciLCBzYS54X3ZpZXdfdGFncykpIEFORCAoTk9UIEZJTkRfSU5fU0VUKCJvcmFjbGUiLCBzYS54X3ZpZXdfdGFncykpLCBUUlVFKSAgQU5EIElGKHNhLnZpZXdfdHlwZSA8IDIgQU5EIHNhLnhfYWRfY3VzdG9tX3RheF90ZXJtcyBBTkQgSUYoc2Eudmlld190eXBlID0gMCwgc2Eudmlld19wYWdlcyswICYgNiwgVFJVRSksIChOT1QgRklORF9JTl9TRVQoIm15c3FsIiwgc2EueF92aWV3X2N1c3RvbV90YXhfdGVybXMpKSBBTkQgKE5PVCBGSU5EX0lOX1NFVCgibWlndWVsLWFuZ2VsLW5pZXRvIiwgc2EueF92aWV3X2N1c3RvbV90YXhfdGVybXMpKSBBTkQgKE5PVCBGSU5EX0lOX1NFVCgibXVsdGktc291cmNlLXJlcGxpY2F0aW9uIiwgc2EueF92aWV3X2N1c3RvbV90YXhfdGVybXMpKSBBTkQgKE5PVCBGSU5EX0lOX1NFVCgibXlzcWwtNS03Iiwgc2EueF92aWV3X2N1c3RvbV90YXhfdGVybXMpKSBBTkQgKE5PVCBGSU5EX0lOX1NFVCgib3JhY2xlIiwgc2EueF92aWV3X2N1c3RvbV90YXhfdGVybXMpKSwgVFJVRSkiO3M6MzoiV0NUIjtzOjM2MjoiIEFORCBJRihzYS5hZF9zY2hlZHVsZSwgQ1VSREFURSgpIEJFVFdFRU4gc2EuYWRfc3RhcnRfZGF0ZSBBTkQgc2EuYWRfZW5kX2RhdGUsIFRSVUUpIEFORCBJRihzYS5saW1pdF9oaXRzLCBzYS5oaXRzX2xpbWl0ID4gKFNFTEVDVCBJRk5VTEwoQ09VTlQoKiksIDApIEZST00gd3Bfc2FtX3N0YXRzIHNzIFdIRVJFIHNzLmlkID0gc2EuaWQgQU5EIHNzLmV2ZW50X3R5cGUgPSAwKSwgVFJVRSkgQU5EIElGKHNhLmxpbWl0X2NsaWNrcywgc2EuY2xpY2tzX2xpbWl0ID4gKFNFTEVDVCBJRk5VTEwoQ09VTlQoKiksIDApIEZST00gd3Bfc2FtX3N0YXRzIHNzIFdIRVJFIHNzLmlkID0gc2EuaWQgQU5EIHNzLmV2ZW50X3R5cGUgPSAxKSwgVFJVRSkiO3M6MzoiV0NXIjtzOjgwOiIgQU5EIElGKHNhLmFkX3dlaWdodCA+IDAsIChzYS5hZF93ZWlnaHRfaGl0cyoxMC8oc2EuYWRfd2VpZ2h0KjEwMDApKSA8IDEsIEZBTFNFKSI7czo0OiJXQzJXIjtzOjIyOiJBTkQgKHNhLmFkX3dlaWdodCA+IDApIjt9"};
+/*  */</script> <link
+rel="EditURI" type="application/rsd+xml" title="RSD" href="http://www.mysqlperformanceblog.com/xmlrpc.php?rsd" /><link
+rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://www.mysqlperformanceblog.com/wp-includes/wlwmanifest.xml" /><meta
+name="generator" content="WordPress 3.9" /><link
+rel='shortlink' href='http://www.mysqlperformanceblog.com/?p=18120' /><link
+rel="image_src" href="http://www.mysqlperformanceblog.com/wp-content/uploads/2013/09/multi_master-285x300.jpg" /><style type="text/css">.wp-polls .pollbar {
+	margin: 1px;
+	font-size: 6px;
+	line-height: 8px;
+	height: 8px;
+	background-image: url('http://www.mysqlperformanceblog.com/wp-content/plugins/wp-polls/images/default/pollbg.gif');
+	border: 1px solid #c8c8c8;
+}</style><link
+rel="stylesheet" type="text/css" href="http://www.mysqlperformanceblog.com/wp-content/plugins/wp-recaptcha/recaptcha.css" /><link
+rel='canonical' href='http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/' /><style type="text/css">#header {
+            background: url(http://www.mysqlperformanceblog.com/wp-content/themes/news/images/header.png) scroll no-repeat 0 0;
+            height: px;
+        }
+        .header-image #title-area, .header-image #title-area #title, .header-image #title-area #title a {
+            height: px;
+        }</style> <script type="text/javascript">var analyticsFileTypes = ['tgz','pdf'];
+                            var analyticsSnippet = 'enabled';
+                var analyticsEventTracking = 'enabled';</script> <script type="text/javascript">var _gaq = _gaq || [];
+	_gaq.push(['_setAccount', 'UA-343802-1']);
+    _gaq.push(['_addDevId', 'i9k95']); // Google Analyticator App ID with Google
+	_gaq.push(['_trackPageview']);
+	(function() {
+		var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+		                ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+		                var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	})();</script> </head><body
+class="single single-post postid-18120 single-format-standard content-sidebar"><div
+id="wrap"><div
+id="topnav"><div
+class="topnav-left"><p>May 9, 2014</p></div><div
+class="topnav-right"><ul
+id="menu-social-networking" class="topnav superfish"><li
+id="menu-item-4609" class="facebook-icon menu-item menu-item-type-custom menu-item-object-custom menu-item-4609"><a
+href="http://www.facebook.com/Percona">Facebook</a></li><li
+id="menu-item-4610" class="twitter-icon menu-item menu-item-type-custom menu-item-object-custom menu-item-4610"><a
+href="http://twitter.com/Percona">Twitter</a></li><li
+id="menu-item-4611" class="linkedin-icon menu-item menu-item-type-custom menu-item-object-custom menu-item-4611"><a
+href="http://www.linkedin.com/companies/percona">LinkedIn</a></li><li
+id="menu-item-5250" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-5250"><a
+href="http://www.amazon.com/MySQL-Performance-Blog/dp/B004SPAKUI/?tag=perinc-20">Kindle Edition</a></li></ul></div></div><div
+id="header"><div
+class="wrap"><div
+id="title-area"><p
+id="title"><a
+href="http://www.mysqlperformanceblog.com/" title="MySQL Performance Blog">MySQL Performance Blog</a></p><p
+id="description">Percona&#039;s MySQL &amp; InnoDB performance and scalability blog</p></div><div
+class="widget-area"><div
+id="text-9" class="widget widget_text"><div
+class="widget-wrap"><div
+class="textwidget"><img
+src="http://www.mysqlperformanceblog.com/wp-content/uploads/2013/09/percona_logo.239x55.jpg" align="right" style="margin-right:20px; " /></div></div></div></div></div></div><div
+id="nav"><div
+class="wrap"><ul
+id="menu-percona-cross-sell-links" class="nav"><li
+id="menu-item-4603" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4603"><a
+href="http://www.percona.com/mysql-consulting">MySQL Consulting</a></li><li
+id="menu-item-4604" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4604"><a
+href="http://www.percona.com/mysql-support">MySQL Support</a></li><li
+id="menu-item-4605" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4605"><a
+href="http://www.percona.com/training">MySQL Training</a></li><li
+id="menu-item-6078" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-6078"><a
+href="http://www.percona.com/live">Conferences</a></li><li
+id="menu-item-4606" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4606"><a
+href="http://www.percona.com/software/percona-server">Percona Server</a></li><li
+id="menu-item-4607" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4607"><a
+href="http://www.percona.com/software/percona-xtrabackup">Percona XtraBackup</a></li><li
+id="menu-item-4608" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4608"><a
+href="http://www.percona.com/development">Custom Dev</a></li><li
+class="right rss"><a
+rel="nofollow" href="http://www.mysqlperformanceblog.com/feed/">Posts</a><a
+rel="nofollow" href="http://www.mysqlperformanceblog.com/comments/feed/">Comments</a></li></ul></div></div><div
+id="subnav"><div
+class="wrap"><ul
+class="nav"><li
+class="cat-item cat-item-15"><a
+href="http://www.mysqlperformanceblog.com/category/benchmarks/" title="Benchmarks results and discussions">Benchmarks</a></li><li
+class="cat-item cat-item-237"><a
+href="http://www.mysqlperformanceblog.com/category/dba-insight/" title="View all posts filed under Insight for DBAs">Insight for DBAs</a></li><li
+class="cat-item cat-item-238"><a
+href="http://www.mysqlperformanceblog.com/category/developer-insight/" title="View all posts filed under Insight for Developers">Insight for Developers</a></li><li
+class="cat-item cat-item-239"><a
+href="http://www.mysqlperformanceblog.com/category/hardware-storage/" title="View all posts filed under Hardware and Storage">Hardware and Storage</a></li><li
+class="cat-item cat-item-240"><a
+href="http://www.mysqlperformanceblog.com/category/cloud-nosql/" title="View all posts filed under Cloud and NoSQL">Cloud and NoSQL</a></li><li
+class="cat-item cat-item-241"><a
+href="http://www.mysqlperformanceblog.com/category/percona-software/" title="View all posts filed under Percona Software">Percona Software</a></li><li
+class="cat-item cat-item-242"><a
+href="http://www.mysqlperformanceblog.com/category/events-announcements/" title="View all posts filed under Events and Announcements">Events and Announcements</a></li></ul></div></div><div
+id="inner"><div
+id="content-sidebar-wrap"><div
+id="content" class="hfeed"><div
+class="post-18120 post type-post status-publish format-standard hentry category-mysql tag-miguel-angel-nieto tag-multi-source-replication tag-mysql-5-7 tag-oracle"> <span
+class="alignleft archive-author-gravatar"><img
+alt='' src='http://0.gravatar.com/avatar/a40387c48da1e9fba938f8ea8eb7afa2?s=65&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D65&amp;r=G' class='avatar avatar-65 photo' height='65' width='65' /></span><h1 class="entry-title">MySQL 5.7 multi-source replication</h1><div
+class="post-info"><span
+class="date published time" title="2013-10-02T01:00:11-0400">October 2, 2013</span> by <a
+href="http://www.mysqlperformanceblog.com/author/miguelangelnieto/" title="Posts by Miguel Angel Nieto" class="url fn" rel="author">Miguel Angel Nieto</a> <span
+class="post-comments"><a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comments">25 Comments</a></span><div
+class="postinfoSharecontainerBox" style="background-color:#F0F4F9;"><div
+style="float:left; width:85px;padding-right:10px; margin:4px 4px 4px 4px;height:30px;"> <iframe
+src="http://www.facebook.com/plugins/like.php?href=http%3A%2F%2Fwww.mysqlperformanceblog.com%2F2013%2F10%2F02%2Fmysql-5-7-multi-source-replication%2F&amp;layout=button_count&amp;show_faces=false&amp;width=85&amp;action=like&amp;font=verdana&amp;colorscheme=light&amp;height=21" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width=85px; height:21px;" allowTransparency="true"></iframe></div><div
+style="float:left; width:80px;padding-right:10px; margin:4px 4px 4px 4px;height:30px;"> <g:plusone size="medium" href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/"></g:plusone></div><div
+style="float:left; width:95px;padding-right:10px; margin:4px 4px 4px 4px;height:30px;"> <a
+href="http://twitter.com/share" class="twitter-share-button" data-url="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/"  data-text="MySQL 5.7 multi-source replication" data-count="horizontal">Tweet</a></div><div
+style="float:left; width:105px;padding-right:10px; margin:4px 4px 4px 4px;height:30px;"><script type="in/share" data-url="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/" data-counter="right"></script></div><div
+style="float:left; width:85px;padding-right:10px; margin:4px 4px 4px 4px;height:30px;"><script src="http://www.stumbleupon.com/hostedbadge.php?s=1&amp;r=http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/"></script></div></div><div
+style="clear:both"></div><div
+style="padding-bottom:4px;"></div></div><div
+class="entry-content"><p>Recently Oracle announced several new features for the latest available development version of MySQL that is 5.7.2 at the time of writing this article. Most of them are performance and replication related that show us how incredible the new release will be.</p><p>In this post I&#8217;m going to try to explain in some easy steps how the new multi-source replication works and how we can configure it for our own tests. It is important to mention that this is a development release, so it is not production ready. Therefore this post is intend to people that want to test the new feature and see how it works with their application, always in a staging environment.</p><h3>What is multi-source replication?</h3><p>First, we need to have clear that <strong>multi-master</strong> and <strong>multi-source</strong> replication are not the same. Multi-Master replication is the usual circular replication where you can write on any server and data gets replicated to all others.</p><p><center><img
+class="alignnone size-medium wp-image-18124" alt="Multi master replication" src="http://www.mysqlperformanceblog.com/wp-content/uploads/2013/09/multi_master-285x300.jpg" width="285" height="300" /></center>Multi-source is different. MySQL replication had a limitation, fixed with this new release, that said that one slave could have only one master. That is a limiting factor when we are designing our replication environment. There were some &#8220;hacks&#8221; to make it work, but now there is an official way. So, in a nutshell, Multi-Source means that a slave can have more than one master. Now, replication environments like these one are possible:</p><p><center><img
+class="alignnone size-medium wp-image-18121" alt="Multi source replication" src="http://www.mysqlperformanceblog.com/wp-content/uploads/2013/09/multi_source-300x253.jpg" width="300" height="253" /></center>This will help us create some replication hierarchies that were impossible in the past. For example, you can have a slave in your office replicating the data from all servers that you have in the offices spread around the world.</p><h3>How does it work?</h3><p>Now we have the concept of communication channels. Each communication channel is a connection from slave to master to get the binary log events. That means we will have one IO_THREAD for each communication channel. We will need to run different &#8220;CHANGE MASTER&#8221; commands, one for each master, with the &#8220;<strong>FOR CHANNEL</strong>&#8221; argument that we will use to give a name to that channel.</p><div
+id="crayon-536c9b94a6572419256439" class="crayon-syntax crayon-theme-familiar crayon-font-monaco crayon-os-pc print-yes notranslate" data-settings=" minimize scroll-mouseover" style=" margin-top: 12px; margin-bottom: 12px; float: none; clear: both; font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-toolbar" data-settings=" show" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><span
+class="crayon-title"></span><div
+class="crayon-tools" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><div
+class="crayon-button crayon-nums-button" title="Toggle Line Numbers"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-plain-button" title="Toggle Plain Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-wrap-button" title="Toggle Line Wrap"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-expand-button" title="Expand Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-copy-button" title="Copy"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-popup-button" title="Open Code In New Window"><div
+class="crayon-button-icon"></div></div><span
+class="crayon-language">Shell</span></div></div><div
+class="crayon-info" style="min-height: 16.8px !important; line-height: 16.8px !important;"></div><div
+class="crayon-plain-wrap"><textarea wrap="soft" class="crayon-plain print-no" data-settings="click" readonly style="-moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4; font-size: 12px !important; line-height: 15px !important;">
+CHANGE MASTER MASTER_HOST='something', MASTER_USER=... FOR CHANNEL="name_of_channel";</textarea></div><div
+class="crayon-main" style=""><table
+class="crayon-table"><tr
+class="crayon-row"><td
+class="crayon-nums " data-settings="show"><div
+class="crayon-nums-content" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-num" data-line="crayon-536c9b94a6572419256439-1">1</div></div></td><td
+class="crayon-code"><div
+class="crayon-pre" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-line" id="crayon-536c9b94a6572419256439-1"><span
+class="crayon-e">CHANGE </span><span
+class="crayon-e">MASTER </span><span
+class="crayon-v">MASTER_HOST</span><span
+class="crayon-o">=</span><span
+class="crayon-s">'something'</span><span
+class="crayon-sy">,</span><span
+class="crayon-h"> </span><span
+class="crayon-v">MASTER_USER</span><span
+class="crayon-o">=</span><span
+class="crayon-sy">.</span><span
+class="crayon-sy">.</span><span
+class="crayon-sy">.</span><span
+class="crayon-h"> </span><span
+class="crayon-st">FOR</span><span
+class="crayon-h"> </span><span
+class="crayon-v">CHANNEL</span><span
+class="crayon-o">=</span><span
+class="crayon-s">"name_of_channel"</span><span
+class="crayon-sy">;</span></div></div></td></tr></table></div></div><p>Pretty easy. There is one single pre-requisite. The slave should have been configured first with the crash-safe feature of MySQL 5.6. That means that info usually included in master.info or relay-log.info should be on a table. Let&#8217;s start with the configuration.</p><h3>Show me an example!</h3><p>First you need to download the lab version of mysql from this <a
+title="Labs" href="http://labs.mysql.com/">link</a>.</p><p>We have a sandbox environment with 2 masters and 1 slave servers. I won&#8217;t go over the details of how to configure the server_id, binary logs or replication users. I assume they are well configured. If you need a howto, you can follow <a
+title="How to set up replication" href="https://www.digitalocean.com/community/articles/how-to-set-up-mysql-master-master-replication" target="_blank">this one</a>.</p><p>First, we have to enable the crash safe feature on the slave:</p><div
+id="crayon-536c9b94a6585010496515" class="crayon-syntax crayon-theme-familiar crayon-font-monaco crayon-os-pc print-yes notranslate" data-settings=" minimize scroll-mouseover" style=" margin-top: 12px; margin-bottom: 12px; float: none; clear: both; font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-toolbar" data-settings=" show" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><span
+class="crayon-title"></span><div
+class="crayon-tools" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><div
+class="crayon-button crayon-nums-button" title="Toggle Line Numbers"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-plain-button" title="Toggle Plain Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-wrap-button" title="Toggle Line Wrap"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-expand-button" title="Expand Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-copy-button" title="Copy"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-popup-button" title="Open Code In New Window"><div
+class="crayon-button-icon"></div></div><span
+class="crayon-language">Shell</span></div></div><div
+class="crayon-info" style="min-height: 16.8px !important; line-height: 16.8px !important;"></div><div
+class="crayon-plain-wrap"><textarea wrap="soft" class="crayon-plain print-no" data-settings="click" readonly style="-moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4; font-size: 12px !important; line-height: 15px !important;">
+master_info_repository=TABLE;
+relay_log_info_repository=TABLE;</textarea></div><div
+class="crayon-main" style=""><table
+class="crayon-table"><tr
+class="crayon-row"><td
+class="crayon-nums " data-settings="show"><div
+class="crayon-nums-content" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-num" data-line="crayon-536c9b94a6585010496515-1">1</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a6585010496515-2">2</div></div></td><td
+class="crayon-code"><div
+class="crayon-pre" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-line" id="crayon-536c9b94a6585010496515-1"><span
+class="crayon-v">master_info_repository</span><span
+class="crayon-o">=</span><span
+class="crayon-i">TABLE</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a6585010496515-2"><span
+class="crayon-v">relay_log_info_repository</span><span
+class="crayon-o">=</span><span
+class="crayon-i">TABLE</span><span
+class="crayon-sy">;</span></div></div></td></tr></table></div></div><p>After a restart of the slave we can start creating the channels with the names &#8220;master1&#8243; and &#8220;master2&#8243;:</p><div
+id="crayon-536c9b94a658e355576842" class="crayon-syntax crayon-theme-familiar crayon-font-monaco crayon-os-pc print-yes notranslate" data-settings=" minimize scroll-mouseover" style=" margin-top: 12px; margin-bottom: 12px; float: none; clear: both; font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-toolbar" data-settings=" show" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><span
+class="crayon-title"></span><div
+class="crayon-tools" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><div
+class="crayon-button crayon-nums-button" title="Toggle Line Numbers"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-plain-button" title="Toggle Plain Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-wrap-button" title="Toggle Line Wrap"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-expand-button" title="Expand Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-copy-button" title="Copy"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-popup-button" title="Open Code In New Window"><div
+class="crayon-button-icon"></div></div><span
+class="crayon-language">Shell</span></div></div><div
+class="crayon-info" style="min-height: 16.8px !important; line-height: 16.8px !important;"></div><div
+class="crayon-plain-wrap"><textarea wrap="soft" class="crayon-plain print-no" data-settings="click" readonly style="-moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4; font-size: 12px !important; line-height: 15px !important;">
+slave &gt; change master to master_host="127.0.0.1", master_port=12047, master_user="msandbox",master_password="msandbox" for channel="master1";
+slave &gt; change master to master_host="127.0.0.1", master_port=12048, master_user="msandbox",master_password="msandbox" for channel="master2";</textarea></div><div
+class="crayon-main" style=""><table
+class="crayon-table"><tr
+class="crayon-row"><td
+class="crayon-nums " data-settings="show"><div
+class="crayon-nums-content" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-num" data-line="crayon-536c9b94a658e355576842-1">1</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a658e355576842-2">2</div></div></td><td
+class="crayon-code"><div
+class="crayon-pre" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-line" id="crayon-536c9b94a658e355576842-1"><span
+class="crayon-i">slave</span><span
+class="crayon-h"> </span><span
+class="crayon-o">&gt;</span><span
+class="crayon-h"> </span><span
+class="crayon-e">change </span><span
+class="crayon-e">master </span><span
+class="crayon-st">to</span><span
+class="crayon-h"> </span><span
+class="crayon-v">master_host</span><span
+class="crayon-o">=</span><span
+class="crayon-s">"127.0.0.1"</span><span
+class="crayon-sy">,</span><span
+class="crayon-h"> </span><span
+class="crayon-v">master_port</span><span
+class="crayon-o">=</span><span
+class="crayon-cn">12047</span><span
+class="crayon-sy">,</span><span
+class="crayon-h"> </span><span
+class="crayon-v">master_user</span><span
+class="crayon-o">=</span><span
+class="crayon-s">"msandbox"</span><span
+class="crayon-sy">,</span><span
+class="crayon-v">master_password</span><span
+class="crayon-o">=</span><span
+class="crayon-s">"msandbox"</span><span
+class="crayon-h"> </span><span
+class="crayon-st">for</span><span
+class="crayon-h"> </span><span
+class="crayon-v">channel</span><span
+class="crayon-o">=</span><span
+class="crayon-s">"master1"</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a658e355576842-2"><span
+class="crayon-i">slave</span><span
+class="crayon-h"> </span><span
+class="crayon-o">&gt;</span><span
+class="crayon-h"> </span><span
+class="crayon-e">change </span><span
+class="crayon-e">master </span><span
+class="crayon-st">to</span><span
+class="crayon-h"> </span><span
+class="crayon-v">master_host</span><span
+class="crayon-o">=</span><span
+class="crayon-s">"127.0.0.1"</span><span
+class="crayon-sy">,</span><span
+class="crayon-h"> </span><span
+class="crayon-v">master_port</span><span
+class="crayon-o">=</span><span
+class="crayon-cn">12048</span><span
+class="crayon-sy">,</span><span
+class="crayon-h"> </span><span
+class="crayon-v">master_user</span><span
+class="crayon-o">=</span><span
+class="crayon-s">"msandbox"</span><span
+class="crayon-sy">,</span><span
+class="crayon-v">master_password</span><span
+class="crayon-o">=</span><span
+class="crayon-s">"msandbox"</span><span
+class="crayon-h"> </span><span
+class="crayon-st">for</span><span
+class="crayon-h"> </span><span
+class="crayon-v">channel</span><span
+class="crayon-o">=</span><span
+class="crayon-s">"master2"</span><span
+class="crayon-sy">;</span></div></div></td></tr></table></div></div><p>To start the slave processes you need to specify what channel are you referring to:</p><div
+id="crayon-536c9b94a6597475566921" class="crayon-syntax crayon-theme-familiar crayon-font-monaco crayon-os-pc print-yes notranslate" data-settings=" minimize scroll-mouseover" style=" margin-top: 12px; margin-bottom: 12px; float: none; clear: both; font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-toolbar" data-settings=" show" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><span
+class="crayon-title"></span><div
+class="crayon-tools" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><div
+class="crayon-button crayon-nums-button" title="Toggle Line Numbers"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-plain-button" title="Toggle Plain Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-wrap-button" title="Toggle Line Wrap"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-expand-button" title="Expand Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-copy-button" title="Copy"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-popup-button" title="Open Code In New Window"><div
+class="crayon-button-icon"></div></div><span
+class="crayon-language">Shell</span></div></div><div
+class="crayon-info" style="min-height: 16.8px !important; line-height: 16.8px !important;"></div><div
+class="crayon-plain-wrap"><textarea wrap="soft" class="crayon-plain print-no" data-settings="click" readonly style="-moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4; font-size: 12px !important; line-height: 15px !important;">
+slave &gt; start slave for channel="master1";
+slave &gt; start slave for channel="master2";</textarea></div><div
+class="crayon-main" style=""><table
+class="crayon-table"><tr
+class="crayon-row"><td
+class="crayon-nums " data-settings="show"><div
+class="crayon-nums-content" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-num" data-line="crayon-536c9b94a6597475566921-1">1</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a6597475566921-2">2</div></div></td><td
+class="crayon-code"><div
+class="crayon-pre" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-line" id="crayon-536c9b94a6597475566921-1"><span
+class="crayon-i">slave</span><span
+class="crayon-h"> </span><span
+class="crayon-o">&gt;</span><span
+class="crayon-h"> </span><span
+class="crayon-e">start </span><span
+class="crayon-e">slave </span><span
+class="crayon-st">for</span><span
+class="crayon-h"> </span><span
+class="crayon-v">channel</span><span
+class="crayon-o">=</span><span
+class="crayon-s">"master1"</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a6597475566921-2"><span
+class="crayon-i">slave</span><span
+class="crayon-h"> </span><span
+class="crayon-o">&gt;</span><span
+class="crayon-h"> </span><span
+class="crayon-e">start </span><span
+class="crayon-e">slave </span><span
+class="crayon-st">for</span><span
+class="crayon-h"> </span><span
+class="crayon-v">channel</span><span
+class="crayon-o">=</span><span
+class="crayon-s">"master2"</span><span
+class="crayon-sy">;</span></div></div></td></tr></table></div></div><p>Now, we want to check the status of the slave:</p><div
+id="crayon-536c9b94a659f539505348" class="crayon-syntax crayon-theme-familiar crayon-font-monaco crayon-os-pc print-yes notranslate" data-settings=" minimize scroll-mouseover" style=" margin-top: 12px; margin-bottom: 12px; float: none; clear: both; font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-toolbar" data-settings=" show" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><span
+class="crayon-title"></span><div
+class="crayon-tools" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><div
+class="crayon-button crayon-nums-button" title="Toggle Line Numbers"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-plain-button" title="Toggle Plain Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-wrap-button" title="Toggle Line Wrap"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-expand-button" title="Expand Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-copy-button" title="Copy"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-popup-button" title="Open Code In New Window"><div
+class="crayon-button-icon"></div></div><span
+class="crayon-language">Shell</span></div></div><div
+class="crayon-info" style="min-height: 16.8px !important; line-height: 16.8px !important;"></div><div
+class="crayon-plain-wrap"><textarea wrap="soft" class="crayon-plain print-no" data-settings="click" readonly style="-moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4; font-size: 12px !important; line-height: 15px !important;">
+slave &gt; show slave status\G
+Empty set (0.00 sec)</textarea></div><div
+class="crayon-main" style=""><table
+class="crayon-table"><tr
+class="crayon-row"><td
+class="crayon-nums " data-settings="show"><div
+class="crayon-nums-content" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-num" data-line="crayon-536c9b94a659f539505348-1">1</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a659f539505348-2">2</div></div></td><td
+class="crayon-code"><div
+class="crayon-pre" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-line" id="crayon-536c9b94a659f539505348-1"><span
+class="crayon-i">slave</span><span
+class="crayon-h"> </span><span
+class="crayon-o">&gt;</span><span
+class="crayon-h"> </span><span
+class="crayon-e">show </span><span
+class="crayon-e">slave </span><span
+class="crayon-i">status</span><span
+class="crayon-sy">\</span><span
+class="crayon-i">G</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a659f539505348-2"><span
+class="crayon-e">Empty </span><span
+class="crayon-e">set</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">(</span><span
+class="crayon-cn">0.00</span><span
+class="crayon-h"> </span><span
+class="crayon-i">sec</span><span
+class="crayon-sy">)</span></div></div></td></tr></table></div></div><p>Oh, it is empty. We have to specify again which channel we want to check:</p><div
+id="crayon-536c9b94a65a7034864577" class="crayon-syntax crayon-theme-familiar crayon-font-monaco crayon-os-pc print-yes notranslate" data-settings=" minimize scroll-mouseover" style=" margin-top: 12px; margin-bottom: 12px; float: none; clear: both; font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-toolbar" data-settings=" show" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><span
+class="crayon-title"></span><div
+class="crayon-tools" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><div
+class="crayon-button crayon-nums-button" title="Toggle Line Numbers"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-plain-button" title="Toggle Plain Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-wrap-button" title="Toggle Line Wrap"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-expand-button" title="Expand Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-copy-button" title="Copy"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-popup-button" title="Open Code In New Window"><div
+class="crayon-button-icon"></div></div><span
+class="crayon-language">Shell</span></div></div><div
+class="crayon-info" style="min-height: 16.8px !important; line-height: 16.8px !important;"></div><div
+class="crayon-plain-wrap"><textarea wrap="soft" class="crayon-plain print-no" data-settings="click" readonly style="-moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4; font-size: 12px !important; line-height: 15px !important;">
+slave &gt; SHOW SLAVE STATUS FOR CHANNEL="master1"\G
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 127.0.0.1
+                  Master_User: msandbox
+                  Master_Port: 12047
+                Connect_Retry: 60
+              Master_Log_File: mysql-bin.000002
+          Read_Master_Log_Pos: 232
+               Relay_Log_File: squeeze-relay-bin-master1.000003
+                Relay_Log_Pos: 395
+        Relay_Master_Log_File: mysql-bin.000002
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+[...]</textarea></div><div
+class="crayon-main" style=""><table
+class="crayon-table"><tr
+class="crayon-row"><td
+class="crayon-nums " data-settings="show"><div
+class="crayon-nums-content" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-num" data-line="crayon-536c9b94a65a7034864577-1">1</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65a7034864577-2">2</div><div
+class="crayon-num" data-line="crayon-536c9b94a65a7034864577-3">3</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65a7034864577-4">4</div><div
+class="crayon-num" data-line="crayon-536c9b94a65a7034864577-5">5</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65a7034864577-6">6</div><div
+class="crayon-num" data-line="crayon-536c9b94a65a7034864577-7">7</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65a7034864577-8">8</div><div
+class="crayon-num" data-line="crayon-536c9b94a65a7034864577-9">9</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65a7034864577-10">10</div><div
+class="crayon-num" data-line="crayon-536c9b94a65a7034864577-11">11</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65a7034864577-12">12</div><div
+class="crayon-num" data-line="crayon-536c9b94a65a7034864577-13">13</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65a7034864577-14">14</div><div
+class="crayon-num" data-line="crayon-536c9b94a65a7034864577-15">15</div></div></td><td
+class="crayon-code"><div
+class="crayon-pre" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-line" id="crayon-536c9b94a65a7034864577-1"><span
+class="crayon-i">slave</span><span
+class="crayon-h"> </span><span
+class="crayon-o">&gt;</span><span
+class="crayon-h"> </span><span
+class="crayon-e">SHOW </span><span
+class="crayon-e">SLAVE </span><span
+class="crayon-e">STATUS </span><span
+class="crayon-st">FOR</span><span
+class="crayon-h"> </span><span
+class="crayon-v">CHANNEL</span><span
+class="crayon-o">=</span><span
+class="crayon-s">"master1"</span><span
+class="crayon-sy">\</span><span
+class="crayon-i">G</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65a7034864577-2"><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-h"> </span><span
+class="crayon-cn">1.</span><span
+class="crayon-h"> </span><span
+class="crayon-i">row</span><span
+class="crayon-h"> </span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span><span
+class="crayon-o">*</span></div><div
+class="crayon-line" id="crayon-536c9b94a65a7034864577-3"><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span
+class="crayon-i">Slave_IO_State</span><span
+class="crayon-o">:</span><span
+class="crayon-h"> </span><span
+class="crayon-e">Waiting </span><span
+class="crayon-st">for</span><span
+class="crayon-h"> </span><span
+class="crayon-e">master </span><span
+class="crayon-st">to</span><span
+class="crayon-h"> </span><span
+class="crayon-e">send </span><span
+class="crayon-e">event</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65a7034864577-4"><span
+class="crayon-e">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-i">Master_Host</span><span
+class="crayon-o">:</span><span
+class="crayon-h"> </span><span
+class="crayon-cn">127.0.0.1</span></div><div
+class="crayon-line" id="crayon-536c9b94a65a7034864577-5"><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-i">Master_User</span><span
+class="crayon-o">:</span><span
+class="crayon-h"> </span><span
+class="crayon-e">msandbox</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65a7034864577-6"><span
+class="crayon-e">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-i">Master_Port</span><span
+class="crayon-o">:</span><span
+class="crayon-h"> </span><span
+class="crayon-cn">12047</span></div><div
+class="crayon-line" id="crayon-536c9b94a65a7034864577-7"><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-i">Connect_Retry</span><span
+class="crayon-o">:</span><span
+class="crayon-h"> </span><span
+class="crayon-cn">60</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65a7034864577-8"><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-i">Master_Log_File</span><span
+class="crayon-o">:</span><span
+class="crayon-h"> </span><span
+class="crayon-i">mysql</span><span
+class="crayon-o">-</span><span
+class="crayon-v">bin</span><span
+class="crayon-sy">.</span><span
+class="crayon-cn">000002</span></div><div
+class="crayon-line" id="crayon-536c9b94a65a7034864577-9"><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-i">Read_Master_Log_Pos</span><span
+class="crayon-o">:</span><span
+class="crayon-h"> </span><span
+class="crayon-cn">232</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65a7034864577-10"><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span
+class="crayon-i">Relay_Log_File</span><span
+class="crayon-o">:</span><span
+class="crayon-h"> </span><span
+class="crayon-i">squeeze</span><span
+class="crayon-o">-</span><span
+class="crayon-i">relay</span><span
+class="crayon-o">-</span><span
+class="crayon-i">bin</span><span
+class="crayon-o">-</span><span
+class="crayon-v">master1</span><span
+class="crayon-sy">.</span><span
+class="crayon-cn">000003</span></div><div
+class="crayon-line" id="crayon-536c9b94a65a7034864577-11"><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-i">Relay_Log_Pos</span><span
+class="crayon-o">:</span><span
+class="crayon-h"> </span><span
+class="crayon-cn">395</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65a7034864577-12"><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-i">Relay_Master_Log_File</span><span
+class="crayon-o">:</span><span
+class="crayon-h"> </span><span
+class="crayon-i">mysql</span><span
+class="crayon-o">-</span><span
+class="crayon-v">bin</span><span
+class="crayon-sy">.</span><span
+class="crayon-cn">000002</span></div><div
+class="crayon-line" id="crayon-536c9b94a65a7034864577-13"><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span
+class="crayon-i">Slave_IO_Running</span><span
+class="crayon-o">:</span><span
+class="crayon-h"> </span><span
+class="crayon-e">Yes</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65a7034864577-14"><span
+class="crayon-e">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-i">Slave_SQL_Running</span><span
+class="crayon-o">:</span><span
+class="crayon-h"> </span><span
+class="crayon-v">Yes</span></div><div
+class="crayon-line" id="crayon-536c9b94a65a7034864577-15"><span
+class="crayon-sy">[</span><span
+class="crayon-sy">.</span><span
+class="crayon-sy">.</span><span
+class="crayon-sy">.</span><span
+class="crayon-sy">]</span></div></div></td></tr></table></div></div><p>and we can also check that the <strong>IO_THREAD</strong> and <strong>SQL_THREADS</strong> are running:</p><div
+id="crayon-536c9b94a65b0703201580" class="crayon-syntax crayon-theme-familiar crayon-font-monaco crayon-os-pc print-yes notranslate" data-settings=" minimize scroll-mouseover" style=" margin-top: 12px; margin-bottom: 12px; float: none; clear: both; font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-toolbar" data-settings=" show" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><span
+class="crayon-title"></span><div
+class="crayon-tools" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><div
+class="crayon-button crayon-nums-button" title="Toggle Line Numbers"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-plain-button" title="Toggle Plain Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-wrap-button" title="Toggle Line Wrap"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-expand-button" title="Expand Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-copy-button" title="Copy"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-popup-button" title="Open Code In New Window"><div
+class="crayon-button-icon"></div></div><span
+class="crayon-language">Shell</span></div></div><div
+class="crayon-info" style="min-height: 16.8px !important; line-height: 16.8px !important;"></div><div
+class="crayon-plain-wrap"><textarea wrap="soft" class="crayon-plain print-no" data-settings="click" readonly style="-moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4; font-size: 12px !important; line-height: 15px !important;">
+slave &gt; SHOW PROCESSLIST;
++----+-------------+-----------------------------------------------------------------------------+
+| Id | User        | State                                                                       |
++----+-------------+-----------------------------------------------------------------------------+
+|  2 | system user | Waiting for master to send event                                            |
+|  3 | system user | Slave has read all relay log; waiting for the slave I/O thread to update it |
+|  4 | system user | Waiting for master to send event                                            |
+|  5 | system user | Slave has read all relay log; waiting for the slave I/O thread to update it |
++----+-------------+-----------------------------------------------------------------------------+</textarea></div><div
+class="crayon-main" style=""><table
+class="crayon-table"><tr
+class="crayon-row"><td
+class="crayon-nums " data-settings="show"><div
+class="crayon-nums-content" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-num" data-line="crayon-536c9b94a65b0703201580-1">1</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65b0703201580-2">2</div><div
+class="crayon-num" data-line="crayon-536c9b94a65b0703201580-3">3</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65b0703201580-4">4</div><div
+class="crayon-num" data-line="crayon-536c9b94a65b0703201580-5">5</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65b0703201580-6">6</div><div
+class="crayon-num" data-line="crayon-536c9b94a65b0703201580-7">7</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65b0703201580-8">8</div><div
+class="crayon-num" data-line="crayon-536c9b94a65b0703201580-9">9</div></div></td><td
+class="crayon-code"><div
+class="crayon-pre" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-line" id="crayon-536c9b94a65b0703201580-1"><span
+class="crayon-i">slave</span><span
+class="crayon-h"> </span><span
+class="crayon-o">&gt;</span><span
+class="crayon-h"> </span><span
+class="crayon-e">SHOW </span><span
+class="crayon-i">PROCESSLIST</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65b0703201580-2"><span
+class="crayon-o">+</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">+</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">-</span><span
+class="crayon-o">+</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">-</span><span
+class="crayon-o">+</span></div><div
+class="crayon-line" id="crayon-536c9b94a65b0703201580-3"><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-r">Id</span><span
+class="crayon-h"> </span><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-i">User</span><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-i">State</span><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span
+class="crayon-o">|</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65b0703201580-4"><span
+class="crayon-o">+</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">+</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">-</span><span
+class="crayon-o">+</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">-</span><span
+class="crayon-o">+</span></div><div
+class="crayon-line" id="crayon-536c9b94a65b0703201580-5"><span
+class="crayon-o">|</span><span
+class="crayon-h">&nbsp;&nbsp;</span><span
+class="crayon-cn">2</span><span
+class="crayon-h"> </span><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-e">system </span><span
+class="crayon-i">user</span><span
+class="crayon-h"> </span><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-e">Waiting </span><span
+class="crayon-st">for</span><span
+class="crayon-h"> </span><span
+class="crayon-e">master </span><span
+class="crayon-st">to</span><span
+class="crayon-h"> </span><span
+class="crayon-e">send </span><span
+class="crayon-i">event</span><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-o">|</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65b0703201580-6"><span
+class="crayon-o">|</span><span
+class="crayon-h">&nbsp;&nbsp;</span><span
+class="crayon-cn">3</span><span
+class="crayon-h"> </span><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-e">system </span><span
+class="crayon-i">user</span><span
+class="crayon-h"> </span><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-e">Slave </span><span
+class="crayon-e">has </span><span
+class="crayon-r">read</span><span
+class="crayon-h"> </span><span
+class="crayon-e">all </span><span
+class="crayon-e">relay </span><span
+class="crayon-i">log</span><span
+class="crayon-sy">;</span><span
+class="crayon-h"> </span><span
+class="crayon-e">waiting </span><span
+class="crayon-st">for</span><span
+class="crayon-h"> </span><span
+class="crayon-e">the </span><span
+class="crayon-i">slave</span><span
+class="crayon-h"> </span><span
+class="crayon-i">I</span><span
+class="crayon-o">/</span><span
+class="crayon-i">O</span><span
+class="crayon-h"> </span><span
+class="crayon-e">thread </span><span
+class="crayon-st">to</span><span
+class="crayon-h"> </span><span
+class="crayon-e">update </span><span
+class="crayon-i">it</span><span
+class="crayon-h"> </span><span
+class="crayon-o">|</span></div><div
+class="crayon-line" id="crayon-536c9b94a65b0703201580-7"><span
+class="crayon-o">|</span><span
+class="crayon-h">&nbsp;&nbsp;</span><span
+class="crayon-cn">4</span><span
+class="crayon-h"> </span><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-e">system </span><span
+class="crayon-i">user</span><span
+class="crayon-h"> </span><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-e">Waiting </span><span
+class="crayon-st">for</span><span
+class="crayon-h"> </span><span
+class="crayon-e">master </span><span
+class="crayon-st">to</span><span
+class="crayon-h"> </span><span
+class="crayon-e">send </span><span
+class="crayon-i">event</span><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-o">|</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65b0703201580-8"><span
+class="crayon-o">|</span><span
+class="crayon-h">&nbsp;&nbsp;</span><span
+class="crayon-cn">5</span><span
+class="crayon-h"> </span><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-e">system </span><span
+class="crayon-i">user</span><span
+class="crayon-h"> </span><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-e">Slave </span><span
+class="crayon-e">has </span><span
+class="crayon-r">read</span><span
+class="crayon-h"> </span><span
+class="crayon-e">all </span><span
+class="crayon-e">relay </span><span
+class="crayon-i">log</span><span
+class="crayon-sy">;</span><span
+class="crayon-h"> </span><span
+class="crayon-e">waiting </span><span
+class="crayon-st">for</span><span
+class="crayon-h"> </span><span
+class="crayon-e">the </span><span
+class="crayon-i">slave</span><span
+class="crayon-h"> </span><span
+class="crayon-i">I</span><span
+class="crayon-o">/</span><span
+class="crayon-i">O</span><span
+class="crayon-h"> </span><span
+class="crayon-e">thread </span><span
+class="crayon-st">to</span><span
+class="crayon-h"> </span><span
+class="crayon-e">update </span><span
+class="crayon-i">it</span><span
+class="crayon-h"> </span><span
+class="crayon-o">|</span></div><div
+class="crayon-line" id="crayon-536c9b94a65b0703201580-9"><span
+class="crayon-o">+</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">+</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">-</span><span
+class="crayon-o">+</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">-</span><span
+class="crayon-o">+</span></div></div></td></tr></table></div></div><p>Let&#8217;s test it:</p><div
+id="crayon-536c9b94a65b9402609020" class="crayon-syntax crayon-theme-familiar crayon-font-monaco crayon-os-pc print-yes notranslate" data-settings=" minimize scroll-mouseover" style=" margin-top: 12px; margin-bottom: 12px; float: none; clear: both; font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-toolbar" data-settings=" show" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><span
+class="crayon-title"></span><div
+class="crayon-tools" style="font-size: 12px !important;height: 18px !important; line-height: 18px !important;"><div
+class="crayon-button crayon-nums-button" title="Toggle Line Numbers"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-plain-button" title="Toggle Plain Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-wrap-button" title="Toggle Line Wrap"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-expand-button" title="Expand Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-copy-button" title="Copy"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-popup-button" title="Open Code In New Window"><div
+class="crayon-button-icon"></div></div><span
+class="crayon-language">Shell</span></div></div><div
+class="crayon-info" style="min-height: 16.8px !important; line-height: 16.8px !important;"></div><div
+class="crayon-plain-wrap"><textarea wrap="soft" class="crayon-plain print-no" data-settings="click" readonly style="-moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4; font-size: 12px !important; line-height: 15px !important;">
+master1 &gt; create database master1;
+master2 &gt; create database master2;
+slave &gt; show databases like 'master%';
++--------------------+
+| Database (master%) |
++--------------------+
+| master1            |
+| master2            |
++--------------------+</textarea></div><div
+class="crayon-main" style=""><table
+class="crayon-table"><tr
+class="crayon-row"><td
+class="crayon-nums " data-settings="show"><div
+class="crayon-nums-content" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-num" data-line="crayon-536c9b94a65b9402609020-1">1</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65b9402609020-2">2</div><div
+class="crayon-num" data-line="crayon-536c9b94a65b9402609020-3">3</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65b9402609020-4">4</div><div
+class="crayon-num" data-line="crayon-536c9b94a65b9402609020-5">5</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65b9402609020-6">6</div><div
+class="crayon-num" data-line="crayon-536c9b94a65b9402609020-7">7</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-536c9b94a65b9402609020-8">8</div><div
+class="crayon-num" data-line="crayon-536c9b94a65b9402609020-9">9</div></div></td><td
+class="crayon-code"><div
+class="crayon-pre" style="font-size: 12px !important; line-height: 15px !important;"><div
+class="crayon-line" id="crayon-536c9b94a65b9402609020-1"><span
+class="crayon-i">master1</span><span
+class="crayon-h"> </span><span
+class="crayon-o">&gt;</span><span
+class="crayon-h"> </span><span
+class="crayon-e">create </span><span
+class="crayon-e">database </span><span
+class="crayon-i">master1</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65b9402609020-2"><span
+class="crayon-i">master2</span><span
+class="crayon-h"> </span><span
+class="crayon-o">&gt;</span><span
+class="crayon-h"> </span><span
+class="crayon-e">create </span><span
+class="crayon-e">database </span><span
+class="crayon-i">master2</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-536c9b94a65b9402609020-3"><span
+class="crayon-i">slave</span><span
+class="crayon-h"> </span><span
+class="crayon-o">&gt;</span><span
+class="crayon-h"> </span><span
+class="crayon-e">show </span><span
+class="crayon-e">databases </span><span
+class="crayon-i">like</span><span
+class="crayon-h"> </span><span
+class="crayon-s">'master%'</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65b9402609020-4"><span
+class="crayon-o">+</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">+</span></div><div
+class="crayon-line" id="crayon-536c9b94a65b9402609020-5"><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-e">Database</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">(</span><span
+class="crayon-i">master</span><span
+class="crayon-o">%</span><span
+class="crayon-sy">)</span><span
+class="crayon-h"> </span><span
+class="crayon-o">|</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65b9402609020-6"><span
+class="crayon-o">+</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">+</span></div><div
+class="crayon-line" id="crayon-536c9b94a65b9402609020-7"><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-i">master1</span><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-o">|</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-536c9b94a65b9402609020-8"><span
+class="crayon-o">|</span><span
+class="crayon-h"> </span><span
+class="crayon-i">master2</span><span
+class="crayon-h">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class="crayon-o">|</span></div><div
+class="crayon-line" id="crayon-536c9b94a65b9402609020-9"><span
+class="crayon-o">+</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">--</span><span
+class="crayon-o">+</span></div></div></td></tr></table></div></div><p>It works, that easy!</p><h3>Conclusion</h3><p>The new multi-source feature allow us to create new replication environments that were impossible in the past without some complex &#8220;hacks&#8221;. Of course, your application should be designed and developed with this new architecture in mind. Like with multi-master, multi-source needs special care to not end up with your data messed up.</p><p>MySQL replication is getting better on every release giving us more configuration, performance and design possibilities. And all those new features can be combined. Your replication environment can be even better if you mix some of the new (and old) features added recently to the replication. For example, you can configure <a
+title="GTID" href="http://www.mysqlperformanceblog.com/2013/02/08/how-to-createrestore-a-slave-using-gtid-replication-in-mysql-5-6/">GTID</a> or enable <a
+title="Multi-threaded slave per schema" href="http://scriptingmysql.wordpress.com/2013/01/07/mysql-replication-multi-threaded-slaves-parallel-event-execution/">multi-threaded slave per schema</a> or <a
+title="Intra-database multi thread slaves" href="http://geek.rohitkalhans.com/2013/09/enhancedMTS-deepdive.html">intra-database</a>.</p></div><div
+class="post-meta"><span
+class="categories">Filed Under: <a
+href="http://www.mysqlperformanceblog.com/category/mysql/" title="View all posts in MySQL" rel="category tag">MySQL</a></span> <span
+class="tags">Tagged With: <a
+href="http://www.mysqlperformanceblog.com/tag/miguel-angel-nieto/" rel="tag">Miguel Angel Nieto</a>, <a
+href="http://www.mysqlperformanceblog.com/tag/multi-source-replication/" rel="tag">multi-source replication</a>, <a
+href="http://www.mysqlperformanceblog.com/tag/mysql-5-7/" rel="tag">MySQL 5.7</a>, <a
+href="http://www.mysqlperformanceblog.com/tag/oracle/" rel="tag">Oracle</a></span></div></div><div
+class="author-box"><div><img
+alt='' src='http://0.gravatar.com/avatar/a40387c48da1e9fba938f8ea8eb7afa2?s=70&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D70&amp;r=G' class='avatar avatar-70 photo' height='70' width='70' /> <strong>About Miguel Angel Nieto</strong><br
+/><p>Miguel joined Percona in October 2011. He has worked as a System Administrator for a Free Software consultant and in the supporting area of the biggest hosting company in Spain. His current focus is improving MySQL and helping the community of Free Software to grow. Miguel's roles inside Percona are Senior Support Engineer and Manager of EMEA Support Team.</p></div></div><div
+style="width:730px; margin:0px auto 15px;"><script type="text/javascript" src="http://www.percona.com/ads.php?size=730x95"></script></div><div
+id="comments"><h3>Comments</h3><ol
+class="comment-list"><li
+class="comment even thread-even depth-1" id="comment-3030535"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/37f3074d6b0d056e9883879e8548894c?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">Marc Castrovinci</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3030535">October 2, 2013 at 10:05 am</a></div><div
+class="comment-content"><p>Great feature! It looks helpful for when you want to funnel sharded data into a single location so you can run OLAP type operations over all the data.</p></div><div
+class="reply"></div></li><li
+class="comment odd alt thread-odd thread-alt depth-1" id="comment-3030627"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/5a745ab488ae6446dc7b37d4b344fb00?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">Jonatas</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3030627">October 2, 2013 at 10:40 am</a></div><div
+class="comment-content"><p>Very nice feature. Keeping eye on 5.7&#8230;</p></div><div
+class="reply"></div></li><li
+class="comment even thread-even depth-1" id="comment-3030798"><div
+class="comment-author vcard"> <img
+alt='' src='http://0.gravatar.com/avatar/092d16b4470f2515e1204f10105e165f?s=48&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn"><a
+href='http://shivjijha.blogspot.in/' rel='external nofollow' class='url'>shiv</a></cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3030798">October 2, 2013 at 11:32 am</a></div><div
+class="comment-content"><p>Hi Miguel,<br
+/> You can use the new replication performance schema tables to look at all the channels or choose which channel you want&#8230;</p></div><div
+class="reply"></div></li><li
+class="comment byuser comment-author-miguelangelnieto bypostauthor odd alt thread-odd thread-alt depth-1" id="comment-3031049"><div
+class="comment-author vcard"> <img
+alt='' src='http://0.gravatar.com/avatar/a40387c48da1e9fba938f8ea8eb7afa2?s=48&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn"><a
+href='http://www.percona.com' rel='external nofollow' class='url'>Miguel Angel Nieto</a></cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3031049">October 2, 2013 at 1:22 pm</a></div><div
+class="comment-content"><p>shiv, yes, it is possible to get that info from P_S tables:</p><p>replication_connection_configuration<br
+/> replication_execute_configuration</p><p>but&#8230; in my personal opinion that should be in I_S. That info is not performance related, it just show us configuration information so it should be available via SHOW (for example SHOW SLAVE STATUS CHANNEL ALL) or via I_S tables. Maybe I&#8217;m wrong, but I&#8217;ve opened a feature request anyway:</p><p><a
+href="http://bugs.mysql.com/bug.php?id=70434" rel="nofollow">http://bugs.mysql.com/bug.php?id=70434</a></p></div><div
+class="reply"></div></li><li
+class="comment even thread-even depth-1" id="comment-3031292"><div
+class="comment-author vcard"> <img
+alt='' src='http://0.gravatar.com/avatar/61c9cdc26cede171e84aa65608f6a78b?s=48&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn"><a
+href='http://Nimbuzz.com' rel='external nofollow' class='url'>Tariq</a></cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3031292">October 2, 2013 at 2:25 pm</a></div><div
+class="comment-content"><p>I trying to imagine the practical implementation of this new &#8216;multi source replication&#8217; and how does it really help having a slave getting replicated from multiple sources when the data_set_from_every_master is the same ?</p><p>Consider the M-M replication master1 and master2 having the dataset X and I could easily run a slave1 either from Master1 or Master2 and possibly have many other slaves from slave1 or master[1-2] and so on, why would one need to replicate from multiple masters if data is all the same unless for some arcane reason i want to replicate a particular db from master 1 and another db2 from another master which is not necessarily in the M-M replication chain .</p></div><div
+class="reply"></div></li><li
+class="comment byuser comment-author-miguelangelnieto bypostauthor odd alt thread-odd thread-alt depth-1" id="comment-3031325"><div
+class="comment-author vcard"> <img
+alt='' src='http://0.gravatar.com/avatar/a40387c48da1e9fba938f8ea8eb7afa2?s=48&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn"><a
+href='http://www.percona.com' rel='external nofollow' class='url'>Miguel Angel Nieto</a></cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3031325">October 2, 2013 at 2:35 pm</a></div><div
+class="comment-content"><p>Tariq, the data from masters don&#8217;t need to be the same. The masters on the second graph they are not in M-M replication. There are lot of examples where multi-source can be applied:</p><p>- maybe you have hundred of apache servers, logging accesses to a mysql. in that case, having all those mysql replicating to a single slave could help you to run queries there.</p><p>- or you have radar-controlled speed cameras all around the country and you need to have one single point to query the data.</p><p>- or just the example made by Marc on the first comment.</p><p>So, masters don&#8217;t need to have the same data set. Now practical implementation depends on what you need not on MySQL limitations.</p></div><div
+class="reply"></div></li><li
+class="comment even thread-even depth-1" id="comment-3035098"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/18b3d7e7dec8255c9f4c2879a3ba5657?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn"><a
+href='http://www.jamesattard.com' rel='external nofollow' class='url'>James Attard</a></cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3035098">October 3, 2013 at 4:13 am</a></div><div
+class="comment-content"><p>I will definitely test and blog this setup. Will make downtime-less migrations easier, without any doubt.</p></div><div
+class="reply"></div></li><li
+class="comment odd alt thread-odd thread-alt depth-1" id="comment-3036415"><div
+class="comment-author vcard"> <img
+alt='' src='http://0.gravatar.com/avatar/ae7b2f9162d102a67bb5c7e8dcf6e31a?s=48&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">Hugo</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3036415">October 3, 2013 at 7:17 am</a></div><div
+class="comment-content"><p>Nice Nice.</p><p>This will drastically reduce the complexity on our OLAP servers.</p><p>Does this works nice if the salve uses BlackHole Engine for all the replicated databases?</p></div><div
+class="reply"></div></li><li
+class="comment byuser comment-author-miguelangelnieto bypostauthor even thread-even depth-1" id="comment-3036887"><div
+class="comment-author vcard"> <img
+alt='' src='http://0.gravatar.com/avatar/a40387c48da1e9fba938f8ea8eb7afa2?s=48&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn"><a
+href='http://www.percona.com' rel='external nofollow' class='url'>Miguel Angel Nieto</a></cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3036887">October 3, 2013 at 9:12 am</a></div><div
+class="comment-content"><p>Hugo, this still works like regular replication, just with more IO and SQL threads. No limitation on what storage engine you use.</p></div><div
+class="reply"></div></li><li
+class="comment odd alt thread-odd thread-alt depth-1" id="comment-3096065"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/1f8ac111410bbdc387519c83279ba17c?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn"><a
+href='http://terence.monteiro.in' rel='external nofollow' class='url'>Terence Monteiro</a></cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3096065">October 8, 2013 at 3:34 pm</a></div><div
+class="comment-content"><p>Hi Miguel,</p><p>For the multi-source replication, I would like to know if it is sufficient to upgrade the slave to 5.7.2, or do the masters also need to run the same mysql version?</p></div><div
+class="reply"></div></li><li
+class="comment byuser comment-author-miguelangelnieto bypostauthor even thread-even depth-1" id="comment-3204197"><div
+class="comment-author vcard"> <img
+alt='' src='http://0.gravatar.com/avatar/a40387c48da1e9fba938f8ea8eb7afa2?s=48&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn"><a
+href='http://www.percona.com' rel='external nofollow' class='url'>Miguel Angel Nieto</a></cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3204197">October 20, 2013 at 10:59 am</a></div><div
+class="comment-content"><p>Terence, didn&#8217;t have time to check it. But the theory says &#8220;it should&#8221;. It just opens more &#8220;io threads&#8221;, so for the master server is like having two different slaves. But as I said, didn&#8217;t check it. If I get some spare time I will try it.</p></div><div
+class="reply"></div></li><li
+class="comment odd alt thread-odd thread-alt depth-1" id="comment-3252667"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/fdd4a2daf8ed7c9c54f3d055f68b0eac?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn"><a
+href='http://terence.monteiro.in' rel='external nofollow' class='url'>Terence Monteiro</a></cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3252667">October 29, 2013 at 2:33 pm</a></div><div
+class="comment-content"><p>Hi Miguel,</p><p>Thanks for your reply. I just got multi-source replication working with MySQL 5.7.2 on my laptop with 2 vms running 5..</p></div><div
+class="reply"></div></li><li
+class="comment even thread-even depth-1" id="comment-3252674"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/fdd4a2daf8ed7c9c54f3d055f68b0eac?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn"><a
+href='http://terence.monteiro.in' rel='external nofollow' class='url'>Terence Monteiro</a></cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3252674">October 29, 2013 at 2:46 pm</a></div><div
+class="comment-content"><p>I got multi-source replication running with 2 VMs with different MySQL versions (5.1.49 and 5.1.63). Thanks.</p></div><div
+class="reply"></div></li><li
+class="comment odd alt thread-odd thread-alt depth-1" id="comment-3476032"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/1cee9362247a203c963ef3de4dee47e8?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn"><a
+href='http://www.buckhill.co.uk' rel='external nofollow' class='url'>Marko</a></cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3476032">November 30, 2013 at 3:48 am</a></div><div
+class="comment-content"><p>Hi all,<br
+/> I&#8217;ve just slave it in m-m with two percona&#8217;s 5.6 and it works as expected. Everything is replicated everywhere.  I noticed. after 5.7.2 is restarted the replications on it can&#8217;t be started again and have to be setup again.</p></div><div
+class="reply"></div></li><li
+class="comment even thread-even depth-1" id="comment-3512839"><div
+class="comment-author vcard"> <img
+alt='' src='http://0.gravatar.com/avatar/8d87385deeacaff572e0f0cc47706603?s=48&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">rucypli</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-3512839">December 5, 2013 at 1:49 am</a></div><div
+class="comment-content"><p>is percona plans to add feathure Parallel Slave like MariaDB？ thanks</p></div><div
+class="reply"></div></li><li
+class="comment odd alt thread-odd thread-alt depth-1" id="comment-4609351"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/f250a129ee26e65167a902dada3d66d3?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">Mike Siekkinen</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-4609351">January 29, 2014 at 6:07 pm</a></div><div
+class="comment-content"><p>During my (still labs-version 5.7.2) testing of multi source replication, it seems there is a bug where replication does not automatically pick back up after a server restart.</p><p>Information remains in the slave_master_info table, how ever attempt to start slave for channel or show slave status for channel returns an error as if it had never been setup.</p><p>Rerunning a full change master to command from the log positions left in slave_master_info table seemed to allow replication to resume.</p><p>Aside from that one gotcha I ran into was trying to replicate a table with the now-reserved word &#8220;channel&#8221; for a column name.  The application wasn&#8217;t encasing the column names in backticks to replication would break on a syntax error for those inserts.</p></div><div
+class="reply"></div></li><li
+class="comment even thread-even depth-1" id="comment-4614779"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/f250a129ee26e65167a902dada3d66d3?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">Mike Siekkinen</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-4614779">January 30, 2014 at 11:38 am</a></div><div
+class="comment-content"><p>Further testing off a real replication stream broke with an error about not being able to parse log events.  This was trying to read binlogs from a percona 5.5.34 build.  Between mixing percona builds with mysql labs builds and a big &#8220;TESTING ONLY&#8221; warning on the download I&#8217;ll wait for it to become more stable before pursuing further.</p></div><div
+class="reply"></div></li><li
+class="comment byuser comment-author-miguelangelnieto bypostauthor odd alt thread-odd thread-alt depth-1" id="comment-4614780"><div
+class="comment-author vcard"> <img
+alt='' src='http://0.gravatar.com/avatar/a40387c48da1e9fba938f8ea8eb7afa2?s=48&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn"><a
+href='http://www.percona.com' rel='external nofollow' class='url'>Miguel Angel Nieto</a></cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-4614780">January 30, 2014 at 11:44 am</a></div><div
+class="comment-content"><p>Mike, thanks for your comments. That is what Oracle wants with Lab version, to have people breaking it like you are doing. It would be good if you could report those bugs on <a
+href="http://bugs.mysql.com/" rel="nofollow">http://bugs.mysql.com/</a> That will help to make the final release even better <img
+src="http://www.mysqlperformanceblog.com/wp-includes/images/smilies/icon_smile.gif" alt=":)" class="wp-smiley" /></p></div><div
+class="reply"></div></li><li
+class="comment even thread-even depth-1" id="comment-4617010"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/3481d90da739f58be89dc6bf6fdd6d09?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">Wayne Gaylard</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-4617010">January 31, 2014 at 2:52 am</a></div><div
+class="comment-content"><p>I am trying to do some testing but I keep getting syntax errors when trying to do CHANGE MASTER TO &#8230;. FOR CHANNEL = &#8216;channel_name&#8217;. Any ideas. Using 5.7.3, tried in Workbench and on command line &#8211; same result.</p></div><div
+class="reply"></div></li><li
+class="comment odd alt thread-odd thread-alt depth-1" id="comment-4658470"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/f0babbf9a8bb3a16bffbe22a52028456?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">s capkan</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-4658470">February 7, 2014 at 10:49 am</a></div><div
+class="comment-content"><p>I&#8217;m wondering how mysql does 5.7 handle auto_increment feature. What if i have two master without any communication and both of them has auto increment row, they can easily get same ids. Should i also use auto_increment_increment and auto_increment_offset parameters like master-master structure?.</p></div><div
+class="reply"></div></li><li
+class="comment even thread-even depth-1" id="comment-4659360"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/f250a129ee26e65167a902dada3d66d3?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">Mike Siekkinen</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-4659360">February 7, 2014 at 12:16 pm</a></div><div
+class="comment-content"><p>@wayne, you have to download the laps specific version from <a
+href="http://labs.mysql.com/" rel="nofollow">http://labs.mysql.com/</a> Select multi source replication from the drop down.</p></div><div
+class="reply"></div></li><li
+class="comment odd alt thread-odd thread-alt depth-1" id="comment-4659411"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/f250a129ee26e65167a902dada3d66d3?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">Mike Siekkinen</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-4659411">February 7, 2014 at 12:18 pm</a></div><div
+class="comment-content"><p>*labs; I wish I could edit comments here</p></div><div
+class="reply"></div></li><li
+class="comment even thread-even depth-1" id="comment-4659564"><div
+class="comment-author vcard"> <img
+alt='' src='http://1.gravatar.com/avatar/f250a129ee26e65167a902dada3d66d3?s=48&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">Mike Siekkinen</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-4659564">February 7, 2014 at 12:37 pm</a></div><div
+class="comment-content"><p>@s capkan, I believe the point of multi source replication is to get the databases from server A and server B into the same instance on the slave C instance.  If both A and B hold the same database/table schemas I imagine you&#8217;re going to have a bad time.</p><p>The auto_increment_offest is meant for multi master replication so they don&#8217;t step on each other since mysql replication is not synchronous.</p></div><div
+class="reply"></div></li><li
+class="comment odd alt thread-odd thread-alt depth-1" id="comment-5552146"><div
+class="comment-author vcard"> <img
+alt='' src='http://0.gravatar.com/avatar/e6af06c10a20cb446ff319479e5b0e34?s=48&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">Alex</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-5552146">March 21, 2014 at 2:21 pm</a></div><div
+class="comment-content"><p>We have many MySQL instances that are set up with the same set of databases for each instance.  I was planning to use multi-source to create a single backup point and reporting point.  The problem is that all the source instances have the same databases.  Are there any considerations for a prefix on the database name, or something that creates a unique database name on the replica in such a scenario?</p></div><div
+class="reply"></div></li><li
+class="comment even thread-even depth-1" id="comment-5958516"><div
+class="comment-author vcard"> <img
+alt='' src='http://0.gravatar.com/avatar/c02ed79462965f3584bea38beedd27ff?s=48&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D48&amp;r=G' class='avatar avatar-48 photo' height='48' width='48' /><cite
+class="fn">Moody</cite> <span
+class="says">says:</span></div><div
+class="comment-meta commentmetadata"> <a
+href="http://www.mysqlperformanceblog.com/2013/10/02/mysql-5-7-multi-source-replication/#comment-5958516">April 10, 2014 at 11:51 am</a></div><div
+class="comment-content"><p>I have the same concern as the post above me, Alex. If Master1 and Master2 both have a schema called &#8220;test&#8221;, how does this conflict with multi-source replication? I would imagine there would be 2 problems, the first one being can&#8217;t have 2 schemas with the same name. Second, how does the slave know which schema to apply the slave event?</p></div><div
+class="reply"></div></li></ol><div
+class="navigation"><div
+class="alignleft"></div><div
+class="alignright"></div></div></div><div
+id="respond" class="comment-respond"><h3 id="reply-title" class="comment-reply-title">Speak Your Mind <small><a
+rel="nofollow" id="cancel-comment-reply-link" href="/2013/10/02/mysql-5-7-multi-source-replication/#respond" style="display:none;">Cancel reply</a></small></h3><form
+action="http://www.mysqlperformanceblog.com/wp-comments-post.php" method="post" id="commentform" class="comment-form"><p
+class="comment-form-author"><input
+id="author" name="author" type="text" value="" size="30" tabindex="1" aria-required="true" /><label
+for="author">Name</label> <span
+class="required">*</span></p><p
+class="comment-form-email"><input
+id="email" name="email" type="text" value="" size="30" tabindex="2" aria-required="true" /><label
+for="email">Email</label> <span
+class="required">*</span></p><p
+class="comment-form-url"><input
+id="url" name="url" type="text" value="" size="30" tabindex="3" /><label
+for="url">Website</label></p><p
+class="comment-form-comment"><textarea id="comment" name="comment" cols="45" rows="8" tabindex="4" aria-required="true"></textarea></p><p
+class="form-submit"> <input
+name="submit" type="submit" id="submit" value="Post Comment" /> <input
+type='hidden' name='comment_post_ID' value='18120' id='comment_post_ID' /> <input
+type='hidden' name='comment_parent' id='comment_parent' value='0' /></p><p
+style="display: none;"><input
+type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="3e8f8d955b" /></p><p
+style="clear: both;" class="subscribe-to-comments"> <input
+type="checkbox" checked="checked" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" /> <label
+for="subscribe">Notify me of followup comments via e-mail</label></p> <script type='text/javascript'>var RecaptchaOptions = { theme : 'red', lang : 'en' , tabindex : 5 };</script><script type="text/javascript" src="http://www.google.com/recaptcha/api/challenge?k=6LeowN4SAAAAAJfC8Kr4qUUeWPj0wuUgdESkSfOh"></script> <noscript> <iframe
+src="http://www.google.com/recaptcha/api/noscript?k=6LeowN4SAAAAAJfC8Kr4qUUeWPj0wuUgdESkSfOh" height="300" width="500" frameborder="0"></iframe><br/><textarea name="recaptcha_challenge_field" rows="3" cols="40"></textarea><input
+type="hidden" name="recaptcha_response_field" value="manual_challenge"/> </noscript><div
+id="recaptcha-submit-btn-area">&nbsp;</div> <noscript><style type='text/css'>#submit {display:none;}</style><input
+name="submit" type="submit" id="submit-alt" tabindex="6" value="Submit Comment"/> </noscript></form></div></div><div
+id="sidebar" class="sidebar widget-area"><div
+id="simple_ads_manager_widget-3" class="widget simple_ads_manager_widget"><div
+class="widget-wrap"><div
+id='c5334_7_1' class='sam-container sam-place' data-sam='0'><a
+id='a85_7' class='sam_ad' href='http://tools.percona.com/' target='_self' ><img
+src='http://www.mysqlperformanceblog.com/wp-content/uploads/2012/01/percona-easily-configure-your-mysql-server2.jpg'  alt='Percona Configuration Wizard'  /></a></div></div></div><div
+id="searchsidebarwidget-4" class="widget SearchSidebarWidget"><div
+class="widget-wrap"><h4 class="widgettitle">Search</h4> <script type="text/javascript" >function toggle_sidebar(){
+	style = document.getElementById('searchform_advanced_bar').style.display;
+	if (style == 'block')
+	{
+		document.getElementById('searchform_advanced_bar').style.display = 'none';
+		document.getElementById('searchform_advanced_bar').innerHTML = '';
+	}
+	else
+	{
+		document.getElementById('searchform_advanced_bar').style.display = 'block';
+		document.getElementById('searchform_advanced_bar').innerHTML = document.getElementById('searchform_advanced_options_bar').innerHTML;
+	}
+}
+function sphinx_search_submit(form) {
+    var input = document.getElementById('sphinx_sinput');
+    form.s.value = input.value.replace("_", ' ').replace("'", '_');
+    return true;
+}</script> <div
+id="searchbar"> <label
+for="s"> <a
+href="http://www.ivinco.com/software/wordpress-sphinx-search/"
+title="WordPress Sphinx Search Plugin by Ivinco"><img
+src="http://www.mysqlperformanceblog.com/wp-content/plugins/wordpress-sphinx-plugin/templates/img/icon-ivinco.png"
+alt="WordPress Sphinx Search Plugin by Ivinco" /></a> Search </label><form
+id="searchform" method="get" action="http://www.mysqlperformanceblog.com" onsubmit="sphinx_search_submit(this)"> <input
+type="hidden" name="s" size="15" value=""/><ul><li> <input
+type="text" id="sphinx_sinput" size="25"
+value=""/> <input
+type="submit" id="submit" value="Search" /><br/> <a
+href="javascript:void(0);" onclick="toggle_sidebar();"
+style="font-size:10px;">Advanced</a></li></ul><div
+id="searchform_advanced_bar" style="display:none;"></div></form><div
+id="searchform_advanced_options_bar" style="display:none;"><ul><li
+id="searchin">Search in: <br/> <input
+type="checkbox" id="search_posts" name="search_posts" value="true"
+checked='checked' /><label
+for="search_posts">posts</label> <br/> <input
+type="checkbox" id="search_pages" name="search_pages" value="true"
+checked='checked' /><label
+for="search_pages">pages</label> <br/> <input
+type="checkbox" id="search_comments" name="search_comments" value="true"
+checked='checked' /><label
+for="search_comments">comments</label> <br/> <input
+type="checkbox" id="search_tags" name="search_tags" value="true"
+checked='checked' /><label
+for="search_tags">tags</label></li></ul><ul><li
+id="sortby">Sort by: <br/> <input
+type="radio" id="search_sortby_date_relevance" name="search_sortby" value="date_relevance"
+checked="true" /><label
+for="search_sortby_date_relevance">Freshness &amp; Relevance</label> <br/> <input
+type="radio" id="search_sortby_rel" name="search_sortby" value="relevance"
+/><label
+for="search_sortby_rel">Relevance</label> <br/> <input
+type="radio" id="search_sortby_date" name="search_sortby" value="date"
+/><label
+for="search_sortby_date">Freshness</label></li></ul></div></div></div></div><div
+id="topsearcheswidget-5" class="widget TopSearchesWidget"><div
+class="widget-wrap"><h4 class="widgettitle">Top Searches</h4><ul><li><a
+href='http://www.mysqlperformanceblog.com/search/mysql/' title='mysql'>mysql</a></li><li><a
+href='http://www.mysqlperformanceblog.com/search/Percona+Server/' title='Percona Server'>Percona Server</a></li><li><a
+href='http://www.mysqlperformanceblog.com/search/Innodb/' title='Innodb'>Innodb</a></li><li><a
+href='http://www.mysqlperformanceblog.com/search/Xtradb/' title='Xtradb'>Xtradb</a></li><li><a
+href='http://www.mysqlperformanceblog.com/search/Xtrabackup/' title='Xtrabackup'>Xtrabackup</a></li><li><a
+href='http://www.mysqlperformanceblog.com/search/mysql+performance/' title='mysql performance'>mysql performance</a></li><li><a
+href='http://www.mysqlperformanceblog.com/search/mysql+flash/' title='mysql flash'>mysql flash</a></li><li><a
+href='http://www.mysqlperformanceblog.com/search/mysql+ssd/' title='mysql ssd'>mysql ssd</a></li><li><a
+href='http://www.mysqlperformanceblog.com/search/mysql+ec2/' title='mysql ec2'>mysql ec2</a></li><li><a
+href='http://www.mysqlperformanceblog.com/search/mariadb/' title='mariadb'>mariadb</a></li></ul></div></div><h4 class="widgettitle">Percona Webinars</h4><ul><li><a
+href='http://www.percona.com/resources/mysql-webinars/practical-mysql-performance-optimization'>May 14, 2014 - Practical MySQL Performance Optimization</a></li><li><a
+href='http://www.percona.com/resources/mysql-webinars/architecture-and-design-mysql-powered-applications'>June 11, 2014 - Architecture and Design of MySQL Powered Applications</a></li><li><a
+href='http://www.percona.com/resources/mysql-webinars/mysql-backup-and-recovery-best-practices'>June 18, 2014 - MySQL Backup and Recovery Best Practices</a></li><li><a
+href='http://www.percona.com/resources/mysql-webinars/monitoring-all-mysql-metrics-percona-cloud-tools'>June 25, 2014 - Monitoring All MySQL Metrics with Percona Cloud Tools</a></li><li><a
+href='http://www.percona.com/resources/mysql-webinars/part-2-how-avoid-common-deadly-mysql-development-mistakes'>July 16, 2014 - Part 2: How to Avoid Common (but Deadly) MySQL Development Mistakes</a></li></ul><p
+style="text-align:right;"><a
+href='http://www.percona.com/webinars'>All Webinars &raquo;</a></p><br
+/><div
+id="text-5" class="widget widget_text"><div
+class="widget-wrap"><h4 class="widgettitle">ABOUT PERCONA</h4><div
+class="textwidget"><p>Percona is the oldest and largest independent MySQL support and consulting company, with a global 24×7 staff of 100+ people serving more than 2,000 customers in 50+ countries since 2006.</p><p>We offer <a
+href="http://www.percona.com/mysql-consulting" title="Percona Consulting for MySQL">Consulting</a>, <a
+href="http://www.percona.com/mysql-support" title="Percona offers enterprise-grade MySQL support">Support</a>, <a
+href="http://www.percona.com/training" title="MySQL Training from Percona">Training</a>, <a
+href="http://www.percona.com/products/remote-dba">Remote DBA</a>, and <a
+href="http://www.percona.com/development/mysql" title="Percona's developers can create custom MySQL development">Custom Server Development</a> services. We also create open source software for the MySQL community including <a
+href="http://www.percona.com/software/percona-server" title="An enhaced version of MySQL">Percona Server</a>, <a
+href="http://www.percona.com/software/percona-toolkit">Percona Toolkit</a>, <a
+href="http://www.percona.com/software/percona-xtradb-cluster">Percona XtraDB Cluster</a>, <a
+href="http://www.percona.com/software/percona-xtradb" title="Percona's fork of InnoDB">Percona XtraDB</a> and <a
+href="http://www.percona.com/software/percona-xtrabackup" title="Hot InnoDB Backups">Percona XtraBackup</a>.</p></div></div></div><h4 class="widgettitle">Percona MySQL Training</h4><ul><li><a
+href='http://www.percona.com/mysql-training/order/nyc-1405'>Percona Training for MySQL - New York on Monday, 12 May 2014</a></li><li><a
+href='http://www.percona.com/mysql-training/order/fra-1406'>Percona Training for MySQL - Frankfurt on Monday, 02 June 2014</a></li><li><a
+href='http://www.percona.com/mysql-training/order/httpperconacomtrainingordereventsanjose-pxc-july-2014sourcewww'>MySQL High Availability With Percona XtraDB Cluster on Wednesday, 16 July 2014</a></li><li><a
+href='http://www.percona.com/mysql-training/order/sfo-1408'>Percona Training for MySQL - San Francisco on Monday, 08 September 2014</a></li><li><a
+href='http://www.percona.com/mysql-training/order/lon-1409'>Percona Training for MySQL - London on Monday, 15 September 2014</a></li></ul><p
+style="text-align:right;"><a
+href='http://www.percona.com/training/'>All Courses &raquo;</a></p><br
+/><h4 class="widgettitle">Percona Careers</h4><ul><li><a
+href='http://www.percona.com/about-us/careers/'>Web Project Manager</a></li><li><a
+href='http://www.percona.com/about-us/careers/'>PCT User Success Specialist</a></li><li><a
+href='http://www.percona.com/about-us/careers/'>Senior MySQL Support Engineer [US Pacific timezones]</a></li><li><a
+href='http://www.percona.com/about-us/careers/'>Database Consultant</a></li><li><a
+href='http://www.percona.com/about-us/careers/'>DevOps Engineer</a></li></ul><p
+style="text-align:right;"><a
+href='http://www.percona.com/about-us/careers/'>All Careers &raquo;</a></p><br
+/><div
+id="yarpp_widget-4" class="widget widget_yarpp_widget"><div
+class="widget-wrap"><h4 class="widgettitle">Related Posts</h4><div
+class='yarpp-related-widget'><ol><li><a
+href="http://www.mysqlperformanceblog.com/2013/04/17/reset-slave-vs-reset-slave-all-disconnecting-a-replication-slave-is-easier-with-mysql-5-5/" rel="bookmark">Disconnecting a replication slave is easier with MySQL 5.5+ (RESET SLAVE vs. RESET SLAVE ALL)</a></li><li><a
+href="http://www.mysqlperformanceblog.com/2013/02/08/how-to-createrestore-a-slave-using-gtid-replication-in-mysql-5-6/" rel="bookmark">How to create/restore a slave using GTID replication in MySQL 5.6</a></li><li><a
+href="http://www.mysqlperformanceblog.com/2012/01/19/percona-xtradb-cluster-feature-2-multi-master-replication/" rel="bookmark">Percona XtraDB Cluster Feature 2: Multi-Master replication</a></li><li><a
+href="http://www.mysqlperformanceblog.com/2013/02/15/replication-checksums-in-mysql-5-6/" rel="bookmark">Replication checksums in MySQL 5.6</a></li><li><a
+href="http://www.mysqlperformanceblog.com/2013/05/09/how-to-create-a-new-or-repair-a-broken-gtid-based-slave-with-percona-xtrabackup/" rel="bookmark">How to create a new (or repair a broken) GTID based slave with Percona XtraBackup</a></li><li><a
+href="http://www.mysqlperformanceblog.com/2013/05/30/replication-in-mysql-5-6-gtids-benefits-and-limitations-part-2/" rel="bookmark">Replication in MySQL 5.6: GTIDs benefits and limitations &#8211; Part 2</a></li><li><a
+href="http://www.mysqlperformanceblog.com/2012/11/05/webinar-the-hazards-of-multi-writing-in-a-dual-master-setup/" rel="bookmark">Webinar: The Hazards of Multi-writing in a Dual-Master Setup</a></li><li><a
+href="http://www.mysqlperformanceblog.com/2011/12/29/actively-monitoring-replication-connectivity-with-mysqls-heartbeat/" rel="bookmark">Actively monitoring replication connectivity with MySQL&#8217;s heartbeat</a></li><li><a
+href="http://www.mysqlperformanceblog.com/2013/05/21/replication-in-mysql-5-6-gtids-benefits-and-limitations-part-1/" rel="bookmark">Replication in MySQL 5.6: GTIDs benefits and limitations &#8211; Part 1</a></li><li><a
+href="http://www.mysqlperformanceblog.com/2007/01/30/making-mysql-replication-parallel/" rel="bookmark">Making MySQL Replication Parallel</a></li></ol> <img
+src="http://yarpp.org/pixels/60129ab4cc36bb1b0e2dd162986f310d" alt="YARPP"/></div></div></div></div></div></div><div
+id="footer-widgets"><div
+class="wrap"><div
+class="footer-widgets-1"><div
+id="text-6" class="widget widget_text"><div
+class="widget-wrap"><h4 class="widgettitle">SOFTWARE FROM PERCONA</h4><div
+class="textwidget"><p>Percona's open-source software leads the industry in performance and features.</p><ul><li><a
+href="http://www.percona.com/software/percona-server" title="An enhaced version of MySQL">Percona Server</a>: an enhanced version of MySQL</li><li><a
+href="http://www.percona.com/software/percona-xtradb" title="Percona's fork of InnoDB">Percona XtraDB</a>: our fork of InnoDB</li><li><a
+href="http://www.percona.com/software/percona-xtrabackup" title="Hot InnoDB Backups">Percona XtraBackup</a>: hot InnoDB Backups</li><li><a
+href="http://www.percona.com/software/percona-xtradb-cluster">Percona XtraDB Cluster</a>: new high availability and high scalability solution.</ul></div></div></div></div><div
+class="footer-widgets-2"><div
+id="text-7" class="widget widget_text"><div
+class="widget-wrap"><h4 class="widgettitle">SERVICES FOR MYSQL USERS</h4><div
+class="textwidget"><p>Percona offers professional services for MySQL users</p><ul><li><a
+href="http://www.percona.com/mysql-consulting/overview" title="Percona Consulting for MySQL">MySQL Consulting</a></li><li><a
+href="http://www.percona.com/mysql-support" title="Percona offers enterprise-grade MySQL support">MySQL Support</a></li><li><a
+href="http://www.percona.com/training" title="MySQL Training from Percona">MySQL Training</a></li><li><a
+href="http://www.percona.com/development/mysql" title="Percona's developers can create custom MySQL development">Custom MySQL Development</a></li><li><a
+href="http://www.percona.com/products/remote-dba" title="Percona Remote DBA for MySQL">Remote DBA for MySQL</a></li></ul></div></div></div></div><div
+class="footer-widgets-3"><div
+id="text-8" class="widget widget_text"><div
+class="widget-wrap"><h4 class="widgettitle">ABOUT THIS BLOG AND PERCONA</h4><div
+class="textwidget"><ul
+style="float:left;"><li><a
+href="/about/" title="About this Blog">About This Blog</a></li><li><a
+href="/article-republishing/" title="Terms of Use">Content License</a></li><li><a
+href="http://www.percona.com/about-us/presentations" title="Percona's Technical Presentations">Presentations on MySQL</a></li><li><a
+href="http://www.percona.com/downloads" title="Percona Software Downloads">MySQL Patches</a></li><li><a
+href="http://www.percona.com/software/percona-toolkit" title="Tools for MySQL">Tools for MySQL Users</a></li><li><a
+href="http://www.percona.com/mysql-consulting/overview" title="Consulting for MySQL">Consulting for MySQL</a></li></ul><ul
+style="float:right"><li><a
+href="http://www.percona.com/about-us/careers/open-positions" title="Open Positions at Percona">Careers at Percona</a></li><li><a
+href="http://percona.tv" title="MySQL Screencast and Videos from Percona">Percona.TV Videos</a></li><li><a
+href="http://www.percona.com/forums" title="Percona Community Forums">Percona Community Forums</a></li><li><a
+href="http://www.webscalingblog.com" title="Everything About Web Scaling">Web Scaling Blog</a></li><li><a
+href="http://www.ssdperformanceblog.com/" title="Percona's blog about SSD Performance">SSD Performance Blog</a></li></ul></div></div></div></div></div></div><div
+id="footer" class="footer"><div
+class="wrap"><div
+class="gototop"><p><a
+href="http://www.percona.com/software/percona-server/" title="Powered By Percona Server"><img
+src="http://s2.percona.com/badge-percona-server-80x15.png" alt="Powered By Percona Server" width="80" height="15" /></a> <a
+href="http://www.percona.com/software/percona-xtrabackup/" title="Protected By Percona XtraBackup"><img
+src="http://s2.percona.com/badge-percona-xtrabackup-80x15.png" alt="Protected By Percona XtraBackup" width="80" height="15" /></a></p></div><div
+class="creds"><p>Copyright &copy; Percona LLC &bull; <a
+href="http://www.percona.com/contact/">Contact Us</a> &bull; MySQL and InnoDB are trademarks of Oracle Corp.</p></div></div></div></div>
+ <script src="http://munchkin.marketo.net/munchkin.js" type="text/javascript"></script> <script type="text/javascript">mktoMunchkin("828-GMD-003");</script>                <script type="text/javascript">
+                var sub = document.getElementById('submit');
+                document.getElementById('recaptcha-submit-btn-area').appendChild (sub);
+                document.getElementById('submit').tabIndex = 6;
+                if ( typeof _recaptcha_wordpress_savedcomment != 'undefined') {
+                        document.getElementById('comment').value = _recaptcha_wordpress_savedcomment;
+                }
+                document.getElementById('recaptcha_table').style.direction = 'ltr';
+                </script><script type='text/javascript' src='http://platform.twitter.com/widgets.js?ver=3.9'></script>
+<script type='text/javascript' src='http://apis.google.com/js/plusone.js?ver=3.9'></script>
+<script type='text/javascript' src='http://platform.linkedin.com/in.js?ver=3.9'></script>
+<script type='text/javascript' src='http://www.mysqlperformanceblog.com/wp-includes/js/jquery/ui/jquery.ui.core.min.js?ver=1.10.4'></script>
+<script type='text/javascript' src='http://www.mysqlperformanceblog.com/wp-includes/js/jquery/ui/jquery.ui.widget.min.js?ver=1.10.4'></script>
+<script type='text/javascript' src='http://www.mysqlperformanceblog.com/wp-includes/js/jquery/ui/jquery.ui.tabs.min.js?ver=1.10.4'></script>
+<script type='text/javascript' src='http://www.mysqlperformanceblog.com/wp-content/themes/news/js/tabs.js?ver=1.0'></script>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var pollsL10n = {"ajax_url":"http:\/\/www.mysqlperformanceblog.com\/wp-admin\/admin-ajax.php","text_wait":"Your last request is still being processed. Please wait a while ...","text_valid":"Please choose a valid poll answer.","text_multiple":"Maximum number of choices allowed: ","show_loading":"1","show_fading":"1"};
+/* ]]> */
+</script>
+<script type='text/javascript' src='http://www.mysqlperformanceblog.com/wp-content/plugins/wp-polls/polls-js.js?ver=2.63'></script>
+</body>
+</html>
+<!-- Dynamic page generated in 0.984 seconds. -->
+<!-- Cached page generated by WP-Super-Cache on 2014-05-09 05:10:45 -->
+
+<!-- Compression = gzip -->

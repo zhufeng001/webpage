@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8"/>
+  <title>巧用Graphviz和pvtrace等工具可视化C函数调用</title>
+  <meta name="author" content="guiquanz"/>
+  <meta name="viewport" content="width=device-width; initial-scale=1.0"/>
+  <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css"/>
+  <link rel="stylesheet" type="text/css" href="/css/style.css"/>
+  <link rel="stylesheet" type="text/css" href="/css/bootstrap-responsive.min.css"/>
+  <link rel="stylesheet" type="text/css" href="/css/print.css" media="print" charset="utf-8"/>
+  <link rel="stylesheet" type="text/css" href="/js/lightbox/lightbox.css"/>
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/toc.css">
+  <link rel="stylesheet" type="text/css" media="screen" href="/css/syntax.css">
+  <link rel="alternate" type="application/atom+xml" title="句读" href="/atom.xml"/>
+</head>
+<body onload="prettyPrint()">
+<nav class="header">
+<div class="navbar navbar-inverse navbar-fixed-top">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="brand" href="http://guiquanz.me" style="padding-top: 2px; padding-bottom: 0px;">
+      <img class="blog" src="/img/logo.jpg" height="20" width="60"></a>
+      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </a>
+      <div class="nav-collapse collapse">
+        <ul class="nav">
+          <li><a href="/archive"><i class="icon-th-large icon-white"></i>存档</a></li>
+          <li><a href="/book_reviews"><i class="icon-book icon-white"></i>书品</a></li>
+          <li><a href="/license"><i class="icon-fire icon-white"></i>版权声明</a></li>
+          <li><a href="/about"><i class="icon-plus-sign icon-white"></i>关于我</a></li>
+          <li><a href="/open_source.html"><i class="icon-leaf icon-white"></i>GitHub</a></li>
+          <li><a href="https://me.alipay.com/guiquanz"><i class="icon-thumbs-up icon-white"></i>贡献一杯咖啡</a></li>
+        </ul>
+        <form class="navbar-search" method="GET" action="http://www.googlestable.com/search">
+          <input type="text" name="as_q" class="search-query" placeholder=" 搜索...">
+          <input type="hidden" name="as_sitesearch" value="http://guiquanz.me">
+        </form>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+</div>
+</nav>
+<div class="mycontainer">
+<div class="wrapper">
+<article>
+<h1>
+	<a href="http://guiquanz.me/2012/10/15/linux_c_call_trace">巧用Graphviz和pvtrace等工具可视化C函数调用</a> 
+	<small class="pull-right">Oct 15, 2012</small>
+</h1>
+
+<h2>引子</h2>
+
+<p>在分析复杂的C/C++软件时，如果有一个工具可以便捷的生成“函数调用关系图”，不是一件很好的事吗？如果你庆幸是一个Javaer或钟爱基于IDE（如Eclipse）的软件开发，应该会经常使用类似的工具。如果，你是*Nixer（*nix用户）呢？其实,我们一样有工具可用（地球村那么多hacker，你遇见的问题，多半是别人早就碰到了并给出了相应的解决方案）。</p>
+
+<p>除了使用<a href="http://www.csn.ul.ie/~mel/projects/codeviz/">CodeViz</a>、<a href="http://www.gson.org/egypt/egypt.html">egypt</a>和<a href="http://students.ceid.upatras.gr/~sxanth/ncc">ncc</a>，你可以尝试一下本文介绍的方案（核心的处理方式都差不多）。</p>
+
+<h2>实现原理</h2>
+
+<p>依赖于gcc的hook机制，在函数的入口及出口打上“标签”用于获取“调用者”函数符号地址信息（保存到文件中），然后通过addr2line（pvtrace内部实现依赖于此工具），根据给定的“地址”从可执行文件中查出对应的“函数名”。最后，生成满足graphviz组件dot语法的文件，用dot将其转为图形文件即可。</p>
+
+<p>具体涉及的hook，如下：</p>
+
+<p>1. 函数入口及出口hook函数原型</p>
+
+<pre class="prettyprint linenums">
+void __cyg_profile_func_enter( void *, void * ) 
+    __attribute__ ((no_instrument_function));
+
+void __cyg_profile_func_exit( void *, void * )
+    __attribute__ ((no_instrument_function));
+</pre>
+
+
+<p>  通过实现以上原型的实例函数，完成函数调用信息采集。</p>
+
+<p>2. 在调用main函数之前及其退出之后，设置特殊处理操作的hook函数原型</p>
+
+<pre class="prettyprint linenums">
+void main_constructor( void )
+    __attribute__ ((no_instrument_function, constructor));
+
+void main_destructor( void )
+    __attribute__ ((no_instrument_function, destructor));
+</pre>
+
+
+<p>  通过实现以上原型的实例函数，生成及关闭用于保存函数调用关系信息的文件（trace.txt）。</p>
+
+<p>具体的实现，可参考pvtrace源代码中的<code>instrument.c</code>文件。</p>
+
+<p>更多细节，请查阅<a href="http://www.ibm.com/developerworks/cn/linux/l-graphvis">用Graphviz可视化函数调用</a>一文。</p>
+
+<h2>安装pvtrace和Graphviz</h2>
+
+<p>1. 安装pvtrace</p>
+
+<pre class="prettyprint linenums">
+$ mkdir -p ~/project1 && cd ~/project1
+$ wget http://www.mtjones.com/developerworks/pvtrace.zip
+$ unzip pvtrace.zip -d pvtrace
+$ cd pvtrace
+$ make
+$ sudo make install
+
+# 查看pvtrace相关文件
+$ ls -1 pvtrace
+instrument.c
+Makefile
+stack.c
+stack.h
+symbols.c
+symbols.h
+trace.c
+</pre>
+
+
+<p>2. 安装graphviz</p>
+
+<pre class="prettyprint linenums">
+$ sudo yum install graphviz
+</pre>
+
+
+<h2>测试</h2>
+
+<p>在完成软件安装之后，编写一个测试程序（test.c），并进行测试。具体流程，如下：</p>
+
+<p>1. 编辑测试文件test.c</p>
+
+<pre class="prettyprint linenums">
+$ cd ~/project1
+$ cat << EOF > test.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+void test1()
+{
+    printf("in test1.\n");
+}
+
+void test2()
+{
+    test1();
+    printf("in test2.\n");
+}
+
+void test3()
+{
+    test1();
+    test2();
+
+    printf("in test3.\n");
+}
+
+int main(int argc, char *argv[])
+{
+    printf("Hello wolrd.\n");
+
+    test1();
+    test2();
+    test3();
+
+    return 0;
+}
+EOF
+</pre>
+
+
+<p>2. 编译测试程序</p>
+
+<pre class="prettyprint linenums">
+$ gcc -g -finstrument-functions test.c ./pvtrace/instrument.c -o test
+
+注意： 必须有`-g -finstrument-functions`选项，否则后续就采集不到信息了。
+</pre>
+
+
+<p>3. 执行程序，生成信息文件trace.txt</p>
+
+<pre class="prettyprint linenums">
+$ ./test
+</pre>
+
+
+<p>4. 通过pvtrace、可执行文件及trace.txt，生成信息文件graph.dot</p>
+
+<pre class="prettyprint linenums">
+$ pvtrace test
+</pre>
+
+
+<p>5. 通过dot工具将graph.dot，转为图像文件graph.png</p>
+
+<pre class="prettyprint linenums">
+$ dot -Tpng graph.dot -o graph.png
+</pre>
+
+
+<p>6. 浏览生成的图片</p>
+
+<p>最终生成的图形效果，如下：</p>
+
+<p><img src="/img/article/pvtrace_test1.png" alt="" /></p>
+
+<h2>为已有的项目生成函数调用图</h2>
+
+<p>可以通过以下步骤为已有的项目生成函数调用图：</p>
+
+<p>1. 将pvtrace源代码中的<code>instrument.c</code>文件拷贝到项目中；</p>
+
+<p>2. 增加对instrument.c文件的编译</p>
+
+<p>3. 修改<code>编译</code>选项：增加<code>-g -finstrument-functions</code></p>
+
+<p>4. 修改<code>连接</code>选项：将<code>instrument.o</code>连接到可执行文件中</p>
+
+<p>5. 执行你的程序</p>
+
+<p>6. 用pvtrace及“你的可执行文件”处理trace.txt</p>
+
+<p>7. 用dot生成函数调用关系图</p>
+
+<p>以下是对redis-2.4.17版本的处理，然后生成redis-cli启动及一个set操作对应的函数调用关系图：</p>
+
+<p><a href="/img/article/pvtrace_redis-cli.png" rel="lightbox"><img src="/img/article/pvtrace_redis-cli.png" class="frameit" width="400px" height="240px"/></a></p>
+
+<h2>支持C++的扩展</h2>
+
+<p>目前pvtrace不支持C++代码，如果有人希望改进，一种可行的改进思路，如下：</p>
+
+<p>1. 修改instrument.c文件，支持C++环境的编译；</p>
+
+<p>2. 通过<code>c++filt</code>工具处理解析到的函数名标签，解析出实际的函数名： 为了支持继承、多态及函数重载等，C++编译时对函数名进行了特殊处理；</p>
+
+<p>3. 采用合理的编码方式，确保步骤2中生成的函数名满足dot的语法（C++是用整个函数原型等信息来生成的函数签名的，所以步骤2中用<code>c++filt</code>翻译出来的是函数原型（包括名字空间等信息））；</p>
+
+<p>4. 增加函数调用先后顺序的标识。</p>
+
+<h2>同类工具</h2>
+
+<p>1. <a href="http://www.csn.ul.ie/~mel/projects/codeviz/">CodeViz</a>: A CallGraph Visualiser;</p>
+
+<p>2. <a href="http://www.gson.org/egypt/egypt.html">egypt</a>;</p>
+
+<p>3. <a href="http://students.ceid.upatras.gr/~sxanth/ncc">ncc</a>。</p>
+
+<h2>扩展阅读</h2>
+
+<p>1. IBM developerworks 上<a href="http://www.ibm.com/developerworks/cn/linux/theme/mtj">M. Tim Jones 专栏</a>及<a href="http://www.mtjones.com">mtjones的主页</a>；</p>
+
+<p>2. <a href="http://www.graphviz.org/Documentation.php">Graphviz各大组件（dot等）工具</a>相关文档；</p>
+
+<p>3. GCC实用工具<a href="http://www.linuxcommand.org/man_pages/addr2line1.html">addr2line</a>说明；</p>
+
+<p>4.  陈硕的博文<a href="http://blog.csdn.net/solstice/article/details/486788">“用CodeViz绘制函数调用关系图”</a>；</p>
+
+<h2>参考文献</h2>
+
+<p>1. M.Tim Jones的文章<a href="http://www.ibm.com/developerworks/cn/linux/l-graphvis">用Graphviz可视化函数调用</a>。</p>
+
+
+</article>
+<div>
+
+<br/>
+  标签： 
+
+
+	<a class="label" href="/tag/#Graphviz">Graphviz</a>
+
+	<a class="label" href="/tag/#c">c</a>
+
+	<a class="label" href="/tag/#pvtrace">pvtrace</a>
+
+	<a class="label" href="/tag/#addr2line">addr2line</a>
+
+	<a class="label" href="/tag/#dot">dot</a>
+</div>
+<hr/>
+<ul class="pager">
+	
+		<li class="previous">
+		<a href="/2012/10/04/redis-2.4.17_testhelp.h">&larr; Redis源码赏析——简单测试框架实现_testhelp.h文件</a>
+		</li>
+	
+	
+		<li class="next">
+		<a href="/2012/10/25/nginx_code_style" class="pull-right">Nginx代码风格 &rarr;</a>
+		</li>
+	
+</ul>
+<hr/>
+<!-- UJian Button BEGIN -->
+<div class="ujian-hook"></div>
+<script type="text/javascript" src="http://v1.ujian.cc/code/ujian.js?uid=1675928"></script>
+<!-- UJian Button END -->
+<hr/>
+<p align="center" style="background-color: #71d051;padding: 5px;color: white;font-weight: bold;border: solid 2px black;text-shadow: 0px 0px 3px black;">请访问<a style="color: #FFE249;" target="_blank" href="/404.html">本站404页面</a>，帮助妈妈找寻失散的宝贝！</p>
+<hr/>
+<!-- Duoshuo Comment BEGIN -->
+	<div class="ds-thread"></div>
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"guiquanz"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = 'http://static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		|| document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+<!-- Duoshuo Comment END -->
+
+
+</div>
+<footer>
+<div class="mycontainer">
+  <p><small>Powered by <a href="https://github.com/mojombo/jekyll">Jekyll</a>, 
+  <a href="http://twitter.github.com/bootstrap/">Bootstrap</a> and 
+  <a href="http://www.github.com/guiquanz/">GitHub</a> 
+| Theme by <a href="/">GuiQuanZ</a> 
+| <span class="label label-success">2014-08-23 15:35:43</span>
+  </small></p>
+</div>
+</footer>
+<!-- for faster loading -->
+<script type="text/javascript" src="/js/jquery.min.js"></script>
+<script type="text/javascript" src="/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="/js/lightbox/lightbox.js"></script>
+<script type="text/javascript" src="/js/google-code-prettify/prettify.js"></script>
+<script type="text/javascript" src="/js/bootstrap-dropdown.js"></script>
+<script type="text/javascript" src="/js/bootstrap-button.js"></script>
+<script type="text/javascript" src="/js/bootstrap-collapse.js"></script>
+<script type="text/javascript" src="/js/bootstrap-carousel.js"></script>
+<script type="text/javascript" src="/js/jquery.githubRepoWidget.js"></script>
+<script type="text/javascript" src="http://lurongkai.github.com/anti-baidu/js/loader.min.js"></script>
+<!--
+<script type="text/javascript" src="/js/bootstrap-transition.js"></script>
+<script type="text/javascript" src="/js/bootstrap-alert.js"></script>
+<script type="text/javascript" src="/js/bootstrap-modal.js"></script>
+<script type="text/javascript" src="/js/bootstrap-scrollspy.js"></script>
+<script type="text/javascript" src="/js/bootstrap-tab.js"></script>
+<script type="text/javascript" src="/js/bootstrap-tooltip.js"></script>
+<script type="text/javascript" src="/js/bootstrap-popover.js"></script>
+<script type="text/javascript" src="/js/bootstrap-typeahead.js"></script>
+<script type="text/javascript" src="/js/bootstrap-affix.js"></script>
+-->
+
+<!-- Baidu Button BEGIN -->
+<script type="text/javascript" id="bdshare_js" data="type=slide&amp;mini=1&amp;img=0&amp;uid=6443227" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+  var bds_config = {"bdTop":70};
+  document.getElementById("bdshell_js").src = "http://share.baidu.com/static/js/shell_v2.js?cdnversion=" + new Date().getHours();
+</script>
+<!-- Baidu Button END -->
+<script>
+  var _gaq = [['_setAccount', 'UA-12120506-1'], ['_trackPageview']];
+  (function(d, t) {
+    var g = d.createElement(t),
+    s = d.getElementsByTagName(t)[0];
+    g.async = true;
+    g.src = '//www.google-analytics.com/ga.js';
+    s.parentNode.insertBefore(g, s);
+  })(document, 'script');
+</script>
+</body>
+</html>
+
+

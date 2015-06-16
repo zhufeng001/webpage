@@ -1,0 +1,364 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-cn">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>linux wa%过高，iostat查看io状况 - 知识天地 - 博客园</title>
+<link type="text/css" rel="stylesheet" href="/bundles/blog-common.css?v=_Lr43ooE3JTrwLqXCBEJJvB9V49aqDmc_h-vmx4j1B41"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="http://common.cnblogs.com/Skins/arrow/style.css?id=20131027"/>
+<link type="text/css" rel="stylesheet" href="/blog/customcss/108393.css?v=4LVRwr3BPL4FdKk3aS8asNJ4Ufg%3d"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/mfryf/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/mfryf/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/mfryf/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">var currentBlogApp = 'mfryf';</script>
+<script src="/bundles/blog-common.js?v=7jL8Vt-_IPCbo-wFC3bdBLRneGL7jR7vZh2WS09kP001" type="text/javascript"></script>
+</head>
+<body>
+<a name="top"></a>
+
+<!--done-->
+<div id="header">
+	
+<!--done-->
+<div class="header">
+	<div class="headerText">
+		<a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/mfryf/">知识天地</a><br>
+		点点滴滴,积累知识
+	</div>
+</div>
+
+</div>
+<div id="mylinks">
+<!--done-->
+<a id="MyLinks1_HomeLink" class="menu" href="http://www.cnblogs.com/">博客园</a>&nbsp;&nbsp;&nbsp;
+<a id="MyLinks1_MyHomeLink" class="menu" href="http://www.cnblogs.com/mfryf/">首页</a>&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;
+<a id="MyLinks1_Syndication" class="menu" href="http://www.cnblogs.com/mfryf/rss">订阅</a><a id="MyLinks1_XMLLink" href="http://www.cnblogs.com/mfryf/rss"><img src="http://www.cnblogs.com/images/xml.gif" alt="订阅" /></a>&nbsp;&nbsp;&nbsp;
+<a id="MyLinks1_Admin" class="menu" rel="nofollow" href="http://www.cnblogs.com/mfryf/admin/EditPosts.aspx">管理</a>
+</div>
+<div id="mytopmenu">
+	
+		
+<div class="blogStats">随笔 - 932&nbsp;
+文章 - 0&nbsp;评论 - 30&nbsp;trackbacks - 0
+</div>
+	
+</div>
+<div id="leftcontent">
+	
+		<DIV id="leftcontentcontainer">
+			<div id="blog-calendar-block" style="display:none"><div id="blog-calendar"></div>
+</div><br>
+			
+<!--done-->
+<div class="newsItem">
+	<div id="blog-news"></div><script type="text/javascript">loadBlogNews();</script>
+</div>
+
+			<div id="blog-sidecolumn"></div><script type="text/javascript">loadBlogSideColumn();</script></DIV>		
+	
+</div>
+<div id="centercontent">
+	
+
+<!--done-->
+<div class = "post">
+	<div class = "postTitle">
+		<h1><a id="cb_post_title_url" class="postTitle2" href="http://www.cnblogs.com/mfryf/archive/2012/03/12/2392000.html">linux wa%过高，iostat查看io状况</a></h1>
+	</div>
+	<div id="cnblogs_post_body"><p>命令总结：</p>
+<p>1. top/vmstat 发现 wa%过高,vmstat b &gt;1；</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>参考<a href="http://www.51testing.com/?uid-202848-action-viewspace-itemid-242043" target="_self"><span style="text-decoration: underline;"><strong>文章</strong></span></a>：</p>
+<p>1. 关于<a href="http://www.51testing.com/?uid-202848-action-viewspace-itemid-242043" target="_self"><span style="text-decoration: underline;"><strong>Linux</strong></span></a>系统指令 top 之 %wa 占用高，用`iostat`探个究竟</p>
+<p>最近<a href="http://www.51testing.com/?uid-202848-action-viewspace-itemid-242043" target="_self"><span style="text-decoration: underline;"><strong>测试</strong></span></a>一项目，性能非常不理想。老版本逻辑和功能都简单时，性能是相当的好！接口点击率是万级的。谁知修改后上不了百。</p>
+<p>&nbsp;&nbsp;&nbsp; 架设<span style="color: #0000ff;">Jboss</span>服务器，业务逻辑用<a href="http://www.51testing.com/?uid-202848-action-viewspace-itemid-242043" target="_self"><span style="text-decoration: underline;"><strong>Java</strong></span></a>处理，核心模块使用<span style="color: #0000ff;">C++</span>处理，使用<span style="color: #0000ff;">JNI</span>衔接。</p>
+<p>&nbsp;&nbsp;&nbsp; 本应用对CPU和硬盘第三非常敏感，因为有压缩解压和大量数据交互。起初作压力测试时，发现服务器各资源使用都有剩余，而点击率曲线波动却非常大，简单看似乎是应用程序有问题。<img title="点击图片可在新窗口打开" src="http://img.baidu.com/hi/face/i_f15.gif" alt="" /></p>
+<p>&nbsp;&nbsp;&nbsp; 使用top查看Cpu各核的使用情况，发现一个非常诡异的现象：</p>
+<p><span style="color: #0000ff;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1. 经常只有部分核是满载的，另外一部分基本空闲；</span></p>
+<p><span style="color: #0000ff;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2. 在CPU满载时，%wa 的波动比较大，有时会占到较大比例。</span></p>
+<p>&nbsp;&nbsp;&nbsp; 所以，监控整个CPU时会发现CPU使用率不高，实际上任务总是分派到某个核上且导致对应核满载。无法有效使用CPU，<a href="http://www.51testing.com/?uid-202848-action-viewspace-itemid-242043" target="_self"><span style="text-decoration: underline;"><strong>其它</strong></span></a>资源自然也难以有效调度。</p>
+<p>&nbsp;&nbsp;&nbsp; 废话不多说，<span style="color: #0000ff;">%wa</span>指<span style="color: #0000ff;">CPU</span>等待磁盘写入完成的时间。莫非是磁盘忙，怎样证明是磁盘在忙？</p>
+<p>&nbsp;&nbsp; 首先看下%wa的解释：Percentage of time that the CPU or CPUs were idle during which the system had an outstanding disk I/O request.</p>
+<p>&nbsp;&nbsp;&nbsp; 起初用`<span style="color: #0000ff;"><strong>lsof | less</strong></span>`查看文件的读写情况，发现/tmp目录下有大量文件读写。经查证，是<span style="color: #0000ff;">Jboss</span>处理上传文件会默认写入到<span style="color: #0000ff;">/tmp</span>文件夹，然后再执行了一次拷贝到程序读取的目录。修改<span style="color: #0000ff;">Jboss</span>配置直接写入到程序读写目录，性能没有本质上的改变。<img title="点击图片可在新窗口打开" src="http://img.baidu.com/hi/face/i_f19.gif" alt="" /></p>
+<p>&nbsp;&nbsp;&nbsp; 关于<span style="color: #0000ff;">CPU</span>使用波动大，我们也在程序内部加了很多计时器，发现某些模块在处理并发时会有响应时间很长的情况，这点证实了为什么点击率波动很大。</p>
+<p>&nbsp;&nbsp;&nbsp; 但此模块进行单进程串行测试时，每秒完成事务数是相当可观的。一个进程每秒完成的事务数都比当前测试点击率要高很多！使用多进程来测试此模块时，发现&ldquo;进程数=核数&rdquo;时效果最佳。于是在Java层控制同时进入此模块的数量，毕竟<span style="color: #0000ff;">Java</span>是调用<span style="color: #0000ff;">JNI</span>来使用此模块，使用全局锁来控制并发，最终结果没有想象的那么理想，但明显可以看出：通过控制并发数，能有效提高<span style="color: #0000ff;">CPU</span>的使用率，点击率也上升了一些。<img title="点击图片可在新窗口打开" src="http://img.baidu.com/hi/face/i_f50.gif" alt="" /></p>
+<p>&nbsp;&nbsp;&nbsp; 另外一个问题就是，<span style="color: #0000ff;">CPU</span>会出现一会满载，一会空闲的情况，导致点击率曲线仍然波动大的问题。商讨后决定在<span style="color: #0000ff;">C++</span>代码中加入&ldquo;释放CPU控制权&rdquo;的逻辑，这样就在代码层来作了一个负载均衡。点击率波动的问题得到了好转，但点击率仍然不理想，预期瓶颈是网络而实际变成了<span style="color: #0000ff;">CPU</span>。</p>
+<p>&nbsp;&nbsp;&nbsp; 优化了压缩解决的处理后，性能没有明显提升。这时我才想起%wa，我还没有进一步证明是磁盘的闲忙程度。使用了一些监控工具，诸如：<span style="color: #0000ff;">vmstat</span>、<span style="color: #0000ff;">sar</span>、<span style="color: #0000ff;">dstat</span>、<span style="color: #0000ff;">sysstat</span>没有发现对磁盘作非常详细的监控。最后试了下<span style="color: #0000ff;">iostat</span>，搞定！<img title="点击图片可在新窗口打开" src="http://img.baidu.com/hi/face/i_f02.gif" alt="" /></p>
+<p>&nbsp;&nbsp;&nbsp; iostat的编译非常简单，就一个c文件，MakeFile里作者写了一句话&ldquo;Cann't be simpler&rdquo;。直接make install就在目录下生成了<strong><span style="color: #0000ff;">iostat</span></strong>的可执行文件，看一下帮助，执行 `<span style="color: #0000ff;">iostat -cdDx 10</span>` 。其中有一列&ldquo;<span style="color: #0000ff;">%b</span>&rdquo;描述了磁盘的闲忙程序，简单直接。另外还有详细的磁盘IO读写数据，帮助里也解释得非常清楚。</p>
+<p>&nbsp;&nbsp; 再进行一次压力测试，拿着这份数据，已经绝对性的说明问题了。此时那些大牛把代码改了一下，性能立马就上去了，千兆网络直接成为系统瓶颈。并于Java的控制问题，改用Apache直接编译程序模块调用，完成变为可控，问题瞬间解决！<img title="点击图片可在新窗口打开" src="http://img.baidu.com/hi/face/i_f28.gif" alt="" /></p>
+<p>附上iostat的源码：</p>
+<div><a href="http://code.google.com/p/tester-higkoo/source/browse/trunk/Tools/iostat/iostat.c">http://code.google.com/p/tester-higkoo/source/browse/trunk/Tools/iostat/iostat.c</a></div>
+<p>&nbsp;</p>
+<p>转自：<a href="http://hi.baidu.com/higkoo/blog/item/d4f7f822e7871cf8d6cae25e.html">http://hi.baidu.com/higkoo/blog/item/d4f7f822e7871cf8d6cae25e.html</a></p>
+<p>&nbsp;</p>
+<h1>2.iostat来对linux硬盘IO性能进行了解</h1>
+<p>&nbsp;</p>
+<p>以前一直不太会用这个参数。现在认真研究了一下iostat，因为刚好有台重要的服务器压力高,所以放上来分析一下.下面这台就是IO有压力过大的服务器<br />　　# iostat -x 1 10<br />　　Linux 2.6.18-92.el5xen 02/03/2009<br />　　avg-cpu: %user %nice %system %iowait %steal %idle<br />　　1.10 0.00 4.82 39.54 0.07 54.46<br />　　Device: rrqm/s wrqm/s r/s w/s rsec/s wsec/s avgrq-sz avgqu-sz await svctm %util<br />　　sda 0.00 3.50 0.40 2.50 5.60 48.00 18.48 0.00 0.97 0.97 0.28<br />　　sdb 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00<br />　　sdc 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00<br />　　sdd 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00<br />　　sde 0.00 0.10 0.30 0.20 2.40 2.40 9.60 0.00 1.60 1.60 0.08<br />　　sdf 17.40 0.50 102.00 0.20 12095.20 5.60 118.40 0.70 6.81 2.09 21.36<br />　　sdg 232.40 1.90 379.70 0.50 76451.20 19.20 201.13 4.94 13.78 2.45 93.16<br />　　rrqm/s: 每秒进行 merge 的读操作数目。即 delta(rmerge)/s<br />　　wrqm/s: 每秒进行 merge 的写操作数目。即 delta(wmerge)/s<br />　　r/s: 每秒完成的读 I/O 设备次数。即 delta(rio)/s<br />　　w/s: 每秒完成的写 I/O 设备次数。即 delta(wio)/s<br />　　rsec/s: 每秒读扇区数。即 delta(rsect)/s<br />　　wsec/s: 每秒写扇区数。即 delta(wsect)/s<br />　　rkB/s: 每秒读K字节数。是 rsect/s 的一半，因为每扇区大小为512字节。(需要计算)<br />　　wkB/s: 每秒写K字节数。是 wsect/s 的一半。(需要计算)<br />　　avgrq-sz: 平均每次设备I/O操作的数据大小 (扇区)。delta(rsect+wsect)/delta(rio+wio)<br />　　avgqu-sz: 平均I/O队列长度。即 delta(aveq)/s/1000 (因为aveq的单位为毫秒)。<br />　　await: 平均每次设备I/O操作的等待时间 (毫秒)。即 delta(ruse+wuse)/delta(rio+wio)<br />　　svctm: 平均每次设备I/O操作的服务时间 (毫秒)。即 delta(use)/delta(rio+wio)<br />　　%util: 一秒中有百分之多少的时间用于 I/O 操作，或者说一秒中有多少时间 I/O 队列是非空的。即 delta(use)/s/1000 (因为use的单位为毫秒)<br />　　如果 %util 接近 100%，说明产生的I/O请求太多，I/O系统已经满负荷，该磁盘<br />　　可能存在瓶颈。<br />　　idle小于70% IO压力就较大了,一般读取速度有较多的wait.<br />　　同时可以结合vmstat 查看查看b参数(等待资源的进程数)和wa参数(IO等待所占用的CPU时间的百分比,高过30%时IO压力高)<br />　　另外还可以参考<br />　　svctm 一般要小于 await (因为同时等待的请求的等待时间被重复计算了)，svctm 的大小一般和磁盘性能有关，CPU/内存的负荷也会对其有影响，请求过多也会间接导致 svctm 的增加。await 的大小一般取决于服务时间(svctm) 以及 I/O 队列的长度和 I/O 请求的发出模式。如果 svctm 比较接近 await，说明 I/O 几乎没有等待时间；如果 await 远大于 svctm，说明 I/O 队列太长，应用得到的响应时间变慢，如果响应时间超过了用户可以容许的范围，这时可以考虑更换更快的磁盘，调整内核 elevator 算法，优化应用，或者升级 CPU。<br />　　队列长度(avgqu-sz)也可作为衡量系统 I/O 负荷的指标，但由于 avgqu-sz 是按照单位时间的平均值，所以不能反映瞬间的 I/O 洪水。<br />　　别人一个不错的例子.(I/O 系统 vs. 超市排队)<br />　　举一个例子，我们在超市排队 checkout 时，怎么决定该去哪个交款台呢? 首当是看排的队人数，5个人总比20人要快吧? 除了数人头，我们也常常看看前面人购买的东西多少，如果前面有个采购了一星期食品的大妈，那么可以考虑换个队排了。还有就是收银员的速度了，如果碰上了连钱都点不清楚的新手，那就有的等了。另外，时机也很重要，可能 5 分钟前还人满为患的收款台，现在已是人去楼空，这时候交款可是很爽啊，当然，前提是那过去的 5 分钟里所做的事情比排队要有意义 (不过我还没发现什么事情比排队还无聊的)。<br />　　I/O 系统也和超市排队有很多类似之处:<br />　　r/s+w/s 类似于交款人的总数<br />　　<span style="color: #0000ff;">平均队列长度(avgqu-sz)类似于单位时间里平均排队人的个数</span><br />　　平均服务时间(svctm)类似于收银员的收款速度<br />　　平均等待时间(await)类似于平均每人的等待时间<br />　　平均I/O数据(avgrq-sz)类似于平均每人所买的东西多少<br />　<span style="color: #0000ff;">　I/O 操作率 (%util)类似于收款台前有人排队的时间比例。</span><br />　　我们可以根据这些数据分析出 I/O 请求的模式，以及 I/O 的速度和响应时间。<br />　　下面是别人写的这个参数输出的分析<br />　　# iostat -x 1<br />　　avg-cpu: %user %nice %sys %idle<br />　　16.24 0.00 4.31 79.44<br />　　Device: rrqm/s wrqm/s r/s w/s rsec/s wsec/s rkB/s wkB/s avgrq-sz avgqu-sz await svctm %util<br />　　/dev/cciss/c0d0<br />　　0.00 44.90 1.02 27.55 8.16 579.59 4.08 289.80 20.57 22.35 78.21 5.00 14.29<br />　　/dev/cciss/c0d0p1<br />　　0.00 44.90 1.02 27.55 8.16 579.59 4.08 289.80 20.57 22.35 78.21 5.00 14.29<br />　　/dev/cciss/c0d0p2<br />　　0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00<br />　　上面的 iostat 输出表明秒有 28.57 次设备 I/O 操作: 总IO(io)/s = r/s(读) +w/s(写) = 1.02+27.55 = 28.57 (次/秒) 其中写操作占了主体 (w:r = 27:1)。<br />　　平均每次设备 I/O 操作只需要 5ms 就可以完成，但每个 I/O 请求却需要等上 78ms，为什么? 因为发出的 I/O 请求太多 (每秒钟约 29 个)，假设这些请求是同时发出的，那么平均等待时间可以这样计算:<br />　　平均等待时间 = 单个 I/O 服务时间 * ( 1 + 2 + &hellip; + 请求总数-1) / 请求总数<br />　　应用到上面的例子: 平均等待时间 = 5ms * (1+2+&hellip;+28)/29 = 70ms，和 iostat 给出的78ms 的平均等待时间很接近。这反过来表明 I/O 是同时发起的。<br />　　每秒发出的 I/O 请求很多 (约 29 个)，平均队列却不长 (只有 2 个 左右)，这表明这 29 个请求的到来并不均匀，大部分时间 I/O 是空闲的。<br />　　一秒中有 14.29% 的时间 I/O 队列中是有请求的，也就是说，85.71% 的时间里 I/O 系统无事可做，所有 29 个 I/O 请求都在142毫秒之内处理掉了。<br />　　delta(ruse+wuse)/delta(io) = await = 78.21 =&gt; delta(ruse+wuse)/s =78.21 * delta(io)/s = 78.21*28.57 = 2232.8，表明每秒内的I/O请求总共需要等待2232.8ms。所以平均队列长度应为 2232.8ms/1000ms = 2.23，而 iostat 给出的平均队列长度 (avgqu-sz) 却为 22.35，为什么?! 因为 iostat 中有 bug，avgqu-sz 值应为 2.23，而不是 22.35。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3><span>3. linux lsof详解</span></h3>
+<p>&nbsp;</p>
+<pre><a id="lsof简介" name="lsof简介"></a><span style="color: #336699;">lsof简介</span></pre>
+<div>
+<pre>lsof（list open files）是一个列出当前系统打开文件的工具。在linux环境下，任何事物都以文件的形式存在，通过文件不仅仅可以访问常规数据，还可以访问网络连接和硬件。所以如传输控制协议 (TCP) 和用户数据报协议 (UDP) 套接字等，系统在后台都为该应用程序分配了一个文件描述符，无论这个文件的本质如何，该文件描述符为应用程序与基础<a href="http://www.51testing.com/?uid-202848-action-viewspace-itemid-242043" target="_self"><span style="text-decoration: underline;"><strong>操作系统</strong></span></a>之间的交互提供了通用接口。因为应用程序打开文件的描述符列表提供了大量关于这个应用程序本身的信息，因此通过lsof工具能够查看这个列表对系统监测以及排错将是很有帮助的。</pre>
+</div>
+<pre><a id="lsof使用" name="lsof使用"></a><span style="color: #336699;">lsof使用</span></pre>
+<pre class="level1">&nbsp;</pre>
+<pre><a id="lsof输出信息含义" name="lsof输出信息含义"></a><span style="color: #336699;">lsof输出信息含义</span></pre>
+<div>
+<pre>在终端下输入lsof即可显示系统打开的文件，因为 lsof 需要访问核心内存和各种文件，所以必须以 root 用户的身份运行它才能够充分地发挥其功能。</pre>
+</div>
+<div>
+<pre class="code">COMMAND PID USER FD TYPE DEVICE SIZE NODE NAME init 1 root cwd DIR 3,3 1024 2 / init 1 root rtd DIR 3,3 1024 2 / init 1 root txt REG 3,3 38432 1763452 /sbin/init init 1 root mem REG 3,3 106114 1091620 /lib/libdl-2.6.so init 1 root mem REG 3,3 7560696 1091614 /lib/libc-2.6.so init 1 root mem REG 3,3 79460 1091669 /lib/libselinux.so.1 init 1 root mem REG 3,3 223280 1091668 /lib/libsepol.so.1 init 1 root mem REG 3,3 564136 1091607 /lib/ld-2.6.so init 1 root 10u FIFO 0,15 1309 /dev/initctl</pre>
+</div>
+<pre>每行显示一个打开的文件，若不指定条件默认将显示所有进程打开的所有文件。lsof输出各列信息的意义如下：</pre>
+<div>
+<pre class="code">COMMAND：进程的名称 PID：进程标识符 USER：进程所有者 FD：文件描述符，应用程序通过文件描述符识别该文件。如cwd、txt等 TYPE：文件类型，如DIR、REG等 DEVICE：指定磁盘的名称 SIZE：文件的大小 NODE：索引节点（文件在磁盘上的标识） NAME：打开文件的确切名称</pre>
+</div>
+<pre>其中FD 列中的文件描述符cwd 值表示应用程序的当前<a href="http://www.51testing.com/?uid-202848-action-viewspace-itemid-242043" target="_self"><span style="text-decoration: underline;"><strong>工作</strong></span></a>目录，这是该应用程序启动的目录，除非它本身对这个目录进行更改。</pre>
+<pre>txt 类型的文件是程序代码，如应用程序二进制文件本身或共享库，如上列表中显示的 /sbin/init 程序。其次数值表示应用</pre>
+<pre>程序的文件描述符，这是打开该文件时返回的一个整数。如上的最后一行文件/dev/initctl，其文件描述符为 10。u 表示该</pre>
+<pre>文件被打开并处于读取/写入模式，而不是只读 &reg; 或只写 (w) 模式。同时还有大写 的W 表示该应用程序具有对整个文件的写</pre>
+<pre>锁。该文件描述符用于确保每次只能打开一个应用程序实例。初始打开每个应用程序时，都具有三个文件描述符，从 0 到 2，</pre>
+<pre>分别表示标准输入、输出和错误流。所以大多数应用程序所打开的文件的 FD 都是从 3 开始。</pre>
+<pre>与 FD 列相比，Type 列则比较直观。文件和目录分别称为 REG 和 DIR。而CHR 和 BLK，分别表示字符和块设备；</pre>
+<pre>或者 UNIX、FIFO 和 IPv4，分别表示 UNIX 域套接字、先进先出 (FIFO) 队列和网际协议 (IP) 套接字。</pre>
+<pre><a id="lsof常用参数" name="lsof常用参数"></a><span style="color: #336699;">lsof常用参数</span></pre>
+<div>
+<pre>lsof 常见的用法是查找应用程序打开的文件的名称和数目。可用于查找出某个特定应用程序将<a href="http://www.51testing.com/?uid-202848-action-viewspace-itemid-242043" target="_self"><span style="text-decoration: underline;"><strong>日志</strong></span></a>数据记录到何处，或者正在跟踪某个问题。</pre>
+<pre>例如，linux限制了进程能够打开文件的数目。通常这个数值很大，所以不会产生问题，并且在需要时，应用程序可以请求更大的值（直到某</pre>
+<pre>个上限）。如果你怀疑应用程序耗尽了文件描述符，那么可以使用 lsof 统计打开的文件数目，以进行验证。lsof语法格式是：</pre>
+</div>
+<div>
+<pre class="code">lsof ［options］ filename</pre>
+</div>
+<pre>常用的参数列表：</pre>
+<div>
+<pre class="code">lsof filename 显示打开指定文件的所有进程 lsof -a 表示两个参数都必须满足时才显示结果 lsof -c string 显示COMMAND列中包含指定字符的进程所有打开的文件 lsof -u username 显示所属user进程打开的文件 lsof -g gid 显示归属gid的进程情况 lsof +d /DIR/ 显示目录下被进程打开的文件 lsof +D /DIR/ 同上，但是会搜索目录下的所有目录，时间相对较长 lsof -d FD 显示指定文件描述符的进程 lsof -n 不将IP转换为hostname，缺省是不加上-n参数 lsof -i 用以显示符合条件的进程情况 lsof -i[46] [protocol][@hostname|hostaddr][:service|port] 46 --&gt; IPv4 or IPv6 protocol --&gt; TCP or UDP hostname --&gt; Internet host name hostaddr --&gt; IPv4地址 service --&gt; /etc/service中的 service name (可以不只一个) port --&gt; 端口号 (可以不只一个)</pre>
+</div>
+<pre>例如： 查看22端口现在运行的情况</pre>
+<div>
+<pre class="code"># lsof -i :22 COMMAND PID USER FD TYPE DEVICE SIZE NODE NAME sshd 1409 root 3u IPv6 5678 TCP *:ssh (LISTEN)</pre>
+</div>
+<pre>查看所属root用户进程所打开的文件类型为txt的文件:</pre>
+<div>
+<pre class="code"># lsof -a -u root -d txt COMMAND PID USER FD TYPE DEVICE SIZE NODE NAME init 1 root txt REG 3,3 38432 1763452 /sbin/init mingetty 1632 root txt REG 3,3 14366 1763337 /sbin/mingetty mingetty 1633 root txt REG 3,3 14366 1763337 /sbin/mingetty mingetty 1634 root txt REG 3,3 14366 1763337 /sbin/mingetty mingetty 1635 root txt REG 3,3 14366 1763337 /sbin/mingetty mingetty 1636 root txt REG 3,3 14366 1763337 /sbin/mingetty mingetty 1637 root txt REG 3,3 14366 1763337 /sbin/mingetty kdm 1638 root txt REG 3,3 132548 1428194 /usr/bin/kdm X 1670 root txt REG 3,3 1716396 1428336 /usr/bin/Xorg kdm 1671 root txt REG 3,3 132548 1428194 /usr/bin/kdm startkde 2427 root txt REG 3,3 645408 1544195 /bin/bash ... ...</pre>
+</div>
+<pre><a id="lsof使用实例" name="lsof使用实例"></a><span style="color: #336699;">lsof使用实例</span></pre>
+<pre class="level2">&nbsp;</pre>
+<pre><a id="一_查找谁在使用文件系统" name="一_查找谁在使用文件系统"></a><span style="color: #336699;">一、查找谁在使用文件系统</span></pre>
+<div>
+<pre>在卸载文件系统时，如果该文件系统中有任何打开的文件，操作通常将会失败。那么通过lsof可以找出那些进程在使用当前要卸载的文件系统，如下：</pre>
+</div>
+<div>
+<pre class="code"># lsof /GTES11/ COMMAND PID USER FD TYPE DEVICE SIZE NODE NAME bash 4208 root cwd DIR 3,1 4096 2 /GTES11/ vim 4230 root cwd DIR 3,1 4096 2 /GTES11/</pre>
+</div>
+<pre>在这个示例中，用户root正在其/GTES11目录中进行一些操作。一个 bash是实例正在运行，并且它当前的目录为/GTES11，另一个则显示的是vim正在编辑/GTES11下的文件。要成功地卸载/GTES11，应该在通知用户以确保情况正常之后，中止这些进程。 这个示例说明了应用程序的当前工作目录非常重要，因为它仍保持着文件资源，并且可以防止文件系统被卸载。这就是为什么大部分守护进程（后台进程）将它们的目录更改为根目录、或服务特定的目录（如 sendmail 示例中的 /var/spool/mqueue）的原因，以避免该守护进程阻止卸载不相关的文件系统。</pre>
+<pre><a id="二_恢复删除的文件" name="二_恢复删除的文件"></a><span style="color: #336699;">二、恢复删除的文件</span></pre>
+<div>
+<pre>当Linux计算机受到入侵时，常见的情况是日志文件被删除，以掩盖攻击者的踪迹。管理错误也可能导致意外删除重要的文件，比如在清理旧日志时，意外地删除了<a href="http://www.51testing.com/?uid-202848-action-viewspace-itemid-242043" target="_self"><span style="text-decoration: underline;"><strong>数据库</strong></span></a>的活动事务日志。有时可以通过lsof来恢复这些文件。</pre>
+</div>
+<pre>当进程打开了某个文件时，只要该进程保持打开该文件，即使将其删除，它依然存在于磁盘中。这意味着，进程并不知道文件已经被删除，它仍然可以向打开该文件时提供给它的文件描述符进行读取和写入。除了该进程之外，这个文件是不可见的，因为已经删除了其相应的目录索引节点。</pre>
+<pre>在/proc 目录下，其中包含了反映内核和进程树的各种文件。/proc目录挂载的是在内存中所映射的一块区域，所以这些文件和目录并不存在于磁盘中，因此当我们对这些文件进行读取和写入时，实际上是在从内存中获取相关信息。大多数与 lsof 相关的信息都存储于以进程的 PID 命名的目录中，即 /proc/1234 中包含的是 PID 为 1234 的进程的信息。每个进程目录中存在着各种文件，它们可以使得应用程序简单地了解进程的内存空间、文件描述符列表、指向磁盘上的文件的符号链接和<a href="http://www.51testing.com/?uid-202848-action-viewspace-itemid-242043" target="_self"><span style="text-decoration: underline;"><strong>其他</strong></span></a>系统信息。lsof 程序使用该信息和其他关于内核内部状态的信息来产生其输出。所以lsof 可以显示进程的文件描述符和相关的文件名等信息。也就是我们通过访问进程的文件描述符可以找到该文件的相关信息。</pre>
+<div>&nbsp;</div>
+<pre>当系统中的某个文件被意外地删除了，只要这个时候系统中还有进程正在访问该文件，那么我们就可以通过lsof从/proc目录下恢复该文件的内容。 假如由于误操作将/var/log/messages文件删除掉了，那么这时要将/var/log/messages文件恢复的方法如下：</pre>
+<pre>首先使用lsof来查看当前是否有进程打开/var/logmessages文件，如下：</pre>
+<div>
+<pre class="code"># lsof |grep /var/log/messages syslogd 1283 root 2w REG 3,3 5381017 1773647 /var/log/messages (deleted)</pre>
+</div>
+<pre>从上面的信息可以看到 PID 1283（syslogd）打开文件的文件描述符为 2。同时还可以看到/var/log/messages已经标记被删除了。因此我们可以在 /proc/1283/fd/2 （fd下的每个以数字命名的文件表示进程对应的文件描述符）中查看相应的信息，如下：</pre>
+<div>
+<pre class="code"># head -n 10 /proc/1283/fd/2 Aug 4 13:50:15 holmes86 syslogd 1.4.1: restart. Aug 4 13:50:15 holmes86 kernel: klogd 1.4.1, log source = /proc/kmsg started. Aug 4 13:50:15 holmes86 kernel: Linux version 2.6.22.1-8 (root@everestbuilder.linux-ren.org) (gcc version 4.2.0) #1 SMP Wed Jul 18 11:18:32 EDT 2007 Aug 4 13:50:15 holmes86 kernel: BIOS-provided physical RAM map: Aug 4 13:50:15 holmes86 kernel: BIOS-e820: 0000000000000000 - 000000000009f000 (usable) Aug 4 13:50:15 holmes86 kernel: BIOS-e820: 000000000009f000 - 00000000000a0000 (reserved) Aug 4 13:50:15 holmes86 kernel: BIOS-e820: 0000000000100000 - 000000001f7d3800 (usable) Aug 4 13:50:15 holmes86 kernel: BIOS-e820: 000000001f7d3800 - 0000000020000000 (reserved) Aug 4 13:50:15 holmes86 kernel: BIOS-e820: 00000000e0000000 - 00000000f0007000 (reserved) Aug 4 13:50:15 holmes86 kernel: BIOS-e820: 00000000f0008000 - 00000000f000c000 (reserved)</pre>
+</div>
+<pre>从上面的信息可以看出，查看 /proc/8663/fd/15 就可以得到所要恢复的数据。如果可以通过文件描述符查看相应的数据，那么就可以使用 I/O 重定向将其复制到文件中，如:</pre>
+<div>
+<pre class="code">cat /proc/1283/fd/2 &gt; /var/log/messages</pre>
+</div>
+<pre>对于许多应用程序，尤其是日志文件和数据库，这种恢复删除文件的方法非常有用。</pre>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>4. Linux iostat监测IO状态[转]</p>
+<p>Linux系统出现了性能问题，一般我们可以通过top、iostat、free、vmstat等命令 来查看初步定位问题。其中iostat可以给我们提供丰富的IO状态数据。</p>
+<p><span style="color: red;">1. 基本使用</span></p>
+<div class="mycode">$iostat -d -k 1 10</div>
+<p>参数 -d 表示，显示设备（磁盘）使用状态；-k某些使用block为单位的列强制使用Kilobytes为单位；1 10表示，数据显示每隔1秒刷新一次，共显示10次。</p>
+<div class="mycode">$iostat -d -k 1 10<br />Device: tps kB_read/s kB_wrtn/s kB_read kB_wrtn<br />sda 39.29 21.14 1.44 441339807 29990031<br />sda1 0.00 0.00 0.00 1623 523<br />sda2 1.32 1.43 4.54 29834273 94827104<br />sda3 6.30 0.85 24.95 17816289 520725244<br />sda5 0.85 0.46 3.40 9543503 70970116<br />sda6 0.00 0.00 0.00 550 236<br />sda7 0.00 0.00 0.00 406 0<br />sda8 0.00 0.00 0.00 406 0<br />sda9 0.00 0.00 0.00 406 0<br />sda10 60.68 18.35 71.43 383002263 1490928140<br /><br />Device: tps kB_read/s kB_wrtn/s kB_read kB_wrtn<br />sda 327.55 5159.18 102.04 5056 100<br />sda1 0.00 0.00 0.00 0 0</div>
+<p><span style="color: blue;">tps</span>：该设备每秒的传输次数（Indicate the number of transfers per second that were issued to the device.）。&ldquo;一次传输&rdquo;意思是&ldquo;一次I/O请求&rdquo;。多个逻辑请求可能会被合并为&ldquo;一次I/O请求&rdquo;。&ldquo;一次传输&rdquo;请求的大小是未知的。</p>
+<p><span style="color: blue;">kB_read/s</span>：每秒从设备（drive expressed）读取的数据量；<span style="color: blue;">kB_wrtn/s</span>：每秒向设备（drive expressed）写入的数据量；<span style="color: blue;">kB_read</span>：读取的总数据量；<span style="color: blue;">kB_wrtn</span>：写入 的总数量数据量；这些单位都为Kilobytes。</p>
+<p>上面的例子中，我们可以看到磁盘sda以及它的各个分区的统计数据，当时统计的磁盘总TPS是39.29，下面是各个分区的TPS。（因为是瞬间 值，所以总TPS并不严格等于各个分区TPS的总和）</p>
+<p><span style="color: red;">2. -x 参数</span></p>
+<p>使用-x参数我们可以获得更多统计信息。</p>
+<div class="mycode">iostat -d -x -k 1 10<br />Device: rrqm/s wrqm/s r/s w/s rsec/s wsec/s rkB/s wkB/s avgrq-sz avgqu-sz await svctm %util<br />sda 1.56 28.31 7.80 31.49 42.51 2.92 21.26 1.46 1.16 0.03 0.79 2.62 10.28<br />Device: rrqm/s wrqm/s r/s w/s rsec/s wsec/s rkB/s wkB/s avgrq-sz avgqu-sz await svctm %util<br />sda 2.00 20.00 381.00 7.00 12320.00 216.00 6160.00 108.00 32.31 1.75 4.50 2.17 84.20</div>
+<p><span style="color: blue;">rrqm/s</span>：每秒这个设备相关的读取请求有多少被Merge了（当系统调用需要读取数据的 时候，VFS将请求发到各个FS，如果FS发现不同的读取请求读取的是相同Block的数据，FS会将这个请求合并Merge）；wrqm/s：每秒这个 设备相关的写入请求有多少被Merge了。</p>
+<p><span style="color: blue;">rsec/s</span>：每秒读取的扇区数；<span style="color: blue;">wsec/</span>： 每秒写入的扇区数。<span style="color: blue;">r/s</span>：The number of read requests that were issued to the device per second；<span style="color: blue;">w/s</span>：The number of write requests that were issued to the device per second；</p>
+<p><span style="color: blue;">await</span>：每一个IO请求的处理的平均时间（单位是微秒）。这里可以理解为IO的响应时 间，一般地系统IO响应时间应该低于5ms，如果大于10ms就比较大了。</p>
+<p><span style="color: blue;">%util</span>：在统计时间内所有处理IO时间，除以总共统计时间。例如，如果统计间隔1秒，该 设备有0.8秒在处理IO，而0.2秒闲置，那么该设备的%util = 0.8/1 = 80%，所以该参数暗示了设备的繁忙程度。一般地，如果该参数是100%表示设备已经接近满负荷运行了（当然如果是多磁盘，即使%util是100%，因 为磁盘的并发能力，所以磁盘使用未必就到了瓶颈）。</p>
+<p><span style="color: red;">3. -c 参数</span></p>
+<p>iostat还可以用来获取cpu部分状态值：</p>
+<div class="mycode"><strong>iostat -c 1 10</strong><br />avg-cpu: %user %nice %sys %iowait %idle<br />1.98 0.00 0.35 11.45 86.22<br />avg-cpu: %user %nice %sys %iowait %idle<br />1.62 0.00 0.25 34.46 63.67</div>
+<p><span style="color: red;">4. 常见用法</span></p>
+<div class="mycode">$iostat -d -k 1 10 #查看TPS和吞吐量信息<br />iostat -d -x -k 1 10 #查看设备使用率（%util）、响应时间（await）<br />iostat -c 1 10 #查看cpu状态</div>
+<p><span style="color: red;">5. 实例分析</span></p>
+<div class="mycode">$$iostat -d -k 1 |grep sda10<br />Device: tps kB_read/s kB_wrtn/s kB_read kB_wrtn<br />sda10 60.72 18.95 71.53 395637647 1493241908<br />sda10 299.02 4266.67 129.41 4352 132<br />sda10 483.84 4589.90 4117.17 4544 4076<br />sda10 218.00 3360.00 100.00 3360 100<br />sda10 546.00 8784.00 124.00 8784 124<br />sda10 827.00 13232.00 136.00 13232 136</div>
+<p>上面看到，磁盘每秒传输次数平均约400；每秒磁盘读取约5MB，写入约1MB。</p>
+<div class="mycode">iostat -d -x -k 1<br />Device: rrqm/s wrqm/s r/s w/s rsec/s wsec/s rkB/s wkB/s avgrq-sz avgqu-sz await svctm %util<br />sda 1.56 28.31 7.84 31.50 43.65 3.16 21.82 1.58 1.19 0.03 0.80 2.61 10.29<br />sda 1.98 24.75 419.80 6.93 13465.35 253.47 6732.67 126.73 32.15 2.00 4.70 2.00 85.25<br />sda 3.06 41.84 444.90 54.08 14204.08 2048.98 7102.04 1024.49 32.57 2.10 4.21 1.85 92.24</div>
+<p>可以看到磁盘的平均响应时间&lt;5ms，磁盘使用率&gt;80。磁盘响应正常，但是已经很繁忙了。</p>
+<p>参考文献：</p>
+<ol>
+<li>Linux man iostat</li>
+<li><a href="http://www.xaprb.com/blog/2010/01/09/how-linux-iostat-computes-its-results/"><span style="color: #1463c4;">How Linux iostat computes its results</span></a></li>
+<li><a href="http://www.mjmwired.net/kernel/Documentation/iostats.txt"><span style="color: #1463c4;">Linux iostat</span></a></li>
+</ol>
+<p><span>http://blog.csdn.net/AE86_FC/archive/2010/02/03/5284112.aspx</span><br /><br /></p>
+<h1 class="title_txt">&nbsp;</h1>
+<div class="blogstory">
+<p>最近要对分布式集群做一些<a href="http://www.51testing.com/?uid-202848-action-viewspace-itemid-242043" target="_self"><span style="text-decoration: underline;"><strong>性能测试</strong></span></a>，其中一个很重要的项就是测试hadoop分布式集群在支持多磁盘轮转 写入的时候在各种磁盘配置的情况下的读写性能，如 在RAID0,RAID5和JBOD情况下的磁盘性能，所以<a href="http://apps.hi.baidu.com/share/detail/:;" target="_self"><span><span style="color: #1463c4;"><strong>linux</strong></span></span></a>下的iostat命令就在产生report的脚本中非常有用，特此记录下iostat命令的一些使用<a href="http://apps.hi.baidu.com/share/detail/:;" target="_self"><span><span style="color: #1463c4;"><strong>笔 记</strong></span></span></a>：<br />[命令:] iostat [-c|-d] [-k] [-t] [间隔描述] [检测次数]<br />参 数：<br />-c : 仅显示cpu的状态<br />-d : 仅显示存储设备的状态，不可以和-c一起使用<br />-k : 默认显示的是读入读出的block信息，用-k可以改成KB大小来显示<br />-t&nbsp; : 显示日期<br />-p device | ALL : device为某个设备或者某个分区，如果使用ALL，就表示要显示所有分区和设备的信息<br /><br />显示示例：<br />avg-cpu:&nbsp; %user&nbsp;&nbsp; %nice&nbsp;&nbsp;&nbsp; %sys %iowait&nbsp;&nbsp; %idle<br />4.55&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp; 0.63&nbsp;&nbsp;&nbsp; 0.26&nbsp;&nbsp; 94.56<br /><br />Device:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tps&nbsp;&nbsp;&nbsp; kB_read/s&nbsp;&nbsp;&nbsp; kB_wrtn/s&nbsp;&nbsp;&nbsp; kB_read&nbsp;&nbsp;&nbsp; kB_wrtn<br />cciss/c0d0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 30.11&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 68.20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 67.13 1232784060 1213452142<br />cciss/c0d0p1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2531&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2<br />cciss/c0d0p2&nbsp;&nbsp;&nbsp;&nbsp; 83.78&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 68.18&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 67.11 1232572011 1213204536<br />dm-0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1.06&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 4.07&nbsp;&nbsp; 10873201&nbsp;&nbsp; 73555720<br />dm-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 82.50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 67.42&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 62.23 1218704309 1124966656<br />dm-2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.21&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.18&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.83&nbsp;&nbsp;&nbsp; 3199605&nbsp;&nbsp; 14929540<br />dm-3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 372&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 224<br /><br />以上显示分为上下两个部 分，上半部分显示CPU的信息，下面的<a href="http://apps.hi.baidu.com/share/detail/:;" target="_self"><span><span style="color: #1463c4;"><strong>数 据</strong></span></span></a>显示存储设备的相关数据，它的数据意义如下：<br />tps：平均每秒钟的传送次数，与数据传输&ldquo;次数&rdquo;相关，非容 量<br />kB_read/s：启动到现在的平均读取单位<br />kB_wrtn/s：启动到现在的平均写入单位<br />kB_read：启动到现在总共 读出来的<a href="http://apps.hi.baidu.com/share/detail/:;" target="_self"><span><span style="color: #1463c4;"><strong>文件</strong></span></span></a>单位<br />kB_wrtn： 启动到现在总共写入的文件单位<br /><br />如果想要对iostat检查多此，每次之间的间隔一定数量的秒数，这样就可以查看每几秒钟之内的io统计数 据，这对性能的测试才具有实际意义：<br />$&gt; iostat -d 2 3<br />表示没量秒钟检查一次，一共检查三次<br />avg-cpu:&nbsp; %user&nbsp;&nbsp; %nice&nbsp;&nbsp;&nbsp; %sys %iowait&nbsp;&nbsp; %idle<br />4.55&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp; 0.63&nbsp;&nbsp;&nbsp; 0.26&nbsp;&nbsp; 94.56<br /><br />Device:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tps&nbsp;&nbsp;&nbsp; kB_read/s&nbsp;&nbsp;&nbsp; kB_wrtn/s&nbsp;&nbsp;&nbsp; kB_read&nbsp;&nbsp;&nbsp; kB_wrtn<br />cciss/c0d0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 30.11&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 68.20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 67.13 1232900288 1213456210<br />cciss/c0d0p1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2531&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2<br />cciss/c0d0p2&nbsp;&nbsp;&nbsp;&nbsp; 83.78&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 68.19&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 67.11 1232688239 1213208604<br />dm-0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1.06&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.60&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 4.07&nbsp;&nbsp; 10873201&nbsp;&nbsp; 73558008<br />dm-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 82.50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 67.42&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 62.23 1218820537 1124967604<br />dm-2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.21&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.18&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.83&nbsp;&nbsp;&nbsp; 3199605&nbsp;&nbsp; 14930372<br />dm-3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 372&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 224<br /><br />avg-cpu:&nbsp; %user&nbsp;&nbsp; %nice&nbsp;&nbsp;&nbsp; %sys %iowait&nbsp;&nbsp; %idle<br />0.00&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp; 0.63&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp; 99.37<br /><br />Device:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tps&nbsp;&nbsp;&nbsp; kB_read/s&nbsp;&nbsp;&nbsp; kB_wrtn/s&nbsp;&nbsp;&nbsp; kB_read&nbsp;&nbsp;&nbsp; kB_wrtn<br />cciss/c0d0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1.02&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 63.27&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 124<br />cciss/c0d0p1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0<br />cciss/c0d0p2&nbsp;&nbsp;&nbsp;&nbsp; 15.82&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 63.27&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 124<br />dm-0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 15.82&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 63.27&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 124<br />dm-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0<br />dm-2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0<br />dm-3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0<br /><br />avg-cpu:&nbsp; %user&nbsp;&nbsp; %nice&nbsp;&nbsp;&nbsp; %sys %iowait&nbsp;&nbsp; %idle<br />0.00&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp; 0.32&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp; 99.68<br /><br />Device:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tps&nbsp;&nbsp;&nbsp; kB_read/s&nbsp;&nbsp;&nbsp; kB_wrtn/s&nbsp;&nbsp;&nbsp; kB_read&nbsp;&nbsp;&nbsp; kB_wrtn<br />cciss/c0d0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 3.06&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 26.53&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 52<br />cciss/c0d0p1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0<br />cciss/c0d0p2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6.63&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 26.53&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 52<br />dm-0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0<br />dm-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6.63&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 26.53&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 52<br />dm-2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0<br />dm-3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0<br /><br />其中每一次的统计都是上 一次的统计时间到这次的统计时间之间的统计数据</p>
+</div>
+<p>&nbsp;</p>
+<p>5. 如何查看进程 IO 读写情况？</p>
+<p class="postdate"><span><span style="font-size: x-small;">2009年08月26日 | 标签:</span><a href="http://www.vpsee.com/tag/linux/" rel="tag"><span style="font-size: x-small;">linux</span></a><span style="font-size: x-small;">,</span><a href="http://www.vpsee.com/tag/python/" rel="tag"><span style="font-size: x-small;">python</span></a><span style="font-size: x-small;">| 作者：</span><a title="Posts by vpsee" href="http://www.vpsee.com/author/admin/"><span style="font-size: x-small;">vpsee</span></a></span></p>
+<div class="entry">
+<p>Linux Kernel 2.6.20 以上的内核支持进程 IO 统计，可以用类似 iotop 这样的工具来监测每个进程对 IO 操作的情况，就像用 top 来实时查看进程内存、CPU 等占用情况那样。但是对于 2.6.20 以下的 Linux 内核版本就没那么幸运了，根据<a href="http://stackoverflow.com/questions/249570/"><span style="color: #0066cc;">Stack Overflow 的这篇回帖</span></a>给出的方法，VPSee 写了一个简单的 Python 脚本用来在 linux kernel &lt; 2.6.20 下打印进程 IO 状况。</p>
+<h2>Kernel &lt; 2.6.20</h2>
+<p>这个脚本的想法很简单，把 dmesg 的结果重定向到一个文件后再解析出来，每隔1秒钟打印一次进程 IO 读写的统计信息，执行这个脚本需要 root：</p>
+<pre class="code">#!/usr/bin/python
+# Monitoring per-process disk I/O activity
+# written by http://www.vpsee.com 
+
+import sys, os, time, signal, re
+
+class DiskIO:
+    def __init__(self, pname=None, pid=None, reads=0, writes=0):
+        self.pname = pname
+        self.pid = pid
+        self.reads = 0
+        self.writes = 0
+
+def main():
+    argc = len(sys.argv)
+    if argc != 1:
+        print "usage: ./iotop"
+        sys.exit(0)
+
+    if os.getuid() != 0:
+        print "must be run as root"
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    os.system('echo 1 &gt; /proc/sys/vm/block_dump')
+    print "TASK              PID       READ      WRITE"
+    while True:
+        os.system('dmesg -c &gt; /tmp/diskio.log')
+        l = []
+        f = open('/tmp/diskio.log', 'r')
+        line = f.readline()
+        while line:
+            m = re.match(\
+                '^(\S+)\((\d+)\): (READ|WRITE) block (\d+) on (\S+)', line)
+            if m != None:
+                if not l:
+                    l.append(DiskIO(m.group(1), m.group(2)))
+                    line = f.readline()
+                    continue
+                found = False
+                for item in l:
+                    if item.pid == m.group(2):
+                        found = True
+                        if m.group(3) == "READ":
+                            item.reads = item.reads + 1
+                        elif m.group(3) == "WRITE":
+                            item.writes = item.writes + 1
+                if not found:
+                    l.append(DiskIO(m.group(1), m.group(2)))
+            line = f.readline()
+        time.sleep(1)
+        for item in l:
+            print "%-10s %10s %10d %10d" % \
+                (item.pname, item.pid, item.reads, item.writes)
+
+def signal_handler(signal, frame):
+    os.system('echo 0 &gt; /proc/sys/vm/block_dump')
+    sys.exit(0)
+
+if __name__=="__main__":
+    main()</pre>
+<p>&nbsp;</p>
+<h2>Kernel &gt;= 2.6.20</h2>
+<p>如果想用 iotop 来实时查看进程 IO 活动状况的话，需要下载和升级新内核（2.6.20 或以上版本）。编译新内核时需要打开 TASK_DELAY_ACCT 和 TASK_IO_ACCOUNTING 选项。解压内核后进入配置界面：</p>
+<pre class="code"># tar jxvf linux-2.6.30.5.tar.bz2
+# mv linux-2.6.30.5 /usr/src/
+# cd /usr/src/linux-2.6.30.5
+
+# make menuconfig</pre>
+<p>选择 Kernel hacking &ndash;&gt; Collect scheduler debugging info 和 Collect scheduler statistics，保存内核后编译内核：</p>
+<pre class="code"># make; make modules; make modules_install; make install</pre>
+<p>修改 grub，确认能正确启动新内核：</p>
+<pre class="code"># vi /boot/grub/menu.lst</pre>
+<p>出了新内核外，iotop 还需要 Python 2.5 或以上才能运行，所以如果当前 Python 是 2.4 的话需要下载和安装最新的 Python 包。这里使用源代码编译安装：</p>
+<pre class="code"># tar jxvf Python-2.6.2.tar.bz2
+# cd Python-2.6.2
+# ./configure
+# make; make install</pre>
+<p>别忘了下载 setuptools：</p>
+<pre class="code"># mv setuptools-0.6c9-py2.6.egg.sh setuptools-0.6c9-py2.6.egg
+# sh setuptools-0.6c9-py2.6.egg</pre>
+<h2>更多信息</h2>
+<p>如果想知道更多关于 block_dump 的信息，可以看看这篇<a href="http://www.vpsee.com/2010/07/monitoring-process-io-activity-on-linux-with-block_dump/" rel="nofollow"><span style="color: #0066cc;">监测 Linux 进程的实时 IO 情况</span></a>。使用 block_dump 的时候，最好能关掉 klogd 进程</p>
+</div></div><div id="MySignature"></div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="blog_post_info">
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"></div>
+</div>
+
+
+	<div class = "postDesc">posted on <span id="post-date">2012-03-12 16:26</span> <a href='http://www.cnblogs.com/mfryf/'>知识天地</a> 阅读(<span id="post_view_count">...</span>) 评论(<span id="post_comment_count">...</span>)  <a href ="http://www.cnblogs.com/mfryf/admin/EditPosts.aspx?postid=2392000" rel="nofollow">编辑</a> <a href="#" onclick="AddToWz(2392000);return false;">收藏</a></div>
+</div>
+<script type="text/javascript">var allowComments=true,isLogined=false,cb_blogId=108393,cb_entryId=2392000,cb_blogApp=currentBlogApp,cb_blogUserGuid='6ad646a2-8254-e111-aa3f-842b2b196315',cb_entryCreatedDate='2012/3/12 16:26:00';loadViewCount(cb_entryId);</script>
+
+<a name="!comments"></a><div id="blog-comments-placeholder"></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="程序员的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="ad_under_post_holder"></div>
+<script type="text/javascript">
+var enableGoogleAd = true;
+var googletag = googletag || {};
+googletag.cmd = googletag.cmd || [];
+fixPostBodyFormat();
+loadAdUnderPost();
+</script>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+loadBlogSignature();
+LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);
+GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+</script>
+<script type="text/javascript">
+    $.ajax({ url: 'http://counter.cnblogs.com/blog/post/' + cb_entryId, type: 'get', dataType: 'script', cache: true });
+</script>
+</div>
+
+	
+<!--done-->
+<div class="footer">
+	
+	Copyright &copy;2013 知识天地 Powered by: <a href="http://www.cnblogs.com" class=footerlink>博客园</a> 模板提供：<a href="http://blog.hjenglish.com" class=footerlink>沪江博客</a><br>
+</div>
+</div>
+
+
+
+<script type="text/javascript" src="http://common.cnblogs.com/script/google-analytics.js"></script>
+</body>
+</html>

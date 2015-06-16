@@ -1,0 +1,290 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-cn">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>mod_wsgi的工作模式和配置 - 牛皮糖NewPtone - 博客园</title>
+<link type="text/css" rel="stylesheet" href="/bundles/blog-common.css?v=RFWbSMVn474Meo5c6rKa1DH_M4ldFPuI9Jah-EA-L5Q1"/>
+<link id="MainCss" type="text/css" rel="stylesheet" href="/skins/SimpleBlue/bundle-SimpleBlue.css?v=g1Ly_5CnmgosFgcSP2WTmRocMrlS6IO9yhcnMXW9dOA1"/>
+<link type="text/css" rel="stylesheet" href="/blog/customcss/88100.css?v=ixzoo8c3IlhJVohSV5YO0SXlOlA%3d"/>
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/yuxc/rss"/>
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/yuxc/rsd.xml"/>
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/yuxc/wlwmanifest.xml"/>
+<script src="http://common.cnblogs.com/script/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">var currentBlogApp = 'yuxc', cb_enable_mathjax=false;</script>
+<script src="/bundles/blog-common.js?v=NRIlPIHMlVEgoqJZIuk9OQtjtZjNFcz_ov8kYhFFdoM1" type="text/javascript"></script>
+</head>
+<body>
+<a name="top"></a>
+<div id="page_begin_html"></div><script>load_page_begin_html();</script>
+
+<div id="home">
+<div id="header">
+	<div id="blogTitle">
+		
+<!--done-->
+<div class="title"><a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/yuxc/">牛皮糖的旅程</a></div>
+<div class="subtitle">Brick walls,they let us prove how badly we want things.    
+            --------摘自Randy Pausch的《最后一课》</div>
+
+
+
+		
+	</div><!--end: blogTitle 博客的标题和副标题 -->
+	<div id="navigator">
+		
+<ul id="navList">
+<li id="nav_sitehome"><a id="MyLinks1_HomeLink" class="menu" href="http://www.cnblogs.com/">博客园</a></li>
+<li id="nav_myhome"><a id="MyLinks1_MyHomeLink" class="menu" href="http://www.cnblogs.com/yuxc/">首页</a></li>
+<li id="nav_q"><a class="menu" href="http://q.cnblogs.com/">博问</a></li>
+<li id="nav_ing"><a class="menu" href="http://home.cnblogs.com/ing/">闪存</a></li>
+<li id="nav_newpost"></li>
+<li id="nav_contact"><a id="MyLinks1_ContactLink" class="menu" rel="nofollow" href="http://space.cnblogs.com/msg/send/%e7%89%9b%e7%9a%ae%e7%b3%96NewPtone">联系</a></li>
+<li id="nav_rss">
+<!----></li>
+<li id="nav_admin"><a id="MyLinks1_Admin" class="menu" rel="nofollow" href="http://i.cnblogs.com/">管理</a></li>
+</ul>
+
+		<div class="blogStats">
+			
+			
+<!--done-->
+随笔-232&nbsp;
+文章-0&nbsp;
+评论-231&nbsp;
+
+			
+		</div><!--end: blogStats -->
+	</div><!--end: navigator 博客导航栏 -->
+</div><!--end: header 头部 -->
+<div id="main">
+	<div id="mainContent">
+	<div class="forFlow">
+		
+
+<!--done-->
+<div id="topics">
+	<div class = "post">
+		<h1 class = "postTitle">
+			<a id="cb_post_title_url" class="postTitle2" href="http://www.cnblogs.com/yuxc/p/3555005.html">mod_wsgi的工作模式和配置</a>
+		</h1>
+		<div class="clear"></div>
+		<div class="postBody">
+			<div id="cnblogs_post_body"><p><span style="font-family: 'times new roman', times;">Openstack所有提供API接口的服务都是python web server，而其本身性能很弱，目前已经将它们配置到了apache上。但对于如何设置mod_wsgi的参数，我一直没有好好去阅读其文档。</span></p>
+<p><span style="font-family: 'times new roman', times;">参考了<a href="http://ssmax.net/archives/977.html" rel="bookmark">mod_wsgi 的两种模式</a>和<a href="https://code.google.com/p/modwsgi/wiki/ProcessesAndThreading">Process and Thread</a>两篇文章后，我来归纳一下：</span></p>
+<p><span style="font-family: 'times new roman', times;">目前mod_wsgi有两种工作模式：</span></p>
+<p><span style="font-family: 'times new roman', times;">第一种是嵌入模式，类似于mod_python，直接在apache进程中运行，这样的好处是不需要另外增加进程，但是坏处也很明显，所有内存都和apache共享，如果和mod_python一样造成内存漏洞的话，就会危害整个apache。而且如果apache是用worker mpm，mod_wsgi也就强制进入了线程模式，这样子对于非线程安全的程序来说就没法用了。</span></p>
+<p><span style="font-family: 'times new roman', times;">这种模式下需要在apache的vhost中如下设置：</span></p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;"><span style="font-family: 'times new roman', times;">WSGIScriptAlias /path /path-to-wsgi</span></pre>
+</div>
+<p><span style="font-family: 'times new roman', times;">即可生效，对于小型脚本的话，直接用这种模式即可。</span></p>
+<p><span style="font-family: 'times new roman', times;">&nbsp;</span></p>
+<p><span style="font-family: 'times new roman', times;">第二种是后台模式，类似于FastCGI的后台，mod_wsgi会借apache的外壳，另外启动一个或多个进程，然后通过socket通信和apache的进程联系。</span></p>
+<p><span style="font-family: 'times new roman', times;">这种方式只要使用以下配置即可：</span></p>
+<div class="cnblogs_code">
+<pre><span style="font-family: 'times new roman', times;"><span style="color: #000000;">#启动WSGI后台，site1是后台名字
+WSGIDaemonProcess site1 processes</span>=1 threads=<span style="color: #800080;">15</span> display-name=%<span style="color: #000000;">{GROUP}
+
+#分配当前上下文应该使用哪个WSGI后台，可以放在Location里面指定
+WSGIProcessGroup site1
+
+#根据当前上下文的ProcessGroup分配到对应的后台
+WSGIScriptAlias </span>/path /path-to-wsgi</span></pre>
+</div>
+<p><span style="font-family: 'times new roman', times;">在这种模式下，我们可以通过调节processes和threads的值来设置三种MPM的模式：prefork', 'worker', 'winnt'。</span></p>
+<p><span style="font-family: 'times new roman', times;">&nbsp;</span></p>
+<pre class="prettyprint"><strong><span style="font-family: 'times new roman', times;">winnt模式</span></strong></pre>
+<pre class="prettyprint"><span style="font-family: 'times new roman', times;"><span class="typ">WSGIDaemonProcess</span><span class="pln"> example threads</span><span class="pun">=</span><span class="lit">25</span></span></pre>
+<pre class="prettyprint"></pre>
+<pre class="prettyprint"><span style="font-family: 'times new roman', times;">wsgi.multithread	True
+wsgi.multiprocess	False</span></pre>
+<pre class="prettyprint"></pre>
+<pre class="prettyprint"><span style="font-family: 'times new roman', times;">此时processes=1，但是multiprocess为false</span><br />
+</pre>
+<pre class="prettyprint"><span style="font-family: 'times new roman', times;">如果显式地指出processes为1那么：</span></pre>
+<pre class="prettyprint"><span style="font-family: 'times new roman', times;"><span class="typ">WSGIDaemonProcess</span><span class="pln"> example processes</span><span class="pun">=</span><span class="lit">1</span><span class="pln"> threads</span><span class="pun">=</span><span class="lit">25</span></span></pre>
+<pre class="prettyprint"></pre>
+<pre class="prettyprint"><span style="font-family: 'times new roman', times;">wsgi.multithread	True
+wsgi.multiprocess	True</span></pre>
+<pre class="prettyprint"></pre>
+<pre class="prettyprint"></pre>
+<pre class="prettyprint"><strong><span class="lit" style="font-family: 'times new roman', times;">worker模式</span></strong></pre>
+<pre class="prettyprint"><span style="font-family: 'times new roman', times;"><span class="typ">WSGIDaemonProcess</span><span class="pln"> example processes</span><span class="pun">=</span><span class="lit">2</span><span class="pln"> threads</span><span class="pun">=</span><span class="lit">25</span></span></pre>
+<pre class="prettyprint"><span class="lit" style="font-family: 'times new roman', times;">
+wsgi.multithread	True
+wsgi.multiprocess	True<br /></span></pre>
+<pre class="prettyprint"><span class="lit" style="font-family: 'times new roman', times;"><br /><br /></span></pre>
+<pre class="prettyprint"><strong><span style="font-family: 'times new roman', times;">preforker模式</span></strong></pre>
+<pre class="prettyprint"><span style="font-family: 'times new roman', times;"><span class="typ">WSGIDaemonProcess</span><span class="pln"> example processes</span><span class="pun">=</span><span class="lit">5</span><span class="pln"> threads</span><span class="pun">=</span><span class="lit">1</span></span></pre>
+<pre class="prettyprint"><span style="font-family: 'times new roman', times;">wsgi.multithread	False
+wsgi.multiprocess	True
+</span></pre>
+<p><span style="font-family: 'times new roman', times;">&nbsp;</span></p>
+<p><span style="font-family: 'times new roman', times;">后台模式由于是与apache进程分离了，内存独立，而且可以独立重启，不会影响apache的进程，如果你有多个项目（django），可以选择建立多个后台或者共同使用一个后台。</span></p>
+<p><span style="font-family: 'times new roman', times;">比如在同一个VirtualHost里面，不同的path对应不同的django项目，可以同时使用一个Daemon：</span></p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;"><span style="font-family: 'times new roman', times;">WSGIDaemonProcess default processes=1 threads=1 display-name=%{GROUP}
+
+WSGIProcessGroup default
+
+WSGIScriptAlias /project1 &ldquo;/home/website/project1.wsgi&rdquo;
+
+WSGIScriptAlias /project2 &ldquo;/home/website/project2.wsgi&rdquo;</span></pre>
+</div>
+<p><span style="font-family: 'times new roman', times;">这样子两个django都使用同一个WSGI后台。</span></p>
+<p><span style="font-family: 'times new roman', times;">也可以把不同的项目分开，分开使用不同的后台，这样开销比较大，但就不会耦合在一起了。</span></p>
+<p><span style="font-family: 'times new roman', times;">display-name是后台进程的名字，这样方便重启对应的进程，而不需要全部杀掉。</span></p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;"><span style="font-family: 'times new roman', times;">WSGIDaemonProcess site1 processes=1 threads=1 display-name=%{GROUP}
+
+WSGIDaemonProcess site2 processes=1 threads=1 display-name=%{GROUP}
+
+&lt;Location &ldquo;/project1&Prime;&gt;
+WSGIProcessGroup site1
+&lt;/Location&gt;
+WSGIScriptAlias /project1 &ldquo;/home/website/project1.wsgi&rdquo;
+
+&lt;Location &ldquo;/project1&Prime;&gt;
+WSGIProcessGroup site2
+&lt;/Location&gt;
+WSGIScriptAlias /project2 &ldquo;/home/website/project2.wsgi&rdquo;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 'times new roman', times;">对于django 1.0以下的版本，由于官方认定不是线程安全的，所以建议使用多进程单线程模式</span></p>
+<p><span style="font-family: 'times new roman', times;">processes=n threads=1</span></p>
+<p><span style="font-size: 14px; line-height: 1.5; font-family: 'times new roman', times;">对于django 1.0以后，就可以放心的使用多进程多线程模式：</span></p>
+<p><span style="font-family: 'times new roman', times;">processes=2 threads=64</span></p>
+<p><span style="font-family: 'times new roman', times;">这样子性能会更好。</span></p>
+<p><span style="font-family: 'times new roman', times;">&nbsp;</span></p></div><div id="MySignature"></div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="BlogPostCategory"></div>
+<div id="EntryTag"></div>
+<div id="blog_post_info">
+</div>
+<div class="clear"></div>
+<div id="post_next_prev"></div>
+</div>
+
+
+		</div>
+		<div class = "postDesc">posted @ <span id="post-date">2014-02-18 22:21</span> <a href='http://www.cnblogs.com/yuxc/'>牛皮糖NewPtone</a> 阅读(<span id="post_view_count">...</span>) 评论(<span id="post_comment_count">...</span>)  <a href ="http://i.cnblogs.com/EditPosts.aspx?postid=3555005" rel="nofollow">编辑</a> <a href="#" onclick="AddToWz(3555005);return false;">收藏</a></div>
+	</div>
+	<script type="text/javascript">var allowComments=true,isLogined=false,cb_blogId=88100,cb_entryId=3555005,cb_blogApp=currentBlogApp,cb_blogUserGuid='4e16972c-ba5d-e011-a53f-842b2b196315',cb_entryCreatedDate='2014/2/18 22:21:00';loadViewCount(cb_entryId);</script>
+	
+</div><!--end: topics 文章、评论容器-->
+<a name="!comments"></a><div id="blog-comments-placeholder"></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="#" onclick="return RefreshPage();">刷新页面</a><a href="#top">返回顶部</a></div>
+<div id="comment_form_container"></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="开发者的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="opt_under_post"></div>
+<script type="text/javascript">
+    var enableGoogleAd = canShowAdsense(); var googletag = googletag || {}; googletag.cmd = googletag.cmd || [];
+    fixPostBodyFormat();
+</script>
+<div id="ad_under_post_holder">
+<script type='text/javascript'>
+    var googletag = googletag || {};
+    googletag.cmd = googletag.cmd || [];
+    (function () {
+        if (enableGoogleAd) {
+            var gads = document.createElement('script');
+            gads.async = true;
+            gads.type = 'text/javascript';
+            var useSSL = 'https:' == document.location.protocol;
+            gads.src = (useSSL ? 'https:' : 'http:') + '//www.googletagservices.com/tag/js/gpt.js';
+            var node = document.getElementsByTagName('script')[0];
+            node.parentNode.insertBefore(gads, node);
+        }
+    })();
+</script>
+<script type='text/javascript'>
+    try {
+        if (enableGoogleAd) {
+            googletag.cmd.push(function () {
+                googletag.defineSlot('/1090369/cnblogs_blogpost_C1_sitehome', [300, 250], 'div-gpt-ad-1346480159711-0').addService(googletag.pubads());
+                googletag.defineSlot('/1090369/cnblogs_blogpost_C2', [468, 60], 'div-gpt-ad-1410860226396-0').addService(googletag.pubads());
+                googletag.pubads().enableSingleRequest();
+                googletag.enableServices();
+            });
+        };
+    } catch (e) { }
+</script>
+<div id="google_ad_c1" class="c_ad_block">
+    <div id='div-gpt-ad-1346480159711-0' style='width:300px; height:250px;'>
+    <script type='text/javascript'>
+        try {
+            if (enableGoogleAd) {
+                googletag.cmd.push(function () { googletag.display('div-gpt-ad-1346480159711-0'); });            
+            } else {
+                $('#div-gpt-ad-1346480159711-0').hide();
+            }
+    } catch (e) { }
+    </script>
+    </div>
+</div>
+</div>
+<div id="under_post_news"></div>
+<div id="google_ad_c2" class="c_ad_block">
+<div id='div-gpt-ad-1410860226396-0' style='width:468px; height:60px;'>
+<script type='text/javascript'>
+try {
+    if (enableGoogleAd) {
+        googletag.cmd.push(function () { googletag.display('div-gpt-ad-1410860226396-0'); });
+    } else {
+        $('#div-gpt-ad-1346480159711-0').hide();
+    }
+} catch (e) { }
+</script>
+</div>
+</div>
+<div id="under_post_kb"></div>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+$(function () {
+    loadNewsAndKb();
+    loadBlogSignature();
+    LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+    GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);
+    loadOptUnderPost();
+    GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);
+    setTimeout(function () { incrementViewCount(cb_entryId); }, 200);
+});
+</script>
+</div>
+
+	</div><!--end: forFlow -->
+	</div><!--end: mainContent 主体内容容器-->
+
+	<div id="sideBar">
+		<div id="sideBarMain">
+			
+<!--done-->
+<div class="newsItem">
+<h3 class="catListTitle">公告</h3>
+	<div id="blog-news"></div><script type="text/javascript">loadBlogNews();</script>
+</div>
+
+			<div id="calendar"><div id="blog-calendar" style="display:none"></div><script type="text/javascript">loadBlogDefaultCalendar();</script></div>
+			
+			<div id="leftcontentcontainer">
+				<div id="blog-sidecolumn"></div><script type="text/javascript">loadBlogSideColumn();</script>
+			</div>
+			
+		</div><!--end: sideBarMain -->
+	</div><!--end: sideBar 侧边栏容器 -->
+	<div class="clear"></div>
+	</div><!--end: main -->
+	<div class="clear"></div>
+	<div id="footer">
+		
+<!--done-->
+Copyright &copy;2015 牛皮糖NewPtone
+	</div><!--end: footer -->
+</div><!--end: home 自定义的最大容器 -->
+</body>
+</html>

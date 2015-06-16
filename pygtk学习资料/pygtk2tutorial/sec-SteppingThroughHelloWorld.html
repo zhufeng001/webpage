@@ -1,0 +1,144 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>2.4. Stepping Through Hello World</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-GettingStarted.html" title="Chapter 2. Getting Started"><link rel="prev" href="sec-Events.html" title="2.3. Events"><link rel="next" href="ch-MovingOn.html" title="Chapter 3. Moving On"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2.4. Stepping Through Hello World</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-Events.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Getting Started</th><td width="20%" align="right"> <a accesskey="n" href="ch-MovingOn.html">Next</a></td></tr></table><hr></div><div class="sect1" title="2.4. Stepping Through Hello World"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-SteppingThroughHelloWorld"></a>2.4. Stepping Through Hello World</h2></div></div></div><p>Now that we know the theory behind this, let's clarify by
+walking through the example <a class="ulink" href="examples/helloworld.py" target="_top"><span class="command"><strong>helloworld.py</strong></span></a>
+program.</p><p>Lines 9-76 define the <code class="classname">HelloWorld</code> class
+that contains all the callbacks as object methods and the object instance
+initialization method. Let's examine the callback methods.</p><p>Lines 13-14 define the <code class="methodname">hello</code>() callback
+method that will be called when the button is "clicked". When called the
+method, prints "Hello World" to the console. We ignore the object instance,
+the widget and the data parameters in this example, but most callbacks use
+them. The <em class="parameter"><code>data</code></em> is defined with a default value of
+<code class="varname">None</code> because PyGTK will not pass a data value if it is
+not included in the <code class="methodname">connect</code>() call; this would
+trigger an error since the callback is expecting three parameters and may
+receive only two. Defining a default value of None allows the callback to be
+called with two or three parameters without error. In this case the data
+parameter could have been left out since the
+<code class="methodname">hello</code>() method will always be called with just two
+parameters (never called with user data). The next example will use the
+<em class="parameter"><code>data argument</code></em> to tell us which button was
+pressed.</p><pre class="programlisting">
+  def hello(self, widget, data=None):
+      print "Hello World"
+</pre><p>The next callback (lines 16-26) is a bit special. The
+"delete_event" occurs when the window manager sends this event to the
+application. We have a choice here as to what to do about these events. We
+can ignore them, make some sort of response, or simply quit the
+application.</p><p>The value you return in this callback lets GTK+ know what action
+to take. By returning TRUE, we let it know that we don't want to have the
+"destroy" signal emitted, keeping our application running. By returning
+FALSE, we ask that "destroy" be emitted, which in turn will call our
+"destroy" signal handler. Note the comments have been removed for
+clarity.</p><pre class="programlisting">
+  def delete_event(widget, event, data=None):
+      print "delete event occurred"
+      return False
+</pre><p>The <code class="methodname">destroy</code>() callback method (lines
+28-30) causes the program to quit by calling
+<code class="function">gtk.main_quit</code>() .  This function tells GTK+ that it is
+to exit from <code class="function">gtk.main</code>() when control is returned to
+it.</p><pre class="programlisting">
+  def destroy(widget, data=None):
+      print "destroy signal occurred"
+      gtk.main_quit()
+</pre><p>Lines 32-71 define the <code class="classname">HelloWorld</code> object
+instance initialization method <code class="methodname">__init__</code>() that creates
+the window and widgets used by the program.</p><p>Line 34 creates a new window, but it is not displayed until we
+direct GTK+ to show the window near the end of our program. The window
+reference is saved in an object instance attribute (self.window) for later
+access.</p><pre class="programlisting">
+    self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+</pre><p>Lines 41 and 46 illustrate two examples of connecting a signal
+handler to an object, in this case, the <code class="varname">window</code>. Here, the
+"delete_event" and "destroy" signals are caught. The first is emitted when
+we use the window manager to kill the window, or when we use the
+<code class="classname">GtkWidget</code> <code class="methodname">destroy</code>() method
+call.  The second is emitted when, in the "delete_event" handler, we return
+<code class="varname">FALSE</code>.</p><pre class="programlisting">
+    self.window.connect("delete_event", self.delete_event)
+    self.window.connect("destroy", self.destroy)
+</pre><p>Line 49 sets an attribute of a container object (in this case
+the <code class="varname">window</code>) to have a blank area along the inside of it
+10 pixels wide where no widgets will be placed. There are other similar
+methods that we will look at in <a class="xref" href="ch-SettingWidgetAttributes.html" title="Chapter 18. Setting Widget Attributes">Chapter 18, <i>Setting Widget Attributes</i></a></p><pre class="programlisting">
+    self.window.set_border_width(10)
+</pre><p>Line 52 creates a new button and saves a reference to it in
+<code class="varname">self.button</code>. The button will have the label "Hello World"
+when displayed.</p><pre class="programlisting">
+    self.button = gtk.Button("Hello World")
+</pre><p>In line 57 we attach a signal handler to the button so when it
+emits the "clicked" signal, our <code class="methodname">hello</code>() callback
+method is called. We are not passing any data to
+<code class="methodname">hello</code>() so we just pass <code class="varname">None</code> as
+the data. Obviously, the "clicked" signal is emitted when we click the
+button with our mouse pointer. The user data parameter value
+<code class="varname">None</code> is not required and could be removed. The callback
+would then be called with one less parameter.</p><pre class="programlisting">
+    self.button.connect("clicked", self.hello, None)
+</pre><p>We are also going to use this button to exit our program. Line
+62 illustrates how the "destroy" signal may come from either the window
+manager, or from our program. When the button is "clicked", same as above,
+it calls the <code class="methodname">hello</code>() callback first, and then the
+following one in the order they are set up. You may have as many callbacks
+as you need, and all will be executed in the order you connected
+them.</p><p>Since we want to use the <code class="classname">GtkWidget</code>
+<code class="methodname">destroy</code>() method that accepts one argument (the
+widget to be destroyed - in this case the <code class="varname">window</code>), we use
+the <code class="methodname">connect_object</code>() method and pass it the
+reference to the window. The <code class="methodname">connect_object</code>()
+method arranges to pass the <em class="parameter"><code>window</code></em> as the first
+callback argument instead of the button.</p><p>When the <code class="classname">gtk.Widget</code>
+<code class="methodname">destroy</code>() method is called it will cause the
+"destroy" signal to be emitted from the window which will in turn cause the
+<code class="classname">HelloWorld</code> <code class="methodname">destroy</code>() method
+to be called to end the program.</p><pre class="programlisting">
+    self.button.connect_object("clicked", gtk.Widget.destroy, self.window)
+</pre><p>Line 65 is a packing call, which will be explained in depth
+later on in <a class="xref" href="ch-PackingWidgets.html" title="Chapter 4. Packing Widgets">Chapter 4, <i>Packing Widgets</i></a> . But it is fairly
+easy to understand. It simply tells GTK+ that the button is to be placed in
+the window where it will be displayed. Note that a GTK+ container can only
+contain one widget. There are other widgets, described later, that are
+designed to layout multiple widgets in various ways.</p><pre class="programlisting">
+    self.window.add(self.button)
+</pre><p>Now we have everything set up the way we want it to be. With all
+the signal handlers in place, and the button placed in the window where it
+should be, we ask GTK+ (lines 66 and 69) to "show" the widgets on the screen.
+The window widget is shown last so the whole window will pop up at once
+rather than seeing the window pop up, and then the button forming inside of
+it. Although with such a simple example, you'd never notice.</p><pre class="programlisting">
+    self.button.show()
+
+    self.window.show()
+</pre><p>Widgets also have a <code class="methodname">hide()</code> that is the
+opposite of <code class="methodname">show()</code>.  It doesn't actually
+destroy the widget, but it removes the widget renderining from your
+display.  This can be reversed with another
+<code class="methodname">show()</code> call.</p><p>Lines 73-75 define the <code class="methodname">main</code>() method
+which calls the <code class="function">gtk.main</code>() function</p><pre class="programlisting">
+    def main(self):
+        gtk.main()
+</pre><p>Lines 80-82 allow the program to run automatically if called
+directly or as an argument of the python interpreter. Line 81 creates an
+instance of the <code class="classname">HelloWorld</code> class and saves a
+reference to it in the <code class="varname">hello</code> variable. Line 82 calls the
+<code class="classname">HelloWorld</code> class <code class="methodname">main</code>()
+method to start the GTK+ event processing loop.</p><pre class="programlisting">
+    if __name__ == "__main__":
+        hello = HelloWorld()
+        hello.main()
+</pre><p>Now, when we click the mouse button on a GTK+ button, the widget
+emits a "clicked" signal. In order for us to use this information, our
+program sets up a signal handler to catch that signal, which dispatches the
+function of our choice. In our example, when the button we created is
+"clicked", the <code class="methodname">hello</code>() method is called with the
+<code class="literal">None</code> argument, and then the next handler for this signal
+is called. The next handler calls the widget
+<code class="methodname">destroy</code>() function with the window as its argument
+thereby causing the window to emit the "destroy" signal, which is caught,
+and calls our <code class="classname">HelloWorld</code>
+<code class="methodname">destroy</code>() method</p><p>Another course of events is to use the window manager to kill
+the window, which will cause the "delete_event" to be emitted. This will
+call our "delete_event" handler. If we return <code class="varname">TRUE</code> here,
+the window will be left as is and nothing will happen. Returning
+<code class="varname">FALSE</code> will cause GTK+ to emit the "destroy" signal that
+causes the <code class="classname">HelloWorld</code> "destroy" callback to be
+called, exiting GTK.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-Events.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-GettingStarted.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch-MovingOn.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2.3. Events </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 3. Moving On</td></tr></table></div></body></html>

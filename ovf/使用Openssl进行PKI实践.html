@@ -1,0 +1,410 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="gb2312">
+	<title>使用Openssl进行PKI实践(含多级证书详细步骤) - 服务器技术综合 - 次元立方网 - 电脑知识与技术互动交流平台</title>
+	<meta name="keywords" content="Openssl,PKI,多级证书">
+	<meta name="description" content="Openssl是Linux下的基础安全工具先简要介绍一些基础知识：Openssl功能主要有：对称加密（DES、3DES、AES等），非对称加密（RSA），散列（MD5、SHA1等）以及证书的相关操作（创建、申请、颁发、吊销等）PKI体系成...">
+	<link rel="stylesheet" href="http://www.it165.net/statics/css/6.0/show6.0.Css" type="text/css">
+	<script src="http://www.it165.net/statics/js/it165_pro.js" type="text/javascript"></script>
+	<script type="text/javascript">SyntaxHighlighter.all();</script>
+</head>
+<body style="background:#4E7DC1">
+<div class="box1">
+	<div class="boxm">
+		<ul class="wrapper">
+			<li class="addforver"><a href="http://www.it165.net/">次元立方</a></li>
+		</ul>
+		<ul class="LoginBox">
+			<iframe name="loginwin" id="loginwin" src="http://www.it165.net/index.php?m=member&c=index&a=mini&forward=http%3A%2F%2Fwww.it165.net%2Fadmin%2Fhtml%2F201301%2F687.html&siteid=1" allowTransparency="true"  width="340" height="27" frameborder="0" scrolling="no"></iframe>
+		</ul>
+	</div>
+</div><div class="WxBox">
+	<div class="box_Navigation">
+	<a href="http://www.it165.net/news/">IT资讯</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/pro/">编程</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/database/">数据库</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/safe/">安全</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/os/">系统</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/admin/">服务器</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/os/">嵌入式</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/DPlan/">平面设计</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/DWeb/">网页设计</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/edu/">基础</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/network/">组网</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/qq/">QQ</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/down/">下载</a>&nbsp;|&nbsp;
+	<a href="http://www.it165.net/js/">JS特效</a>&nbsp;|&nbsp;
+</div>	<div style="clear:both;overflow:hidden"><script language="javascript" type="text/javascript" src="http://www.it165.net/index.php?m=poster&c=adv&id=27"></script></div>	<div class="box_LSS">
+			<div class="LogoBox"><a href="http://www.it165.net/admin/"><img alt="服务器" src="http://www.it165.net/statics/css/6.0/images/Logo.png" width="27" height="28" /><h3>服务器</h3></a></div>		<div class="strongbox"><a href="http://www.it165.net">首页</a><span> &gt; </span><a href="http://www.it165.net/admin/">服务器技术</a> > <a href="http://www.it165.net/admin/serverzh/">服务器技术综合</a> >  正文</div>
+		<div class="Search" id="searchbox">
+			<script type="text/javascript">category_SearchHTML();</script>
+		</div>				<div class="CatNameLi"><span><a href="http://www.it165.net/admin/">站长家园</a></span> <em><a href="http://www.it165.net/admin">http://www.it165.net/admin</a></em></div>
+	</div>
+	<div class="LineAp"></div>
+	<div class="CArticleBox">
+		<div class="CListLeft">
+			<div class="ArticleBox">
+				<div class="sTitleboxs">
+					<h1>使用Openssl进行PKI实践(含多级证书详细步骤)</h1>
+					<div class="sInfo">作者：lbq0711&nbsp;&nbsp;发布日期：2013-01-22 09:29:49</div>
+					<div class="uinfo"><a class="Comment" href="#comment_iframe">我来说两句(<span id="comment">0</span>)</a><a class="Comment" href="javascript:;" onclick="add_favorite('使用Openssl进行PKI实践(含多级证书详细步骤)');">收藏本文</a></div>
+				</div>
+			</div>
+			<div class="advyello"><script language="javascript" type="text/javascript" src="http://www.it165.net/index.php?m=poster&c=adv&id=24"></script></div>
+			<ul class="Content">
+				
+				<script type="text/javascript">
+					<!--
+						function add_favorite(title) {
+							$.getJSON('http://www.it165.net/api.php?op=add_favorite&title='+encodeURIComponent(title)+'&url='+encodeURIComponent(location.href)+'&'+Math.random()+'&callback=?', function(data){
+								if(data.status==1)	{
+									$("#favorite").html('收藏成功');
+									alert("已经收藏");
+								} else {
+									alert("您还未登录");
+								}
+							});
+						}
+					//-->
+					</script>
+				<li id="ArticleBox">
+				<p>Openssl是Linux下的基础安全工具</p>
+<p>先简要介绍一些基础知识：</p>
+<p>Openssl功能主要有：对称加密（DES、3DES、AES等），非对称加密（RSA），散列（MD5、SHA1等）以及证书的相关操作（创建、申请、颁发、吊销等）</p>
+<p>PKI体系成为公钥加密体系，组成部分包括：认证中心、注册中心、证书库、证书废止列表。</p>
+<p>Openssl常用证书格式：X509、PKCS7、PKCS12。</p>
+<p>证书文件常用存储格式：PEM（BASE64）、PFX或P12(二进制）</p>
+<p>&nbsp;</p>
+<p>本文主要实践点：</p>
+<p>1、根CA相关操作（私钥生成、生成自认证证书）</p>
+<p>2、用户证书相关操作（私钥生成、生成证书签发请求文件、根CA同意请求签发该证书）</p>
+<p>3、次级CA证书相关操作（从根CA得到次级CA证书和次级CA私钥之后，再给下属用户签发证书）</p>
+<p>实验环境：</p>
+<p>RHEL 6.3(KVM虚拟机） rootca.testlibq.com</p>
+<p>RHEL 6.3(KVM虚拟机） apache.testlibq.com（以APACHE服务器为次级CA）</p>
+<p>Windows XP(KVM虚拟机） xp.testlibq.com（以展示证书）</p>
+<p>实验步骤：</p>
+<p>1、生成根CA证书</p>
+<p><strong>登录到ROOTCA机器</strong></p>
+<p>cd /etc/pki/CA/private</p>
+<p>openssl genrsa -des3 -out rootca.key 1024&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; #生成ROOTCA私钥，rootca.key格式为PEM</p>
+<p>[设置rootca私钥密码，例如输入rootca]</p>
+<p>touch /etc/pki/CA/index.txt&nbsp;&nbsp; #创建证书数据库文件</p>
+<p>echo &quot;01&quot; &gt; /etc/pki/CA/serial&nbsp; #创建证书序号文件</p>
+<p>openssl req -new <strong>-x509</strong> -key rootca.key -out /etc/pki/CA/rootca.crt</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; #生成ROOTCA证书（类型为X509），rootca.crt格式为PEM</p>
+<p>[输入rootca私钥密码：rootca]</p>
+<p>[填入一堆证书信息]</p>
+<p>&nbsp;</p>
+<p>由于/etc/pki/tls/openssl.cnf中设置了CA的私钥和证书路径，所以这里使用软链接。</p>
+<p>ln -s /etc/pki/CA/private/rootca.key /etc/pki/CA/private/cakey.pem</p>
+<p>ln -s /etc/pki/CA/rootca.crt /etc/pki/CA/cacert.pem</p>
+<p>这样，CA便设置好了。</p>
+<p>查看证书和私钥可以用以下命令：</p>
+<p>openssl rsa -in /etc/pki/CA/private/rootca.key -text -noout</p>
+<p>openssl x509 -in /etc/pki/CA/rootca.crt -text -noout</p>
+<p>&nbsp;</p>
+<p>2、用户证书的相关操作</p>
+<p>PS：</p>
+<p>用户证书可以在用户端生成私钥和请求文件，然后传递至CA，由CA签发后，发给用户。</p>
+<p>也可以由根CA生成用户私钥和请求文件，然后签发后把私钥和证书发给用户。</p>
+<p>这里演示后者。</p>
+<p><strong>登录到rootca机器（接实验1）</strong></p>
+<p>cd /etc/pki/CA/private</p>
+<p>openssl genrsa -des3 -out a.key 1024&nbsp; #生成用户私钥</p>
+<p>[set password of a.key]</p>
+<p>openssl req -new -key a.key -out a.csr&nbsp; #生成用户请求文件</p>
+<p>[input password of a.key]</p>
+<p>[输入一堆证书信息]</p>
+<p>openssl ca -in a.csr</p>
+<p>[y,y]</p>
+<p>&nbsp;</p>
+<p>生成证书位于/etc/pki/CA/newcerts/01.pem</p>
+<p>PS：</p>
+<p>该证书类型为X509，若需要PKCS12类型证书，请使用</p>
+<p>openssl pkcs12 -export -in /etc/pki/CA/newcerts/01.pem -inkey /etc/pki/CA/private/a.key -out a.pfx[输入私钥密码][设置传输密码]</p>
+<p>&nbsp;</p>
+<p>3、生成证书链</p>
+<p>此节内容网上文章较少，我研究了好久才搞出来。</p>
+<p>&nbsp;</p>
+<p>首先上面两个实验是连着做的，第三个实验请把上面的环境清除。</p>
+<p><strong>登录到ROOTCA</strong></p>
+<p>cd /etc/pki/CA/private</p>
+<p>touch ../index.txt</p>
+<p>echo &quot;01&quot; &gt; ../serial</p>
+<p>openssl genrsa -des3 -out rootca.key 1024 [rootca]</p>
+<p>ln -s rootca.key cakey.pem</p>
+<p>openssl req -new -x509 -key rootca.key -out /etc/pki/CA/rootca.crt -extensions v3_ca</p>
+<p>ln -s /etc/pki/CA/rootca.crt /etc/pki/CA/cacert.pem</p>
+<p>这里查看一下rootca证书：</p>
+<p>openssl x509 -in /etc/pki/CA/rootca.crt -text -noout</p>
+<p>确定extensions中，有basicConstraint CA:TRUE，那么代表正确。</p>
+<p>PS:basicConstraint称为基础约束，若有CA：TRUE，证明该证书具有CA效力。（所以上述实验1、2中并不严谨，这点在需要证书链的场合尤为重要）</p>
+<p>cd /etc/pki/CA/private</p>
+<p>openssl genrsa -des3 -out apache.key 1024 [apache]</p>
+<p>openssl req -new -key /etc/pki/CA/private/apache.key -out apache.csr</p>
+<p>[apache][一堆证书信息]</p>
+<p>openssl ca -in apache.csr -extensions v3_ca[y,y]</p>
+<p>PS:这个extensions至关重要，关系到apache这个证书有没有资格再颁发证书给用户。</p>
+<p>&nbsp;</p>
+<p><strong>登录到apache主机</strong></p>
+<p>rsync rootca.testlibq.com:/etc/pki/CA/private/apache.key /etc/pki/CA/private/apache.key</p>
+<p>[root password of rootca.testlibq.com]</p>
+<p>rsync rootca.testlibq.com:/etc/pki/CA/newcerts/01.pem /etc/pki/CA/apache.crt</p>
+<p>[root password of rootca.testlibq.com]</p>
+<p>ln -s /etc/pki/CA/private/apache.key /etc/pki/CA/private/cakey.pem</p>
+<p>ln -s /etc/pki/CA/apache.crt /etc/pki/CA/cacert.pem</p>
+<p>下面制作用户证书</p>
+<p>cd /etc/pki/CA</p>
+<p>touch index.txt</p>
+<p>echo &quot;01&quot; &gt; serial</p>
+<p>openssl genrsa -des3 -out private/user1.key 1024 [user1]</p>
+<p>openssl req -new -key private/user1.key -out private/user1.csr[user1][一堆证书信息]</p>
+<p>openssl ca -in private/user1.csr -extensions usr_cert[y,y]</p>
+<p>PS：这里-extensions usr_cert不必要。</p>
+<p><strong>制作证书链</strong></p>
+<p>rsync rootca.testlibq.com:/etc/pki/CA/rootca.crt /etc/pki/CA/certs/rootca.crt</p>
+<p>[root password of rootca.testlibq.com]</p>
+<p>将rootca的证书和apache的证书整合到一个文件</p>
+<p>cd /etc/pki/CA/certs</p>
+<p>cp /etc/pki/CA/apache.crt chain.pem</p>
+<p>cat rootca.crt &gt;&gt; chain.pem</p>
+<p>验证证书链</p>
+<p>openssl verify -CAfile /etc/pki/CA/certs/chain.crt /etc/pki/CA/newcerts/01.pem</p>
+<p>（若显示Verify OK，表示验证证书链成功） www.it165.net</p>
+<p>转换用户证书为PKCS12</p>
+<p>openssl pkcs12 -export -in /etc/pki/CA/newcerts/01.pem -inkey /etc/pki/CA/private/user1.key -out /etc/pki/CA/private/user1.pfx -chain -CAfile /etc/pki/CA/certs/chain.crt</p>
+<p>最后将user1.pfx复制到Windows中，导入证书，便于展示。</p>
+<p>结果如图：</p>
+<p style="text-align: center"><a href="http://www.it165.net/uploadfile/2013/0122/20130122093027686.png" target="_blank"><img alt="\" border="0" onchange="" onreset="" onselect="" onsubmit="" onunload="" src="http://www.it165.net/uploadfile/2013/0122/20130122093027686.png" /></a></p>
+<p>&nbsp;</p>
+<p style="text-align: center"><a href="http://www.it165.net/uploadfile/2013/0122/20130122093027122.png" target="_blank"><img alt="\" border="0" onchange="" onreset="" onselect="" onsubmit="" onunload="" src="http://www.it165.net/uploadfile/2013/0122/20130122093027122.png" /></a></p>
+<br />
+				</li>
+				<script type="text/javascript">
+					<!--
+					$(function(){
+					  $('#ArticleBox img').LoadImage(true, 650, 650,'http://www.it165.net/statics/images/s_nopic.gif');    
+					})
+					//-->
+				</script>
+			</ul>
+			<div class="aboutlbox">
+				<h3>延伸阅读：</h3>
+				<ul>
+																	<li>1、<a target="_blank" href="http://www.it165.net/admin/html/201308/1670.html">Openssl实现CA证书的颁发</a></li>
+									<li>2、<a target="_blank" href="http://www.it165.net/admin/html/201312/2180.html">openssl生成pem,密钥证书的创建</a></li>
+									<li>3、<a target="_blank" href="http://www.it165.net/admin/html/201403/2549.html">openssl实现加密解密及CA</a></li>
+									<li>4、<a target="_blank" href="http://www.it165.net/admin/html/201402/2351.html">PKI与证书服务应用以及相关安全协议</a></li>
+																</ul>
+			</div>
+			<div class="tag">
+								<div class="share">
+				<!-- Baidu Button BEGIN -->
+				<div id="bdshare" class="bdshare_t bds_tools_32 get-codes-bdshare">
+				<a class="bds_tsina"></a>
+				<a class="bds_tqq"></a>
+				<a class="bds_renren"></a>
+				<a class="bds_qzone"></a>
+				<a class="bds_kaixin001"></a>
+				<a class="bds_hi"></a>
+				<span class="bds_more"></span>
+				</div>
+				<script type="text/javascript" id="bdshare_js" data="type=tools&amp;uid=68696" ></script>
+				<script type="text/javascript" id="bdshell_js"></script>
+				<script type="text/javascript">
+				document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date()/3600000)
+				</script>
+				<!-- Baidu Button END -->
+				</div>
+				<div class="tagbox"><strong>Tag标签：</strong><a target="_blank" href="http://s.it165.net/admin/Openssl.html">Openssl</a>&nbsp;&nbsp;<a target="_blank" href="http://s.it165.net/admin/PKI.html">PKI</a>&nbsp;&nbsp;<a target="_blank" href="http://s.it165.net/admin/%B6%E0%BC%B6%D6%A4%CA%E9.html">多级证书</a>&nbsp;&nbsp;</div>
+			</div>
+			<div class="spageboxs">
+				<div id="spbox"></div>
+				<div id="backindex">
+					<h3><a href="http://www.it165.net/">返回到首页</a></h3>
+						
+					<h3><a href="http://www.it165.net/admin/">返回到服务器技术</a></h3>
+				</div>			</div>
+			<ul class="prenextbox">
+				<li><strong>上一篇：</strong><a href="http://www.it165.net/admin/html/201301/686.html">Windows Server Core上安装和配置DHCP服务</a></li>
+				<li><strong>下一篇：</strong><a href="http://www.it165.net/admin/html/201301/702.html">利用FTP和计划任务自动备份网站数据和数据库</a></li>
+			</ul>
+			<div class="ArtLine"></div>
+			<div class="adv728a"><script language="javascript" type="text/javascript" src="http://www.it165.net/index.php?m=poster&c=adv&id=28"></script></div>
+			<div class="adv728b"><script language="javascript" type="text/javascript" src="http://www.it165.net/index.php?m=poster&c=adv&id=29"></script></div>			<div class="ArtLine"></div>
+			<div class="CommentBox" id="#comment_iframe">
+				<!--兼容版，可保证页面完全兼容-->
+<div id="SOHUCS" sid="687"></div>
+<script>
+  (function(){
+    var appid = 'cyrljYvoL',
+    conf = 'prod_2c3485f27b3b0d5d138546ad112483d2';
+    var doc = document,
+    s = doc.createElement('script'),
+    h = doc.getElementsByTagName('head')[0] || doc.head || doc.documentElement;
+    s.type = 'text/javascript';
+    s.charset = 'utf-8';
+    s.src =  'http://assets.changyan.sohu.com/upload/changyan.js?conf='+ conf +'&appid=' + appid;
+    h.insertBefore(s,h.firstChild);
+  })()
+</script>
+			</div>
+		</div>
+		<div class="CMBox">
+			<div class="advs300"><script language="javascript" type="text/javascript" src="http://www.it165.net/index.php?m=poster&c=adv&id=15"></script></div>			<div class="rtLine"></div>
+			<div class="hotbox">
+																<ul class="hotPP">
+					<li class="titLink"><h3><a target="_blank" title="汉澳sinox快速构建vpn服务器" href="http://www.it165.net/admin/html/201409/3745.html" style="" >汉澳sinox快速构建vpn服务器</a></h3></li>
+					<li class="APic"><a target="_blank" title="汉澳sinox快速构建vpn服务器" href="http://www.it165.net/admin/html/201409/3745.html"><img alt="汉澳sinox快速构建vpn服务器" src="http://www.it165.net/statics/images/nopic.gif" width="111" height="70"></a></li>
+					<li class="Desc">汉澳sinox快速构建vpn服务器为了让出差的员工电脑登陆... <a target="_blank" title="汉澳sinox快速构建vpn服务器" href="http://www.it165.net/admin/html/201409/3745.html">详细</a></li>
+				</ul>
+				<ul class="HList">
+																	<li><a target="_blank" title="Hibernate操作Clob类型数据" href="http://www.it165.net/admin/html/201409/3744.html" style="" >Hibernate操作Clob类型数据</a></li>
+																	<li><a target="_blank" title="Hibernate操作Blob数据" href="http://www.it165.net/admin/html/201409/3743.html" style="" >Hibernate操作Blob数据</a></li>
+																	<li><a target="_blank" title="Git版本控制工具（一）git的安装及建版本库" href="http://www.it165.net/admin/html/201409/3739.html" style="" >Git版本控制工具（一）git的安装及建版本库</a></li>
+																	<li><a target="_blank" title="Hadoop学习Day8HDFS 的shell 操作" href="http://www.it165.net/admin/html/201409/3738.html" style="" >Hadoop学习Day8HDFS 的shell 操作</a></li>
+																</ul>
+			</div>			<div class="rtLine"></div>
+			<div class="rkbox">
+				<ul class="tabTitle">
+					<li class="tabTitleno"><h3>文章排行</h3></li>
+					<li id="ph2" class="check" onmousemove="Tab('ph',2,2,'check','checked')"><h3>月</h3></li>
+					<li id="ph1" class="check" onmousemove="Tab('ph',1,2,'check','checked')"><h3>周</h3></li>
+					<li id="ph0" class="checked" onmousemove="Tab('ph',0,2,'check','checked')"><h3>日</h3></li>
+				</ul>
+				<ul class="PNList" id="ph00">
+															<li><a target="_blank" title="Linux 监控工具之Cacti使用详解（一）" href="http://www.it165.net/admin/html/201310/1954.html" style="" >Linux 监控工具之Cacti使用详解（一）</a></li>
+										<li><a target="_blank" title="DELL R720 服务器 RAID阵列卡配置介绍" href="http://www.it165.net/admin/html/201403/2429.html" style="" >DELL R720 服务器 RAID阵列卡配置介绍</a></li>
+										<li><a target="_blank" title="Sqoop安装与使用(sqoop-1.4.5 on hadoop 1.0.4)" href="http://www.it165.net/admin/html/201408/3590.html" style="" >Sqoop安装与使用(sqoop-1.4.5 on had...</a></li>
+										<li><a target="_blank" title="汉澳sinox快速构建vpn服务器" href="http://www.it165.net/admin/html/201409/3745.html" style="" >汉澳sinox快速构建vpn服务器</a></li>
+										<li><a target="_blank" title="SCCM 2012 R2安装前的准备工作" href="http://www.it165.net/admin/html/201402/2402.html" style="" >SCCM 2012 R2安装前的准备工作</a></li>
+										<li><a target="_blank" title="zabbix的入门到精通之zabbix的触发器Trigger" href="http://www.it165.net/admin/html/201301/659.html" style="" >zabbix的入门到精通之zabbix的触发器Tr...</a></li>
+										<li><a target="_blank" title="zabbix入门到精通之Zabbix对linux主机的监控" href="http://www.it165.net/admin/html/201301/657.html" style="" >zabbix入门到精通之Zabbix对linux主机的...</a></li>
+										<li><a target="_blank" title="部署企业版lync2013之六：lync与exchange集成-1" href="http://www.it165.net/admin/html/201311/2056.html" style="" >部署企业版lync2013之六：lync与exchan...</a></li>
+										<li><a target="_blank" title="Gitlab CE + Gitlab CI打造版本控制及自动测试流程" href="http://www.it165.net/admin/html/201311/2051.html" style="" >Gitlab CE + Gitlab CI打造版本控制...</a></li>
+										<li><a target="_blank" title="基于jenkins结合svn、ansible、shell和mysql版本迁移实现多服务器批量发布" href="http://www.it165.net/admin/html/201401/2273.html" style="" >基于jenkins结合svn、ansible、shell和...</a></li>
+														</ul>
+				<ul class="PNList" id="ph11" style="display:none">
+															<li><a target="_blank" title="DELL R720 服务器 RAID阵列卡配置介绍" href="http://www.it165.net/admin/html/201403/2429.html" style="" >DELL R720 服务器 RAID阵列卡配置介绍</a></li>
+										<li><a target="_blank" title="zabbix入门到精通之Zabbix对linux主机的监控" href="http://www.it165.net/admin/html/201301/657.html" style="" >zabbix入门到精通之Zabbix对linux主机的...</a></li>
+										<li><a target="_blank" title="Sqoop安装与使用(sqoop-1.4.5 on hadoop 1.0.4)" href="http://www.it165.net/admin/html/201408/3590.html" style="" >Sqoop安装与使用(sqoop-1.4.5 on had...</a></li>
+										<li><a target="_blank" title="使用Git来对Jenkins项目设定做版本控制" href="http://www.it165.net/admin/html/201304/1083.html" style="" >使用Git来对Jenkins项目设定做版本控制</a></li>
+										<li><a target="_blank" title="nagios+pnp4nagios图形化界面之二(pnp4nagios)" href="http://www.it165.net/admin/html/201309/1804.html" style="" >nagios+pnp4nagios图形化界面之二(pnp4...</a></li>
+										<li><a target="_blank" title="自动化运维工具Saltstack学习笔记（上）" href="http://www.it165.net/admin/html/201311/2041.html" style="" >自动化运维工具Saltstack学习笔记（上）</a></li>
+										<li><a target="_blank" title="ArcGIS 10.1 for Server Rest服务安全性管理：基于用户和角色权限" href="http://www.it165.net/admin/html/201402/2412.html" style="" >ArcGIS 10.1 for Server Rest服务安...</a></li>
+										<li><a target="_blank" title="hadoop学习（八）Hadoop2.2.0+HA+zookeeper3.4.5详细配置过程+错误处理(1)" href="http://www.it165.net/admin/html/201404/2728.html" style="" >hadoop学习（八）Hadoop2.2.0+HA+zooke...</a></li>
+										<li><a target="_blank" title="阿里云主机Nginx+php-fpm网站慢解决办法" href="http://www.it165.net/admin/html/201304/1066.html" style="" >阿里云主机Nginx+php-fpm网站慢解决办法</a></li>
+										<li><a target="_blank" title="SCCM 2012 R2安装前的准备工作" href="http://www.it165.net/admin/html/201402/2402.html" style="" >SCCM 2012 R2安装前的准备工作</a></li>
+														</ul>
+				<ul class="PNList" id="ph22" style="display:none">
+															<li><a target="_blank" title="DELL R720 服务器 RAID阵列卡配置介绍" href="http://www.it165.net/admin/html/201403/2429.html" style="" >DELL R720 服务器 RAID阵列卡配置介绍</a></li>
+										<li><a target="_blank" title="zabbix入门到精通之Zabbix对linux主机的监控" href="http://www.it165.net/admin/html/201301/657.html" style="" >zabbix入门到精通之Zabbix对linux主机的...</a></li>
+										<li><a target="_blank" title="自动化运维工具Saltstack学习笔记（上）" href="http://www.it165.net/admin/html/201311/2041.html" style="" >自动化运维工具Saltstack学习笔记（上）</a></li>
+										<li><a target="_blank" title="nagios+pnp4nagios图形化界面之二(pnp4nagios)" href="http://www.it165.net/admin/html/201309/1804.html" style="" >nagios+pnp4nagios图形化界面之二(pnp4...</a></li>
+										<li><a target="_blank" title="hadoop学习（八）Hadoop2.2.0+HA+zookeeper3.4.5详细配置过程+错误处理(1)" href="http://www.it165.net/admin/html/201404/2728.html" style="" >hadoop学习（八）Hadoop2.2.0+HA+zooke...</a></li>
+										<li><a target="_blank" title="Sqoop安装与使用(sqoop-1.4.5 on hadoop 1.0.4)" href="http://www.it165.net/admin/html/201408/3590.html" style="" >Sqoop安装与使用(sqoop-1.4.5 on had...</a></li>
+										<li><a target="_blank" title="使用Git来对Jenkins项目设定做版本控制" href="http://www.it165.net/admin/html/201304/1083.html" style="" >使用Git来对Jenkins项目设定做版本控制</a></li>
+										<li><a target="_blank" title="SCCM 2012 R2安装前的准备工作" href="http://www.it165.net/admin/html/201402/2402.html" style="" >SCCM 2012 R2安装前的准备工作</a></li>
+										<li><a target="_blank" title="ROS vpn (pptp) 配置及端口绑定配置" href="http://www.it165.net/admin/html/201312/2213.html" style="" >ROS vpn (pptp) 配置及端口绑定配置</a></li>
+										<li><a target="_blank" title="阿里云主机Nginx+php-fpm网站慢解决办法" href="http://www.it165.net/admin/html/201304/1066.html" style="" >阿里云主机Nginx+php-fpm网站慢解决办法</a></li>
+														</ul>
+			</div>			<div class="rtLine"></div>
+						<div class="rBox">
+				<ul class="tabTitle">
+					<li class="tabTitleno"><h3>下载频道</h3></li>
+					<li class="check"><h3><a target="_blank" href="http://down.it165.net/">更多</a></h3></li>
+				</ul>
+				<ul class="TList">
+															<li><a target="_blank" title="Web服务器 Mongrel2" href="http://www.it165.net/down/html/201403/1597.html" style="" >Web服务器 Mongrel2</a></li>
+										<li><a target="_blank" title="嵌入式的Scala Web服务器 SOCKO WEB" href="http://www.it165.net/down/html/201402/1588.html" style="" >嵌入式的Scala Web服务器 SOCKO WEB</a></li>
+										<li><a target="_blank" title="持续集成服务器 Pulse" href="http://www.it165.net/down/html/201402/1586.html" style="" >持续集成服务器 Pulse</a></li>
+										<li><a target="_blank" title="Web服务安全通道 ngrok" href="http://www.it165.net/down/html/201402/1564.html" style="" >Web服务安全通道 ngrok</a></li>
+										<li><a target="_blank" title="静态 Web 服务器 HarpJS" href="http://www.it165.net/down/html/201402/1545.html" style="" >静态 Web 服务器 HarpJS</a></li>
+										<li><a target="_blank" title="嵌入式 Web 服务器 Undertow" href="http://www.it165.net/down/html/201402/1523.html" style="" >嵌入式 Web 服务器 Undertow</a></li>
+										<li><a target="_blank" title="图像化服务管理工具 Cockpit" href="http://www.it165.net/down/html/201402/1522.html" style="" >图像化服务管理工具 Cockpit</a></li>
+										<li><a target="_blank" title="动态模版工具 TemplateFx" href="http://www.it165.net/down/html/201402/1508.html" style="" >动态模版工具 TemplateFx</a></li>
+														</ul>
+			</div>			<div class="rtLine"></div>
+			<div style="width:300px;;height:250px"><script language="javascript" type="text/javascript" src="http://www.it165.net/index.php?m=poster&c=adv&id=26"></script></div>			<div class="rtLine"></div>
+			<div class="rBox">
+				<ul class="tabTitle">
+					<li class="tabTitleno"><h3>专题推荐</h3></li>
+				</ul>
+				<div class="PPListbox">
+													<ul class="PPList">
+						<li class="APic"><a target="_blank" href="http://www.it165.net/special/iOSCocos2d/"><img alt="李华明iOS-Cocos2d游戏开发专题" src="http://www.it165.net/uploadfile/2012/1214/thumb_80_80_20121214102450157.jpg" width="80" height="80" /></a></li>
+						<li class="titLink"><h3><a target="_blank" href="http://www.it165.net/special/iOSCocos2d/">李华明iOS-Cocos2d游戏</a></h3></li>
+						<li class="Desc">本教程为 李华明 编著的iOS-Cocos2d游戏开发系列教程：教程涵盖关于i...... <a target="_blank" href="http://www.it165.net/special/iOSCocos2d/">详细</a></li>
+					</ul>
+									<ul class="PPList">
+						<li class="APic"><a target="_blank" href="http://www.it165.net/special/Directx/"><img alt="Directx11 游戏编程入门教程" src="http://www.it165.net/uploadfile/2012/0411/thumb_80_80_20120411103408469.jpg" width="80" height="80" /></a></li>
+						<li class="titLink"><h3><a target="_blank" href="http://www.it165.net/special/Directx/">Directx11 游戏编程入</a></h3></li>
+						<li class="Desc">专题主要学习DirectX的初级编程入门学习，对Directx11的入门及初学者有...... <a target="_blank" href="http://www.it165.net/special/Directx/">详细</a></li>
+					</ul>
+									<ul class="PPList">
+						<li class="APic"><a target="_blank" href="http://www.it165.net/pro/special/javascript/"><img alt="Javascript 面向对象编程" src="http://www.it165.net/uploadfile/2011/1217/thumb_80_80_20111217103814404.jpg" width="80" height="80" /></a></li>
+						<li class="titLink"><h3><a target="_blank" href="http://www.it165.net/pro/special/javascript/">Javascript 面向对象编</a></h3></li>
+						<li class="Desc">&quot;面向对象的JavaScript&quot;这一说法多少有些冗余，因为JavaScript 语言本...... <a target="_blank" href="http://www.it165.net/pro/special/javascript/">详细</a></li>
+					</ul>
+									<ul class="PPList">
+						<li class="APic"><a target="_blank" href="http://www.it165.net/special/win7/"><img alt="Windows7系统入门 优化 技巧技术专题" src="http://www.it165.net/uploadfile/2011/0904/thumb_80_80_20110904032817134.jpg" width="80" height="80" /></a></li>
+						<li class="titLink"><h3><a target="_blank" href="http://www.it165.net/special/win7/">Windows7系统入门 优化</a></h3></li>
+						<li class="Desc">Windows7系统专题 无论是升级操作系统、资料备份、加强资料的安全及管...... <a target="_blank" href="http://www.it165.net/special/win7/">详细</a></li>
+					</ul>
+												</div>
+			</div>			<div class="rtLine"></div>
+			<div class="rBox" id="sidebar-follow">
+			<div class="rBox">
+				<ul class="tabTitle">
+					<li class="tabTitleno"><h3>栏目推荐</h3></li>
+				</ul>
+
+				<div class="CateList">
+																	<a class="Top" href="http://www.it165.net/admin/azfwq/">服务器架设/应用</a>
+															<a href="http://www.it165.net/admin/fwqweb/">WEB服务器</a>
+										<a href="http://www.it165.net/admin/fwqftp/">FTP服务器</a>
+										<a href="http://www.it165.net/admin/fwqma/">邮件服务器</a>
+										<a href="http://www.it165.net/admin/fwqdns/">DNS服务器</a>
+																							<a class="Top" href="http://www.it165.net/admin/serverxnh/">服务器虚拟化</a>
+																												<a class="Top" href="http://www.it165.net/admin/serverfzjh/">服务器负载均衡</a>
+																												<a class="Top" href="http://www.it165.net/admin/serverwc/">文件/存储服务器</a>
+																												<a class="Top" href="http://www.it165.net/admin/serversjk/">数据库服务器</a>
+																												<a class="Top" href="http://www.it165.net/admin/serverzh/">服务器技术综合</a>
+																							</div>
+			</div>
+			<div class="rtLine"></div>
+			<div style="width:300px;;height:250px"><script language="javascript" type="text/javascript" src="http://www.it165.net/index.php?m=poster&c=adv&id=15"></script></div>
+			</div>
+			<script src="http://www.it165.net/statics/js/sidebar-follow.js" type="text/javascript"></script>   
+			<script>
+			/* <![CDATA[ */
+			(new SidebarFollow()).init({
+				element: 'sidebar-follow',
+				distanceToTop: 0
+			});
+			/* ]]> */
+			</script>		</div>
+	</div>
+	<div class="FootLine"></div>
+		<div class="Foot">
+		<a target="_blank" href="#">次元立方</a> -
+		<a target="_blank" href="#">广告服务</a> -
+		<a target="_blank" href="#">隐私声明</a> -
+		<a target="_blank" href="#">版权申明</a> -
+		<a target="_blank" href="#">免责条款</a> -
+		<a target="_blank" href="#">网站地图</a> -
+		<a target="_blank" href="#">网友投稿</a> -
+		<a target="_blank" href="#">联系方式</a>
+		<br />
+		本站内容来自于互联网,仅供用于网络技术学习,学习中请遵循相关法律法规<script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F5f4298ca86516e3d7b6ad825f8ef6905' type='text/javascript'%3E%3C/script%3E"));
+</script>
+	</div>
+<script language="JavaScript" src="http://www.it165.net/api.php?op=count&id=687&modelid=20"></script>
+<script language="javascript" type="text/javascript" src="http://www.it165.net/index.php?m=poster&c=adv&id=16"></script></div>
+</body>
+</html>

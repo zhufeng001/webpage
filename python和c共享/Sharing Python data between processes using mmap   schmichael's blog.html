@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8" />
+<title>Sharing Python data between processes using mmap | schmichael&#039;s blog</title>
+<link rel="profile" href="http://gmpg.org/xfn/11" />
+<link rel="stylesheet" type="text/css" media="all" href="http://blog.schmichael.com/wp-content/themes/twentyten/style.css" />
+<link rel="pingback" href="http://blog.schmichael.com/xmlrpc.php" />
+<script type="text/javascript">
+	window.google_analytics_uacct = "UA-3573344-1";
+</script>
+<link rel="alternate" type="application/rss+xml" title="schmichael&#039;s blog &raquo; Feed" href="http://blog.schmichael.com/feed/" />
+<link rel="alternate" type="application/rss+xml" title="schmichael&#039;s blog &raquo; Comments Feed" href="http://blog.schmichael.com/comments/feed/" />
+
+            <script type="text/javascript">//<![CDATA[
+            // Google Analytics for WordPress by Yoast v4.3.5 | http://yoast.com/wordpress/google-analytics/
+            var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-3573344-1']);
+				</script><script src="http://blog.schmichael.com/wp-content/plugins/google-analytics-for-wordpress/custom_se_async.js" type="text/javascript"></script>
+<script type="text/javascript">            _gaq.push(['_setCustomVar',1,'tags','ctypes mmap python struct',3],['_setCustomVar',2,'year','2011',3],['_trackPageview']);
+            (function () {
+                var ga = document.createElement('script');
+                ga.type = 'text/javascript';
+                ga.async = true;
+                ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+
+                var s = document.getElementsByTagName('script')[0];
+                s.parentNode.insertBefore(ga, s);
+            })();
+            //]]></script>
+			<link rel="alternate" type="application/rss+xml" title="schmichael&#039;s blog &raquo; Sharing Python data between processes using mmap Comments Feed" href="http://blog.schmichael.com/2011/05/15/sharing-python-data-between-processes-using-mmap/feed/" />
+<link rel='stylesheet' id='wp-syntax-css-css'  href='http://blog.schmichael.com/wp-content/plugins/wp-syntax/css/wp-syntax.css?ver=1.0' type='text/css' media='all' />
+<script type='text/javascript' src='http://blog.schmichael.com/wp-includes/js/jquery/jquery.js?ver=1.10.2'></script>
+<script type='text/javascript' src='http://blog.schmichael.com/wp-includes/js/jquery/jquery-migrate.min.js?ver=1.2.1'></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://blog.schmichael.com/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://blog.schmichael.com/wp-includes/wlwmanifest.xml" /> 
+<link rel='prev' title='signalfd' href='http://blog.schmichael.com/2011/02/20/signalfd/' />
+<link rel='next' title='MemoryMapFile Convenience Class for Python' href='http://blog.schmichael.com/2011/09/05/memorymapfile-convenience-class-for-python/' />
+<meta name="generator" content="WordPress 3.8.3, fitted with the WordPress Mobile Pack 1.2.5" />
+<link rel='canonical' href='http://blog.schmichael.com/2011/05/15/sharing-python-data-between-processes-using-mmap/' />
+<link rel='shortlink' href='http://blog.schmichael.com/?p=947' />
+</head>
+
+<body class="single single-post postid-947 single-format-standard">
+<div id="wrapper" class="hfeed">
+	<div id="header">
+		<div id="masthead">
+			<div id="branding" role="banner">
+								<div id="site-title">
+					<span>
+						<a href="http://blog.schmichael.com/" title="schmichael&#039;s blog" rel="home">schmichael&#039;s blog</a>
+					</span>
+				</div>
+				<div id="site-description">good good study, day day up</div>
+
+										<img src="http://blog.schmichael.com/wp-content/uploads/2010/07/water-header.jpg" width="940" height="198" alt="" />
+								</div><!-- #branding -->
+
+			<div id="access" role="navigation">
+			  				<div class="skip-link screen-reader-text"><a href="#content" title="Skip to content">Skip to content</a></div>
+								<div class="menu"><ul><li ><a href="http://blog.schmichael.com/">Home</a></li><li class="page_item page-item-238"><a href="http://blog.schmichael.com/about-me/">About Me</a></li></ul></div>
+			</div><!-- #access -->
+		</div><!-- #masthead -->
+	</div><!-- #header -->
+
+	<div id="main">
+
+		<div id="container">
+			<div id="content" role="main">
+
+			
+
+				<div id="nav-above" class="navigation">
+					<div class="nav-previous"><a href="http://blog.schmichael.com/2011/02/20/signalfd/" rel="prev"><span class="meta-nav">&larr;</span> signalfd</a></div>
+					<div class="nav-next"><a href="http://blog.schmichael.com/2011/09/05/memorymapfile-convenience-class-for-python/" rel="next">MemoryMapFile Convenience Class for Python <span class="meta-nav">&rarr;</span></a></div>
+				</div><!-- #nav-above -->
+
+				<div id="post-947" class="post-947 post type-post status-publish format-standard hentry category-linux category-open-source category-python category-technology tag-ctypes tag-mmap tag-python tag-struct">
+					<h1 class="entry-title">Sharing Python data between processes using mmap</h1>
+
+					<div class="entry-meta">
+						<span class="meta-prep meta-prep-author">Posted on</span> <a href="http://blog.schmichael.com/2011/05/15/sharing-python-data-between-processes-using-mmap/" title="9:28 pm" rel="bookmark"><span class="entry-date">May 15, 2011</span></a> <span class="meta-sep">by</span> <span class="author vcard"><a class="url fn n" href="http://blog.schmichael.com/author/michael/" title="View all posts by Michael Schurter">Michael Schurter</a></span>					</div><!-- .entry-meta -->
+
+					<div class="entry-content">
+						<p>I&#8217;ve been toying with an idea of exposing statistics for a Python application via shared memory to keep the performance impact on the application as low as possible. The goal being an application could passively expose a number of metrics that could either be periodically polled via <a href="http://munin-monitoring.org/" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://munin-monitoring.org/']);">munin</a>/<a href="http://www.icinga.org/" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://www.icinga.org/']);">Icinga</a>/etc plugins or interactive tools when diagnosing issues on a system.</p>
+<p>But first things first: I need to put data into <a href="http://en.wikipedia.org/wiki/Shared_memory" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://en.wikipedia.org/wiki/Shared_memory']);">shared memory</a> from Python. <a href="http://en.wikipedia.org/wiki/Mmap" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://en.wikipedia.org/wiki/Mmap']);">mmap</a> is an excellent widely-implemented POSIX system call for creating a shared memory space backed by an on-disk file.</p>
+<p>Usually in the UNIX world you have 2 ways of accessing/manipulating data: memory addresses or streams (files). Manipulating data via memory addresses means <a href="http://en.wikipedia.org/wiki/Pointer_%28computing%29" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://en.wikipedia.org/wiki/Pointer_%28computing%29']);">pointers</a>, offsets, <a href="http://en.wikipedia.org/wiki/Malloc" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://en.wikipedia.org/wiki/Malloc']);">malloc/free</a>, etc. Stream interfaces manipulate data via <a href="http://en.wikipedia.org/wiki/System_call" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://en.wikipedia.org/wiki/System_call']);">read/write/seek system calls</a> for files and <a href="http://en.wikipedia.org/wiki/Berkeley_sockets" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://en.wikipedia.org/wiki/Berkeley_sockets']);">send/recv/etc for sockets</a>.</p>
+<p>mmap gives you both interfaces. A memory mapped file can be manipulated via read/write/seek or by directly accessing its mapped memory region. The advantage of the latter is that this memory region is in userspace &#8212; meaning you can manipulate a file without incurring the overhead of write system calls for every manipulation.</p>
+<p>Anyway, enough exposition, let&#8217;s see some code. <small>(Despite mmap&#8217;s nice featureset, I&#8217;m only using it as a simple memory sharing mechanism anyway.)</small> The following code shares a tiny bit of data between 2 Python processes using the excellent <a href="http://docs.python.org/library/mmap" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://docs.python.org/library/mmap']);">mmap module in the stdlib</a>. <code>a.py</code> writes to the memory mapped region, and <code>b.py</code> reads the data out. <a href="http://docs.python.org/library/ctypes" onclick="javascript:_gaq.push(['_trackEvent','outbound-article','http://docs.python.org/library/ctypes']);">ctypes</a> allows for an easy way to create values in a memory mapped region and manipulate them like &#8220;normal&#8221; Python objects.</p>
+<p><em>These code samples were written using Python 2.7 on Linux. They should work fine on any POSIX system, but Windows users will have to change the mmap calls to match the Windows API.</em></p>
+<p><strong>a.py</strong></p>
+
+<div class="wp_syntax"><table><tr><td class="code"><pre class="python" style="font-family:monospace;"><span style="color: #808080; font-style: italic;">#!/usr/bin/env python</span>
+<span style="color: #ff7700;font-weight:bold;">import</span> ctypes
+<span style="color: #ff7700;font-weight:bold;">import</span> <span style="color: #dc143c;">mmap</span>
+<span style="color: #ff7700;font-weight:bold;">import</span> <span style="color: #dc143c;">os</span>
+<span style="color: #ff7700;font-weight:bold;">import</span> <span style="color: #dc143c;">struct</span>
+&nbsp;
+&nbsp;
+<span style="color: #ff7700;font-weight:bold;">def</span> main<span style="color: black;">&#40;</span><span style="color: black;">&#41;</span>:
+    <span style="color: #808080; font-style: italic;"># Create new empty file to back memory map on disk</span>
+    fd <span style="color: #66cc66;">=</span> <span style="color: #dc143c;">os</span>.<span style="color: #008000;">open</span><span style="color: black;">&#40;</span><span style="color: #483d8b;">'/tmp/mmaptest'</span><span style="color: #66cc66;">,</span> <span style="color: #dc143c;">os</span>.<span style="color: black;">O_CREAT</span> | <span style="color: #dc143c;">os</span>.<span style="color: black;">O_TRUNC</span> | <span style="color: #dc143c;">os</span>.<span style="color: black;">O_RDWR</span><span style="color: black;">&#41;</span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;"># Zero out the file to insure it's the right size</span>
+    <span style="color: #ff7700;font-weight:bold;">assert</span> <span style="color: #dc143c;">os</span>.<span style="color: black;">write</span><span style="color: black;">&#40;</span>fd<span style="color: #66cc66;">,</span> <span style="color: #483d8b;">'<span style="color: #000099; font-weight: bold;">\x</span>00'</span> * <span style="color: #dc143c;">mmap</span>.<span style="color: black;">PAGESIZE</span><span style="color: black;">&#41;</span> <span style="color: #66cc66;">==</span> <span style="color: #dc143c;">mmap</span>.<span style="color: black;">PAGESIZE</span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;"># Create the mmap instace with the following params:</span>
+    <span style="color: #808080; font-style: italic;"># fd: File descriptor which backs the mapping or -1 for anonymous mapping</span>
+    <span style="color: #808080; font-style: italic;"># length: Must in multiples of PAGESIZE (usually 4 KB)</span>
+    <span style="color: #808080; font-style: italic;"># flags: MAP_SHARED means other processes can share this mmap</span>
+    <span style="color: #808080; font-style: italic;"># prot: PROT_WRITE means this process can write to this mmap</span>
+    buf <span style="color: #66cc66;">=</span> <span style="color: #dc143c;">mmap</span>.<span style="color: #dc143c;">mmap</span><span style="color: black;">&#40;</span>fd<span style="color: #66cc66;">,</span> <span style="color: #dc143c;">mmap</span>.<span style="color: black;">PAGESIZE</span><span style="color: #66cc66;">,</span> <span style="color: #dc143c;">mmap</span>.<span style="color: black;">MAP_SHARED</span><span style="color: #66cc66;">,</span> <span style="color: #dc143c;">mmap</span>.<span style="color: black;">PROT_WRITE</span><span style="color: black;">&#41;</span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;"># Now create an int in the memory mapping</span>
+    i <span style="color: #66cc66;">=</span> ctypes.<span style="color: black;">c_int</span>.<span style="color: black;">from_buffer</span><span style="color: black;">&#40;</span>buf<span style="color: black;">&#41;</span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;"># Set a value</span>
+    i.<span style="color: black;">value</span> <span style="color: #66cc66;">=</span> <span style="color: #ff4500;">10</span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;"># And manipulate it for kicks</span>
+    i.<span style="color: black;">value</span> +<span style="color: #66cc66;">=</span> <span style="color: #ff4500;">1</span>
+&nbsp;
+    <span style="color: #ff7700;font-weight:bold;">assert</span> i.<span style="color: black;">value</span> <span style="color: #66cc66;">==</span> <span style="color: #ff4500;">11</span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;"># Before we create a new value, we need to find the offset of the next free</span>
+    <span style="color: #808080; font-style: italic;"># memory address within the mmap</span>
+    offset <span style="color: #66cc66;">=</span> <span style="color: #dc143c;">struct</span>.<span style="color: black;">calcsize</span><span style="color: black;">&#40;</span>i._type_<span style="color: black;">&#41;</span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;"># The offset should be uninitialized ('\x00')</span>
+    <span style="color: #ff7700;font-weight:bold;">assert</span> buf<span style="color: black;">&#91;</span>offset<span style="color: black;">&#93;</span> <span style="color: #66cc66;">==</span> <span style="color: #483d8b;">'<span style="color: #000099; font-weight: bold;">\x</span>00'</span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;"># Now ceate a string containing 'foo' by first creating a c_char array</span>
+    s_type <span style="color: #66cc66;">=</span> ctypes.<span style="color: black;">c_char</span> * <span style="color: #008000;">len</span><span style="color: black;">&#40;</span><span style="color: #483d8b;">'foo'</span><span style="color: black;">&#41;</span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;"># Now create the ctypes instance</span>
+    s <span style="color: #66cc66;">=</span> s_type.<span style="color: black;">from_buffer</span><span style="color: black;">&#40;</span>buf<span style="color: #66cc66;">,</span> offset<span style="color: black;">&#41;</span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;"># And finally set it</span>
+    s.<span style="color: black;">raw</span> <span style="color: #66cc66;">=</span> <span style="color: #483d8b;">'foo'</span>
+&nbsp;
+    <span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">'First 10 bytes of memory mapping: %r'</span> % buf<span style="color: black;">&#91;</span>:<span style="color: #ff4500;">10</span><span style="color: black;">&#93;</span>
+    <span style="color: #008000;">raw_input</span><span style="color: black;">&#40;</span><span style="color: #483d8b;">'Now run b.py and press ENTER'</span><span style="color: black;">&#41;</span>
+&nbsp;
+    <span style="color: #ff7700;font-weight:bold;">print</span>
+    <span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">'Changing i'</span>
+    i.<span style="color: black;">value</span> *<span style="color: #66cc66;">=</span> i.<span style="color: black;">value</span>
+&nbsp;
+    <span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">'Changing s'</span>
+    s.<span style="color: black;">raw</span> <span style="color: #66cc66;">=</span> <span style="color: #483d8b;">'bar'</span>
+&nbsp;
+    new_i <span style="color: #66cc66;">=</span> <span style="color: #008000;">raw_input</span><span style="color: black;">&#40;</span><span style="color: #483d8b;">'Enter a new value for i: '</span><span style="color: black;">&#41;</span>
+    i.<span style="color: black;">value</span> <span style="color: #66cc66;">=</span> <span style="color: #008000;">int</span><span style="color: black;">&#40;</span>new_i<span style="color: black;">&#41;</span>
+&nbsp;
+&nbsp;
+<span style="color: #ff7700;font-weight:bold;">if</span> __name__ <span style="color: #66cc66;">==</span> <span style="color: #483d8b;">'__main__'</span>:
+    main<span style="color: black;">&#40;</span><span style="color: black;">&#41;</span></pre></td></tr></table></div>
+
+<p><strong>b.py</strong></p>
+
+<div class="wp_syntax"><table><tr><td class="code"><pre class="python" style="font-family:monospace;"><span style="color: #ff7700;font-weight:bold;">import</span> <span style="color: #dc143c;">mmap</span>
+<span style="color: #ff7700;font-weight:bold;">import</span> <span style="color: #dc143c;">os</span>
+<span style="color: #ff7700;font-weight:bold;">import</span> <span style="color: #dc143c;">struct</span>
+<span style="color: #ff7700;font-weight:bold;">import</span> <span style="color: #dc143c;">time</span>
+&nbsp;
+<span style="color: #ff7700;font-weight:bold;">def</span> main<span style="color: black;">&#40;</span><span style="color: black;">&#41;</span>:
+    <span style="color: #808080; font-style: italic;"># Open the file for reading</span>
+    fd <span style="color: #66cc66;">=</span> <span style="color: #dc143c;">os</span>.<span style="color: #008000;">open</span><span style="color: black;">&#40;</span><span style="color: #483d8b;">'/tmp/mmaptest'</span><span style="color: #66cc66;">,</span> <span style="color: #dc143c;">os</span>.<span style="color: black;">O_RDONLY</span><span style="color: black;">&#41;</span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;"># Memory map the file</span>
+    buf <span style="color: #66cc66;">=</span> <span style="color: #dc143c;">mmap</span>.<span style="color: #dc143c;">mmap</span><span style="color: black;">&#40;</span>fd<span style="color: #66cc66;">,</span> <span style="color: #dc143c;">mmap</span>.<span style="color: black;">PAGESIZE</span><span style="color: #66cc66;">,</span> <span style="color: #dc143c;">mmap</span>.<span style="color: black;">MAP_SHARED</span><span style="color: #66cc66;">,</span> <span style="color: #dc143c;">mmap</span>.<span style="color: black;">PROT_READ</span><span style="color: black;">&#41;</span>
+&nbsp;
+    i <span style="color: #66cc66;">=</span> <span style="color: #008000;">None</span>
+    s <span style="color: #66cc66;">=</span> <span style="color: #008000;">None</span>
+&nbsp;
+    <span style="color: #ff7700;font-weight:bold;">while</span> <span style="color: #ff4500;">1</span>:
+        new_i<span style="color: #66cc66;">,</span> <span style="color: #66cc66;">=</span> <span style="color: #dc143c;">struct</span>.<span style="color: black;">unpack</span><span style="color: black;">&#40;</span><span style="color: #483d8b;">'i'</span><span style="color: #66cc66;">,</span> buf<span style="color: black;">&#91;</span>:<span style="color: #ff4500;">4</span><span style="color: black;">&#93;</span><span style="color: black;">&#41;</span>
+        new_s<span style="color: #66cc66;">,</span> <span style="color: #66cc66;">=</span> <span style="color: #dc143c;">struct</span>.<span style="color: black;">unpack</span><span style="color: black;">&#40;</span><span style="color: #483d8b;">'3s'</span><span style="color: #66cc66;">,</span> buf<span style="color: black;">&#91;</span><span style="color: #ff4500;">4</span>:<span style="color: #ff4500;">7</span><span style="color: black;">&#93;</span><span style="color: black;">&#41;</span>
+&nbsp;
+        <span style="color: #ff7700;font-weight:bold;">if</span> i <span style="color: #66cc66;">!=</span> new_i <span style="color: #ff7700;font-weight:bold;">or</span> s <span style="color: #66cc66;">!=</span> new_s:
+            <span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">'i: %s =&gt; %d'</span> % <span style="color: black;">&#40;</span>i<span style="color: #66cc66;">,</span> new_i<span style="color: black;">&#41;</span>
+            <span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">'s: %s =&gt; %s'</span> % <span style="color: black;">&#40;</span>s<span style="color: #66cc66;">,</span> new_s<span style="color: black;">&#41;</span>
+            <span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">'Press Ctrl-C to exit'</span>
+            i <span style="color: #66cc66;">=</span> new_i
+            s <span style="color: #66cc66;">=</span> new_s
+&nbsp;
+        <span style="color: #dc143c;">time</span>.<span style="color: black;">sleep</span><span style="color: black;">&#40;</span><span style="color: #ff4500;">1</span><span style="color: black;">&#41;</span>
+&nbsp;
+&nbsp;
+<span style="color: #ff7700;font-weight:bold;">if</span> __name__ <span style="color: #66cc66;">==</span> <span style="color: #483d8b;">'__main__'</span>:
+    main<span style="color: black;">&#40;</span><span style="color: black;">&#41;</span></pre></td></tr></table></div>
+
+<p><small>(Note that I cruelly don&#8217;t clean up /tmp/mmaptest after the scripts finished. Consider it a 4KB tax for anyone who runs arbitrary code they found on the Internet without reading it first.)</small></p>
+											</div><!-- .entry-content -->
+
+
+					<div class="entry-utility">
+						This entry was posted in <a href="http://blog.schmichael.com/category/technology/linux/" title="View all posts in GNU/Linux" rel="category tag">GNU/Linux</a>, <a href="http://blog.schmichael.com/category/technology/open-source/" title="View all posts in Open Source" rel="category tag">Open Source</a>, <a href="http://blog.schmichael.com/category/technology/python/" title="View all posts in Python" rel="category tag">Python</a>, <a href="http://blog.schmichael.com/category/technology/" title="View all posts in Technology" rel="category tag">Technology</a> and tagged <a href="http://blog.schmichael.com/tag/ctypes/" rel="tag">ctypes</a>, <a href="http://blog.schmichael.com/tag/mmap/" rel="tag">mmap</a>, <a href="http://blog.schmichael.com/tag/python/" rel="tag">Python</a>, <a href="http://blog.schmichael.com/tag/struct/" rel="tag">struct</a>. Bookmark the <a href="http://blog.schmichael.com/2011/05/15/sharing-python-data-between-processes-using-mmap/" title="Permalink to Sharing Python data between processes using mmap" rel="bookmark">permalink</a>.											</div><!-- .entry-utility -->
+				</div><!-- #post-## -->
+
+				<div id="nav-below" class="navigation">
+					<div class="nav-previous"><a href="http://blog.schmichael.com/2011/02/20/signalfd/" rel="prev"><span class="meta-nav">&larr;</span> signalfd</a></div>
+					<div class="nav-next"><a href="http://blog.schmichael.com/2011/09/05/memorymapfile-convenience-class-for-python/" rel="next">MemoryMapFile Convenience Class for Python <span class="meta-nav">&rarr;</span></a></div>
+				</div><!-- #nav-below -->
+
+				
+<div id="disqus_thread">
+                    <div id="dsq-content">
+
+
+            <ul id="dsq-comments">
+                    <li class="comment even thread-even depth-1" id="dsq-comment-138621">
+        <div id="dsq-comment-header-138621" class="dsq-comment-header">
+            <cite id="dsq-cite-138621">
+                <span id="dsq-author-user-138621">A.jhonson</span>
+            </cite>
+        </div>
+        <div id="dsq-comment-body-138621" class="dsq-comment-body">
+            <div id="dsq-comment-message-138621" class="dsq-comment-message"><p>please  correct me if i&#8217;m wrong but you&#8217;ve used the file: mmaptest  to exchange the data betwean the 2 scripts &#8220;i&#8217;m new to python.</p>
+</div>
+        </div>
+
+    </li><!-- #comment-## -->
+    <li class="comment odd alt thread-odd thread-alt depth-1" id="dsq-comment-138648">
+        <div id="dsq-comment-header-138648" class="dsq-comment-header">
+            <cite id="dsq-cite-138648">
+http://www.facebook.com/Martlark                <span id="dsq-author-user-138648">Andrew Rowe</span>
+            </cite>
+        </div>
+        <div id="dsq-comment-body-138648" class="dsq-comment-body">
+            <div id="dsq-comment-message-138648" class="dsq-comment-message"><p>The file name is used as the name of the memory map.</p>
+</div>
+        </div>
+
+    </li><!-- #comment-## -->
+    <li class="comment even thread-even depth-1" id="dsq-comment-138651">
+        <div id="dsq-comment-header-138651" class="dsq-comment-header">
+            <cite id="dsq-cite-138651">
+                <span id="dsq-author-user-138651">Shailesh Goswami</span>
+            </cite>
+        </div>
+        <div id="dsq-comment-body-138651" class="dsq-comment-body">
+            <div id="dsq-comment-message-138651" class="dsq-comment-message"><p>thank you this is the exact solution which i was in need.</p>
+</div>
+        </div>
+
+    </li><!-- #comment-## -->
+    <li class="comment odd alt thread-odd thread-alt depth-1" id="dsq-comment-138653">
+        <div id="dsq-comment-header-138653" class="dsq-comment-header">
+            <cite id="dsq-cite-138653">
+                <span id="dsq-author-user-138653">Tom Hancock</span>
+            </cite>
+        </div>
+        <div id="dsq-comment-body-138653" class="dsq-comment-body">
+            <div id="dsq-comment-message-138653" class="dsq-comment-message"><p>Is there a way to share between scripts without writing to file?<br />
+I want to share data between processes, but I want no trace of this happening.<br />
+Is there a way to create several memory maps and reference them individually? I want to have several different instances of memory and be able to read from each one at different times. But I do not want to write anything to file as I am passing sensitive data between the processes.</p>
+</div>
+        </div>
+
+    </li><!-- #comment-## -->
+    <li class="comment even thread-even depth-1" id="dsq-comment-138654">
+        <div id="dsq-comment-header-138654" class="dsq-comment-header">
+            <cite id="dsq-cite-138654">
+                <span id="dsq-author-user-138654">Ray Luo</span>
+            </cite>
+        </div>
+        <div id="dsq-comment-body-138654" class="dsq-comment-body">
+            <div id="dsq-comment-message-138654" class="dsq-comment-message"><p>So in your scenario you use mmap as an IPC. The programming interface might be convenient (especially after you further wrap it in your MemoryMapFile helper). But then this IPC actually uses file as medium, so it might not meet your minimal-performance-impact design goal. It is not necessarily more superior than simply write your data into a normal file. Or did I miss something?</p>
+</div>
+        </div>
+
+    </li><!-- #comment-## -->
+    <li class="comment odd alt thread-odd thread-alt depth-1" id="dsq-comment-138664">
+        <div id="dsq-comment-header-138664" class="dsq-comment-header">
+            <cite id="dsq-cite-138664">
+                <span id="dsq-author-user-138664">tomerfiliba</span>
+            </cite>
+        </div>
+        <div id="dsq-comment-body-138664" class="dsq-comment-body">
+            <div id="dsq-comment-message-138664" class="dsq-comment-message"><p>the mmap&#8217;ed pages don&#8217;t necessarily go to disk, so long as there&#8217;s enough memory available and not all processes have unmapped the file</p>
+</div>
+        </div>
+
+    </li><!-- #comment-## -->
+            </ul>
+
+
+        </div>
+
+    </div>
+
+<script type="text/javascript">
+/* <![CDATA[ */
+    var disqus_url = 'http://blog.schmichael.com/2011/05/15/sharing-python-data-between-processes-using-mmap/';
+    var disqus_identifier = '947 http://blog.schmichael.com/?p=947';
+    var disqus_container_id = 'disqus_thread';
+    var disqus_domain = 'disqus.com';
+    var disqus_shortname = 'schmichaelsblog';
+    var disqus_title = "Sharing Python data between processes using mmap";
+        var disqus_config = function () {
+        var config = this; // Access to the config object
+        config.language = '';
+
+        /*
+           All currently supported events:
+            * preData — fires just before we request for initial data
+            * preInit - fires after we get initial data but before we load any dependencies
+            * onInit  - fires when all dependencies are resolved but before dtpl template is rendered
+            * afterRender - fires when template is rendered but before we show it
+            * onReady - everything is done
+         */
+
+        config.callbacks.preData.push(function() {
+            // clear out the container (its filled for SEO/legacy purposes)
+            document.getElementById(disqus_container_id).innerHTML = '';
+        });
+                config.callbacks.onReady.push(function() {
+            // sync comments in the background so we don't block the page
+            var script = document.createElement('script');
+            script.async = true;
+            script.src = '?cf_action=sync_comments&post_id=947';
+
+            var firstScript = document.getElementsByTagName( "script" )[0];
+            firstScript.parentNode.insertBefore(script, firstScript);
+        });
+                    };
+/* ]]> */
+</script>
+
+<script type="text/javascript">
+/* <![CDATA[ */
+    var DsqLocal = {
+        'trackbacks': [
+        ],
+        'trackback_url': "http:\/\/blog.schmichael.com\/2011\/05\/15\/sharing-python-data-between-processes-using-mmap\/trackback\/"    };
+/* ]]> */
+</script>
+
+<script type="text/javascript">
+/* <![CDATA[ */
+(function() {
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.' + 'disqus.com' + '/embed.js?pname=wordpress&pver=2.74';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+/* ]]> */
+</script>
+
+
+			</div><!-- #content -->
+		</div><!-- #container -->
+
+
+		<div id="primary" class="widget-area" role="complementary">
+			<ul class="xoxo">
+
+
+			<li id="search" class="widget-container widget_search">
+				<form role="search" method="get" id="searchform" class="searchform" action="http://blog.schmichael.com/">
+				<div>
+					<label class="screen-reader-text" for="s">Search for:</label>
+					<input type="text" value="" name="s" id="s" />
+					<input type="submit" id="searchsubmit" value="Search" />
+				</div>
+			</form>			</li>
+
+			<li id="archives" class="widget-container">
+				<h3 class="widget-title">Archives</h3>
+				<ul>
+						<li><a href='http://blog.schmichael.com/2014/04/'>April 2014</a></li>
+	<li><a href='http://blog.schmichael.com/2012/10/'>October 2012</a></li>
+	<li><a href='http://blog.schmichael.com/2012/05/'>May 2012</a></li>
+	<li><a href='http://blog.schmichael.com/2011/11/'>November 2011</a></li>
+	<li><a href='http://blog.schmichael.com/2011/09/'>September 2011</a></li>
+	<li><a href='http://blog.schmichael.com/2011/05/'>May 2011</a></li>
+	<li><a href='http://blog.schmichael.com/2011/02/'>February 2011</a></li>
+	<li><a href='http://blog.schmichael.com/2011/01/'>January 2011</a></li>
+	<li><a href='http://blog.schmichael.com/2010/12/'>December 2010</a></li>
+	<li><a href='http://blog.schmichael.com/2010/07/'>July 2010</a></li>
+	<li><a href='http://blog.schmichael.com/2010/01/'>January 2010</a></li>
+	<li><a href='http://blog.schmichael.com/2009/11/'>November 2009</a></li>
+	<li><a href='http://blog.schmichael.com/2009/10/'>October 2009</a></li>
+	<li><a href='http://blog.schmichael.com/2009/09/'>September 2009</a></li>
+	<li><a href='http://blog.schmichael.com/2009/08/'>August 2009</a></li>
+	<li><a href='http://blog.schmichael.com/2009/07/'>July 2009</a></li>
+	<li><a href='http://blog.schmichael.com/2009/06/'>June 2009</a></li>
+	<li><a href='http://blog.schmichael.com/2009/04/'>April 2009</a></li>
+	<li><a href='http://blog.schmichael.com/2009/03/'>March 2009</a></li>
+	<li><a href='http://blog.schmichael.com/2009/02/'>February 2009</a></li>
+	<li><a href='http://blog.schmichael.com/2009/01/'>January 2009</a></li>
+	<li><a href='http://blog.schmichael.com/2008/12/'>December 2008</a></li>
+	<li><a href='http://blog.schmichael.com/2008/11/'>November 2008</a></li>
+	<li><a href='http://blog.schmichael.com/2008/10/'>October 2008</a></li>
+	<li><a href='http://blog.schmichael.com/2008/09/'>September 2008</a></li>
+	<li><a href='http://blog.schmichael.com/2008/07/'>July 2008</a></li>
+	<li><a href='http://blog.schmichael.com/2008/05/'>May 2008</a></li>
+	<li><a href='http://blog.schmichael.com/2008/04/'>April 2008</a></li>
+	<li><a href='http://blog.schmichael.com/2008/03/'>March 2008</a></li>
+	<li><a href='http://blog.schmichael.com/2008/02/'>February 2008</a></li>
+	<li><a href='http://blog.schmichael.com/2008/01/'>January 2008</a></li>
+	<li><a href='http://blog.schmichael.com/2007/12/'>December 2007</a></li>
+	<li><a href='http://blog.schmichael.com/2007/11/'>November 2007</a></li>
+	<li><a href='http://blog.schmichael.com/2007/10/'>October 2007</a></li>
+	<li><a href='http://blog.schmichael.com/2007/09/'>September 2007</a></li>
+	<li><a href='http://blog.schmichael.com/2007/08/'>August 2007</a></li>
+	<li><a href='http://blog.schmichael.com/2007/07/'>July 2007</a></li>
+	<li><a href='http://blog.schmichael.com/2007/06/'>June 2007</a></li>
+	<li><a href='http://blog.schmichael.com/2007/05/'>May 2007</a></li>
+	<li><a href='http://blog.schmichael.com/2007/04/'>April 2007</a></li>
+	<li><a href='http://blog.schmichael.com/2007/03/'>March 2007</a></li>
+	<li><a href='http://blog.schmichael.com/2007/02/'>February 2007</a></li>
+	<li><a href='http://blog.schmichael.com/2007/01/'>January 2007</a></li>
+	<li><a href='http://blog.schmichael.com/2006/12/'>December 2006</a></li>
+	<li><a href='http://blog.schmichael.com/2006/11/'>November 2006</a></li>
+	<li><a href='http://blog.schmichael.com/2006/10/'>October 2006</a></li>
+	<li><a href='http://blog.schmichael.com/2006/09/'>September 2006</a></li>
+	<li><a href='http://blog.schmichael.com/2006/08/'>August 2006</a></li>
+	<li><a href='http://blog.schmichael.com/2006/07/'>July 2006</a></li>
+	<li><a href='http://blog.schmichael.com/2006/06/'>June 2006</a></li>
+	<li><a href='http://blog.schmichael.com/2006/05/'>May 2006</a></li>
+	<li><a href='http://blog.schmichael.com/2006/04/'>April 2006</a></li>
+	<li><a href='http://blog.schmichael.com/2006/03/'>March 2006</a></li>
+	<li><a href='http://blog.schmichael.com/2006/02/'>February 2006</a></li>
+	<li><a href='http://blog.schmichael.com/2006/01/'>January 2006</a></li>
+	<li><a href='http://blog.schmichael.com/2005/12/'>December 2005</a></li>
+	<li><a href='http://blog.schmichael.com/2005/11/'>November 2005</a></li>
+	<li><a href='http://blog.schmichael.com/2005/10/'>October 2005</a></li>
+	<li><a href='http://blog.schmichael.com/2005/09/'>September 2005</a></li>
+	<li><a href='http://blog.schmichael.com/2005/08/'>August 2005</a></li>
+				</ul>
+			</li>
+
+			<li id="meta" class="widget-container">
+				<h3 class="widget-title">Meta</h3>
+				<ul>
+										<li><a href="http://blog.schmichael.com/wp-login.php">Log in</a></li>
+									</ul>
+			</li>
+
+					</ul>
+		</div><!-- #primary .widget-area -->
+
+	</div><!-- #main -->
+
+	<div id="footer" role="contentinfo">
+		<div id="colophon">
+
+
+
+			<div id="site-info">
+				<a href="http://blog.schmichael.com/" title="schmichael&#039;s blog" rel="home">
+					schmichael&#039;s blog				</a>
+			</div><!-- #site-info -->
+
+			<div id="site-generator">
+								<a href="http://wordpress.org/" title="Semantic Personal Publishing Platform">Proudly powered by WordPress.</a>
+			</div><!-- #site-generator -->
+
+		</div><!-- #colophon -->
+	</div><!-- #footer -->
+
+</div><!-- #wrapper -->
+
+<p><a onclick='document.cookie="wpmp_switcher=mobile;path=/;expires=Tue, 01-01-2030 00:00:00 GMT";' href='http://blog.schmichael.com/2011/05/15/sharing-python-data-between-processes-using-mmap/?wpmp_switcher=mobile'>Switch to our mobile site</a></p><span id='wpmp_analytics'></span></body>
+</html>

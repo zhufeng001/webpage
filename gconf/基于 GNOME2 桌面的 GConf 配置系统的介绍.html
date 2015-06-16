@@ -1,0 +1,879 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+	
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<title>基于 GNOME2 桌面的 GConf 配置系统的介绍</title>
+<link rel="schema.DC" href="http://purl.org/DC/elements/1.0/"/>
+<link rel="SHORTCUT ICON" href="//www.ibm.com/favicon.ico"/>
+<meta name="DC.Rights" content="© Copyright IBM Corporation 2008"/>
+<meta name="Keywords" content="Linux, GNOME2, GConf, tttlca"/>
+<meta name="DC.Date" scheme="iso8601" content="2008-04-03"/>
+<meta name="Source"  content="v17 delivery:developerWorks"/>
+<meta name="Security" content="Public"/>
+<meta name="Abstract" content="GConf 是在基于 GNOME2 的系统中用于应用程序属性配置和管理的工具，完成类似于 Windows 操作系统中注册表的功能。本文讨论了在 GNOME2 桌面中 GConf 配置管理系统的机制以及使用其相关 API 开发应用程序的方法。本文主要内容包括 GConf 工具的介绍，使用以及相关的开发实践。本文适用于 Linux 应用程序的开发人员。"/>
+<meta name="Description" content="GConf 是在基于 GNOME2 的系统中用于应用程序属性配置和管理的工具，完成类似于 Windows 操作系统中注册表的功能。本文讨论了在 GNOME2 桌面中 GConf 配置管理系统的机制以及使用其相关 API 开发应用程序的方法。本文主要内容包括 GConf 工具的介绍，使用以及相关的开发实践。本文适用于 Linux 应用程序的开发人员。"/>
+<meta name="IBM.Effective" scheme="W3CDTF" content="2008-04-03"/>
+<meta name="Owner" content="developerWorks/China/IBM"/>
+<meta name="DC.Language" scheme="rfc1766" content="zh-CN"/>
+<meta name="IBM.SpecialPurpose" content="SP001"/>
+<meta name="IBM.Country" content="CN"/>
+<meta name="Robots" content="index,follow"/>
+<meta name="DC.Type" scheme="IBM_ContentClassTaxonomy" content="CT316" />
+<meta name="DC.Subject" scheme="IBM_SubjectTaxonomy" content="SWGC0" />
+<meta name="dW.ContentArea" content="2" />
+<meta name="dW.Topic" content="80" />
+<!-- META_INCLUDE -->
+<meta scheme="IBM_WTMCategory" name="IBM.WTMCategory" content="SOFDCLNXCN" />
+
+<!-- HEADER_SCRIPTS_AND_CSS_INCLUDE -->
+<link href="//1.www.s81c.com/common/v17/css/www.css" rel="stylesheet" title="www"  type="text/css"/>
+<link href="//1.www.s81c.com/common/v17/css/country/cnzh.css" rel="stylesheet" title="www" type="text/css">    
+
+<!-- Masthead/footer -->
+<link href="//dw1.s81c.com/developerworks/css/dw-mf/v17/dw-mfN.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/v17/dw-article-6.css" rel="stylesheet" title="www" type="text/css"/>
+
+<link href="//dw1.s81c.com/developerworks/css/v17/dw-common-features.css" rel="stylesheet" title="www" type="text/css"/>
+<link href="//dw1.s81c.com/developerworks/css/v17/dw-local-site-v17-N.css" media="screen,projection" rel="stylesheet" title="www" type="text/css"/>
+<script type="text/javascript" src="//1.www.s81c.com/common/js/dojo/www.js">//</script>
+<script type="text/javascript" src="//dw1.s81c.com/developerworks/js/v17/dw-www.js">//</script>
+
+<script type="text/javascript">
+//  ibmweb.config.set({ sbs: { enabled: false }});
+</script>
+<!-- LEADSPACE_STYLES -->
+
+
+</head>
+
+<body id="ibm-com">
+
+	<div id="ibm-top" class="ibm-landing-page">
+
+<!-- MASTHEAD_BEGIN -->
+<!-- MASTHEAD_BEGIN -->
+<div id="ibm-masthead">
+
+    <!-- TOP ROW -->    
+	<div id="dw-masthead-top-row">
+		<ul id="ibm-mast-options-dw" role="toolbar" class="cn">
+		<li role="presentation" id="dw-mast-top-4">
+				<a href="http://www.ibm.com/developerworks/cn/"><img src="//dw1.s81c.com/developerworks/i/mf/dwn-dw-badge.png" width="43" height="22" alt="dW" aria-label="dW" /></a></li>
+			<li role="presentation" id="dw-mast-top-0">
+				<div><a class="dw-mf-noscript" href="#" title="登录（或注册）需启用 JavaScript" role="button" tabindex="0">登录 (或注册)</a></div>
+			</li>
+			<li role="presentation" id="dw-mast-top-1">
+				<div><a href="#SELECTLANG" role="button">中文</a></div>
+			</li>
+			<li role="presentation" id="dw-mast-top-3">
+				<a role="button" href="http://www.ibm.com">IBM</a>
+			</li>
+			<li role="presentation" id="dw-mast-top-2" class="dw-mf-hide">
+				<a href="#">[userid]</a>
+			</li>
+		</ul>
+	</div>
+
+    <!-- TOP ROW SLIDER -->
+	<div id="ibm-my-menu-dw" style="display:none">
+        <!-- Sign-in -->
+		<div id="signin_div" class="dw-mast-columns" role="group">
+			<div class="dw-mast-col-1-1">
+				<div id="dw-mast-sso">
+					<div id="signin_error_mf" class="no-display"></div>
+					<div id="dw-mast-sso-form">
+						<form id="sForm_mf" action="" method="post" name="sForm_name_mf" onsubmit="return false;">
+							<div id="dw-mast-sso-id" class="dw-mast-sso-id-cn">
+								<label for="ibmid_mf">IBM ID:</label>
+								<input id="ibmid_mf" value="" name="ibmid_name_mf" maxlength="100"
+								    onkeypress="dwsi.siInst.handleEP(event,this.form,'mf');" type="text" />
+							</div>
+							<div id="dw-mast-sso-pw" class="dw-mast-sso-pw-cn">
+								<label for="pw_mf">密码：</label>
+								<input id="pw_mf" value="" name="pw_name_mf" maxlength="100"
+								    onkeypress="dwsi.siInst.handleEP(event,this.form,'mf');" type="password" />
+							</div>
+							<div id="dw-mast-sso-target" class="dw-mast-sso-target-cn">
+								<p class="dw-mf-perm-box">
+									<input id="perm_mf" name="perm_name_mf" type="checkbox"><label for="perm_mf"> 保持登录。</label></input>
+								</p>
+							</div>					
+							<div id="dw-mast-sso-terms">
+								<p class="dw-mast-sso-terms-cn">单击提交则表示您同意developerWorks 的条款和条件。 <a
+								    href="//www.ibm.com/developerworks/community/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+							<div>
+								<input class="dw-mf-submit-btn-cn" name="ibm_submit_name_mf" value="提交"
+								    onclick="dwsi.siInst.signin('mf');return false;" type="submit" />
+							</div>
+						</form>
+					</div>
+					<div id="dw-mast-sso-update">
+						<div id="dw-mast-sso-update-id">
+							<ul>
+								<li><a href="#" onclick="(function ()
+								    {window.location='//www.ibm.com/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.href);})();">需要一个 IBM ID？</a></li>
+								<li><a href="//www.ibm.com/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a></li>
+							</ul>
+						</div>
+						<div id="dw-mast-sso-update-pw">
+							<ul class="dw-mf-pwupdate">
+								<li><a href="#" onclick="(function ()
+								    {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(dwsi.siInst.getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Den_US%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a></li>
+								<li><a href="#" onclick="(function ()
+								    {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></li>
+							</ul>
+						</div>
+					</div>
+					<div id="dw-mast-sso-text">
+						<p>这是您第一次登陆到
+						    developerWorks，已经自动为您创建了您的概要文件。 <strong>选择您概要文件中可以公开的信息的信息（如姓名、国家/地区，以及公司），这些信息同时也会与您所发布的内容相关联。 </strong>您可以随时更新您的 IBM 账号。</p>
+						<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+					</div>
+				</div>
+				<div id="dw-mast-dname" class="dw-mf-hide">
+					<p>当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+					<div id="signin_dname_error_mf" class="no-display"></div>
+					<div id="dw-mast-dname-form"  class="dw-mast-dname-form-cn">
+						<form id="dForm_mf" action="" method="post" name="dForm_name_mf" onsubmit="return false;">
+							<div id="dw-mast-dname-mf">
+								<label for="dname_mf">昵称：</label>
+								<input id="dname_mf" name="dname_name_mf" maxlength="31" size="25" value=""
+								    onkeypress="dwsi.siInst.handleEP(event,this.form,'mf');" type="text" />
+							</div>
+							<div id="dw-mast-dname-terms">
+								<p class="dw-mast-dname-terms-cn">单击<strong>提交</strong>则表示您同意developerWorks
+								    的条款和条件。 <a href="//www.ibm.com/developerworks/community/terms?lang=zh">查看条款和条件</a>.</p>
+									</div>
+							<div>
+								<input class="dw-mf-submit-btn-cn" name="dname_submit_name_mf" value="提交"
+								    onclick="dwsi.siInst.signin('mf');return false;" type="submit" />
+							</div>
+						</form>								
+					</div>
+					<div id="dw-mast-dname-secure">
+						<p class="dw-mf-secure-cn">所有提交的信息确保安全。</p>
+					</div>
+				</div>
+				<div id="dw-mast-auth" class="dw-mf-hide">
+					<div>
+						<h2>developerWorks 社区:</h2>
+                		<ul>
+							<li><a id="dw-mast-top-0-0" href="//www.ibm.com/developerworks/community/homepage?lang=zh">我的首页</a></li>						    
+							<li><a
+							    href="//www.ibm.com/developerworks/community/profiles/html/myProfileView.do?lang=zh">我的概要信息</a></li>
+							<li><a
+							    href="//www.ibm.com/developerworks/community/groups/service/html/mycommunities?lang=zh">我的社区</a></li>
+			                 <li><a href="/developerworks/community/news/?lang=zh">设置</a></li>
+										    
+						</ul>     
+					</div>
+					
+					<div class="dw-mast-more">
+						<ul class="ibm-link-list">
+							<li><a class="dw-more-link" href="#" onclick="dwsi.siInst.signOut(); return false;"><strong>退出</strong></a></li>
+						</ul>
+					</div>
+				</div>								
+			</div>		
+		</div>
+        <!-- Language selector --> 
+		<div id="lang_div" class="dw-mast-columns" role="group">
+			<div class="dw-mast-col-2-1">
+				<h2>选择语言：</h2>
+				<ul>
+					<li><a id="dw-mast-top-1-0" href="http://www.ibm.com/developerworks/" lang="en">English</a></li>
+					<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+					<li><a href="http://www.ibm.com/developerworks/jp/" lang="ja">日本語</a></li>
+					<li><a href="http://www.ibm.com/developerworks/ru/" lang="ru">Русский</a></li>
+				</ul>
+			</div>
+			<div class="dw-mast-col-2-2">
+				<ul>
+					<li><a href="http://www.ibm.com/developerworks/br/" lang="pt">Português (Brasil)</a></li>
+					<li><a href="http://www.ibm.com/developerworks/ssa/" lang="es">Español</a></li>
+					<li><a href="http://www.ibm.com/developerworks/vn/" lang="vi">Việt</a></li>
+				</ul>
+			</div>
+		</div>
+		<div id="empty_div" class="dw-mast-columns" role="group"><!-- Authenticated --></div>		
+		<!-- IBM -->
+		<div id="ibmhome_div" class="dw-mast-columns" role="group">
+			<div class="dw-mast-col-2-1">
+				<ul>
+					<li><a id="dw-mast-top-3-0" href="http://www.ibm.com/cn/zh/">IBM 主页</a></li>
+					<li><a href="http://www.ibm.com/solutions/cn/zh/">解决方案</a></li>
+					<li><a href="http://www.ibm.com/software/cn/">软件</a></li>
+				</ul>
+			</div>
+			<div class="dw-mast-col-2-2 dw-mast-ibm">
+				<ul>
+							<li><a href="http://www.ibm.com/support/cn/zh/">支持门户</a></li>
+							<li><a href="http://www.ibm.com/support/documentation/cn/zh/">产品文档</a></li>
+							<li><a href="http://www.ibm.com/redbooks/">Redbooks（英文）</a></li>
+				</ul>
+			</div>	
+		</div>		
+	</div>
+		
+    <!-- BOTTOM ROW -->
+	<div id="ibm-universal-nav-dw" aria-label="Site map">
+		<ul id="ibm-unav-links-dw">
+			<li id="ibm-unav-home-dwlogo">
+				<a href="http://www.ibm.com/developerworks/cn/"><img src="//dw1.s81c.com/developerworks/i/mf/dwn-dw-wordmark.png" width="225" height="28" alt="developerWorks®" /></a>
+			</li>
+		</ul>
+		<ul id="ibm-menu-links-dw" class="ibm-menu-links-dw-cn" role="toolbar" aria-label="Site map">
+			<li id="dw-mast-nav-0" role="presentation"><a
+			    href="http://www.ibm.com/developerworks/cn/topics/" role="button" tabindex="0">技术主题</a></li>
+			<li id="dw-mast-nav-1" role="presentation"><a
+			    href="http://www.ibm.com/developerworks/cn/downloads/" role="button">软件下载</a></li>
+			<li id="dw-mast-nav-2" role="presentation"><a
+			    href="http://www.ibm.com/developerworks/community/?lang=zh" role="button">社区</a></li>
+			<li id="dw-mast-nav-3" role="presentation"><a href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh" role="button">技术讲座</a></li>
+		</ul>
+		<form id="ibm-search-form" action="//www.ibm.com/search/csass/search/" method="get" name="form1">
+			<input type="hidden" name="sn" value="dw" />
+			<input type="hidden" name="lang" value="zh" />
+			<input type="hidden" name="cc" value="CN" />
+			<input type="hidden" name="en" value="utf" />
+			<input type="hidden" name="hpp" value="20" />
+			<input type="hidden" name="dws" value="cndw" />
+		    <input type="hidden" name="lo" value="zh" />
+			<p>
+				<label for="q"><img alt="搜索 developerWorks" height="1" width="1" src="//dw1.s81c.com/i/c.gif" /></label>
+				<input type="text" value="搜索 developerWorks" name="q" maxlength="100" id="q"/>
+				<input type="submit" id="ibm-search" class="ibm-btn-search ibm-btn-search-cn" name="Search" value="搜索" />
+			</p>
+		</form>
+	</div>
+    
+	<!-- BOTTOM ROW SLIDER -->
+	<div id="ibm-common-menu-dw">
+		<!-- Technical topics category -->
+		<div id="techtops_div" class="dw-mast-columns" role="group">
+			<div class="dw-mast-col-5-1">
+				<h2><a href="http://www.ibm.com/developerworks/cn/topics/">技术主题</a></h2>
+				<ul role="menu">
+					
+					<li role="menuitem"><a id="dw-mast-nav-0-0" href="http://www.ibm.com/developerworks/cn/aix/">AIX and UNIX</a></li>
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/bigdata/">Big data</a></li>
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/cloud/">Cloud computing</a></li>
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/agile/">DevOps</a></li>
+					
+				</ul>     
+			</div>
+			<div class="dw-mast-col-5-2">
+				<ul role="menu">
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/ibmi/">IBM i</a></li>
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/data/">Information
+					    management</a></li>
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/java/">Java technology</a></li>
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/linux/">Linux</a></li>
+					
+				</ul>
+			</div>
+			<div class="dw-mast-col-5-3">
+				<ul role="menu">
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/lotus/">Lotus</a></li> 
+				    <li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/mobile/">Mobile development</a></li> 
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/opensource/">Open source</a></li>
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/rational/">Rational</a></li>
+					<!--<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/webservices/">SOA and web services</a></li>-->
+					
+					
+
+				</ul>
+			</div>
+			<div class="dw-mast-col-5-4">
+				<ul role="menu">
+				<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/social/">Social Business</a></li>
+				<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/web/">Web development</a></li>
+				<li role="menuitem"><a
+					    href="http://www.ibm.com/developerworks/cn/websphere/">WebSphere</a></li>
+				<!--<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/xml/">XML</a></li>-->
+				</ul>
+			</div>
+			<div class="dw-mast-col-5-5">
+				<ul role="menu">
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/library/"><strong>文档库</strong></a></li>
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/products/"><strong>产品 A - Z</strong></a></li>
+				</ul>
+			</div>  
+		</div>
+		<!-- Evaluation software category -->
+		<div id="evalsoft_div" class="dw-mast-columns">
+			<div class="dw-mast-col-2-1">
+				<h2><a id="dw-mast-nav-1-0" href="http://www.ibm.com/developerworks/cn/downloads/">软件下载</a></h2>
+				<ul role="menu">
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/downloads/#ba">Big data</a></li>
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/downloads/#data">Information management</a></li>
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/downloads/#lotus">Lotus</a></li>
+					</ul>            
+			</div>
+			<div class="dw-mast-col-2-2">
+				<ul role="menu">
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/downloads/#rational">Rational</a></li>
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/downloads/#tivoli">Tivoli</a></li>
+					<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/downloads/#websphere">WebSphere</a></li>
+				</ul>            
+            </div>
+		</div>
+		<!-- Community category -->
+	    
+		<div id="comm_div" class="dw-mast-columns">
+			<div class="dw-mast-col-2-1">
+				<h2><a id="dw-mast-nav-2-0" href="http://www.ibm.com/developerworks/community/?lang=zh">社区</a></h2>
+				<ul role="menu">
+					<li role="menuitem"><a
+					    href="/developerworks/community/homepage/?lang=zh">我的首页</a></li>
+					<li role="menuitem"><a
+					    href="/developerworks/community/profiles/?lang=zh">概要信息</a></li>
+					<li role="menuitem"><a href="/developerworks/community/groups/?lang=zh">群组</a></li>
+					<li role="menuitem"><a href="/developerworks/community/blogs/?lang=zh">博客</a></li>
+
+				</ul>     
+			</div>
+			<div class="dw-mast-col-2-2">
+				<ul role="menu">
+				<li role="menuitem"><a href="/developerworks/community/forums/?lang=zh">论坛</a></li>
+				<li role="menuitem"><a href="/developerworks/community/wikis?lang=zh">Wiki</a></li>
+				<li role="menuitem"><a href="/developerworks/community/activities/?lang=zh">活动</a></li>
+				</ul>
+			</div>
+
+		</div>
+		<!-- Events category -->
+		<div id="evts_div" class="dw-mast-columns">
+			<div class="dw-mast-col-1-1">
+				<h2><a id="dw-mast-nav-3-0" href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></h2>
+					<ul role="menu">
+						<li role="menuitem"><a href="https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=6d7f9e5d-5f89-4767-a006-a81b8d186370&amp;lang=zh">技术讲座</a></li>
+						<li role="menuitem"><a href="http://www.ibm.com/developerworks/cn/swi/">多媒体课堂</a></li>
+						<li role="menuitem"><a href="http://www.ibm.com/developerworks/find/webcasts/">网络广播（英文）</a></li>
+					    <li role="menuitem"><a href="http://www.ibm.com/developerworks/find/events/">查找活动（技术讲座，网络广播，会议等）（英文）</a></li> 
+				</ul>            
+			</div>
+		</div>
+	</div>
+	
+</div>
+<div id="fdiv" class="ibm-access"></div>
+    <!-- MASTHEAD_END -->
+<!-- MASTHEAD_END -->
+
+<!-- LAYOUT -->
+<!-- LEADSPACE_BEGIN --> 
+<div id="ibm-leadspace-head">
+	<!-- LEADSPACE_BODY_BEGIN --> 
+	<div id="ibm-leadspace-body">
+		<!-- Navigation_Trail_BEGIN -->
+      <ul id="ibm-navigation-trail"><li><a href="http://www.ibm.com/developerworks/cn/">developerWorks 中国</a></li><li><a href="http://www.ibm.com/developerworks/cn/topics/">技术主题</a></li><li><a href="http://www.ibm.com/developerworks/cn/linux/">Linux</a></li><li><a href="http://www.ibm.com/developerworks/cn/views/linux/libraryview.jsp">文档库</a></li></ul>
+		<!-- END_Navigation_Trail -->
+			<!-- Title_Subtitle -->
+			<h1>基于 GNOME2 桌面的 GConf 配置系统的介绍</h1>
+	</div>
+	<!-- LEADSPACE_BODY_END --> 
+	<!-- SUMMARY_BEGIN -->
+	<div id="dw-summary-area" class="dw-summary-columns">
+		<div class="ibm-col-6-4">
+		<p>GConf 是在基于 GNOME2 的系统中用于应用程序属性配置和管理的工具，完成类似于 Windows 操作系统中注册表的功能。本文讨论了在 GNOME2 桌面中 GConf 配置管理系统的机制以及使用其相关 API 开发应用程序的方法。本文主要内容包括 GConf 工具的介绍，使用以及相关的开发实践。本文适用于 Linux 应用程序的开发人员。</p>
+		<p class="ibm-no-print ibm-ind-link">
+
+			
+			<span id="nCmts"></span>
+		</p>
+		</div>
+		<div class="ibm-col-6-2 dw-toc-margin">
+			<p class="dw-summary-author"><a href="#authorN1001A" class="ibm-popup-link" onclick="ibmweb.overlay.show('authorN1001A',this);return false;">曹 彬子</a>, 软件工程师, IBM</p>
+<div id="authorN1001A" class="ibm-common-overlay"><div class="ibm-head"><p><a href="#close" class="ibm-common-overlay-close">关闭 [x]</a></p></div><div class="ibm-body"><div class="ibm-main"><div class="ibm-title"><!--this is where the h2 usually goes--></div><div class="ibm-container ibm-alternate"><div class="ibm-container-body">
+<p><!--.-->
+曹彬子，软件工程师，IBM 中国软件开发中心。现主要从事 Notes Linux 产品的研究及开发。研究兴趣：Linux/Windows 跨平台软件开发。</p><br /><br /></div></div></div></div><div class="ibm-footer"><!----></div></div>
+			<p class="dw-summary-date">2008 年 4 月 03 日</p>
+			
+
+
+			<div aria-hidden="true" class="ibm-container" id="dw-toc"><div class="ibm-container-body"><ul class="ibm-twisty"><li><a href="#toggle" class="ibm-twisty-trigger"><img src="//www.ibm.com/i/c.gif" alt="-"/></a><span class="ibm-twisty-head">内容</span><div class="ibm-twisty-body"><ul style="font-size:0.8em" class="ibm-link-list">
+<li><a class="ibm-anchor-down-em-link" href="#1.概述">概述</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#2.Gconf 配置源介绍">Gconf 配置源介绍</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#3.GConf Schema 简介">GConf Schema 简介</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#4.GConf 图形化工具介绍">GConf 图形化工具介绍</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#5.GConf 命令行工具介绍">GConf 命令行工具介绍</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#6.利用 GConf API 编程示例">利用 GConf API 编程示例</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#7.结论">结论</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#8.参考文献">参考文献</a></li>
+<li><a class="ibm-anchor-down-em-link" href="#icomments">评论</a></li></ul></div></li></ul></div></div>
+		</div>
+	</div>
+	<!-- SUMMARY_END -->
+</div>
+<!-- LEADSPACE_END -->
+
+<div id="ibm-pcon">
+
+<!-- BEGIN_IBM-CONTENT -->
+<div id="ibm-content">
+
+<!-- BEGIN_IBM-CONTENT-BODY -->
+<div id="ibm-content-body">
+
+<!-- BEGIN_IBM-CONTENT-MAIN -->
+<div id="ibm-content-main">
+
+<!-- 1_1_COLUMN_BEGIN -->
+<div class="ibm-columns">
+<div class="ibm-col-1-1">
+
+<h2 id="1.概述">概述</h2><p>GConf 是在基于 GNOME2 的 Linux 操作系统中实现对应用程序的配置及管理功能的工具。我们可以把 GConf 理解为 Linux 操作系统中的注册表。然而，它克服了 Windows 注册表的一些缺点，比如 Windows 注册表遭到破坏，可能会导致操作系统崩溃，而且 GConf 的配置信息存储于纯文本的文件中，可读性很好。从根本上来说，GConf 采用用一种 Key/Value 的存储机制。在 GConf 系统中，应用程序的配置信息都是以 Key/Value 的结构来存储。每一个 Key 值对应应用程序的某种属性，而对应的 Value 则表示该属性的配置信息。 GConf 在后台实现了一个用户配置信息的数据库，这个数据库看上去类似一个文件系统，专门用于存储应用程序的 Key/Value 信息。整个文件系统主要有以下组件构成。包括目录（对应使用 GConf 系统的应用程序。如 /apps/evolution），子目录（一系列属性配置信息的集合。如 /apps/evolution/mail），/schemas（存储属性的键信息）等。</p><p>GConf 系统还可以在一个应用程序的属性配置值发生改变的时候通知应用程序。因此，当 GConf 中一个属性值被更改的时候，与之相关的应用程序都能够获得信息，从而根据属性的修改更新作出相应的处理。GConf 主要由三个组件构成：</p><ul class="ibm-bullet-list"><li>
+一系列用户属性的配置集合</li><li>
+一个后台程序 gconfd-2</li><li>
+一个命令行工具 gconftool-2</li></ul><p>另外 Gnome 系统还有一个可视化的图形工具 gconf-editor 供用户使用。</p><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="2.Gconf 配置源介绍">Gconf 配置源介绍</h2><p>GConf 系统中保存了一系列文件路径和位置信息，我们称之为配置源。这些配置源信息存储在GConf 的一个路径文件中。在笔者的 SUSE Linux 系统，该文件为 /etc/opt/gnome/gconf/2/path. (不同的 Linux 发行版本可能略有不同) 。该文件的内容（滤除注释信息）如下：</p><div class="codesection"><pre class="displaycode">xml:readonly:/etc/opt/gnome/gconf/gconf.xml.mandatory
+include /etc/opt/gnome/gconf/2/local-mandatory.path
+include "$(HOME)/.gconf.path"
+xml:readwrite:$(HOME)/.gconf
+include /etc/opt/gnome/gconf/2/local-defaults.path
+xml:readonly:/etc/opt/gnome/gconf/gconf.xml.defaults</pre></div><p>GConf 系统中的配置源分为三类</p><p><strong>强制源（</strong><strong>Mandatory</strong><strong>）</strong>：该源所描述的属性为只读，用户无法修改该类属性的值。</p><div class="codesection"><pre class="displaycode">xml:readonly:/etc/opt/gnome/gconf/gconf.xml.mandatory
+include /etc/opt/gnome/gconf/2/local-mandatory.path</pre></div><p><strong>用户源（</strong><strong>User</strong><strong>）</strong>    ：该源存储了用户可以自行修改和设置的属性信息。</p><div class="codesection"><pre class="displaycode">include "$(HOME)/.gconf.path"
+xml:readwrite:$(HOME)/.gconf</pre></div><p><strong>默认源（</strong><strong>Default</strong><strong>）</strong>  ：该源存储了 GConf 系统中属性的默认值。</p><div class="codesection"><pre class="displaycode">include /etc/opt/gnome/gconf/2/local-defaults.path
+xml:readonly:/etc/opt/gnome/gconf/gconf.xml.defaults</pre></div><p>上述源的顺序恰好是 GConf 系统读取应用程序配置属性值的顺序，也就是说存储在强制源中的属性会被优先获取，即使用户源中对该属性进行了自定义配置也会被忽略。</p><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="3.GConf Schema 简介">GConf Schema 简介</h2><p>GConf Schema 是一系列键和实体的集合。我们总可以将一个 schema 的键值和一个属性的键值联系在一起。例如我们打开一个关于 FTP 协议相关的 GConf 属性文件：</p><div class="codesection"><pre class="displaycode">cbz: /etc/opt/gnome/gconf/gconf.xml.defaults/desktop/gnome/url-handlers/ftp$cat %gconf.xml
+&lt;?xml version="1.0"?&gt;
+&lt;gconf&gt;
+&lt;entry name="needs_terminal" mtime="1165354500" 
+     schema="/schemas/desktop/gnome/url-handlers/ftp/needs_terminal"/&gt;
+&lt;entry name="command" mtime="1165354500" 
+         schema="/schemas/desktop/gnome/url-handlers/ftp/command"/&gt;
+&lt;entry name="enabled" mtime="1165354500" 
+          schema="/schemas/desktop/gnome/url-handlers/ftp/enabled"/&gt;
+&lt;/gconf&gt;</pre></div><p>从中可以看出：</p><div class="codesection"><pre class="displaycode">/desktop/gnome/url-handlers/ftp/command</pre></div><p>对应的 schema 文件中的 Key 为</p><div class="codesection"><pre class="displaycode">/schemas/desktop/gnome/url-handlers/ftp/command。</pre></div><p>下面我们给出部分对应的 schema 文件的信息</p><div class="codesection"><pre class="displaycode">/etc/opt/gnome/gconf/schemas/desktop_gnome_url_handlers.schemas 
+
+ &lt;schema&gt;
+      &lt;key&gt;/schemas/desktop/gnome/url-handlers/ftp/command&lt;/key&gt;
+      &lt;applyto&gt;/desktop/gnome/url-handlers/ftp/command&lt;/applyto&gt;
+      &lt;owner&gt;gnome&lt;/owner&gt;
+      &lt;type&gt;string&lt;/type&gt;
+      &lt;default&gt;firefox %s&lt;/default&gt;
+      &lt;locale name="C"&gt;
+        &lt;short&gt;The handler for "ftp" URLs&lt;/short&gt;
+        &lt;long&gt;The command used to handle "ftp" URLs, if enabled.&lt;/long&gt;
+      &lt;/locale&gt;
+&lt;/schema&gt;</pre></div><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="4.GConf 图形化工具介绍">GConf 图形化工具介绍</h2><p>用户在终端中输入 gconf-editor。 GConf 的图形化工具将出现在用户面前（见下图1）。gconf-editor 提供给用户一个方便，快捷的可视化终端,从而实现对 GConf 系统中应用程序的属性进行直观地查看，编辑和修改。它的结构看上去和 Windows 操作系统的注册表类似，然而可读性更好。用户能够清楚的查到相关应用程序的配置信息。例如 /apps/gnome-terminal/profiles/Default/font  存储的是用户的 gnome-terminal 终端的使用的字体信息。在本文的示例，用户当前 gnome-terminal 终端的字体为 Bitstream Vera Sans Mono 14. 用户还可以看到关于该 Key 的描述信息如下：</p><div class="codesection"><pre class="displaycode">Key name:	         /apps/gnome-terminal/profiles/Default/font  	//键名		
+Key owner:	         gnome-terminal					//所属应用程序	
+Short Description:	Font					         //简单描述信息	
+Long Description:	A Pango font name.  			         //详细描述信息</pre></div><p>另外 GConf 系统中还存储了一些关于桌面系统的配置信息，例如在 /desktop/gnome/url-handlers/http/command  存储的是系统处理基于 HTTP 的  URL 的应用程序信息，本文中的使用的是 firefox 。当用户在打开一个含有 HTTP URL 的文档时，如果用户点击其中的 URL 链接，系统会启动 firefox 来打开这个 URL。</p><div class="codesection"><pre class="displaycode">Key name:		/desktop/gnome/url-handlers/http/command  
+Key owner:		gnome
+Short Description:	The handler for “http” URLs
+Long Description:	The command to used to handle “http” URLS, if enabled.</pre></div><p>另外用户可以直接通过 gconf-editor 来修改其中一些配置的信息，例如用户可以修改/desktop/gnome/url-handlers/http/command 的值，从而使得用户在打开 HTTP URL 的时候，能够启动自己定义的网页浏览器。</p><h5 id="N100A5">图1 gconf-editor 示例</h5><img alt="gconf-editor 示例" src="images/image001.jpg" width="553" /><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="5.GConf 命令行工具介绍">GConf 命令行工具介绍</h2><p>GConf 配置系统自带了一个强大的命令行工具叫作 gconftool-2。 用户可以通过这个工具实现对 GConf 系统进行配置和管理等。用户可以通过 man gconftool-2 获得关于 gconftool-2 命令的详细使用方法，这里我们给出一些常用的命令选项：</p><h5 id="表格1|table">gconftool-2 命令选项</h5><table border="0" cellpadding="0" cellspacing="0" class="ibm-data-table"><thead xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><tr><th style="text-align:left; vertical-align:top">
+命令选项
+</th><th style="text-align:left; vertical-align:top">
+注释
+</th></tr></thead><tbody xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><tr><td style="text-align:left; vertical-align:top">
+-s, --set    
+</td><td style="text-align:left; vertical-align:top">
+设置键值并同步。需要与 —type 同时使用
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+-g, --get
+</td><td style="text-align:left; vertical-align:top">
+打印一个键值到标准屏幕输出
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+-u, --unset
+</td><td style="text-align:left; vertical-align:top">
+重置 Key 值为 GConf 系统中的默认值
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+-a, --all-entries
+</td><td style="text-align:left; vertical-align:top">
+打印目录中的所有键/值组合
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+--all-dirs	
+</td><td style="text-align:left; vertical-align:top">
+打印一个目录的所有子目录
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+-R, --recursive-list
+</td><td style="text-align:left; vertical-align:top">
+递归打印一个目录的子目录与条目
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+--dir-exists=STRING
+</td><td style="text-align:left; vertical-align:top">
+返回目录是否存在。0为目录存在，2为不存在
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+--set-schema
+</td><td style="text-align:left; vertical-align:top">
+设置一个 schema 的属性，与 --short-desc, --long-desc, --owner, 和 –type 同时使用
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+--makefile-install-rule
+</td><td style="text-align:left; vertical-align:top">
+安装 schema 文件到 GConf 中。GCONF_CONFIG_SOURCE 环境变量必须设置为相应的配置源
+</td></tr><tr><td style="text-align:left; vertical-align:top">
+--makefile-uninstall-rule
+</td><td style="text-align:left; vertical-align:top">
+卸载 schema 文件。与 --makefile-install-rule 相同，GCONF_CONFIG_SOURCE 环境变量必须设置为相应的配置源
+</td></tr></tbody></table><p>命令行使用示例：</p><ol type="1"><li>
+递归打印 /desktop/gnome/url-handlers 目录中的子目录和选项</li></ol><div class="codesection"><pre class="displaycode">cbz: ~$gconftool-2 --recursive-list  /desktop/gnome/url-handlers
+
+/desktop/gnome/url-handlers/cdda:
+  command = /opt/gnome/lib/gnome-volume-manager/gnome-cdda-handler %s
+  enabled = false
+ /desktop/gnome/url-handlers/man:
+  needs_terminal = false
+  command = gnome-help "%s"
+  enabled = true
+  其余略去………</pre></div><ol type="1"><li>
+检查目录在 GConf 系统中是否存在</li></ol><div class="codesection"><pre class="displaycode">cbz: ~$gconftool-2 --dir-exists=/desktop/gnome/url-handlers
+cbz: ~$echo $?
+0</pre></div><ol type="1"><li>
+列举 /desktop/gnome/url-handlers 的所有子目录</li></ol><div class="codesection"><pre class="displaycode">cbz: ~$gconftool-2 --all-dirs /desktop/gnome/url-handlers
+
+ /desktop/gnome/url-handlers/cdda
+ /desktop/gnome/url-handlers/man
+ /desktop/gnome/url-handlers/aim
+ /desktop/gnome/url-handlers/ftp
+ /desktop/gnome/url-handlers/info
+其余略去………</pre></div><ol type="1"><li>
+打印 /desktop/gnome/url-handlers/https/command 的值</li></ol><div class="codesection"><pre class="displaycode">cbz: ~$gconftool-2 -g /desktop/gnome/url-handlers/https/command
+firefox %s</pre></div><ol type="1"><li>
+设置 /desktop/gnome/url-handlers/https/command 对应的值为 ”test”</li></ol><div class="codesection"><pre class="displaycode">cbz: ~$gconftool-2 --type string -s /desktop/gnome/url-handlers/https/command test
+cbz: ~$gconftool-2 -g /desktop/gnome/url-handlers/https/command
+test</pre></div><ol type="1"><li>
+设置 /desktop/gnome/url-handlers/https/command 对应的值为系统默认值</li></ol><div class="codesection"><pre class="displaycode">cbz: ~$gconftool-2 --unset /desktop/gnome/url-handlers/https/command
+cbz: ~$gconftool-2 -g /desktop/gnome/url-handlers/https/command
+firefox %s</pre></div><ol type="1"><li>
+安装一个自定义的 schema 文件到系统中，安装源为当前用户个人目录</li></ol><div class="codesection"><pre class="displaycode">cbz: ~$export GCONF_CONFIG_SOURCE="xml:readwrite:$HOME/.gconf"
+cbz: ~$gconftool-2 --makefile-install-rule Test.schemas</pre></div><ol type="1"><li>
+卸载一个自定义的 schema 文件，卸载源为当前用户个人目录</li></ol><div class="codesection"><pre class="displaycode">cbz: ~$export GCONF_CONFIG_SOURCE=xml:readwrite:$HOME/.gconf
+cbz: ~$gconftool-2 --makefile-uninstall-rule Test.schemas</pre></div><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="6.利用 GConf API 编程示例">利用 GConf API 编程示例</h2><p>GConf  系统本身提供了许多 API 供用户来使用，用户可以通过使用这些 API 完成对 GConf信息的管理。本文给出一个简单的示例程序 test.cpp。该程序的功能是获取当前的 FTP 协议的处理程序（对应的 command 值）。从程序的输出可以看出，笔者的操作系统对于 FTP 协议的默认启动程序是 firefox.</p><h5 id="N1015A">GConf 示例程序</h5><div class="codesection"><pre class="displaycode">#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;gconf/gconf-client.h&gt;
+
+int main (){
+
+    //Get Gconf client
+    GConfClient* gConfClient = gconf_client_get_default();
+    if (!gConfClient) return 1 ;
+
+    //Get the value
+    gchar * str = gconf_client_get_string(gConfClient, 
+"/desktop/gnome/url-handlers/ftp/command", NULL);
+
+    if (str){
+        printf("%s\n",str);
+        //Free the value
+        g_free(str);
+    }
+
+    //Unref this gobject
+    g_object_unref(gConfClient);
+    return 0;
+}</pre></div><p>编译 test.cpp:</p><div class="codesection"><pre class="displaycode">cbz: ~/test$g++ `pkg-config --cflags --libs gconf-2.0` test.cpp</pre></div><p>执行 test.cpp:</p><div class="codesection"><pre class="displaycode">cbz: ~/test$./a.out
+firefox %s</pre></div><p>与命令行工具 gconftool-2 获得的结果对比:</p><div class="codesection"><pre class="displaycode">cbz: ~/test$gconftool-2 -g /desktop/gnome/url-handlers/ftp/command
+firefox %s</pre></div><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="7.结论">结论</h2><p>GConf  是基于 GNOME2 桌面的 Linux 操作系统中用于配置应用程序属性的管理工具。通过本文的讨论，读者可以获得对 GConf 有一个比较全面的了解，尤其对于在 Linux 操作系统中进行开发应用程序时，对于如何使用 GConf 对应用程序进行配置提供了一个参考以及对基于GConf 的 API 进行程序开发和设计进行了简单的介绍。</p><div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p><h2 id="8.参考文献">参考文献</h2><p>[1]	http://www.gnome.org/projects/gconf/</p><p>[2] 	<a href="http://developer.gnome.org/feature/archive/gconf/gconf.html">http://developer.gnome.org/feature/archive/gconf/gconf.html</a></p><p>[3] 	<a href="http://library.gnome.org/devel/gconf/index.html">http://library.gnome.org/devel/gconf/index.html</a></p><p>[4] 	http://library.gnome.org/admin/system-admin-guide/stable/</p><!--CMA ID: 299177--><!--Site ID: 10--><!--XSLT stylesheet used to transform this file: dw-document-html-7.0.xsl-->
+
+
+</div>
+</div>
+<!-- 1_1_COLUMN_END -->
+
+<!-- SPLIT_COLUMNS_BEGIN -->
+<div class="ibm-columns">
+
+<!-- 6_4_COLUMN_BEGIN -->
+<div class="ibm-col-6-4">
+
+
+
+<!-- INLINE_COMMENTS_BEGIN -->
+<h2 id="icomments" class="ibm-alternate-rule ibm-no-print">条评论</h2>
+    
+<div class="ibm-no-print" id="dw-icomments-container">	
+	<div id="threadShow"></div>
+</div>
+<!-- Sign in OVERLAY STARTS HERE -->
+    
+<!-- Sign in OVERLAY STARTS HERE -->
+<div class="ibm-common-overlay" id="signin_overlay">
+<div class="ibm-head">
+<p><a class="ibm-common-overlay-close" href="#" onclick="dwsi.siInst.clearForm();">关闭 [x]</a></p>
+</div>
+<div class="ibm-body">
+<div class="ibm-main">
+
+ <div class="ibm-title">
+<h2>developerWorks: 登录</h2>
+<div id="ibm-overlay-error-signin" class="no-display"></div>
+</div>
+<div class="ibm-container ibm-alternate ibm-buttons-last">
+<div class="ibm-container-body">
+<p class="ibm-overlay-intro">标有星（<span class="ibm-required">*</span>）号的字段是必填字段。</p> 
+<form class="ibm-column-form" id="sFormId" action="" method="post" name="sForm" onsubmit="return false;">
+<p><label for="ibmid">IBM ID:<span class="ibm-required">*</span></label><span>
+    <input name="ibm-id" id="ibmid" size="25" value="" class="required" type="text" onkeypress="dwsi.siInst.handleEP(event,this.form);" />
+    <br /><a onclick="window.location='/developerworks/dwwi/DWAuthRouter?m=reg&amp;lang=zh_CN&amp;d='+encodeURIComponent(location.protocol + '//' + location.hostname + location.pathname + '#icomments'); return false;" href="#" class="ibm-forward-link">需要一个 IBM ID？</a> <br />
+    <a class="ibm-forward-link" href="/developerworks/dwwi/jsp/WSHelp.jsp?lang=zh_CN">忘记 IBM ID？</a> 
+</span>
+</p> 
+<p><label for="password">密码：<span class="ibm-required">*</span></label><span>
+    <input name="password" id="password" size="25" value="" class="required" type="password" onkeypress="dwsi.siInst.handleEP(event,this.form);" />
+    <br /><a class="ibm-forward-link" href="#" onclick="(function ()
+        {window.location='https://www.ibm.com/account/profile?page=forgot&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(dwsi.siInst.getAuthUrl())+'%3Fm%3Dloginpage%26lang%3Dzh_CN%26d%3D'+encodeURIComponent(location.href);})();">忘记密码？</a>
+    <br /><a class="ibm-forward-link" href="#" onclick="(function () {window.location='https://www.ibm.com/account/profile?page=chpw&amp;lang=zh_CN&amp;appname=ibm&amp;required=null&amp;d='+encodeURIComponent(location.href);})();">更改您的密码</a></span></p> 
+<p class="dw-perm-box">
+	<span><input id="perm" type="checkbox" name="perm_name"/><label for="perm"> 保持登录。</label></span>
+</p>
+<p>单击提交则表示您同意developerWorks 的条款和条件。 <a
+    href="/developerworks/community/terms?lang=zh">查看条款和条件</a>。</p>
+<div class="ibm-buttons-row">
+   <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="dwsi.siInst.signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+<input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="dwsi.siInst.clearForm();ibmweb.overlay.hide('signin_overlay');return false;"/></p>
+</div>
+</form>
+ <div class="ibm-overlay-rule"><hr /></div> 
+
+<p>这是您第一次登陆到 developerWorks，已经自动为您创建了您的概要文件。 <strong>选择您概要文件中可以公开的信息的信息（如姓名、国家/地区，以及公司），这些信息同时也会与您所发布的内容相关联。 </strong>您可以随时更新您的 IBM 账号。</p>
+<div><p class="dw-c-overlay-secure">所有提交的信息确保安全。</p></div>
+</div>
+</div>
+</div>
+</div>
+<div class="ibm-footer"></div>
+</div>
+<!-- Display name OVERLAY STARTS HERE -->
+<div class="ibm-common-overlay" id="displayname_overlay">
+<div class="ibm-head">
+<p><a class="ibm-common-overlay-close" href="#" onclick="dwsi.siInst.clearForm();">关闭 [x]</a></p>
+</div>
+<div class="ibm-body">
+<div class="ibm-main">
+<div class="ibm-title">
+<h2>选择您的昵称</h2><br /><br />
+<div id="ibm-overlay-error-dname" class="no-display"></div>
+</div>
+<div class="ibm-container ibm-alternate ibm-buttons-last">
+<div class="ibm-container-body">
+<p class="ibm-overlay-intro">当您初次登录到 developerWorks 时，将会为您创建一份概要信息，您需要指定一个昵称。您的昵称将和您在 developerWorks 发布的内容显示在一起。</p><p><strong>昵称长度在 3 至 31 个字符之间</strong>。 
+    您的昵称在 developerWorks 社区中必须是唯一的，并且出于隐私保护的原因，不能是您的电子邮件地址。</p>
+<p class="ibm-overlay-intro">标有星（<span class="ibm-required">*</span>）号的字段是必填字段。</p> 
+<form id="dFormId" method="post" action="" name="dForm" onsubmit="return false;" class="ibm-column-form">
+<p><label for="displayname">昵称：<span class="ibm-required">*</span></label><span>
+    <input name="displayname" id="displayname" size="25" value="" type="text" onkeypress="dwsi.siInst.handleEP(event,this.form);" /></span>
+    <span class="ibm-form-note">(昵称长度在 3 至 31 个字符之间)</span>
+</p>
+<p>单击<strong>提交</strong>则表示您同意developerWorks 的条款和条件。 <a href="/developerworks/community/terms?lang=zh">查看条款和条件</a>.</p>
+<div class="ibm-buttons-row">
+   <p><input class="ibm-btn-arrow-pri" name="ibm-submit" value="提交" onclick="dwsi.siInst.signin();return false;" type="submit" /><span class="ibm-sep">&nbsp;</span>
+<input value="取消" type="button" name="ibm-cancel" class="ibm-btn-cancel-sec" onclick="dwsi.siInst.clearForm();ibmweb.overlay.hide('displayname_overlay');return false;" /></p>
+</div>
+</form>
+<div class="ibm-overlay-rule"><hr /></div>
+<div><p class="dw-c-overlay-secure">所有提交的信息确保安全。</p></div>
+</div>
+</div>
+</div>
+</div>
+<div class="ibm-footer"></div>
+</div>
+
+
+<!-- INLINE_COMMENTS_END -->
+
+</div>
+<!-- 6_4_COLUMN_END -->
+
+<!-- 6_2_COLUMN_BEGIN -->
+<div class="ibm-col-6-2">
+
+<!-- Next_Steps -->
+<!-- Dig_Deeper -->
+
+
+<!-- Promotion_Module -->
+    
+<!-- PROMOTION_MODULE_START -->
+<div class="ibm-alternate-rule"><hr /></div>
+<ul class="ibm-portrait-module-list">
+<li><img height="60" width="60" src="//www.ibm.com/developerworks/i/sm-f-cl-puresystems70.jpg" alt=""/>
+<h3><a class="ibm-feature-link"
+    href="http://www.ibm.com/developerworks/cn/puresystems/">IBM PureSystems</a></h3>
+<p>IBM PureSystems™ 系列解决方案是一个专家集成系统</p></li>
+<li><img height="60" width="60" src="//www.ibm.com/developerworks/i/sm-f-knowledgepath50.jpg" alt=""/>
+<h3><a class="ibm-feature-link" href="http://www.ibm.com/developerworks/cn/views/global/libraryview.jsp?type_by=Knowledge+paths">developerWorks 学习路线图</a></h3>
+<p>通过学习路线图系统掌握软件开发技能</p></li>
+<li><img height="60" width="60" src="//www.ibm.com/developerworks/i/sm-f-evaluationsoftware60.png" alt=""/>
+<h3><a class="ibm-feature-link" href="http://www.ibm.com/developerworks/cn/downloads/">软件下载资源中心</a></h3>
+<p>软件下载、试用版及云计算</p></li>
+</ul>
+<!-- PROMOTION_MODULE_END -->
+
+</div>
+<!-- 6_2_COLUMN_END -->
+
+</div>
+<!-- SPLIT_COLUMNS_END -->
+
+<!-- BOTTOM_BACK_TO_TOP -->
+<div class="ibm-columns">
+<div class="ibm-col-1-1">
+	<div class="ibm-alternate-rule"><hr/></div><p class="ibm-ind-link ibm-back-to-top"><a href="#ibm-pcon" class="ibm-anchor-up-link">回页首</a></p>
+</div>
+</div>
+
+<!-- Rating_Meta_BEGIN -->
+<!--Rating_Meta_BEGIN--><div class="metavalue">static.content.url=http://www.ibm.com/developerworks/js/artrating/</div><div class="metavalue">SITE_ID=10</div><div class="metavalue">Zone=Linux</div><div class="metavalue">ArticleID=299177</div><div class="metavalue">ArticleTitle=基于 GNOME2 桌面的 GConf 配置系统的介绍</div><div class="metavalue">publish-date=04032008</div><script language="javascript" type="text/javascript">document.write('<div class="metavalue">url='+location.href.replace(/</g,  '%3C')+'</div>');</script><!--Rating_Meta_END-->
+<!-- Rating_Meta_END -->
+
+</div>
+<!-- END_IBM_CONTENT_MAIN -->
+
+</div>
+<!-- END_IBM_CONTENT_BODY -->
+
+</div>
+<!-- END_IBM_CONTENT -->
+
+</div>
+<!-- END_IBM_PCON -->
+<!-- FOOTER_BEGIN -->
+<!-- FOOTER_BEGIN -->
+<div id="ibm-footer"><!-- IBM footer container; disabled --></div>
+
+<div id="ibm-footer-module-dwwrapper" role="contentinfo" aria-label="developerWorks Footer">
+
+<div id="ibm-footer-module-dw">
+	<div class="dw-footer-columns">
+		<div class="dw-footer-col-5-1">
+			<ul>
+                <li><a href="https://www.ibm.com/developerworks/secure/feedback.jsp?domain=dwchina">帮助</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/author/">联系编辑</a></li>
+				<li><a href="https://www.ibm.com/developerworks/secure/myideas2.jsp?domain=dwchina&start=true">提交内容</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/sitemap/">网站导航</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/rss/">订阅源</a></li>
+			</ul>
+        </div>
+		<div class="dw-footer-col-5-2">
+			<ul>
+			<li><a href="http://www.ibm.com/vrm/newsletter/10104?S_TACT=105AGX52&S_CMP=dwcntop">在线浏览每周时事通讯</a></li>
+				<li><a class="dwcn-sina-link" href="http://weibo.com/ibmdw/" target="_blank">新浪微博</a></li>
+				<li><a href="https://www.ibm.com/developerworks/community/report?lang=zh">报告滥用</a></li>
+				<li><a href="https://www.ibm.com/developerworks/community/terms?lang=zh">使用条款</a></li>
+				<li><a href="https://www.ibm.com/developerworks/cn/community/terms/thirdparty/">第三方提示</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-5-3">
+			<ul>
+				<li><a href="http://www.ibm.com/privacy/cn/zh/">隐私条约</a></li>
+				<li><a href="http://www.ibm.com/ibm/accessibility/cn/">浏览辅助</a></li>
+				<li><a href="http://www.ibm.com/developerworks/cn/academic/">IBM 教育学院教育培养计划</a></li><li><a href="http://www.ibm.com/developerworks/cn/gep/">IBM 创业企业全球扶持计划</a></li><li><a href="http://www.ibm.com/partnerworld/isv/">ISV 资源 (英语)</a></li>
+			</ul>
+		</div>
+		<div class="dw-footer-col-5-4">
+		
+ 
+			<ul>
+				<li><a href="//www.ibm.com/developerworks/cn/newsletter/">dW 中国每周时事通讯</a><br /> 
+				
+				</li>
+			</ul>
+			</form>
+		</div>
+		<div class="dw-footer-col-5-5">
+			<img width="223" height="46" alt="IBM®" src="//dw1.s81c.com/developerworks/i/mf/dwn-ibm-logo-v17.png">
+			<img class="dw-preload" src="//1.www.s81c.com/i/v17/icons/ibm_sprite_social_blue_ON.png" alt="" width="1" height="1"/>
+		</div>
+	</div>
+	<!-- Language selector no-script -->
+	<noscript>
+	<div id="dw-footer-selectlang">
+		<h2><a name="SELECTLANG">选择语言：</a></h2>
+		<ul>
+			<li><a href="http://www.ibm.com/developerworks/" lang="en">English</a></li>
+			<li><a href="http://www.ibm.com/developerworks/cn/">中文</a></li>
+			<li><a href="http://www.ibm.com/developerworks/jp/" lang="ja">日本語</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ru/" lang="ru">Русский</a></li>
+			<li><a href="http://www.ibm.com/developerworks/br/" lang="pt">Português (Brasil)</a></li>
+			<li><a href="http://www.ibm.com/developerworks/ssa/" lang="es">Español</a></li>
+			<li><a href="http://www.ibm.com/developerworks/vn/" lang="vi">Việt</a></li>
+		</ul>
+	</div>
+	</noscript>
+</div>
+
+</div><!-- FOOTER_END --><!-- FOOTER_END -->
+
+<!-- END_IBM-TOP -->
+</div>
+
+<!-- SCRIPTS_INCLUDE_BEGIN -->
+<script type="text/javascript" src="/developerworks/js/v17/dw-comments.js">//</script>
+<script type="text/javascript" language="JavaScript">
+		dojo.ready(function(){
+		rBHash = null;
+		rBHash = new Object();
+		rBHash['viperLang'] = 'zh';
+		rBHash['urlLang'] = 'cn';
+		
+		dwsi.siInst = new dwweb.dynnav.dwsi();
+		dwsi.siInst.initSI();		
+
+		// construct the comment widget
+dwc.cmts = '条评论';
+dwc.signInPreText = '请';
+dwc.signIn = '登录';
+dwc.or = '或';
+dwc.register = '注册';
+dwc.signInPostText = '';
+dwc.leaveCmt = '后发表评论。';
+dwc.view = '查看';
+dwc.totalCmts = '共有评论';
+dwc.postYourCmt = '添加您的评论';
+dwc.show = '显示：';
+dwc.recentCmts = '最新评论';
+dwc.allCmts = '所有评论';
+dwc.tooLongCmt = '您的评论超过了 1000 字符限制';
+dwc.numCharsLeft = '剩余 <span id="charCount">{1}</span> 字符';
+dwc.reportAbuse = '报告滥用';
+dwc.notifyMsg = '有新评论时提醒我';
+dwc.htmlWarning = '注意：评论中不支持 HTML 语法'; 
+dwc.cmt = '评论：';
+dwc.addCmts = '添加评论';
+dwc.addCmt = '添加评论';
+dwc.doNotErase = '--在下方添加评论--'; 
+dwc.viewOrAddCmts = '查看或添加评论';
+dwc.reportInapprCont = '举报不良信息';
+dwc.reportInapprContLink = 'http://www.ibm.com/developerworks/forums/forum.jspa?forumID=1834';
+dwc.postingCmt = '正在发布评论……';
+dwc.noCmt = '快来添加第一条评论';
+dwc.netwkErr = '在检索评论时出错，请稍后刷新。';
+dwc.addACmt = '添加评论';
+dwc.instructCmt = '标有星号（<span class="ibm-required">*</span>）的是必填项目。';
+dwc.btnPost = '发布';
+dwc.btnPostAnon = '匿名发布';
+dwc.btnClrCmt = '清除评论';
+dwc.btnCancel = '取消';
+dwc.showRecent = '显示最新的 {1} 条评论'; // {1} is the count to be substituted
+dwc.showNext = '显示后 {1} 条评论'; // {1} is the count to be substituted
+dwc.showAllCmts = '显示所有评论';
+dwc.enterCmt = '请输入评论内容。';
+dwc.loginErr = '暂时无法验证您的登录状态，请稍后再试。';
+dwc.postErr = '暂时无法发布您的评论，请稍后再试。';
+dwc.postBy = '由 <strong>{1}</strong>  于 {2} '; // {1} is the author to be substituted; {2} is the date
+dwc.siteId = 10;
+dwc.lang = 'zh_CN';
+dwc.viperLang = 'zh';
+//dwc.abuseHref =  null;
+dwc.maxChars = 1000;
+dwc.cmtTxt =  '评论：';
+dwc.cmtsTxt =  '评论：';  
+		dwc && new dwc.comments('threadShow','95%',5,'nCmts','icomments');
+		});
+</script>
+<!-- BEGIN: Use this section to set page specific variables for the Unica Page Tag -->
+<script language="JavaScript">var NTPT_PGEXTRA="ibmSkillLevel=1&ibmAdoptPhase=667&ibmRole=710&ibmCmaId=299177&ibmContentAreas=linux";</script>
+<!--END --><!-- SCRIPTS_INCLUDE_END -->
+
+<div id="ibm-metrics">
+<script src="//dw1.s81c.com/common/stats/stats.js" type="text/javascript">//</script>
+</div>
+
+</body>
+</html>

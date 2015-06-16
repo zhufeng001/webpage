@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>对Django框架架构和Request/Response处理流程的分析 | 疯狂的蚂蚁</title>
+<link rel="profile" href="http://gmpg.org/xfn/11">
+<meta name="viewport" content="width=device-width" />
+<meta name="generator" content="WordPress 4.1.1" />
+<link rel="alternate" type="application/rss+xml" title="疯狂的蚂蚁 &raquo; Feed" href="http://www.crazyant.net/feed" />
+<link rel="alternate" type="application/rss+xml" title="疯狂的蚂蚁 &raquo; 评论Feed" href="http://www.crazyant.net/comments/feed" />
+<link rel="alternate" type="application/rss+xml" title="疯狂的蚂蚁 &raquo; 对Django框架架构和Request/Response处理流程的分析评论Feed" href="http://www.crazyant.net/1001.html/feed" />
+<link rel="pingback" href="http://www.crazyant.net/xmlrpc.php" />
+<link rel='stylesheet' id='crayon-css'  href='http://www.crazyant.net/wp-content/plugins/crayon-syntax-highlighter/css/min/crayon.min.css?ver=2.6.8' type='text/css' media='all' />
+<link rel='stylesheet' id='omega-style-css'  href='http://www.crazyant.net/wp-content/themes/omega-child/style.css?ver=4.1.1' type='text/css' media='all' />
+<link rel='stylesheet' id='fancybox-css'  href='http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/jquery.fancybox-1.3.6.pack.css?ver=1.5.6' type='text/css' media='screen' />
+<script type="text/javascript">
+var duoshuoQuery = {"short_name":"crazyantps2","sso":{"login":"http:\/\/www.crazyant.net\/wp-login.php?action=duoshuo_login","logout":"http:\/\/www.crazyant.net\/wp-login.php?action=logout&_wpnonce=dfa1a10701"},"theme":"default","stylePatch":"wordpress\/Omega_Child"};
+duoshuoQuery.sso.login += '&redirect_to=' + encodeURIComponent(window.location.href);
+duoshuoQuery.sso.logout += '&redirect_to=' + encodeURIComponent(window.location.href);
+</script>
+<script type="text/javascript" src="http://static.duoshuo.com/embed.js" charset="UTF-8" async="async"></script>
+<script type='text/javascript' src='http://www.crazyant.net/wp-includes/js/jquery/jquery.js?ver=1.11.1'></script>
+<script type='text/javascript' src='http://www.crazyant.net/wp-includes/js/jquery/jquery-migrate.min.js?ver=1.2.1'></script>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var CrayonSyntaxSettings = {"version":"2.6.8","is_admin":"0","ajaxurl":"http:\/\/www.crazyant.net\/wp-admin\/admin-ajax.php","prefix":"crayon-","setting":"crayon-setting","selected":"crayon-setting-selected","changed":"crayon-setting-changed","special":"crayon-setting-special","orig_value":"data-orig-value","debug":""};
+var CrayonSyntaxStrings = {"copy":"\u4f7f\u7528 %s \u590d\u5236\uff0c\u4f7f\u7528 %s \u7c98\u8d34\u3002","minimize":"\u70b9\u51fb\u5c55\u5f00\u4ee3\u7801"};
+/* ]]> */
+</script>
+<script type='text/javascript' src='http://www.crazyant.net/wp-content/plugins/crayon-syntax-highlighter/js/min/crayon.min.js?ver=2.6.8'></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://www.crazyant.net/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://www.crazyant.net/wp-includes/wlwmanifest.xml" /> 
+<link rel='prev' title='PHP开发者最好的学习资源收集' href='http://www.crazyant.net/970.html' />
+<link rel='next' title='Django关于站点管理Admin Site的常见问题解决方法' href='http://www.crazyant.net/1005.html' />
+<link rel='shortlink' href='http://www.crazyant.net/?p=1001' />
+	<!--[if lt IE 9]>
+	<script src="http://www.crazyant.net/wp-content/themes/omega/js/html5.js" type="text/javascript"></script>
+	<![endif]-->
+
+<style type="text/css" id="custom-css"></style>
+
+<!-- All in One SEO Pack 2.2.3.1 by Michael Torbert of Semper Fi Web Design[66,108] -->
+<meta name="description"  content="Djiango是一个推荐的python的WEB开发框架，本框架能快速的搭建MVC的WEB应用程序，自动生成数据库，处理各种WEB问题，本文从本质出发，研究源码从而得出了Django的整体框架和对request请求、response响应的处理。" />
+
+<meta name="keywords"  content="django处理流程,django对request的处理,django对response的处理,django中间件,django" />
+
+<link rel="canonical" href="http://www.crazyant.net/1001.html" />
+<!-- /all in one seo pack -->
+
+	<!-- Easy FancyBox 1.5.6 using FancyBox 1.3.6 - RavanH (http://status301.net/wordpress-plugins/easy-fancybox/) -->
+	<script type="text/javascript">
+	/* <![CDATA[ */
+	var fb_timeout = null;
+	var fb_opts = { 'overlayShow' : true, 'hideOnOverlayClick' : true, 'showCloseButton' : true, 'centerOnScroll' : true, 'enableEscapeButton' : true, 'autoScale' : true };
+	var easy_fancybox_handler = function(){
+	/* IMG */
+	var fb_IMG_select = 'a[href*=".jpg"]:not(.nofancybox), area[href*=".jpg"]:not(.nofancybox), a[href*=".jpeg"]:not(.nofancybox), area[href*=".jpeg"]:not(.nofancybox), a[href*=".png"]:not(.nofancybox), area[href*=".png"]:not(.nofancybox)';
+	jQuery(fb_IMG_select).addClass('fancybox');
+	var fb_IMG_sections = jQuery('div.gallery ');
+	fb_IMG_sections.each(function() { jQuery(this).find(fb_IMG_select).attr('rel', 'gallery-' + fb_IMG_sections.index(this)); });
+	jQuery('a.fancybox, area.fancybox, li.fancybox a:not(li.nofancybox a)').fancybox( jQuery.extend({}, fb_opts, { 'transitionIn' : 'elastic', 'easingIn' : 'easeOutBack', 'transitionOut' : 'elastic', 'easingOut' : 'easeInBack', 'opacity' : false, 'hideOnContentClick' : false, 'titleShow' : true, 'titlePosition' : 'over', 'titleFromAlt' : true, 'showNavArrows' : true, 'enableKeyboardNav' : true, 'cyclic' : false }) );
+	/* Auto-click */ 
+	jQuery('#fancybox-auto').trigger('click');
+	}
+	/* ]]> */
+	</script>
+	<style type="text/css">
+.fancybox-hidden{display:none}.rtl #fancybox-left{left:auto;right:0px}.rtl #fancybox-right{left:0px;right:auto}.rtl #fancybox-right-ico{background-position:-40px -30px}.rtl #fancybox-left-ico{background-position:-40px -60px}.rtl .fancybox-title-over{text-align:right}.rtl #fancybox-left-ico,.rtl #fancybox-right-ico{right:-9999px}.rtl #fancybox-right:hover span{right:auto;left:20px}.rtl #fancybox-left:hover span{right:20px}#fancybox-img{max-width:none;max-height:none}
+	</style>
+	<!--[if lt IE 8]>            
+		<style type="text/css">
+.fancybox-ie6 #fancybox-close{background:transparent;filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_close.png",sizingMethod="scale")}
+.fancybox-ie6 #fancybox-left-ico{background:transparent;filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_nav_left.png",sizingMethod="scale")}
+.fancybox-ie6 #fancybox-right-ico{background:transparent;filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_nav_right.png",sizingMethod="scale")}
+.fancybox-ie6 #fancybox-title-over{background:transparent;filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_title_over.png",sizingMethod="scale");zoom:1}
+.fancybox-ie6 #fancybox-title-float-left{background:transparent;filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_title_left.png",sizingMethod="scale")}
+.fancybox-ie6 #fancybox-title-float-main{background:transparent;filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_title_main.png",sizingMethod="scale")}
+.fancybox-ie6 #fancybox-title-float-right{background:transparent;filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_title_right.png",sizingMethod="scale")}
+.fancybox-ie6 #fancybox-bg-w,.fancybox-ie6 #fancybox-bg-e,.fancybox-ie6 #fancybox-left,.fancybox-ie6 #fancybox-right,#fancybox-hide-sel-frame{height:expression(this.parentNode.clientHeight+"px")}
+#fancybox-loading.fancybox-ie6{position:absolute;margin-top:0;top:expression((-20+(document.documentElement.clientHeight ? document.documentElement.clientHeight/2 : document.body.clientHeight/2)+(ignoreMe=document.documentElement.scrollTop ? document.documentElement.scrollTop : document.body.scrollTop))+"px")}
+#fancybox-loading.fancybox-ie6 div{background:transparent;filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_loading.png", sizingMethod="scale")}
+.fancybox-ie #fancybox-bg-n{filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_n.png",sizingMethod="scale")}
+.fancybox-ie #fancybox-bg-ne{filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_ne.png",sizingMethod="scale")}
+.fancybox-ie #fancybox-bg-e{filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_e.png",sizingMethod="scale")}
+.fancybox-ie #fancybox-bg-se{filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_se.png",sizingMethod="scale")}
+.fancybox-ie #fancybox-bg-s{filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_s.png",sizingMethod="scale")}
+.fancybox-ie #fancybox-bg-sw{filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_sw.png",sizingMethod="scale")}
+.fancybox-ie #fancybox-bg-w{filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_w.png",sizingMethod="scale")}
+.fancybox-ie #fancybox-bg-nw{filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_nw.png",sizingMethod="scale")}
+		</style>
+	<![endif]-->
+	<!--[if IE 8]>            
+		<style type="text/css">
+.fancybox-ie #fancybox-bg-n{-ms-filter:'progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_n.png",sizingMethod="scale")'}
+.fancybox-ie #fancybox-bg-ne{-ms-filter:'progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_ne.png",sizingMethod="scale")'}
+.fancybox-ie #fancybox-bg-e{-ms-filter:'progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_e.png",sizingMethod="scale")'}
+.fancybox-ie #fancybox-bg-se{-ms-filter:'progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_se.png",sizingMethod="scale")'}
+.fancybox-ie #fancybox-bg-s{-ms-filter:'progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_s.png",sizingMethod="scale")'}
+.fancybox-ie #fancybox-bg-sw{-ms-filter:'progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_sw.png",sizingMethod="scale")'}
+.fancybox-ie #fancybox-bg-w{-ms-filter:'progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_w.png",sizingMethod="scale")'}
+.fancybox-ie #fancybox-bg-nw{-ms-filter:'progid:DXImageTransform.Microsoft.AlphaImageLoader(src="http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/fancy_shadow_nw.png",sizingMethod="scale")'}
+		</style>
+	<![endif]-->
+</head>
+
+<body class="wordpress ltr zh zh-cn child-theme y2015 m03 d18 h07 wednesday logged-out singular singular-post singular-post-1001 group-blog layout-2c-l" dir="ltr" itemscope="itemscope" itemtype="http://schema.org/WebPage">
+
+
+<div class="site-container">
+
+		
+<nav class="nav-primary" role="navigation" itemscope="itemscope" itemtype="http://schema.org/SiteNavigationElement">
+	
+	<div class="wrap">
+	<ul id="menu-%e5%af%bc%e8%88%aa%e6%a0%8f" class="menu omega-nav-menu menu-primary"><li id="menu-item-862" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home first menu-item-862"><a href="http://www.crazyant.net/">首页</a></li>
+<li id="menu-item-383" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-383"><a href="http://www.crazyant.net/%e5%85%b3%e4%ba%8e">关于我</a></li>
+<li id="menu-item-861" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-861"><a href="http://www.crazyant.net/%e7%95%99%e8%a8%80%e5%b0%8f%e6%9c%ac">留言小本</a></li>
+<li id="menu-item-697" class="menu-item menu-item-type-post_type menu-item-object-page last menu-item-697"><a href="http://www.crazyant.net/%e5%b8%b8%e7%94%a8%e8%b5%84%e6%ba%90">常用资源</a></li>
+</ul>
+	</div>	
+</nav><!-- .nav-primary --><header id="header" class="site-header" role="banner" itemscope="itemscope" itemtype="http://schema.org/WPHeader"><div class="wrap"><div class="title-area"><h2 class="site-title" itemprop="headline"><a href="http://www.crazyant.net" title="疯狂的蚂蚁" rel="home">疯狂的蚂蚁</a></h2><h3 class="site-description"><span>博学之，审问之，慎思之，明辨之，笃行之。</span></h3></div></div></header><!-- .site-header -->
+	<div class="site-inner">
+
+		<div class="wrap">
+	<main class="content" id="content" role="main" itemprop="mainContentOfPage" itemscope="itemscope" itemtype="http://schema.org/Blog">
+
+		<article id="post-1001" class="entry post publish author-peishuai1987 post-1001 format-standard category-python post_tag-django" itemscope="itemscope" itemtype="http://schema.org/BlogPosting" itemprop="blogPost">	
+
+	<div class="entry-wrap">
+		
+		<header class="entry-header">	<h1 class="entry-title" itemprop="headline">对Django框架架构和Request/Response处理流程的分析</h1>
+<div class="entry-meta">
+	Posted by <span class="entry-author" itemprop="author" itemscope="itemscope" itemtype="http://schema.org/Person"><a href="http://www.crazyant.net/author/peishuai1987" class="entry-author-link"><span class="entry-author-name">Crazyant</span></a></span> 	on <time class="entry-time" datetime="2012-08-24T15:05:55+00:00" itemprop="datePublished" title="星期五, 八月 24, 2012, 3:05 下午">2012/08/24</time> <span class="entry-comments-link"><a href="http://www.crazyant.net/1001.html#comments"><span class="ds-thread-count" data-thread-key="1001" data-replace="1">5 Comments</span></a></span> </div><!-- .entry-meta --></header><!-- .entry-header -->	
+			
+		<div class="entry-content" itemprop="articleBody">
+	<h3>一、 处理过程的核心概念</h3>
+<p>如下图所示django的总览图，整体上把握以下django的组成：</p>
+<p><a href="http://www.crazyant.net/wp-content/uploads/2012/08/django.png"><img style="background-image: none; padding-left: 0px; padding-right: 0px; display: block; float: none; margin-left: auto; margin-right: auto; padding-top: 0px; border: 0px;" title="django整体架构图" src="http://www.crazyant.net/wp-content/uploads/2012/08/django_thumb.png" alt="django整体架构图" width="495" height="485" border="0" /></a></p>
+<p>核心在于中间件middleware，django所有的请求、返回都由中间件来完成。</p>
+<p><span id="more-1001"></span></p>
+<p>中间件，就是处理HTTP的request和response的，类似插件，比如有Request中间件、view中间件、response中间件、exception中间件等，Middleware都需要在 &#8220;project/settings.py&#8221; 中 MIDDLEWARE_CLASSES 的定义。大致的程序流程图如下所示：</p>
+<p><a href="http://www.crazyant.net/wp-content/uploads/2012/08/34ad5af4a9ee.png"><img style="background-image: none; padding-left: 0px; padding-right: 0px; display: inline; padding-top: 0px; border: 0px;" title="整体流程" src="http://www.crazyant.net/wp-content/uploads/2012/08/thumb.png" alt="整体流程" width="687" height="719" border="0" /></a></p>
+<p>首先，Middleware都需要在 &#8220;project/settings.py&#8221; 中 MIDDLEWARE_CLASSES 的定义， 一个HTTP请求，将被这里指定的中间件从头到尾处理一遍，暂且称这些需要挨个处理的中间件为处理链，如果链中某个处理器处理后没有返回response，就把请求传递给下一个处理器；如果链中某个处理器返回了response，直接跳出处理链由response中间件处理后返回给客户端，可以称之为短路处理。</p>
+<h3>二、 中间件中的方法</h3>
+<p>Django处理一个Request的过程是首先通过中间件，然后再通过默认的URL方式进行的。我们可以在Middleware这个地方把所有Request拦截住，用我们自己的方式完成处理以后直接返回Response。因此了解中间件的构成是非常必要的。</p>
+<h4>Initializer: __init__(self)</h4>
+<p>出于性能的考虑，每个已启用的中间件在每个服务器进程中只初始化一次。也就是说 __init__() 仅在服务进程启动的时候调用，而在针对单个request处理时并不执行。</p>
+<p>对一个middleware而言，定义 __init__() 方法的通常原因是检查自身的必要性。如果 __init__() 抛出异常 django.core.exceptions.MiddlewareNotUsed ,则Django将从middleware栈中移出该middleware。</p>
+<p>在中间件中定义 __init__() 方法时，除了标准的 self 参数之外，不应定义任何其它参数。</p>
+<h4>Request预处理函数: process_request(self, request)</h4>
+<p>这个方法的调用时机<strong>在</strong><strong>Django</strong><strong>接收到request</strong><strong>之后，但仍未解析URL</strong><strong>以确定应当运行的view</strong><strong>之前</strong>。Django向它传入相应的 HttpRequest 对象，以便在方法中修改。</p>
+<p>process_request() 应当返回 None 或 HttpResponse 对象.</p>
+<p>如果返回 None , Django将继续处理这个request，执行后续的中间件， 然后调用相应的view.</p>
+<p>如果返回 HttpResponse 对象，Django 将不再执行任何其它的中间件(无视其种类)以及相应的view。 Django将立即返回该 HttpResponse .</p>
+<h4>View预处理函数: process_view(self, request, callback, callback_args, callback_kwargs)</h4>
+<p>这个方法的调用时机在<strong>Django</strong><strong>执行完request</strong><strong>预处理函数并确定待执行的view</strong><strong>之后</strong>，但<strong>在</strong><strong>view</strong><strong>函数实际执行之前</strong>。</p>
+<p><strong>request</strong></p>
+<p>HttpRequest 对象。</p>
+<p><strong>callback </strong></p>
+<p>Django将调用的处理request的python函数. 这是实际的函数对象本身, 而不是字符串表述的函数名。</p>
+<p><strong>args</strong></p>
+<p>将传入view的<strong>位置参数列表</strong>，但不包括 request 参数(它通常是传入view的第一个参数)<br />
+<strong>kwargs</strong></p>
+<p>将传入view的关键字参数字典.</p>
+<p><strong>如同 process_request() , process_view() </strong><strong>应当返回 None </strong><strong>或 HttpResponse </strong><strong>对象。 </strong></p>
+<p>如果返回 None , Django将继续处理这个 request ，执行后续的中间件， 然后调用相应的view</p>
+<p>如果返回 HttpResponse 对象，Django 将不再执行 任何 其它的中间件(不论种类)以及相应的view。Django将立即返回</p>
+<h4>Response后处理函数: process_response(self, request, response)</h4>
+<p>这个方法的<strong>调用时机在</strong><strong>Django</strong><strong>执行view</strong><strong>函数</strong><strong>并生成</strong><strong>response</strong><strong>之后</strong>。</p>
+<p><strong>该处理器能修改response</strong><strong>的内容</strong>；一个常见的用途是内容压缩，如gzip所请求的HTML页面。</p>
+<p>这个方法的参数相当直观: request 是request对象，而 response 则是从view中返回的response对象。</p>
+<p><strong>process_response() </strong><strong>必须 </strong><strong>返回 HttpResponse </strong><strong>对象</strong>. 这个response对象可以是传入函数的那一个原始对象(通常已被修改)，也可以是全新生成的。</p>
+<h4>Exception后处理函数: process_exception(self, request, exception)</h4>
+<p>这个方法<strong>只有在</strong><strong>request</strong><strong>处理过程中出了问题并且view</strong><strong>函数抛出了一个未捕获的异常时才会被调用</strong>。这个钩子<strong>可以用来发送错误通知，将现场相关信息输出到日志文件</strong><strong>, </strong><strong>或者甚至尝试从错误中自动恢复</strong>。</p>
+<p>这个函数的参数除了一贯的 request 对象之外，还包括view函数抛出的实际的异常对象 exception 。</p>
+<p><strong>process_exception() </strong><strong>应当返回 None </strong><strong>或 HttpResponse </strong><strong>对象. </strong></p>
+<p>如果返回 None , Django将用框架内置的异常处理机制继续处理相应request。</p>
+<p>如果返回 HttpResponse 对象, Django 将使用该response对象，而短路框架内置的异常处理机制</p>
+<p>以下几章会详细介绍该机制。</p>
+<h3>三、 Django目录结构</h3>
+<p><a href="http://www.crazyant.net/wp-content/uploads/2012/08/dsf.png"><img style="background-image: none; padding-left: 0px; padding-right: 0px; display: inline; padding-top: 0px; border: 0px;" title="dsf" src="http://www.crazyant.net/wp-content/uploads/2012/08/dsf_thumb.png" alt="dsf" width="510" height="430" border="0" /></a></p>
+<p><strong>conf</strong></p>
+<p>主要有两个作用：1) 处理全局配置, 比如数据库、加载的应用、 MiddleWare等 2) 处理urls配置, 就是url与view的映射关系。</p>
+<p><strong>contrib (</strong><strong>贡献)</strong></p>
+<p>由Django的开发者贡献的功能模块，不过既然都已经随版本发布， 就表示是官方的。</p>
+<p><strong>core</strong></p>
+<p>Django的核心处理库，包括url分析、处理请求、缓存等，其中处理请求是核心了，比如处理fastcgi就是由wsgi.py处理。</p>
+<p><strong>db</strong></p>
+<p>顾名思义，处理与数据库相关的，就是ORM。</p>
+<p><strong>dispatch (</strong><strong>分派，派遣)</strong></p>
+<p>其实这不是Django原创，是pydispatch库，主要处 理消费者-工作者模式。</p>
+<p><strong>forms &amp;&amp; newforms &amp;&amp; oldforms</strong></p>
+<p>处理html的表单，不用多介绍。</p>
+<p><strong>middleware</strong></p>
+<p><strong>中间件，就是处理HTTP</strong><strong>的request</strong><strong>和response</strong><strong>的，类似插件。</strong>比 如默认的common中间件的一个功能：当一个页面没有找对对应的 pattern时， 会自定加上‘/’重新处理。比如访问/blog时，而定义的pattern是‘^blog/$’， 所以找不到对应的pattern，会自动再用/blog/查找，当然前提是 APPEND_SLASH=True。</p>
+<p><strong>template</strong></p>
+<p>Django的模板</p>
+<p><strong>templatetags</strong></p>
+<p>处理Application的tag的wrapper，就是将INSTALLED_APPS中 所有的templatetags目录添加到 django.templatetags目录中，则当使用 {{load blog}}记载tag时，就可以使用 import django.templatetags.blog 方式加载了。不过这有一个问题，如果其他Application目录中也有blog.py， 这会加载第一个出现blog.py的tag。其实在 Django中，有许多需要处理重名 的地方，比如template，需要格外小心，这个后续在介绍。</p>
+<p><strong>utils</strong></p>
+<p>公共库，很多公用的类都在放在这里。</p>
+<p><strong>views</strong></p>
+<p>最基本的view方法。</p>
+<h3>四、 Django 术语</h3>
+<p>在应用 Django 的时候，我们经常听到一些术语：</p>
+<p><strong>Project</strong></p>
+<p>指一个完整的Web服务，一般由多个模块组成。</p>
+<p><strong>Application</strong></p>
+<p>可以理解为模块，比如用户管理、博客管理等，包含了数据的组成和数据的显示，Applicaiton都需要在 &#8220;project/settings.py&#8221; 中 INSTALLED_APPS 的定义。</p>
+<p><strong>Middleware</strong></p>
+<p><strong>就是处理request</strong><strong>和response</strong><strong>的插件, Middleware</strong><strong>都需要在 &#8220;project/settings.py&#8221; </strong><strong>中 MIDDLEWARE_CLASSES </strong><strong>的定义。</strong></p>
+<p><strong>Loader</strong></p>
+<p>模板加载器, 其实就是为了读取 Template 文件的类，默认的有通过文件系统加载和在 &#8220;Application/templates&#8221; 目录中加载，Loader都需要在 &#8220;project/settings.py&#8221; 中 TEMPLATE_LOADERS 的定义。</p>
+<h3>五、 处理流程</h3>
+<p>其实和其他Web框架一样，HTTP处理的流程大致相同，</p>
+<p><strong>Django</strong><strong>处理一个Request</strong><strong>的过程是首先通过中间件，然后再通过默认的URL</strong><strong>方式进行的。</strong>我们可以在Middleware这个地方把所有Request拦截住，用我们自己的方式完成处理以后直接返回Response。</p>
+<p><strong>1. </strong><strong>加载配置</strong></p>
+<p>Django的配置都在 &#8220;Project/settings.py&#8221; 中定义，可以是Django的配置，也 可以是自定义的配置，并且都通过 django.conf.settings 访问，非常方便。</p>
+<p><strong>2. </strong><strong>启动</strong></p>
+<p>最核心动作的是通过 django.core.management.commands.runfcgi 的 Command 来启动，它运行 django.core.servers.fastcgi 中的 runfastcgi ， runfastcgi 使用了 flup 的 WSGIServer 来启动 fastcgi 。而 WSGIServer 中携带了 django.core.handlers.wsgi 的 WSGIHandler 类的一个实例，通过 WSGIHandler来处理由Web服务器(比如Apache，Lighttpd等)传过来的请求，此 时才是真正进入Django的世界。</p>
+<p><strong>3. </strong><strong>处理 Request</strong></p>
+<p>当有HTTP请求来时， WSGIHandler 就开始工作了,它从 BaseHandler 继承而来。 WSGIHandler 为每个请求创建一个 WSGIRequest 实例，而 WSGIRequest 是从 http.HttpRequest 继承而来。接下来就开始创建 Response 了.</p>
+<p><strong>4. </strong><strong>创建Response</strong></p>
+<p>BaseHandler 的 get_response 方法就是根据 request 创建 response ， 而 <strong>具体生成 response </strong><strong>的动作就是执行 urls.py </strong><strong>中对应的view</strong><strong>函数了</strong>，这也是 Django可以处理“友好URL”的关键步骤，每个这样的函数都要返回一个 Response 实例。此时一般的做法是通过 loader 加载 template 并生成页面内 容，其中重要的就是通过 ORM 技术从数据库中取出数据，并渲染到 Template 中，从而生成具体的页面了</p>
+<p><strong>5. </strong><strong>处理Response</strong></p>
+<p>Django 返回 Response 给 flup ， flup 就取出 Response 的内容返回给 Web 服务器，由后者返回给浏览器。</p>
+<p>总之， Django 在 fastcgi 中主要做了两件事：处理 Request 和创建 Response ， 而它们对应的核心就是“urls分析”、“模板技术”和“ORM技术”</p>
+<p><a href="http://www.crazyant.net/wp-content/uploads/2012/08/12.png"><img style="background-image: none; padding-left: 0px; padding-right: 0px; display: inline; padding-top: 0px; border: 0px;" title="12" src="http://www.crazyant.net/wp-content/uploads/2012/08/12_thumb.png" alt="12" width="467" height="525" border="0" /></a></p>
+<p>如图所示，一个HTTP请求，首先被转化成一个HttpRequest对象，然后该对象被传递给Request中间件处理，如果该中间件返回了Response，则直接传递给Response中间件做收尾处理。否则的话Request中间件将访问URL配置，确定哪个view来处理，在确定了哪个view要执行，但是还没有执行该view的时候，系统会把request传递给View中间件处理器进行处理，如果该中间件返回了Response，那么该Response直接被传递给Response中间件进行后续处理，否则将执行确定的View函数处理并返回Response，在这个过程中如果引发了异常并抛出，会被Exception中间件处理器进行处理。</p>
+<h3>六、 详细全流程</h3>
+<h4>一个 Request 到达了！</h4>
+<p>首先发生的是一些和 Django有关(前期准备）的其他事情，分别是：</p>
+<p>1. 如果是 Apache/mod_python 提供服务，request 由 mod_python 创建的 django.core.handlers.modpython.ModPythonHandler 实例传递给 Django。</p>
+<p>2. 如果是其他服务器，则必须兼容 WSGI，这样，服务器将创建一个 django.core.handlers.wsgi.WsgiHandler 实例。</p>
+<p>这两个类都继承自 django.core.handlers.base.BaseHandler，它包含对任何类 型的 request 来说都需要的公共代码。</p>
+<h4><a name="sec7"></a>有一个处理器(Handler)了</h4>
+<p>当上面其中一个处理器实例化后，紧接着发生了一系列的事情：</p>
+<p>1. 这个处理器（handler）导入你的 Django 配置文件。</p>
+<p>2. 这个处理器导入 Django 的自定义异常类。</p>
+<p>3. <strong>这个处理器调用它自己的 load_middleware </strong><strong>方法，加载所有列在 MIDDLEWARE_CLASSES </strong><strong>中的 middleware </strong><strong>类并且内省它们</strong>。</p>
+<p>最后一条有点复杂，我们仔细瞧瞧。</p>
+<p><strong>一 </strong><strong>个 middleware </strong><strong>类可以渗入处理过程的四个阶段：request</strong><strong>，view</strong><strong>，response </strong><strong>和 exception</strong><strong>。要做到这一点，只需要定义指定的、恰当的方 </strong><strong>法：process_request</strong><strong>，process_view</strong><strong>， process_response </strong><strong>和 process_exception</strong><strong>。middleware </strong><strong>可以定义其中任何一个或所有这些方法，这取 </strong><strong>决于你想要它提供什么样的功能。</strong></p>
+<p>当处理器内省 middleware 时，它查找上述名字的方法，并建立四个列表作为处理器的实例变量：</p>
+<p>1. _request_middleware 是一个保存 process_request 方法的列表（在每一 种情况下，它们是真正的方法，可以直接调用），这些方法来自于任一个定 义了它们的 middleware 类。</p>
+<p>1. _view_middleware 是一个保存 process_view 方法的列表，这些方法来自 于任一个定义了它们的 middleware 类。</p>
+<p>2. _response_middleware 是一个保存 process_response 方法的列表，这些 方法来自于任一个定义了它们的 middleware 类。</p>
+<p>3. _exception_middleware 是一个保存 process_exception 方法的列表，这 些方法来自于任一个定义了它们的 middleware 类。</p>
+<h4><a name="sec8"></a>绿灯：现在开始</h4>
+<p>现在处理器已经准备好真正开始处理了，因此它给调度程序发送一个信号 request_started（Django 内部的调度程序允许各种不同的组件声明它们正在干 什么，并可以写一些代码监听特定的事件。关于这一点目前还没有官方的文档， 但在 wiki上有一些注释。）。<strong>接下来它实例化一个</strong><strong> django.http.HttpRequest </strong><strong>的子类</strong>。根据不同的处理器，可能是 django.core.handlers.modpython.ModPythonRequest 的一个实例，也可能是 django.core.handlers.wsgi.WSGIRequest 的一个实例。需要两个不同的类是因 为 mod_python 和 WSGI APIs 以不同的格式传入 request 信息，这个信息需要 解析为 Django 能够处理的一个单独的标准格式。</p>
+<p>一旦一个 HttpRequest 或者类似的东西存在了，处理器就调用它自己的 get_response 方法，传入这个 HttpRequest 作为唯一的参数。这里就是几乎所 有真正的活动发生的地方。</p>
+<h4><a name="sec9"></a>Middleware，第一回合</h4>
+<p><strong>get_response </strong><strong>做的第一件事就是遍历处理器的 _request_middleware </strong><strong>实例变量 </strong><strong>并调用其中的每一个方法，传入 HttpRequest </strong><strong>的实例作为参数。</strong></p>
+<p>for middleware_method in <em>self</em>._request_middleware:</p>
+<p>response = middleware_method(request)</p>
+<p>if response:</p>
+<p>break<strong></strong></p>
+<p>这些方法可以选 择短路剩下的处理并立即让 get_response 返回，通过返回自身的一个值（如果 它们这样做，返回值必须是 django.http.HttpResponse 的一个实例，后面会讨 论到）。如果其中之一这样做了，我们会立即回到主处理器代码，get_response 不会等着看其它 middleware 类想要做什么，它直接返回，然后处理器进入 response 阶段。</p>
+<p>然而，更一般的情况是，<strong>这里应用的</strong><strong> middleware </strong><strong>方法简单地做一些处理并决定 </strong><strong>是否增加，删除或补充 request </strong><strong>的属性。</strong></p>
+<h4><a name="sec10"></a>关于解析</h4>
+<p>假设没有一个作用于 request 的 middleware 直接返回 response，处理器下一 步会尝试解析请求的 URL。它在配置文件中寻找一个叫做 ROOT_URLCONF 的配 置，用这个配置加上根 URL /，作为参数来创建 django.core.urlresolvers.RegexURLResolver 的一个实例，然后调用它的 resolve 方法来解析请求的 URL 路径。</p>
+<p>URL resolver 遵循一个相当简单的模式。对于在 URL 配置文件中根据 ROOT_URLCONF 的配置产生的每一个在 urlpatterns 列表中的条目，它会检查请 求的 URL 路径是否与这个条目的正则表达式相匹配，如果是的话，有两种选择：</p>
+<p>1. 如果这个条目有一个可以调用的 include，resolver 截取匹配的 URL，转 到 include 指定的 URL 配置文件并开始遍历其中 urlpatterns 列表中的 每一个条目。根据你 URL 的深度和模块性，这可能重复好几次。</p>
+<p>2. 否则，resolver 返回三个条目：匹配的条目指定的 view function；一个 从 URL 得到的未命名匹配组（被用来作为 view 的位置参数）；一个关键 字参数字典，它由从 URL 得到的任意命名匹配组和从 URLConf 中得到的任 意其它关键字参数组合而成。</p>
+<p>注意这一过程会在匹配到第一个指定了 view 的条目时停止，因此最好让你的 URL 配置从复杂的正则过渡到简单的正则，这样能确保 resolver 不会首先匹配 到简单的那一个而返回错误的 view function。</p>
+<p>如果没有找到匹配的条目，resolver 会产生 django.core.urlresolvers.Resolver404 异常，它是 django.http.Http404 例 外的子类。后面我们会知道它是如何处理的。</p>
+<h4><a name="sec11"></a>Middleware，第二回合</h4>
+<p><strong>一旦知道了所需的 view function </strong><strong>和相关的参数，处理器就会查看它的 _view_middleware </strong><strong>列表，并调用其中的方法</strong>，传入 HttpRequst，view function，针对这个 view 的位置参数列表和关键字参数字典。</p>
+<p># Apply view <span style="text-decoration: underline;">middleware</span></p>
+<p>for middleware_method in <em>self</em>.<span style="text-decoration: underline;">_view_middleware</span>:</p>
+<p>response = middleware_method(request, callback, callback_args, callback_kwargs)</p>
+<p>if response:</p>
+<p>break</p>
+<p>还有，middleware 有可能介入这一阶段并强迫处理器立即返回。</p>
+<h4><a name="sec12"></a>进入 View</h4>
+<p>如果处理过程这时候还在继续的话，处理器会调用 view function。Django 中的 Views 不很严格因为它只需要满足几个条件：</p>
+<p>² 必须可以被调用。</p>
+<p>² 必须接受 django.http.HttpRequest 的实例作为第一位值参数。</p>
+<p>² 必须能产生一个异常或返回 django.http.HttpResponse 的一个实例。</p>
+<p>除了这些，你就可以天马行空了。尽管如此，一般来说，views 会使用 Django 的 database API 来创建，检索，更新和删除数据库的某些东西，还会加载并渲 染一个模板来呈现一些东西给最终用户。</p>
+<h4><a name="sec13"></a>模板</h4>
+<p>Django 的模板系统有两个部分：一部分是给设计师使用的混入少量其它东西的 HTML，另一部分是给程序员使用纯 Python。</p>
+<p>从一个 HTML 作者的角度，Django 的模板系统非常简单，需要知道的仅有三个结构：</p>
+<p>² 变量引用。在模板中是这样： {{ foo }}。</p>
+<p>² 模板过滤。在上面的例子中使用过滤竖线是这样：{{ foo|bar }}。通常这 用来格式化输出（比如：运行 Textile，格式化日期等等）。</p>
+<p>² 模板标签。是这样：{% baz %}。这是模板的“逻辑”实现的地方，你可以 {% if foo %}，{% for bar in foo %}，等等，if 和 for 都是模板标签。</p>
+<p>变量引用以一种非常简单的方式工作。如果你只是要打印变量，只要 {{ foo }}，模板系统就会输出它。这里唯一的复杂情况是 {{ foo.bar }}，这时模板系 统按顺序尝试几件事：</p>
+<p>1. 首先它尝试一个字典方式的查找，看看 foo[&#8216;bar&#8217;] 是否存在。如果存在， 则它的值被输出，这个过程也随之结束。</p>
+<p>2. 如果字典查找失败，模板系统尝试属性查找，看看 foo.bar 是否存在。同 时它还检查这个属性是否可以被调用，如果可以，调用之。</p>
+<p>3. 如果属性查找失败，模板系统尝试把它作为列表索引进行查找。</p>
+<p>如果所有这些都失败了，模板系统输出配置 TEMPLATE_STRING_IF_INVALID 的值，默认是空字符串。</p>
+<p>模板过滤就是简单的 Python functions，它接受一个值和一个参数，返回一个新的值。比如，date 过滤用一个 Python datetime 对象作为它的值，一个标准的 strftime 格式化字符串作为它的参数，返回对 datetime 对象应用了格式化字符 串之后的结果。</p>
+<p>模板标签用在事情有一点点复杂的地方，它是你了解 Django 的模板系统是如何 真正工作的地方。</p>
+<h4><a name="sec14"></a>Django 模板的结构</h4>
+<p>在内部，一个 Django 模板体现为一个 “nodes” 集合，它们都是从基本的 django.template.Node 类继承而来。Nodes 可以做各种处理，但有一个共同点： 每一个 Node 必须有一个叫做 render 的方法，它接受的第二个参数（第一个参 数，显然是 Node 实例）是 django.template.Context 的一个实例，这是一个类 似于字典的对象，包含所有模板可以获得的变量。Node 的 render 方法必须返回 一个字符串，但如果 Node 的工作不是输出（比如，它是要通过增加，删除或修 改传入的 Context 实例变量中的变量来修改模板上下文），可以返回空字符串。</p>
+<p>Django 包含许多 Node 的子类来提供有用的功能。比如，每个内置的模板标签都 被一个 Node 的子类处理（比如，IfNode 实现了 if 标签，ForNode 实现了 for 标签，等等）。所有内置标签可以在 django.template.defaulttags 找到。</p>
+<p><a href="http://www.crazyant.net/wp-content/uploads/2012/08/sdf.png"><img style="background-image: none; padding-left: 0px; padding-right: 0px; display: inline; padding-top: 0px; border: 0px;" title="sdf" src="http://www.crazyant.net/wp-content/uploads/2012/08/sdf_thumb.png" alt="sdf" width="287" height="384" border="0" /></a></p>
+<p>实际上，上面介绍的所有模板结构都是某种形式的 Nodes，纯文本也不异常。变 量查找由 VariableNode 处理，出于自然，过滤也应用在 VariableNode 上，标 签是各种类型的 Nodes，纯文本是一个 TextNode。</p>
+<p>一般来说，一个 view 渲染一个模板要经过下面的步骤，依次是：</p>
+<p>1. 加载需要渲染的模板。这是由 django.template.loader.get_template 完 成的，它能利用这许多方法中的任意一个来定位需要的模板文件。 get_template 函数返回一个 django.template.Template 实例，其中包含 经过解析的模板和用到的方法。</p>
+<p>2. 实例化一个 Context 用来渲染模板。如果用的是 Context 的子类 django.template.RequestContext，那么附带的上下文处理函数就会自动添 加在 view 中没有定义的变量。Context 的构建器方法用一个键/值对的字 典（对于模板，它将变为名/值变量）作为它唯一的参数，RequestContext 则用 HttpRequest 的一个实例和一个字典。</p>
+<p>3. 调用 Template 实例的 render 方法，Context 对象作为第一个位置参数。</p>
+<p>Template 的 render 方法的返回值是一个字符串，它由 Template 中所有 Nodes 的 render 方法返回的值连接而成，调用顺序为它们出现在 Template 中 的顺序。</p>
+<h4><a name="sec15"></a>关于 Response，一点点</h4>
+<p>一旦一个模板完成渲染，或者产生了其它某些合适的输出，view 就会负责产生一 个 django.http.HttpResponse 实例，它的构建器接受两个可选的参数：</p>
+<p>1. 一个作为 response 主体的字符串（它应该是第一位置参数，或者是关键字 参数 content）。大部分时间，这将作为渲染一个模板的输出，但不是必须 这样，在这里你可以传入任何有效的 Python 字符串。</p>
+<p>2. 作 为 response 的 Content-Type header 的值（它应该是第二位置参数， 或者是关键字参数 mine_type）。如果没有提供这个参数，Django 将会使 用配置中 DEFAULT_MIME_TYPE 的值和 DEFAULT_CHARSET 的值，如果你没有 在 Django 的全局配置文件中更改它们的话，分别是 “text/html” 和 “utf-8”。</p>
+<h4><a name="sec16"></a>Middleware，第三回合：异常</h4>
+<p>如果 view 函数，或者其中的什么东西，发生了异常，那么 get_response（我知 道我们已经花了些时间深入 views 和 templates，但是一旦 view 返回或产生异常，我们仍将重拾处理器中间的 get_response 方法）将遍历它的 <a name="OLE_LINK2"></a><a name="OLE_LINK1"></a>_exception_middleware 实例变量并调用那里的每个方法，传入 HttpResponse 和这个 exception 作为参数。如果顺利，这些方法中的一个会实例化一个 HttpResponse 并返回它。</p>
+<h4><a name="sec17"></a>仍然没有响应？</h4>
+<p>这时候有可能还是没有得到一个 HttpResponse，这可能有几个原因：</p>
+<p>1. view 可能没有返回值。</p>
+<p>2. view 可能产生了异常但没有一个 middleware 能处理它。</p>
+<p>3. 一个 middleware 方法试图处理一个异常时自己又产生了一个新的异常。</p>
+<p>这时候，get_response 会回到自己的异常处理机制中，它们有几个层次：</p>
+<p>1. 如果 exception 是 Http404 并且 DEBUG 设置为 True，get_response 将 执行 view django.views.debug.technical_404_response，传入 HttpRequest 和 exception 作为参数。这个 view 会展示 URL resolver 试图匹配的模式信息。</p>
+<p>2. 如果 DEBUG 是 False 并且异常是 Http404，get_response 会调用 URL resolver 的 resolve_404 方法。这个方法查看 URL 配置以判断哪一个 view 被指定用来处理 404 错误。默认是 django.views.defaults.page_not_found，但可以在 URL 配置中给 handler404 变量赋值来更改。</p>
+<p>3. 对于任何其它类型的异常，如果 DEBUG 设置为 True，get_response 将执 行 view django.views.debug.technical_500_response，传入 HttpRequest 和 exception 作为参数。这个 view 提供了关于异常的详细 信息，包括 traceback，每一个层次 stack 中的本地变量，HttpRequest 对象的详细描述和所有无效配置的列表。</p>
+<p>4. 如果 DEBUG 是 False，get_response 会调用 URL resolver 的 resolve_500 方法，它和 resolve_404 方法非常相似，这时默认的 view 是 django.views.defaults.server_error，但可以在 URL 配置中给 handler500 变量赋值来更改。</p>
+<p>此外，对于除了 django.http.Http404 或 Python 内置的 SystemExit 之外的任 何异常，处理器会给调度者发送信号 got_request_exception，在返回之前，构 建一个关于异常的描述，把它发送给列在 Django 配置文件的 ADMINS 配置中的 每一个人。</p>
+<h4><a name="sec18"></a>Middleware，最后回合</h4>
+<p>现在，<strong>无论</strong><strong> get_response </strong><strong>在哪一个层次上发生错误，它都会返回一个 HttpResponse </strong><strong>实例，因此我们回到处理器的主要部分。</strong>一旦它获得一个 HttpResponse 它做的第一件事就是遍历它的 _response_middleware 实例变量并 应用那里的方法，传入 HttpRequest 和 HttpResponse 作为参数。</p>
+<p><strong>finally:</strong></p>
+<p># Reset URLconf for this thread on the way out for complete</p>
+<p># isolation of request.<span style="text-decoration: underline;">urlconf</span></p>
+<p>urlresolvers.set_urlconf(None)</p>
+<p>try:</p>
+<p># Apply response <span style="text-decoration: underline;">middleware</span>, regardless of the response</p>
+<p><strong>for middleware_method in <em>self</em>._response_middleware:</strong><strong></strong></p>
+<p>response = middleware_method(request, response)</p>
+<p>response = <em>self</em>.apply_response_fixes(request, response)</p>
+<p>注意对于任何想改变点什么的 middleware 来说，这是它们的最后机会。</p>
+<h4><a name="sec19"></a>The check is in the mail</h4>
+<p>是该结束的时候了。一旦 middleware 完成了最后环节，处理器将给调度者发送 信号 request_finished，对与想在当前的 request 中执行的任何东西来说，这 绝对是最后的调用。监听这个信号的处理者会清空并释放任何使用中的资源。比 如，Django 的 request_finished 监听者会关闭所有数据库连接。</p>
+<p>这件事发生以后，处理器会构建一个合适的返回值送返给实例化它的任何东西 （现在，是一个恰当的 mod_python response 或者一个 WSGI 兼容的 response，这取决于处理器）并返回。</p>
+<h4><a name="sec20"></a>呼呼</h4>
+<p>结束了，从开始到结束，这就是 Django 如何处理一个 request。</p>
+<div class="wumii-hook">
+    <input type="hidden" name="wurl" value="http://www.crazyant.net/1001.html" /><br />
+    <input type="hidden" name="wtitle" value="对Django框架架构和Request/Response处理流程的分析" /><br />
+    <input type="hidden" name="wpic" value="" />
+</div>
+	
+		</div>
+			<footer class="entry-footer">
+	<div class="entry-meta">
+		<span class="entry-terms category" itemprop="articleSection">Posted in: <a href="http://www.crazyant.net/category/python" rel="tag">python</a></span>		| <span class="entry-terms post_tag" itemprop="keywords">Tagged: <a href="http://www.crazyant.net/tag/django" rel="tag">django</a></span>		
+	</div><!-- .entry-meta -->
+</footer><div class="entry-meta"></div>
+	</div><!-- .entry-wrap -->
+	
+</article><!-- #post-## -->	<nav role="navigation" id="nav-below" class="navigation  post-navigation">
+
+	
+		<div class="nav-previous alignleft"><a href="http://www.crazyant.net/970.html" rel="prev"><span class="meta-nav">&larr;</span> PHP开发者最好的学习资源收集</a></div>		<div class="nav-next alignright"><a href="http://www.crazyant.net/1005.html" rel="next">Django关于站点管理Admin Site的常见问题解决方法 <span class="meta-nav">&rarr;</span></a></div>
+	
+	</nav><!-- #nav-below -->
+	<a name="comments"></a>
+
+<div class="ds-thread" data-thread-key="1001" data-author-key="1" data-title="对Django框架架构和Request/Response处理流程的分析" data-url="http://www.crazyant.net/1001.html"></div>
+
+<script type="text/javascript">
+	if (typeof DUOSHUO !== 'undefined')
+		DUOSHUO.EmbedThread('.ds-thread');
+</script>
+	<div id="ds-ssr">
+
+		
+            <ol id="commentlist">
+                		<li class="post pingback">
+			<p>Pingback: <a href='http://f-yifan.net/%e6%94%b6%e9%9b%86%e4%b8%80%e4%ba%9b%e6%8a%80%e6%9c%af%e7%ab%99%e7%82%b9/' rel='external nofollow' class='url fn n' itemprop="url"><span itemprop="name">收集的一些技术站点 | Destiny 91的博客</span></a></p>
+		</li><!-- #comment-## -->
+		<li class="comment even thread-even depth-1" id="li-comment-10549">
+			<article id="comment-10549" class="comment">
+				<footer class="comment-meta">
+					<cite class="comment-author vcard">
+						<span class="fn">坚果</span> on <a rel="nofollow" href="http://www.crazyant.net/1001.html/comment-page-1#comment-10549"><time pubdate datetime="2013-03-10T02:02:36+00:00">2013/03/10 at 上午 2:02</time></a> <span class="says">said:</span>					</cite><!-- .comment-author .vcard -->
+				</footer>
+	
+				<div class="comment-content"><p>受教了</p>
+</div>
+				
+			</article><!-- #comment-## -->
+		</li><!-- #comment-## -->
+		<li class="comment odd alt thread-odd thread-alt depth-1" id="li-comment-10609">
+			<article id="comment-10609" class="comment">
+				<footer class="comment-meta">
+					<cite class="comment-author vcard">
+						<span class="fn">zhkzyth</span> on <a rel="nofollow" href="http://www.crazyant.net/1001.html/comment-page-1#comment-10609"><time pubdate datetime="2013-07-28T09:41:04+00:00">2013/07/28 at 上午 9:41</time></a> <span class="says">said:</span>					</cite><!-- .comment-author .vcard -->
+				</footer>
+	
+				<div class="comment-content"><p>膜拜大师&#8230;..XD</p>
+</div>
+				
+			</article><!-- #comment-## -->
+		</li><!-- #comment-## -->
+		<li class="comment even thread-even depth-1" id="li-comment-10652">
+			<article id="comment-10652" class="comment">
+				<footer class="comment-meta">
+					<cite class="comment-author vcard">
+						<span class="fn">helloworld</span> on <a rel="nofollow" href="http://www.crazyant.net/1001.html/comment-page-1#comment-10652"><time pubdate datetime="2013-11-07T03:56:28+00:00">2013/11/07 at 上午 3:56</time></a> <span class="says">said:</span>					</cite><!-- .comment-author .vcard -->
+				</footer>
+	
+				<div class="comment-content"><p>太牛了，膜拜啊。</p>
+</div>
+				
+			</article><!-- #comment-## -->
+		</li><!-- #comment-## -->
+		<li class="comment odd alt thread-odd thread-alt depth-1" id="li-comment-10658">
+			<article id="comment-10658" class="comment">
+				<footer class="comment-meta">
+					<cite class="comment-author vcard">
+						<span class="fn"><a href='http://t.qq.com/mlianghua' rel='external nofollow' class='url fn n' itemprop="url"><span itemprop="name">缪良华</span></a></span> on <a rel="nofollow" href="http://www.crazyant.net/1001.html/comment-page-1#comment-10658"><time pubdate datetime="2013-11-27T09:23:09+00:00">2013/11/27 at 上午 9:23</time></a> <span class="says">said:</span>					</cite><!-- .comment-author .vcard -->
+				</footer>
+	
+				<div class="comment-content"><p>很好，谢谢！膜拜</p>
+</div>
+				
+			</article><!-- #comment-## -->
+		</li><!-- #comment-## -->
+            </ol>
+
+		            
+    </div>
+	</main><!-- .content -->
+
+			
+
+	<aside class="sidebar sidebar-primary widget-area" role="complementary" itemscope="itemscope" itemtype="http://schema.org/WPSideBar">
+	
+		
+		<section id="search-4" class="widget widget-1 even widget-first widget_search"><div class="widget-wrap"><form role="search" method="get" class="search-form" action="http://www.crazyant.net/">
+	
+	<input type="search" class="search-field" placeholder="Search ..." value="" name="s" title="Search for:">
+	
+	<input type="submit" class="search-submit" value="Search">
+</form>
+</div></section><section id="text-8" class="widget widget-2 odd widget_text"><div class="widget-wrap"><h4 class="widget-title">百度广告</h4>			<div class="textwidget"><script type="text/javascript">
+    /*2014年11月1日 右上角矩形*/
+    var cpro_id = "u1786986";
+</script>
+<script src="http://cpro.baidustatic.com/cpro/ui/c.js" type="text/javascript"></script>
+</div>
+		</div></section><section id="categories-10" class="widget widget-3 even widget_categories"><div class="widget-wrap"><h4 class="widget-title">分类目录</h4>		<ul>
+	<li class="cat-item cat-item-7"><a href="http://www.crazyant.net/category/c-plus-plus" title="C++语言相关的知识">C++</a> (11)
+</li>
+	<li class="cat-item cat-item-136"><a href="http://www.crazyant.net/category/hadoop" >hadoop</a> (6)
+</li>
+	<li class="cat-item cat-item-145"><a href="http://www.crazyant.net/category/hive" >hive</a> (13)
+</li>
+	<li class="cat-item cat-item-134"><a href="http://www.crazyant.net/category/java-development" >JAVA</a> (6)
+</li>
+	<li class="cat-item cat-item-36"><a href="http://www.crazyant.net/category/mysql" >mysql</a> (18)
+</li>
+	<li class="cat-item cat-item-8"><a href="http://www.crazyant.net/category/php-development" title="PHP程序设计语言相关知识">PHP</a> (51)
+</li>
+	<li class="cat-item cat-item-111"><a href="http://www.crazyant.net/category/python" >python</a> (28)
+</li>
+	<li class="cat-item cat-item-144"><a href="http://www.crazyant.net/category/shell" >shell</a> (2)
+</li>
+	<li class="cat-item cat-item-151"><a href="http://www.crazyant.net/category/web-development" title="web开发，css、javascript、库、语法">web</a> (11)
+</li>
+	<li class="cat-item cat-item-121"><a href="http://www.crazyant.net/category/wordpress" >wordpress</a> (1)
+</li>
+	<li class="cat-item cat-item-149"><a href="http://www.crazyant.net/category/my-story" title="我自己的人生路">个人旅程</a> (14)
+</li>
+	<li class="cat-item cat-item-150"><a href="http://www.crazyant.net/category/programmer-basic-knowledge" title="欲练神功，先练内功，算法、底层知识">基础知识</a> (2)
+</li>
+	<li class="cat-item cat-item-131"><a href="http://www.crazyant.net/category/tools-software" >工具软件</a> (14)
+</li>
+	<li class="cat-item cat-item-152"><a href="http://www.crazyant.net/category/operating-syatem" title="操作系统使用问题解决，windows、ubuntu、fedora、centos">操作系统</a> (12)
+</li>
+	<li class="cat-item cat-item-148"><a href="http://www.crazyant.net/category/web-scraping" title="又称数据采集、数据抓取、屏幕抓取、网络爬虫，从互联网抓取数据的技术">数据采集</a> (3)
+</li>
+	<li class="cat-item cat-item-133"><a href="http://www.crazyant.net/category/website" >站长</a> (6)
+</li>
+		</ul>
+</div></section>		<section id="recent-posts-9" class="widget widget-4 odd widget_recent_entries"><div class="widget-wrap">		<h4 class="widget-title">近期文章</h4>		<ul>
+					<li>
+				<a href="http://www.crazyant.net/1712.html">做设计就像创世界</a>
+						</li>
+					<li>
+				<a href="http://www.crazyant.net/1707.html">Python使用list字段模式或者dict字段模式读取文件的方法</a>
+						</li>
+					<li>
+				<a href="http://www.crazyant.net/1703.html">Java怎样创建两个KEY（key-pair）的MAP</a>
+						</li>
+					<li>
+				<a href="http://www.crazyant.net/1697.html">《超体》中的哲学</a>
+						</li>
+					<li>
+				<a href="http://www.crazyant.net/1689.html">Java枚举类型代码的二逼写法和艺术写法</a>
+						</li>
+					<li>
+				<a href="http://www.crazyant.net/1664.html">Python操作MySQL视频教程</a>
+						</li>
+					<li>
+				<a href="http://www.crazyant.net/1625.html">Hive开发经验问答式总结</a>
+						</li>
+					<li>
+				<a href="http://www.crazyant.net/1607.html">将普通Maven Spring项目转换成Web项目的方法</a>
+						</li>
+				</ul>
+		</div></section><section id="text-10" class="widget widget-5 even widget_text"><div class="widget-wrap"><h4 class="widget-title">百度广告</h4>			<div class="textwidget"><script type="text/javascript">
+    /*2014年11月1日 右下角竖幅*/
+    var cpro_id = "u1786988";
+</script>
+<script src="http://cpro.baidustatic.com/cpro/ui/c.js" type="text/javascript"></script>
+</div>
+		</div></section><section id="ds-recent-comments-2" class="widget widget-6 odd ds-widget-recent-comments"><div class="widget-wrap"><h4 class="widget-title">最新评论</h4><ul class="ds-recent-comments" data-num-items="5" data-show-avatars="1" data-show-time="1" data-show-title="1" data-show-admin="1" data-avatar-size="30" data-excerpt-length="70"></ul></div></section><script>
+if (typeof DUOSHUO !== 'undefined')
+	DUOSHUO.RecentComments && DUOSHUO.RecentComments('.ds-recent-comments');
+</script><section id="linkcat-2" class="widget widget-7 even widget-last widget_links"><div class="widget-wrap"><h4 class="widget-title">友情链接</h4>
+	<ul class='xoxo blogroll'>
+<li><a href="http://www.android-study.net/" target="_blank">Android开发学习网</a></li>
+<li><a href="http://www.juapk.com" target="_blank">android开发网</a></li>
+<li><a href="http://www.askoracle.org" target="_blank">Ask Oracle社区</a></li>
+<li><a href="http://www.chaoswork.com/" rel="acquaintance" target="_blank">Chaoswork&#039;s blog</a></li>
+<li><a href="http://www.zyidai.com" target="_blank">PHP博客</a></li>
+<li><a href="http://www.phpernote.com" target="_blank">php程序员教程网</a></li>
+<li><a href="http://www.redicecn.com/" rel="friend met" title="redice的博客" target="_blank">redice&#039;s blog</a></li>
+<li><a href="http://www.gretheer.com" target="_blank">忙碌的松鼠</a></li>
+<li><a href="http://www.52coder.net/" target="_blank">我爱程序员</a></li>
+<li><a href="http://gov.com.im/" target="_blank">流亡青年</a></li>
+<li><a href="http://dongxicheng.org/" target="_blank">董的博客</a></li>
+<li><a href="http://www.91data.com">西安网络公司</a></li>
+<li><a href="http://www.07q.net/" target="_blank">酸菜鱼</a></li>
+<li><a href="http://www.alivv.com?rz">链接平台</a></li>
+<li><a href="http://www.site-digger.com" rel="acquaintance" title="专注于Web（网站）数据抓取领域。致力于为广大中国客户提供准确、快捷的数据采集相关服务" target="_blank">鲲鹏Web数据抓取</a></li>
+
+	</ul>
+</div></section>
+
+		
+  	</aside><!-- .sidebar -->
+
+</div>
+	</div><!-- .site-inner -->
+
+	<footer id="footer" class="site-footer" role="contentinfo" itemscope="itemscope" itemtype="http://schema.org/WPFooter"><div class="wrap"><div class="footer-content footer-insert"><p class="copyright">Copyright &#169; 2015 <a class="site-link" href="http://www.crazyant.net" rel="home">疯狂的蚂蚁</a>.</p>
+
+<p class="credit">Theme by <a class="theme-link" href="http://crazyant.net/" title="peishuaishuai">peishuaishuai</a>.</p></div></div></footer><!-- .site-footer -->
+</div><!-- .site-container -->
+
+
+
+<p style="margin:0;padding:0;height:1px;overflow:hidden;">
+    <script type="text/javascript"><!--
+        var wumiiSitePrefix = "http://www.crazyant.net";
+        var wumiiEnableCustomPos = false;
+        var wumiiParams = "&num=8&mode=3&displayInFeed=1&version=1.0.5.7&pf=WordPress4.1.1";
+        var wumiiCategories = ["python"];
+    //--></script><script type="text/javascript" src="http://widget.wumii.cn/ext/relatedItemsWidget"></script><a href="http://www.wumii.com/widget/relatedItems" style="border:0;"><img src="http://static.wumii.cn/images/pixel.png" alt="无觅相关文章插件，快速提升流量" style="border:0;padding:0;margin:0;" /></a>
+</p><script type='text/javascript' src='http://www.crazyant.net/wp-includes/js/comment-reply.min.js?ver=4.1.1'></script>
+<script type='text/javascript' src='http://www.crazyant.net/wp-content/plugins/easy-fancybox/fancybox/jquery.fancybox-1.3.6.pack.js?ver=1.5.6'></script>
+<script type='text/javascript' src='http://www.crazyant.net/wp-content/plugins/easy-fancybox/jquery.easing.pack.js?ver=1.3'></script>
+<script type='text/javascript' src='http://www.crazyant.net/wp-content/plugins/easy-fancybox/jquery.mousewheel.pack.js?ver=3.1.3'></script>
+
+<script type="text/javascript">
+jQuery(document).on('ready post-load', easy_fancybox_handler );
+</script>
+
+<script type="text/javascript">
+var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
+document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F4c9637db87f741d7588ff42a2a9c057d' type='text/javascript'%3E%3C/script%3E"));
+</script>
+
+</body>
+</html>

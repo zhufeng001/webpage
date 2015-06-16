@@ -1,0 +1,1563 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML xmlns="http://www.w3.org/1999/xhtml" sizset="0" 
+sizcache039381544854674843="0"><HEAD><META content="IE=7.0000" 
+http-equiv="X-UA-Compatible">
+<TITLE>KVM虚拟化开源高可用方案（六）ISCSI ON DRBD搭建及常见故障处理 - xiaoli110的博客 - 51CTO技术博客</TITLE>
+<META content="text/html;&#9;charset=gb2312" http-equiv=Content-Type>
+<META name=description 
+content=一、准备1.1硬件要求为了充分保证系统的稳定性和性能，要求两台DRBD服务器硬件配置尽量一致，尤其是硬盘数量和大小。机器的RAID卡需要带电池，缓存越大，性能越好。一般情况下，建议做RAID10，如果出于空间要求的..>
+<META name=keywords content=kvm,drbd,iscsi>
+<META content=private http-equiv=Cache-Control><BASE 
+href="http://xiaoli110.blog.51cto.com/"></BASE>
+<SCRIPT type=text/javascript src="http://www.google-analytics.com/ga.js" 
+async="true"></SCRIPT>
+
+<SCRIPT src="/js/def.js"></SCRIPT>
+
+<SCRIPT language=javascript type=text/javascript 
+src="http://blog.51cto.com/js/message.js"></SCRIPT>
+
+<SCRIPT language=javascript type=text/javascript 
+src="http://blog.51cto.com/js/user_comment.js"></SCRIPT>
+
+<SCRIPT language=javascript type=text/javascript 
+src="http://blog.51cto.com/js/base2.js"></SCRIPT>
+
+<SCRIPT language=javascript type=text/javascript 
+src="http://blog.51cto.com/js/dialog_utf8.js"></SCRIPT>
+<LINK rel=stylesheet type=text/css href="/css/skin/30.css"><LINK title="RSS 2.0" 
+rel=alternate type=application/rss+xml href="../rss.php?uid=1724"><LINK 
+title=rsd rel=edituri type=application/rsd+xml href="xmlrpc.php?rsd=1"><LINK 
+rel=stylesheet type=text/css 
+href="http://blog.51cto.com/group/css/header_master_top.css"><LINK 
+rel=stylesheet type=text/css href="http://blog.51cto.com/css/skin/base.css">
+<SCRIPT src="http://blog.51cto.com/js/poptop.js"></SCRIPT>
+
+<STYLE type=text/css>
+	.mainNav li a{display:inline-block}
+</STYLE>
+
+<SCRIPT>
+var myid = "";
+function add_flink(){
+	if(myid==""){
+
+        var refurlk = "http://xiaoli110.blog.51cto.com/1724/1071101";
+
+				//commentSubmit("",refurlk);
+				location.href="http://home.51cto.com/index.php?reback="+encodeURIComponent(encodeURIComponent(refurlk));
+				return false;
+	}else{
+      		var url='/mod/edit_flink.php?type=addflink&uid=1724&flink=http://xiaoli110.blog.51cto.com';
+		var ajax = InitAjax1();
+		ajax.open("GET", url, true);
+		ajax.onreadystatechange = function() {
+			if (ajax.readyState == 4 && ajax.status == 200) {
+				if(ajax.responseText==""){
+					alert("添加成功。");
+				}
+				if(ajax.responseText=="1"){
+				alert("链接指向自己。");
+				}
+				if(ajax.responseText=="2"){
+				alert("友情链接已存在。")
+				}
+			}
+		}
+		ajax.send(null);
+	}
+
+
+
+}
+function sendmessage(){
+
+	var refurlk = "http://xiaoli110.blog.51cto.com/1724/1071101";
+
+	if(myid){
+		return true;
+	}else{
+		commentSubmit("",refurlk);
+		return false;
+	}
+}
+function copylink(ourl){
+	if(!ourl){
+		var clipBoardContent = "http://xiaoli110.blog.51cto.com";
+	}else{
+		var clipBoardContent = ourl;
+	}
+	window.clipboardData.setData("Text",clipBoardContent);
+	alert("复制成功!");
+	return false;
+}
+function correctPNG() {
+if (document.getElementById('blog_touxian'))
+{
+var img = document.getElementById('blog_touxian');
+      var imgName = img.src.toUpperCase()
+      var imgID = (img.id) ? "id='" + img.id + "' " : ""
+      var imgClass = (img.className) ? "class='" + img.className + "' " : ""
+      var imgTitle = (img.title) ? "title='" + img.title + "' " : "title='" + img.alt + "' "
+      var imgStyle = "display:inline-block;" + img.style.cssText
+      if (img.align == "left") imgStyle = "float:left;" + imgStyle
+      if (img.align == "right") imgStyle = "float:right;" + imgStyle
+      if (img.parentElement.href) imgStyle = "cursor:hand;" + imgStyle
+      var strNewHTML = "<span " + imgID + imgClass + imgTitle
+         + " style=\"" + "width:" + img.width + "px; height:" + img.height + "px;" + imgStyle + ";"
+         + "filter:progid:DXImageTransform.Microsoft.AlphaImageLoader"
+         + "(src=\'" + img.src + "\', sizingMethod='scale');\"></span>" ;
+      img.outerHTML = strNewHTML;
+}
+}
+//window.attachEvent("onload", correctPNG);
+window.onload=correctPNG;
+
+function copy(){
+var text=document.getElementById("txtUser").value;
+if(copy2Clipboard(text)!=false){ 
+alert("复制成功了！ "); 
+} 
+}
+function copy2Clipboard(txt){ 
+if(window.clipboardData){ 
+window.clipboardData.clearData(); 
+window.clipboardData.setData("Text",txt); 
+}else if(navigator.userAgent.indexOf("Opera")!=-1){ 
+window.location=txt; 
+}else if(window.netscape){ 
+try{ 
+netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect"); 
+} 
+catch(e){ 
+alert("您使用的浏览器不支持此复制功能，请使用Ctrl+C或鼠标右键。"); 
+return false; 
+} 
+var clip=Components.classes['@mozilla.org/widget/clipboard;1'].createInstance(Components.interfaces.nsIClipboard); 
+if(!clip)return; 
+var trans=Components.classes['@mozilla.org/widget/transferable;1'].createInstance(Components.interfaces.nsITransferable); 
+if(!trans)return; 
+trans.addDataFlavor('text/unicode'); 
+var str=new Object(); 
+var len=new Object(); 
+var str=Components.classes["@mozilla.org/supports-string;1"].createInstance(Components.interfaces.nsISupportsString); 
+var copytext=txt;str.data=copytext; 
+trans.setTransferData("text/unicode",str,copytext.length*2); 
+var clipid=Components.interfaces.nsIClipboard; 
+if(!clip)return false; 
+clip.setData(trans,null,clipid.kGlobalClipboard); 
+return true;
+} 
+}
+
+function mod_close(){
+  document.getElementById('mod_tg').style.display="none";
+}
+
+function match_invite(uid) {
+    var url='/mod/match_invite.php';
+	var ajax = InitAjax();
+    var re = 'uid=' + uid;
+	ajax.open("POST", url, true);
+    ajax.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+	ajax.send(re);
+    ajax.onreadystatechange = function() {
+        if (ajax.readyState == 4 && ajax.status == 200) {
+            if(ajax.responseText == 1){
+                alert("邀请信息已经发送成功。");
+            } else if(ajax.responseText=="-1"){
+                alert("邀请失败，请稍候再试。");
+            } else if(ajax.responseText=="2"){
+                alert("该用户已经报名了。")
+            }
+        }
+    }
+}
+
+</SCRIPT>
+
+<STYLE type=text/css>
+/*
+.artContent img {max-width:450px !important;}
+.showContent img{max-width:650px!important;}
+*/
+
+.artContent img{max-width: 450px; width:expression(this.width > 450 ? "450px" : this.width)}
+/*
+.showContent img{max-width: 450px; width:expression(this.width > 650 ? "650px" : this.width)}
+*/
+
+
+</STYLE>
+<LINK rel=stylesheet type=text/css 
+href="http://bdimg.share.baidu.com/static/css/bdsstyle.css?cdnversion=20130704">
+<SCRIPT 
+src="http://bdimg.share.baidu.com/static/js/logger.js?cdnversion=383005"></SCRIPT>
+</HEAD>
+<BODY sizset="0" sizcache039381544854674843="0"><IFRAME style="DISPLAY: none" 
+frameBorder=0></IFRAME>
+<DIV id=bdshare_s style="DISPLAY: block"><IFRAME id=bdsIfr 
+style="POSITION: absolute; Z-INDEX: 9999; DISPLAY: none" frameBorder=0></IFRAME>
+<DIV id=bdshare_l style="DISPLAY: none">
+<DIV id=bdshare_l_c>
+<H6>分享到</H6>
+<UL>
+  <LI><A class="bds_mshare mshare" 
+  href="http://xiaoli110.blog.51cto.com/#">一键分享</A></LI>
+  <LI><A class="bds_qzone qqkj" 
+  href="http://xiaoli110.blog.51cto.com/#">QQ空间</A></LI>
+  <LI><A class="bds_tsina xlwb" 
+  href="http://xiaoli110.blog.51cto.com/#">新浪微博</A></LI>
+  <LI><A class="bds_baidu bdsc" 
+  href="http://xiaoli110.blog.51cto.com/#">百度云收藏</A></LI>
+  <LI><A class="bds_renren rrw" 
+  href="http://xiaoli110.blog.51cto.com/#">人人网</A></LI>
+  <LI><A class="bds_tqq txwb" 
+  href="http://xiaoli110.blog.51cto.com/#">腾讯微博</A></LI>
+  <LI><A class="bds_bdxc bdxc" 
+  href="http://xiaoli110.blog.51cto.com/#">百度相册</A></LI>
+  <LI><A class="bds_kaixin001 kxw" 
+  href="http://xiaoli110.blog.51cto.com/#">开心网</A></LI>
+  <LI><A class="bds_tqf txpy" 
+  href="http://xiaoli110.blog.51cto.com/#">腾讯朋友</A></LI>
+  <LI><A class="bds_tieba bdtb" 
+  href="http://xiaoli110.blog.51cto.com/#">百度贴吧</A></LI>
+  <LI><A class="bds_douban db" 
+  href="http://xiaoli110.blog.51cto.com/#">豆瓣网</A></LI>
+  <LI><A class="bds_tsohu shwb" 
+  href="http://xiaoli110.blog.51cto.com/#">搜狐微博</A></LI>
+  <LI><A class="bds_bdhome bdhome" 
+  href="http://xiaoli110.blog.51cto.com/#">百度新首页</A></LI>
+  <LI><A class="bds_sqq sqq" 
+  href="http://xiaoli110.blog.51cto.com/#">QQ好友</A></LI>
+  <LI><A class="bds_thx thx" 
+  href="http://xiaoli110.blog.51cto.com/#">和讯微博</A></LI>
+  <LI><A class=bds_more 
+href="http://xiaoli110.blog.51cto.com/#">更多...</A></LI></UL>
+<P><A class=goWebsite 
+href="http://xiaoli110.blog.51cto.com/#">百度分享</A></P></DIV></DIV></DIV>
+<DIV id=home_top sizset="0" sizcache039381544854674843="0">
+<DIV class=top_nav style="WIDTH: 990px" sizset="0" 
+sizcache039381544854674843="0">
+<DIV class=left style="MARGIN-TOP: 10px; WIDTH: 440px" sizset="0" 
+sizcache039381544854674843="0"><A href="http://blog.51cto.com/" target=_blank 
+sizset="0" sizcache039381544854674843="0"><IMG style="MARGIN-TOP: -4px" 
+align=absMiddle src="images/head_blog_sibebar_logo.gif"></A><A 
+href="http://www.51cto.com" target=_blank>51CTO首页</A><IMG 
+style="MARGIN-TOP: -4px" align=absMiddle 
+src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif" width=16 
+height=25><A href="http://blog.51cto.com/" target=_blank>51CTO博客</A><IMG 
+style="MARGIN-TOP: -4px" align=absMiddle 
+src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif" width=16 
+height=25><A 
+href="http://home.51cto.com?reback=http%253A%252F%252Fxiaoli110.blog.51cto.com%252F1724%252F1071101">我的博客</A><IMG 
+style="MARGIN-TOP: -4px" align=absMiddle 
+src="http://home.51cto.com/public/themes/blue/images/top_bg_xian.gif" width=16 
+height=25> <A href="http://blog.51cto.com/search.php" target=_blank>搜索</A> <A 
+id=showMessagerDim style="COLOR: #ff0000; TEXT-DECORATION: underline" 
+href="javascript:void(0);" jQuery17109942777660757731="4">每日博报</A> </DIV>
+<DIV class=right style="WIDTH: 550px" sizset="4" sizcache039381544854674843="0">
+<DIV class=more sizset="4" sizcache039381544854674843="0"><IMG align=absMiddle 
+src="http://home.51cto.com/public/themes/blue/images/top_shequ.gif" width=27 
+height=16>社区：<A href="http://edu.51cto.com/" target=_blank>学院</A><A 
+href="http://bbs.51cto.com" target=_blank>论坛</A><A href="http://blog.51cto.com" 
+target=_blank>博客</A><A href="http://down.51cto.com" target=_blank>下载</A><A 
+onmouseover=show(3,this) onmouseout=popupClose() href="javascript:viod(0);" 
+sizset="5" sizcache039381544854674843="0">更多<IMG style="PADDING-LEFT: 4px" 
+align=absMiddle 
+src="http://images.51cto.com/images/art/top_images/nav_ico1.gif"></A> 
+</DIV><SPAN id=login_status>
+<DIV class=login style="TEXT-ALIGN: right; PADDING-TOP: 8px"><A 
+style="BACKGROUND: none transparent scroll repeat 0% 0%" 
+href="http://home.51cto.com/index.php?s=/Home/index"><IMG id=dia title=今天领无忧币了吗？ 
+style="MARGIN-TOP: -3px" align=absMiddle 
+src="http://home.51cto.com/public/themes/blue/images/dia.gif" width=20></A><A 
+href="http://home.51cto.com/?reback=http%253A%252F%252Fxiaoli110.blog.51cto.com%252F1724%252F1071101" 
+target=_self>登录</A><A 
+href="http://ucenter.51cto.com/reg_01.php?reback=http%253A%252F%252Fxiaoli110.blog.51cto.com%252F1724%252F1071101" 
+target=_self>注册</A></DIV></SPAN></DIV></DIV></DIV>
+<DIV onmouseover=popupNoClose() onmouseout=popupClose() id=s3 class=subMenu3>
+<UL>
+  <LI><A href="http://home.51cto.com" target=_blank>家园</A> 
+  <LI><A href="http://edu.51cto.com" target=_blank>学院</A> 
+  <LI><A href="http://blog.51cto.com" target=_blank>博客</A> 
+  <LI><A href="http://bbs.51cto.com" target=_blank>论坛</A> 
+  <LI><A href="http://down.51cto.com" target=_blank>下载</A> 
+  <LI><A href="http://selftest.51cto.com" target=_blank>自测</A> 
+  <LI><A href="http://doctor.51cto.com" target=_blank>门诊</A> 
+  <LI><A href="http://blog.51cto.com/newsletter/" target=_blank>周刊</A> 
+  <LI><A href="http://book.51cto.com" target=_blank>读书</A> 
+  <LI><A href="http://g.51cto.com" target=_blank>技术圈</A> </LI></UL></DIV><!--简导航end-->
+<DIV class=headerBox sizset="6" sizcache039381544854674843="0">
+<DIV class=header sizset="6" sizcache039381544854674843="0">
+<DIV class=header_l sizset="6" sizcache039381544854674843="0">
+<DIV class=logo_blogname sizset="6" sizcache039381544854674843="0">
+<DIV class=blogLogo sizset="6" sizcache039381544854674843="0"><A 
+href="http://blog.51cto.com/blogcommend" target=_blank sizset="6" 
+sizcache039381544854674843="0"><IMG 
+src="http://blog.51cto.com/image/skin/blogLogo01.png" width=161 height=70></A> 
+</DIV>
+<DIV class=blogName><A href="http://xiaoli110.blog.51cto.com">
+<H1>xiaoli110的博客</H1></A></DIV></DIV><!--logo_blogname end-->
+<DIV class=blogLink><A 
+href="http://xiaoli110.blog.51cto.com">http://xiaoli110.blog.51cto.com</A> 
+<INPUT id=txtUser size=32 type=hidden value=http://xiaoli110.blog.51cto.com> <A 
+onclick=copy(); href="javascript:void(0);">【复制】</A> <A href="/rss.php?uid=1724" 
+target=_blank><A href="/rss.php?uid=1724" target=_blank>【订阅】</A> </DIV></DIV><!--header_l end-->
+<DIV class=header_r>
+<DIV class=blogInfo><SPAN><A title=察看xiaoli110所有原创文章 
+href="http://xiaoli110.blog.51cto.com/1724/o">原创</A>:97</SPAN><SPAN><A 
+title=察看xiaoli110所有翻译文章 
+href="http://xiaoli110.blog.51cto.com/1724/t">翻译</A>:0</SPAN><SPAN><A 
+title=察看xiaoli110所有转载文章 
+href="http://xiaoli110.blog.51cto.com/1724/c">转载</A>:6</SPAN></DIV>
+<DIV class=blogNav><A href="/">博 客</A>|<A href="/pic/">图库</A>|<A 
+href="/addblog.php">写博文</A>|<A 
+href="http://51ctoblog.blog.51cto.com/all/26414/4" target=_blank>帮 
+助</A></DIV></DIV></DIV><!--header end--></DIV><!--headerBox end-->
+<DIV class=mainNav><SPAN class=mainNavT></SPAN>
+<UL>
+  <LI><A href="#">首页</A>|
+  <LI><A href="/1724/d-6">KVM虚拟化技术</A>|
+  <LI><A href="/1724/d-7">Linux技术及shell</A>|
+  <LI><A href="/1724/d-8">IDC机房管理和运维</A>|
+  <LI><A href="/1724/d-9">python</A>|
+  <LI><A href="/1724/d-10">windows</A>|
+  <LI><A href="/1724/d-11">生活感悟</A>|
+  <LI><A href="/1724/d-12">vb和vbs</A>|
+  <LI><A href="/1724/d-13">我开发的虚拟化管理软件</A>|
+  <LI><A href="/1724/d-14">非KVM虚拟化技术</A> </LI></UL><SPAN 
+class=mainNavB></SPAN></DIV><!--mainNav end-->
+<SCRIPT type=text/javascript 
+src="http://blog.51cto.com/js/jquery-1.7.1.min.js"></SCRIPT>
+<LINK rel=stylesheet type=text/css 
+href="/neweditor/editor/css/fck_editorarea.css"></LINK>
+<SCRIPT type=text/javascript charset=gbk 
+src="/e/u/third-party/SyntaxHighlighter/shCores.js"></SCRIPT>
+<LINK rel=stylesheet type=text/css 
+href="/e/u/third-party/SyntaxHighlighter/shCoreDefault.css">
+<SCRIPT type=text/javascript charset=gbk src="/e/u/uparse.js"></SCRIPT>
+
+<SCRIPT type=text/javascript>
+	uParse('.showContent');
+	$(function(){
+		//SyntaxHighlighter.config.clipboardSwf = 'http://bbs.51cto.com/plugins/syntaxhighlighter/scripts/clipboard.swf'; 
+		//为了在编辑器之外能展示高亮代码
+		SyntaxHighlighter.highlight();
+	}); 
+</SCRIPT>
+
+<SCRIPT type=text/javascript>
+/**
+ * 回复评论需要用的js
+ * 2012-5-14
+ * by:chengtao
+ */
+ jQuery(function(){
+	blogpost.init();//初始化博客回复功能
+ })
+ /**
+  * 处理博文评论功能优化
+  */
+ blogpost={
+	abstruct_list:null,
+	init:function(){
+		blogpost.bind();//绑定一些时间
+		this.abstruct_list=new Array();//初始化保存评论信息的数组
+	},
+	/**
+	 * 博客回复需要绑定的一些事件
+	 */
+	bind:function(){
+		/**
+		 * 点击回复的事件
+		 */
+		jQuery('.repost').live('click',function(){
+			blogpost.repost(jQuery(this).attr('user_name'),jQuery(this).attr('parentid'));
+			return false;
+		});
+		/**
+		 * 点击楼层进行翻页且找到锚点
+		 */
+		jQuery('.anchor_page').live('click',function(){
+			var parentid = $(this).attr('parentid');
+			var tid=$(this).attr('tid');
+			$.get('/comments.php?tid='+tid+'&parentid='+parentid,function(data){
+				$('#artcomment').html(data);
+				window.location.hash=''+parentid;
+			})
+			return false;
+		}),
+		jQuery('.anchor_page').live('mouseover',function(){
+			var parentid = $(this).attr('parentid');
+			if(!blogpost.abstruct_list[parentid]){
+				var this_t = $(this);
+				$.get('/comments.php?cid='+parentid,function(data,textStatus){
+					blogpost.abstruct_list[parentid]=data;
+					this_t.attr('title',this_t.text()+':'+ blogpost.abstruct_list[parentid]);
+				});
+			}else{
+				$(this).attr('title',$(this).text()+':'+blogpost.abstruct_list[parentid]);
+			}
+		})
+	},
+	/**
+	 * @param user_name 用户名
+	 * @param parentid  父评论id
+	 */
+	repost:function(user_name,parentid){
+		window.location.hash='comment';
+		jQuery('#parentid').val(parentid);
+		jQuery('#commentcontent').val('回复 '+user_name+":\n").focus();
+		if(!$.browser.mozilla){
+			var elem = jQuery('#commentcontent')[0];		
+			var caretPos = elem.value.length;
+			if (elem.createTextRange) {
+				var range = elem.createTextRange();
+				range.move('character', caretPos);
+				range.select();
+			}else{
+				elem.setSelectionRange(caretPos, caretPos);	
+			}
+		}
+	},
+	/**
+	 * 发送完毕之后清理表单数据 不是ajax可能用不到
+	 */
+	clean:function(){
+		
+	}
+ }
+</SCRIPT>
+
+<SCRIPT type=text/javascript>
+jQuery(function(){
+	var anchor = document.location.hash;
+	var comment_id=anchor.split('#')[1];
+	if(!isNaN(parseInt(comment_id))){//是整形
+		jQuery.get('/comments.php?tid=1071101&parentid='+comment_id,function(data){
+			jQuery('#artcomment').html(data);
+			window.location.hash=''+comment_id;
+		})
+	}
+});
+</SCRIPT>
+
+<SCRIPT type=text/javascript>
+jQuery(function() {
+	jQuery('#favourdiv').mouseover(function(){
+		if(jQuery(this).attr('className') == 'support01')
+		{
+			jQuery(this).attr('className', "support02");
+			jQuery(this).html('+1人');
+			jQuery(this).attr('title', "赞一个，我支持TA");
+		}
+		else if(jQuery(this).attr('className') == 'support03')
+		{
+			jQuery(this).attr('title', "你已经赞了这篇博文！");
+		}
+		
+	});
+	jQuery('#favourdiv').mouseout(function(){
+		if(jQuery(this).attr('className') == 'support02')
+		{
+			jQuery(this).attr('className', "support01");
+			jQuery(this).html("0人");
+		}
+	});
+	jQuery('.blog_match_yq').click(function(){
+		var wind_uid = '';
+		if(!wind_uid){
+			alert("请先登录！");
+			return false;
+		}
+		jQuery.ajax({
+			   type: "POST",
+			   url:"/contest2012/index.php?mod=sendmsg",
+			   dataType: "html",
+			   data: "vuid=" + 1724,
+			   success: function(data) {
+					if(data == 0)
+					{
+						alert("查无此人！");
+						return false;
+					}else if(data == 1){
+						alert("请先登录！");
+						return false;
+					}else if(data == 2){
+						alert("不能邀请自己！");
+						return false;
+					}else if(data == 22){  
+						alert("邀请信息已发出！");
+						return false;
+					}
+			   }
+		  });
+	});
+	jQuery('#favourdiv').click(function(){
+			jQuery.ajax({
+			   type: "POST",
+			   url:"/mod/favour.php",
+			   dataType: "html",
+			   data: "tid=" + 1071101,
+			   success: function(data) {
+					if(data == 0)
+					{
+						alert("您还未登录或者已过期，请重新登录");
+						location.href = "http://home.51cto.com/index.php?reback=http%253A%252F%252Fxiaoli110.blog.51cto.com%252F1724%252F1071101";
+						return false;
+					}
+					else if(data == '-1')
+					{
+						alert("参数传递错误！");
+						return false;
+					}
+					else if(data == '-2')
+					{
+						alert("该博文已被删除或者不存在！");
+						return false;
+					}
+					else if(data == '-3')
+					{
+						alert("您已经赞过了！");
+						return false;
+					}
+					else if(data == '-4')
+					{
+						alert("赞操作失败！");
+						return false;
+					}
+					else
+					{  
+						//alert("操作成功，你已经赞了这篇博文！");
+						jQuery('#favourdiv').attr('className', "support03");
+
+						var num = 0 + 1 + "人";
+						jQuery('#favourdiv').html(num);
+						jQuery('#favourer').html(data);
+						return false;
+					}
+			   }
+		  });
+	});
+	//Jaydar http://blog.51cto.com/js/header.php?uid=blogdb[uid]&tid=tid
+	jQuery.post('/js/header.php',{uid:1724,tid:1071101},function(data){
+		jQuery('#readNum').html(data[0]);
+		jQuery('#cmtNum').html(data[1]);
+	},'json');
+	
+
+})
+
+jQuery(function(){
+	jQuery('#darid').bind('click',function(){
+		if(confirm("你确定删除此篇文章？")){
+			jQuery.ajax({
+				'type':'post',
+				'url':'user_index.php?action=delarticle',
+				'data':{'job':'del', 'selid':'1071101'},
+				'dataType':'html',
+				'success':function(res){
+					if('ok' == res){
+						location.href="http://.blog.51cto.com";
+					}
+				
+				}
+			});
+		}
+	});
+});
+</SCRIPT>
+
+<STYLE type=text/css>
+.m_sharelinks{ 
+	line-height:36px; 
+	text-align:left; 
+	padding-left:20px; 
+	background:url(http://img1.51cto.com/images/share/ico_lb.gif) no-repeat left center;
+	float:left; 
+	width:600px; 
+	height:36px;
+}
+.m_sharelinks a{ margin-left:10px;}
+.m_sharebtn{ height:50px; width:726px; margin:0 auto;}
+.m_sharebtn01{width:520px; float:left;}
+.weibo_51cto{ background:url(http://img1.51cto.com/images/share/ico_mweibo.gif) no-repeat center center; display:block; width:33px; height:33px; float:left; margin:3px 3px 0 0;cursor:pointer;}
+.shareMored {
+    line-height: 36px;
+	float:right; 
+	text-align:right; 
+	width:100px; 
+	height:36px;
+}
+
+.showContent {
+	margin:20px 15px 8px;
+}
+.userImage img {
+    text-align: center;
+	border:0;
+	padding:0;
+}
+.photo_links{ line-height:30px; padding-top:5px; font-size:13px;width:170px; margin:0 auto;}
+.photo_links_blue{ text-align:center;}
+.photo_links_blue a:link,.photo_links_blue a:visited,.photo_links_blue a:hover,.photo_links_blue a:active{ color:#015F91; text-decoration: underline;}
+.photo_links_red{ text-align:left;}
+.photo_links_red a:link,.photo_links_red a:visited,.photo_links_red a:hover,.photo_links_red a:active{ color:#fc4343; text-decoration:underline;}
+.photo_links_red02{ text-align:center;}
+</STYLE>
+
+<SCRIPT language=JavaScript type=text/javascript 
+src="http://g.51cto.com/js/group.js"></SCRIPT>
+
+<DIV id=add_sys_type_div 
+style="BORDER-TOP: #58b0dd 1px solid; BORDER-RIGHT: #58b0dd 1px solid; BORDER-BOTTOM: #58b0dd 1px solid; POSITION: absolute; LEFT: 30%; BORDER-LEFT: #58b0dd 1px solid; Z-INDEX: 255; DISPLAY: none; TOP: 300px; WIDTH: 600px; BACKGROUND-COLOR: #fff"></DIV>
+<DIV id=add_sys_type_divs 
+style="BORDER-TOP: #58b0dd 1px solid; BORDER-RIGHT: #58b0dd 1px solid; BORDER-BOTTOM: #58b0dd 1px solid; POSITION: absolute; LEFT: 30%; BORDER-LEFT: #58b0dd 1px solid; Z-INDEX: 255; DISPLAY: none; TOP: 300px; WIDTH: 550px; BACKGROUND-COLOR: #fff"></DIV>
+<DIV class=blogMain sizset="7" sizcache039381544854674843="0">
+<DIV class=blogLeft sizset="7" sizcache039381544854674843="0">
+<DIV class="box moduleUser" sizset="7" sizcache039381544854674843="0">
+<DIV class=title>
+<H2><STRONG>xiaoli110</STRONG> 的BLOG </H2></DIV>
+<DIV class=modCon sizset="7" sizcache039381544854674843="0">
+<DIV class=userImage 
+style="BORDER-TOP: #d4d4d4 1px solid; BORDER-RIGHT: #d4d4d4 1px solid; BORDER-BOTTOM: #d4d4d4 1px solid; TEXT-ALIGN: center; MARGIN: 10px auto 5px; BORDER-LEFT: #d4d4d4 1px solid; WIDTH: 130px" 
+sizset="7" sizcache039381544854674843="0">
+<TABLE cellSpacing=0 cellPadding=0 width="100%" sizset="7" 
+sizcache039381544854674843="0">
+  <TBODY sizset="7" sizcache039381544854674843="0">
+  <TR sizset="7" sizcache039381544854674843="0">
+    <TD height=130 vAlign=middle align=center sizset="7" 
+    sizcache039381544854674843="0">
+      <SCRIPT 
+src="http://blog.51cto.com/mod/userface.php?useruid=1724"></SCRIPT>
+      <IMG id=userface 
+      src="http://ucenter.51cto.com/avatar.php?uid=1724&amp;size=middle"></TD></TR></TBODY></TABLE></DIV>
+<DIV class=photo_links></DIV>
+<DIV class=crumbs><A class=writeMessage 
+href="http://home.51cto.com/index.php?s=/space/1724#message" 
+target=_blank>写留言</A><A class=inCircle 
+href="http://g.51cto.com/addgroup.php?uid=" target=_blank>邀请进圈子</A><A 
+class=message href="http://home.51cto.com/index.php?s=/Notify/write/uid/1724" 
+target=_blank>发消息</A> <A onclick="add_flink(1724);return false" class=joinLinks 
+href="/">加友情链接</A><A class=joinFriends 
+href="http://home.51cto.com/index.php?s=/space/1724" target=_blank>进家园 加好友</A> 
+</DIV>
+<DIV style="HEIGHT: 64px; DISPLAY: none; WIDTH: 239px" sizset="8" 
+sizcache039381544854674843="0">
+<DIV style="FLOAT: left">
+<P 
+style="PADDING-BOTTOM: 0px; PADDING-TOP: 15px; PADDING-LEFT: 28px; LINE-HEIGHT: 20px; PADDING-RIGHT: 0px">2012年度IT博客大赛<BR><A 
+style="COLOR: #f00; TEXT-DECORATION: underline" 
+href="http://blog.51cto.com/contest2012/#top10000" 
+target=_blank>十大杰出IT博客诞生</A></P></DIV>
+<DIV style="FLOAT: right" sizset="8" sizcache039381544854674843="0"><A 
+href="http://blog.51cto.com/contest2012/1724" target=_blank sizset="8" 
+sizcache039381544854674843="0"><IMG style="MARGIN: 23px 20px 0px 0px" 
+src="http://img1.51cto.com/images/blog_match_endlook.jpg" width=57 
+height=27></A></DIV>
+<DIV class=clear></DIV></DIV></DIV><!--modCon end--><SPAN 
+class=modBot></SPAN></DIV>
+<DIV class="infoList box">
+<DIV class=title>
+<H2>博客统计信息</H2></DIV>
+<DIV class=modCon>
+<P><SPAN class=infoListHead><A class=operlink 
+href="http://blog.51cto.com/blogcommend" target=_blank><B>51CTO推荐博客</B></A> 
+<BR></SPAN>用户名：xiaoli110<BR>文章数：103<BR>评论数：113<BR>访问量：136549<BR><A 
+href="http://home.51cto.com/index.php?s=/Account/credit" 
+target=_blank>无忧币</A>：1268<BR><A 
+href="http://51ctoblog.blog.51cto.com/26414/5591" 
+target=_blank>博客积分</A>：2678<BR><A 
+href="http://51ctoblog.blog.51cto.com/26414/5591" 
+target=_blank>博客等级</A>：7<BR>注册日期：2005-10-19<BR>
+<SCRIPT src="http://blog.51cto.com/active/no1/blogno1countdown.php"></SCRIPT>
+</P></DIV><SPAN class=modBot></SPAN></DIV>
+<DIV class="hotArt box">
+<DIV class=title>
+<H2>热门文章</H2></DIV>
+<DIV class=modCon>
+<UL>
+  <LI><A href="/1724/784874">开源虚拟化管理平台Ovirt..</A> 
+  <LI><A href="/1724/684301">openvswitch在rhel61+kvm..</A> 
+  <LI><A href="/1724/675371">nox的安装和gui配置</A> 
+  <LI><A href="/1724/591490">如何管理好IDC机房？（一）</A> 
+  <LI><A href="/1724/669511">openvswitch在kvm中使用l..</A> 
+  <LI><A href="/1724/601899">入行十年经验谈it认证</A> 
+  <LI><A href="/1724/654644">要不要去北京上海发展？</A> 
+  <LI><A href="/1724/593395">如何管理好IDC机房？（二..</A> </LI></UL></DIV><SPAN 
+class=modBot></SPAN></DIV>
+<DIV class="search box">
+<DIV class=title>
+<H2>搜索BLOG文章</H2></DIV>
+<DIV class=modCon>
+<FORM tabIndex=99 method=post action=search.php?><INPUT type=hidden value=2 
+name=step> <INPUT type=hidden value=1724 name=authorid> <INPUT type=hidden 
+value=S name=sch_area> <INPUT class=searchInput name=keyword> <INPUT class=searchBtn type=submit value="搜 索"> 
+</FORM></DIV><!--modCon end--><SPAN class=modBot></SPAN></DIV>
+<DIV class="myHome box">
+<DIV class=title>
+<H2 class=fl>我的技术圈(<A href="/mygroup.php" target=_blank><B>4</B></A>)</H2><A 
+class=fr href="http://home.51cto.com/apps/group/index.php?s=/Index/index/" 
+target=_blank>更多&gt;&gt;</A></DIV>
+<DIV class=modCon>
+<UL>
+  <LI><A href="http://g.51cto.com/sever" 
+  target=_blank>服务器技术win2003/2008</A>&nbsp;&nbsp; 
+  <LI><A href="http://g.51cto.com/rhco" target=_blank>redhat VS 
+  centOS</A>&nbsp;&nbsp; 
+  <LI><A href="http://g.51cto.com/shlinux" 
+  target=_blank>上海Linux技术圈</A>&nbsp;&nbsp; 
+  <LI><A href="http://g.51cto.com/weichen" target=_blank>★网络微尘★</A>&nbsp;&nbsp; 
+  </LI></UL></DIV><!--modCon end--><SPAN class=modBot></SPAN></DIV>
+<DIV class="box recentGuests" sizset="9" sizcache039381544854674843="0">
+<DIV class=title>
+<H2>最近访客</H2></DIV>
+<DIV class=modCon sizset="9" sizcache039381544854674843="0">
+<UL sizset="9" sizcache039381544854674843="0">
+  <LI sizset="9" sizcache039381544854674843="0"><A 
+  href="http://inaction.blog.51cto.com" sizset="9" 
+  sizcache039381544854674843="0"><IMG 
+  src="http://ucenter.51cto.com/avatar.php?uid=2629206&amp;size=middle"></A> 
+  <P><A href="http://inaction.blog.51cto.com">归尘</A></P></LI>
+  <LI sizset="10" sizcache039381544854674843="0"><A 
+  href="http://4505107.blog.51cto.com" sizset="10" 
+  sizcache039381544854674843="0"><IMG 
+  src="http://ucenter.51cto.com/avatar.php?uid=4495107&amp;size=middle"></A> 
+  <P><A href="http://4505107.blog.51cto.com">网络..</A></P></LI>
+  <LI sizset="11" sizcache039381544854674843="0"><A 
+  href="http://1331072.blog.51cto.com" sizset="11" 
+  sizcache039381544854674843="0"><IMG 
+  src="http://ucenter.51cto.com/avatar.php?uid=1321072&amp;size=middle"></A> 
+  <P><A href="http://1331072.blog.51cto.com">a521013</A></P></LI>
+  <LI sizset="12" sizcache039381544854674843="0"><A 
+  href="http://3071971.blog.51cto.com" sizset="12" 
+  sizcache039381544854674843="0"><IMG 
+  src="http://ucenter.51cto.com/avatar.php?uid=3061971&amp;size=middle"></A> 
+  <P><A href="http://3071971.blog.51cto.com">yang68h</A></P></LI>
+  <LI sizset="13" sizcache039381544854674843="0"><A 
+  href="http://opsmysql.blog.51cto.com" sizset="13" 
+  sizcache039381544854674843="0"><IMG 
+  src="http://ucenter.51cto.com/avatar.php?uid=2238445&amp;size=middle"></A> 
+  <P><A href="http://opsmysql.blog.51cto.com">qzhijun</A></P></LI>
+  <LI sizset="14" sizcache039381544854674843="0"><A 
+  href="http://263249.blog.51cto.com" sizset="14" 
+  sizcache039381544854674843="0"><IMG 
+  src="http://ucenter.51cto.com/avatar.php?uid=253249&amp;size=middle"></A> 
+  <P><A href="http://263249.blog.51cto.com">pccary</A></P></LI>
+  <LI sizset="15" sizcache039381544854674843="0"><A 
+  href="http://nameyjj.blog.51cto.com" sizset="15" 
+  sizcache039381544854674843="0"><IMG 
+  src="http://ucenter.51cto.com/avatar.php?uid=788669&amp;size=middle"></A> 
+  <P><A href="http://nameyjj.blog.51cto.com">nameyjj</A></P></LI>
+  <LI sizset="16" sizcache039381544854674843="0"><A 
+  href="http://navyaijm.blog.51cto.com" sizset="16" 
+  sizcache039381544854674843="0"><IMG 
+  src="http://ucenter.51cto.com/avatar.php?uid=4647068&amp;size=middle"></A> 
+  <P><A href="http://navyaijm.blog.51cto.com">navya..</A></P></LI>
+  <LI sizset="17" sizcache039381544854674843="0"><A 
+  href="http://3875562.blog.51cto.com" sizset="17" 
+  sizcache039381544854674843="0"><IMG 
+  src="http://ucenter.51cto.com/avatar.php?uid=3865562&amp;size=middle"></A> 
+  <P><A href="http://3875562.blog.51cto.com">huain..</A></P></LI>
+  <LI sizset="18" sizcache039381544854674843="0"><A 
+  href="http://7490787.blog.51cto.com" sizset="18" 
+  sizcache039381544854674843="0"><IMG 
+  src="http://ucenter.51cto.com/avatar.php?uid=7480787&amp;size=middle"></A> 
+  <P><A href="http://7490787.blog.51cto.com">ivan_..</A></P></LI>
+  <LI sizset="19" sizcache039381544854674843="0"><A 
+  href="http://lxcong.blog.51cto.com" sizset="19" 
+  sizcache039381544854674843="0"><IMG 
+  src="http://ucenter.51cto.com/avatar.php?uid=7485244&amp;size=middle"></A> 
+  <P><A href="http://lxcong.blog.51cto.com">lxcong</A></P></LI>
+  <LI sizset="20" sizcache039381544854674843="0"><A 
+  href="http://6207679.blog.51cto.com" sizset="20" 
+  sizcache039381544854674843="0"><IMG 
+  src="http://ucenter.51cto.com/avatar.php?uid=6197679&amp;size=middle"></A> 
+  <P><A href="http://6207679.blog.51cto.com">mirx</A></P></LI></UL><SPAN 
+class=clear></SPAN></DIV><SPAN class=modBot></SPAN></DIV>
+<DIV class="newComments box">
+<DIV class=title>
+<H2>最新评论 </H2></DIV>
+<DIV class=modCon>
+<UL>
+  <LI><A class=operlink href="http://xiaoli110.blog.51cto.com/" 
+  target=_blank><B>xiaoli110</B></A>：<A href="/1724/696730" target=_blank>回复 
+  loip125: 你是在虚拟机上测..</A> 
+  <LI><A class=operlink href="http://wxhome.blog.51cto.com/" 
+  target=_blank><B>loip125</B></A>：<A href="/1724/696730" 
+  target=_blank>你好，按照你的操作试了下，出了个..</A> 
+  <LI><A class=operlink href="http://4364638.blog.51cto.com/" 
+  target=_blank><B>xiaoquezi821</B></A>：<A href="/1724/593412" 
+  target=_blank>事半功倍吧。。呵呵</A> 
+  <LI><A class=operlink href="http://xiaoli110.blog.51cto.com/" 
+  target=_blank><B>xiaoli110</B></A>：<A href="/1724/651515" 
+  target=_blank>iometer fio iozone </A>
+  <LI><A class=operlink href="http://4292019.blog.51cto.com/" 
+  target=_blank><B>zealo7</B></A>：<A href="/1724/651515" 
+  target=_blank>那请问有什么好的工具推荐吗？</A> </LI></UL></DIV><SPAN 
+class=modBot></SPAN></DIV>
+<DIV class="hotBlogArt box">
+<DIV class=title>
+<H2 class=fl>51CTO推荐博文</H2><A class=fr 
+href="http://blog.51cto.com/artcommend">更多&gt;&gt;</A></DIV>
+<DIV class=modCon>
+<UL>
+  <LI><A title="EasyXMS 多线程批量管理Linux/Unix系统" 
+  href="http://linux5588.blog.51cto.com/65280/1293677" target=_blank>EasyXMS 
+  多线程批量管理Linux/Uni..</A> 
+  <LI><A title=归档与备份：它们有什么不同？ 
+  href="http://liangqiu.blog.51cto.com/4461709/1293606" 
+  target=_blank>归档与备份：它们有什么不同？</A> 
+  <LI><A title="集群 之 LVS + Keepalived" 
+  href="http://caisangzi.blog.51cto.com/6387416/1293292" target=_blank>集群 之 LVS 
+  + Keepalived</A> 
+  <LI><A title="CentOS6.3 Samba安装配置、多用户、加域" 
+  href="http://icedot.blog.51cto.com/61369/1293327" target=_blank>CentOS6.3 
+  Samba安装配置、多用户..</A> 
+  <LI><A title=Nginx的安装并实现web功能 
+  href="http://jiangkun08.blog.51cto.com/6266992/1293456" 
+  target=_blank>Nginx的安装并实现web功能</A> 
+  <LI><A title=电信宽带推送那点事儿 href="http://laoxu.blog.51cto.com/4120547/1293458" 
+  target=_blank>电信宽带推送那点事儿</A> 
+  <LI><A title="华为USG_5160防火墙双出口+ipsec/l2tp vpn真实案例" 
+  href="http://sliang2012.blog.51cto.com/4548797/1292889" 
+  target=_blank>华为USG_5160防火墙双出口+ipsec/..</A> 
+  <LI><A title=详解mysql备份恢复的三种实现方式 
+  href="http://lanlian.blog.51cto.com/6790106/1293353" 
+  target=_blank>详解mysql备份恢复的三种实现方式</A> 
+  <LI><A title=iptables防火墙脚本应用 
+  href="http://phenixikki.blog.51cto.com/7572938/1293444" 
+  target=_blank>iptables防火墙脚本应用</A> 
+  <LI><A title="Windows Server 2012之Windows PowerShell Web(1)" 
+  href="http://fengxja.blog.51cto.com/1410070/1293284" target=_blank>Windows 
+  Server 2012之Windows Po..</A> 
+  <LI><A title=物理虚拟化服务器之间的KVM在线动态迁移 
+  href="http://rfyiamcool.blog.51cto.com/1030776/1293301" 
+  target=_blank>物理虚拟化服务器之间的KVM在线动..</A> </LI></UL></DIV><!--modCon end--><SPAN 
+class=modBot></SPAN></DIV>
+<DIV class="friendLink box">
+<DIV class=title>
+<H2>友情链接</H2></DIV>
+<DIV class=modCon>
+<UL>
+  <LI><A title=51CTO博客开发 href="http://51ctoblog.blog.51cto.com" 
+  target=_blank>51CTO博客开发</A> </LI></UL></DIV><!--modCon end--><SPAN 
+class=modBot></SPAN></DIV></DIV><!--left end-->
+<SCRIPT type=text/javascript>
+    var favor_url = "http://xiaoli110.blog.51cto.com/1724/1071101";
+    var favor_title = "KVM虚拟化开源高可用方案（六）ISCSI ON DRBD搭建及常见故障处理";
+    var favor_fuid = "1724";
+</SCRIPT>
+
+<SCRIPT type=text/javascript 
+src="http://home.51cto.com/apps/favorite/Tpl/default/Public/js/favorbox.js"></SCRIPT>
+
+<DIV class=blogRight sizset="21" sizcache039381544854674843="0">
+<DIV class="artShow box" sizset="21" sizcache039381544854674843="0">
+<DIV id=share class=share>
+<DIV class=shareItem>
+<DIV class=m_sharelinks><A style="COLOR: red" 
+href="http://edu.51cto.com/member/index.html" 
+target=_blank>李海园老师年度会员优惠购买中！</A><A style="COLOR: blue" 
+href="http://blog.51cto.com/newsletter/217/" target=_blank>职场人生：盯住进展才能取得进展</A><A 
+style="COLOR: red" href="http://www.95px.com/courses/list176Index.shtml" 
+target=_blank>工信部－弱电项目经理技术资格认证</A></DIV>
+<P class=shareMored><A href="/all/1724">博主的更多文章&gt;&gt;</A></P></DIV></DIV>
+<DIV class=modCon sizset="21" sizcache039381544854674843="0">
+<DIV class=showBox style="MARGIN: 0px 0px 10px" sizset="21" 
+sizcache039381544854674843="0">
+<DIV class=line_hd_r></DIV>
+<DIV class=art_tj></DIV>
+<DIV class=showHead sizset="21" sizcache039381544854674843="0">
+<DIV class=showTitleBOx style="TEXT-ALIGN: center" sizset="21" 
+sizcache039381544854674843="0">
+<DIV class=showTitle sizset="21" sizcache039381544854674843="0"><IMG 
+src="http://blog.51cto.com/image/skin/artType01.jpg"> KVM虚拟化开源高可用方案（六）ISCSI ON 
+DRBD搭建及常见故障处理 </DIV></DIV><SPAN class=artTime>2012-11-26 17:20:25</SPAN></DIV><!--showHead end-->
+<DIV class=showTags>标签：<A class=operlink 
+href="http://blog.51cto.com/tag-kvm.html" target=_blank>kvm</A> <A 
+class=operlink href="http://blog.51cto.com/tag-drbd.html" target=_blank>drbd</A> 
+<A class=operlink href="http://blog.51cto.com/tag-iscsi.html" 
+target=_blank>iscsi</A> </DIV>
+<DIV class="CopyrightStatement lh22">版权声明：原创作品，如需转载，请与作者联系。否则将追究法律责任。 </DIV><!--正文 begin-->
+<DIV class=showContent>
+<P><A name=_Toc341704542 target='\"_blank\"'>一、准备</A></P>
+<P><A name=_Toc341704543 target='\"_blank\"'>1.1 硬件要求</A></P>
+<P>为了充分保证系统的稳定性和性能，要求两台DRBD服务器硬件配置尽量一致，尤其是硬盘数量和大小。机器的RAID卡需要带电池，缓存越大，性能越好。一般情况下，建议做RAID10，如果出于空间要求的考虑，需要做RAID5，建议最好能有1-2块硬盘的热备盘。</P>
+<P><A name=_Toc341704544 target='\"_blank\"'>1.2 系统要求和分区划分</A></P>
+<P><A name=_Toc251662717 target='\"_blank\"'>系统要求使用centos 
+6.x，安装完成后升级到最新版本，安装的时候，不要使用LV，建议/boot分区200M,/ 
+分区100G、swap分区和内存一样大小，剩余空间给DRBD使用，划分单独的硬盘空间。系统安装软件没有特殊要求，建议除了开发工具和基本的管理软件，其他软件一律不安装。</A></P>
+<P><A name=_Toc341704545 target='\"_blank\"'></A><A name=_Toc264875858 
+target='\"_blank\"'>1.3 网络环境</A></P>
+<P>网络要求全部千兆环境，DRBD服务器至少有6块网卡，3块网卡绑定供DRBD同步使用，2块网卡绑定，用于系统存储网络，剩余一块分配管理网络ip，用于系统管理。网卡绑定建议使用mode 
+0的方式，DRBD同步的网卡绑定脚本如下：</P>
+<P>cat &lt;&lt;EOF &gt;/etc/sysconfig/network-scripts/ifcfg-bond0</P>
+<P>DEVICE=bond0</P>
+<P>BOOTPROTO=none</P>
+<P>IPADDR=10.10.10.233</P>
+<P>NETMASK=255.255.255.0</P>
+<P>TYPE=Ethernet</P>
+<P>BONDING_OPTS="mode=0 miimon=100"</P>
+<P>EOF</P>
+<P>cat &lt;&lt; EOF &gt;/etc/sysconfig/network-scripts/ifcfg-eth1</P>
+<P>DEVICE=eth1</P>
+<P>BOOTPROTO=none</P>
+<P>ONBOOT=yes</P>
+<P>TYPE=Ethernet</P>
+<P>MASTER=bond0</P>
+<P>SLAVE=yes</P>
+<P>EOF</P>
+<P>cat &lt;&lt; EOF &gt;/etc/sysconfig/network-scripts/ifcfg-p2p1</P>
+<P>DEVICE=p2p1</P>
+<P>BOOTPROTO=none</P>
+<P>ONBOOT=yes</P>
+<P>TYPE=Ethernet</P>
+<P>MASTER=bond0</P>
+<P>SLAVE=yes</P>
+<P>EOF</P>
+<P>cat &lt;&lt; EOF &gt;/etc/sysconfig/network-scripts/ifcfg-p2p2</P>
+<P>DEVICE=p2p2</P>
+<P>BOOTPROTO=none</P>
+<P>ONBOOT=yes</P>
+<P>TYPE=Ethernet</P>
+<P>MASTER=bond0</P>
+<P>SLAVE=yes</P>
+<P>EOF</P>
+<P><A name=_Toc341704546 target='\"_blank\"'>二、部署</A></P>
+<P><A name=_Toc341704547 target='\"_blank\"'>2.1 DRBD</A>软件安装</P>
+<P>1) 升级系统到最新</P>
+<P>yum update -y</P>
+<P>2) 编辑/etc/hosts，将两台机器的hostname加进去</P>
+<P>3) 安装epel源</P>
+<P>rpm -Uvh 
+http://mirrors.sohu.com/fedora-epel/6/x86_64/epel-release-6-7.noarch.rpm</P>
+<P>4) 下载安装drbd源码包：</P>
+<P>安装相关组件</P>
+<P>mkdir -p /root/rpmbuild/SOURCES</P>
+<P>yum -y install gcc make automake autoconf flex rpm-build kernel-devel</P>
+<P>yum -y install libxslt</P>
+<P>yum -y install docbook-dtds docbook-style-xsl help2man</P>
+<P>下载DRBD软件包</P>
+<P>wget http://oss.linbit.com/drbd/8.4/drbd-8.4.2.tar.gz</P>
+<P># 解压源码包：</P>
+<P>tar zxvf drbd-8.4.2.tar.gz</P>
+<P>编译支持并安装：</P>
+<P>cd drbd*</P>
+<P>./configure --with-km --with-utils --with-heartbeat --with-pacemaker</P>
+<P>./configure --enable-spec --with-km --with-utils --with-heartbeat 
+--with-pacemaker</P>
+<P>make rpm</P>
+<P>make km-rpm</P>
+<P>\cp -f ../drbd*.tar.gz `rpm -E %_sourcedir`</P>
+<P>rpmbuild -bb drbd.spec</P>
+<P>rpmbuild -bb drbd-kernel.spec</P>
+<P>cd /root/rpmbuild/RPMS/x86_64/</P>
+<P>yum -y install ./drbd-*</P>
+<P>modprobe drbd</P>
+<P>5) 编辑DRBD配置文件</P>
+<P>vi /etc/drbd.conf （注意，两边需要一样）</P>
+<P>include "/etc/drbd.d/global_common.conf";</P>
+<P>include "/etc/drbd.d/*.res";</P>
+<P>global {</P>
+<P>usage-count yes;</P>
+<P>}</P>
+<P>common {</P>
+<P>protocol C;</P>
+<P>disk {</P>
+<P>on-io-error detach;</P>
+<P>fencing resource-only;</P>
+<P>}</P>
+<P>net {</P>
+<P>cram-hmac-alg sha1;</P>
+<P>shared-secret "a6a0680c40bca2439dbe48343ddddcf4";</P>
+<P>}</P>
+<P>syncer {</P>
+<P>rate 300M;</P>
+<P>}</P>
+<P>handlers {</P>
+<P>fence-peer "/usr/lib/drbd/crm-fence-peer.sh";</P>
+<P>after-resync-target "/usr/lib/drbd/crm-unfence-peer.sh";</P>
+<P>pri-on-incon-degr "echo b &gt; /proc/sysrq-trigger";</P>
+<P>}</P>
+<P>}</P>
+<P>resource iscsivg01 {</P>
+<P>device /dev/drbd1;</P>
+<P>disk /dev/sda6;</P>
+<P>meta-disk internal;</P>
+<P>net {</P>
+<P>max-buffers 8192;</P>
+<P>max-epoch-size 8192;</P>
+<P>sndbuf-size 2048k;</P>
+<P>unplug-watermark 127;</P>
+<P>}</P>
+<P>disk {</P>
+<P>disk-barrier no;</P>
+<P>disk-flushes no;</P>
+<P>resync-rate 150M;</P>
+<P>c-plan-ahead 200;</P>
+<P>c-max-rate 200M;</P>
+<P>c-min-rate 25M;</P>
+<P>c-fill-target 15M;</P>
+<P>}</P>
+<P>on drbd1 {</P>
+<P>address 10.10.10.151:7898;</P>
+<P>}</P>
+<P>on drbd2 {</P>
+<P>address 10.10.10.151:7898;</P>
+<P>}</P>
+<P>}</P>
+<P>注意：</P>
+<P>c-max-rate 200M;</P>
+<P>c-min-rate 25M;</P>
+<P>需要保持平衡，否则会造成同步速率不能上去。</P>
+<P>6) 创建drbd资源，两个节点都要操作</P>
+<P>注意：共享磁盘不能有任何文件系统，如果有，需要清除</P>
+<P>/etc/init.d/drbd stop</P>
+<P>dd if=/dev/zero of=/dev/sda6l bs=4M count=5</P>
+<P>/etc/init.d/drbd restart</P>
+<P>drbdadm create-md iscsivg01</P>
+<P>drbdadm adjust iscsivg01</P>
+<P>/etc/init.d/drbd restart</P>
+<P>chkconfig drbd on</P>
+<P>以上命令需要2边都执行,然后再主节点启动资源</P>
+<P>drbdadm primary iscsivg01</P>
+<P>cat /proc/drbd</P>
+<P>如果出现脑裂，在备用节点上执行</P>
+<P>drbdadm invalidate iscsivg01</P>
+<P><A name=_Toc341704548 target='\"_blank\"'>2.2 安装设置COROSYNC</A></P>
+<P>安装</P>
+<P>yum -y install pacemaker</P>
+<P>配置认真文件</P>
+<P>cat &lt;&lt; EOF &gt;/etc/ha.d/authkeys</P>
+<P>auth 1</P>
+<P>1 sha1 secret</P>
+<P>EOF</P>
+<P>chmod 600 /etc/ha.d/authkeys</P>
+<P>编辑配置文件</P>
+<P>cp /etc/corosync/corosync.conf.example /etc/corosync/corosync.conf</P>
+<P>vi /etc/corosync/corosync.conf</P>
+<P># 内容</P>
+<P>aisexec {</P>
+<P>user: root</P>
+<P>group: root</P>
+<P>}</P>
+<P>service {</P>
+<P>name: pacemaker</P>
+<P>ver: 0</P>
+<P>use_mgmtd: yes</P>
+<P>}</P>
+<P>totem {</P>
+<P>version: 2</P>
+<P>secauth: off</P>
+<P>threads: 0</P>
+<P>interface {</P>
+<P>ringnumber: 0</P>
+<P># Specify network address for inter-connection</P>
+<P>bindnetaddr: 10.10.10.0</P>
+<P>mcastaddr: 226.94.1.1</P>
+<P>mcastport: 5405</P>
+<P>}</P>
+<P>}</P>
+<P>logging {</P>
+<P>fileline: off</P>
+<P>to_stderr: no</P>
+<P>to_logfile: yes</P>
+<P>to_syslog: yes</P>
+<P>logfile: /var/log/cluster/corosync.log</P>
+<P>debug: off</P>
+<P>timestamp: on</P>
+<P>logger_subsys {</P>
+<P>subsys: AMF</P>
+<P>debug: off</P>
+<P>}</P>
+<P>}</P>
+<P>amf {</P>
+<P>mode: disabled</P>
+<P>}</P>
+<P>chown -R hacluster. /var/log/cluster</P>
+<P>/etc/rc.d/init.d/corosync restart</P>
+<P>chkconfig corosync on</P>
+<P><A name=_Toc341704549 target='\"_blank\"'>2.3 LVM</A>配置</P>
+<P>vi /etc/lvm/lvm.conf</P>
+<P>filter = [ "r|/dev/sdb.*|" ]</P>
+<P>write_cache_state = 0</P>
+<P>rm /etc/lvm/cache/* -r -f</P>
+<P>脚本如下</P>
+<P>sed -i s/write_cache_state\ =\ 1/write_cache_state\ =\ 0/g 
+/etc/lvm/lvm.conf</P>
+<P>rm /etc/lvm/cache/* -r -f</P>
+<P><A name=_Toc341704550 target='\"_blank\"'>2.4 IscsiTarget</A>设置</P>
+<P>开始部署：</P>
+<P>主节点drbd-M 上基于刚创建的 drbd1，创建 pv，创建 VG</P>
+<P>pvcreate /dev/drbd1</P>
+<P>vgcreate iscsivg01 /dev/drbd1</P>
+<P>lvcreate -L 16G -n LUN1 iscsivg01</P>
+<P>lvcreate -L 2G -n LUN2 iscsivg01</P>
+<P>yum install scsi-target-utils.x86_64 -y</P>
+<P>/etc/init.d/tgtd start</P>
+<P>chkconfig tgtd on</P>
+<P>tgtd服务器必须开启</P>
+<P><A name=_Toc341704551 target='\"_blank\"'>2.5 crm</A>配置</P>
+<P>crm</P>
+<P>configure</P>
+<P>property stonith-enabled="false"</P>
+<P>property no-quorum-policy="ignore"</P>
+<P>property default-resource-stickiness="200"</P>
+<P>commit</P>
+<P>primitive p_drbd_iscsivg01 ocf:linbit:drbd \</P>
+<P>params drbd_resource="iscsivg01" \</P>
+<P>op monitor interval="29" role="Master" \</P>
+<P>op monitor interval="31" role="Slave"</P>
+<P>primitive p_ip_alicebob01 ocf:heartbeat:IPaddr2 \</P>
+<P>params ip="10.10.10.240" cidr_netmask="24" \</P>
+<P>op monitor interval="10s"</P>
+<P>primitive p_lu_iscsivg01_lun1 ocf:heartbeat:iSCSILogicalUnit \</P>
+<P>params target_iqn="iqn.2001-04.com.example:storage.example.iscsivg01" lun="1" 
+path="/dev/iscsivg01/LUN1" scsi_id="1234567890123456" \</P>
+<P>op monitor interval="10s"</P>
+<P>primitive p_lu_iscsivg01_lun2 ocf:heartbeat:iSCSILogicalUnit \</P>
+<P>params target_iqn="iqn.2001-04.com.example:storage.example.iscsivg01" lun="2" 
+path="/dev/iscsivg01/LUN2" scsi_id="1234567890123457" \</P>
+<P>op monitor interval="10s"</P>
+<P>primitive p_lvm_iscsivg01 ocf:heartbeat:LVM \</P>
+<P>params volgrpname="iscsivg01" \</P>
+<P>op monitor interval="30s"</P>
+<P>primitive p_target_iscsivg01 ocf:heartbeat:iSCSITarget \</P>
+<P>params iqn="iqn.2001-04.com.example:storage.example.iscsivg01" tid="1" 
+incoming_username="iscsi" incoming_password="1qa2ws3ed4rF" \</P>
+<P>op monitor interval="10s"</P>
+<P>group rg_iscsivg01 p_lvm_iscsivg01 p_target_iscsivg01 p_lu_iscsivg01_lun1 
+p_lu_iscsivg01_lun2 p_ip_alicebob01 \</P>
+<P>meta target-role="Started"</P>
+<P>ms ms_drbd_iscsivg01 p_drbd_iscsivg01 \</P>
+<P>meta master-max="1" master-node-max="1" clone-max="2" clone-node-max="1" 
+notify="true"</P>
+<P>colocation c_iscsivg01_on_drbd inf: rg_iscsivg01 ms_drbd_iscsivg01:Master</P>
+<P>order o_drbd_before_iscsivg01 inf: ms_drbd_iscsivg01:promote 
+rg_iscsivg01:start</P>
+<P>commit</P>
+<P>如果要清除crm的配置文件</P>
+<P>crm(live)configure # erase</P>
+<P>crm(live)configure# commit</P>
+<P>如果要清除pacemaker的所有设置：</P>
+<P>/etc/rc.d/init.d/corosync stop # stop</P>
+<P>rm -f /var/lib/heartbeat/crm/* # remove all</P>
+<P>/etc/rc.d/init.d/corosync start # start</P>
+<P><A name=_Toc341704552 target='\"_blank\"'>三、常见故障处理</A></P>
+<P><A name=_Toc341704553 target='\"_blank\"'>3.1 脑裂处理</A></P>
+<P>在备机上执行</P>
+<P>drbdadm invalidate iscsivg01</P>
+<P>drbdadm -- --discard-my-data connect all</P>
+<P>在需要保留数据的主机上执行</P>
+<P>drbdadm connect all</P>
+<P>在drbd.conf添加一下参数，可以自动解决脑裂问题</P>
+<P>net {</P>
+<P>after-sb-0pri discard-older-primary;</P>
+<P>after-sb-1pri call-pri-lost-after-sb;</P>
+<P>after-sb-2pri call-pri-lost-after-sb;</P>
+<P>}</P>
+<P><A name=_Toc341704554 target='\"_blank\"'>3.2 硬盘故障</A></P>
+<P>因为底层做了raid配置，有硬件故障，直接更换硬盘，会自动同步数据。</P>
+<P><A name=_Toc341704555 target='\"_blank\"'>3.3 一个节点故障的情况</A></P>
+<P>一台节点故障的情况包括以下情况：</P>
+<P><B>a) </B>物理故障；</P>
+<P><B>b) </B>同时有多块硬盘故障，造成数据丢失；</P>
+<P><B>c) </B>系统损坏不可修复。</P>
+<P>解决方法：</P>
+<P>找一台完全一样的机器，至少要保证硬盘数量和大小一致，安装系统，配置和故障机同样的ip，安装drbd 
+corosync软件，保证配置都一样，执行命令，</P>
+<P>drbdadm -- --discard-my-data connect all</P>
+<P>drbdadm invalidate iscsivg01</P>
+<P>启动相关服务，就会自动开始同步，但是同步的时候会影响整个系统的性能。</P>
+<P>本文出自 “<A href="http://xiaoli110.blog.51cto.com">xiaoli110的博客</A>” 
+博客，转载请与作者联系！</P></DIV><!--正文 end-->
+<SCRIPT type=text/javascript>
+	var kevent = 'onabort|onblur|onchange|onclick|ondblclick|onerror|onfocus|onkeydown|onkeypress|onkeyup|onload|onmousedown|onmousemove|onmouseout|onmouseover|onmouseup|onreset|onresize|onselect|onsubmit|onunload';
+	var aevent = kevent.split('|');
+
+	jQuery('.showContent img').each(function(){
+		var nimg = this;
+		jQuery.each(aevent, function(i, n){
+			if (n!='onload') {
+				jQuery(nimg).attr(n, '');
+			} else {
+				if (jQuery(nimg).attr(n) != 'if(this.width>650) this.width=650;') {
+					jQuery(nimg).attr(n, '');
+				}
+			}
+		});
+	});
+</SCRIPT>
+
+<SCRIPT type=text/javascript charset=utf-8>
+var encodetitle = encodeURI('一篇很棒的博文分享给大家：《KVM虚拟化开源高可用方案（六）ISCSI ON DRBD搭建及常见故障处理》');
+
+function show51share(){
+
+	window.open('http://t.51cto.com/index.php?m=share&url=http://xiaoli110.blog.51cto.com/1724/1071101&type=l&count=&relateUid=&appkey=3843950324&title=' + encodetitle);
+}
+</SCRIPT>
+
+<DIV class="m_sharebtn clear">
+<TABLE cellSpacing=0 cellPadding=0 width="100%" border=0>
+  <TBODY>
+  <TR>
+    <TD height=43 vAlign=middle width="11%" align=center><IMG alt=分享至 
+      src="http://img1.51cto.com/images/share/ssk.png"></TD>
+    <TD vAlign=top width="77%" align=left>
+      <DIV id=bdshare class="bdshare_t bds_tools_32 get-codes-bdshare" 
+      time="1378816256720" data="{'wbuid':1706976420}" buttontype="0" x="119" 
+      y="25"><A title=分享到新浪微博 class=bds_tsina href="#"></A><A title=分享到QQ空间 
+      class=bds_qzone href="#"></A><A title=分享到腾讯微博 class=bds_tqq href="#" 
+      buttontype="0" x="32" y="5"></A><A title=分享到百度云收藏 class=bds_baidu href="#" 
+      buttontype="0" x="2" y="32"></A><A title=分享到人人网 class=bds_renren href="#" 
+      buttontype="0" x="10" y="16"></A><A title=分享到QQ收藏 class=bds_qq 
+      href="#"></A><A title=分享到豆瓣网 class=bds_douban href="#"></A><A 
+      title=分享到百度空间 class=bds_hi href="#"></A><A title=分享到MSN class=bds_msn 
+      href="#"></A><EM onclick=show51share(); 
+      onmouseover="this.style.backgroundImage='url(http://img1.51cto.com/images/share/ico_mweibob.gif)'" 
+      onmouseout="this.style.backgroundImage='url(http://img1.51cto.com/images/share/ico_mweibo.gif)'" 
+      title=分享到51CTO微博 class=weibo_51cto></EM><SPAN class=bds_more>更多</SPAN> <A 
+      title=累计分享0次 class=shareCount href="#">0</A></DIV>
+      <SCRIPT id=bdshare_js type=text/javascript 
+      src="http://bdimg.share.baidu.com/static/js/bds_s_v2.js?cdnversion=383005" 
+      data="type=tools&amp;uid=559183"></SCRIPT>
+
+      <SCRIPT id=bdshell_js type=text/javascript 
+      src="http://bdimg.share.baidu.com/static/js/shell_v2.js?t=20"></SCRIPT>
+
+      <SCRIPT type=text/javascript>
+		var bds_config = {'wbUid':1706976420, 'bdPic':'http://blog.51cto.com/attachment/201305/173413310.jpg'};
+		document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?t=" + new Date().getHours();
+	</SCRIPT>
+<!-- Baidu Button END --></TD>
+    <TD vAlign=middle width="12%" align=right><A title=一键收藏，随时查看，分享好友！ 
+      href="javascript:favorBox('open');"><IMG border=0 alt=一键收藏，随时查看，分享好友！ 
+      src="http://home.51cto.com/public/themes/blue/images/favorite_add_small.gif"></A></TD></TR></TBODY></TABLE></DIV>
+<DIV class=showBottom><!--<div class="reviews"><span class="fl" style="cursor:pointer;"><a onclick="openFavoulist();" id="favourer"></a>
+
+            </span><div id="favourdiv" class="support01">0人</div>
+              <span class="fl">了这篇文章</span></div>-->
+<TABLE cellSpacing=0 cellPadding=0 width=720 border=0>
+  <TBODY>
+  <TR>
+    <TD align=right><IMG 
+      src="http://phpanddb.blog.51cto.com/image/skin/25/icon01.png" width=15 
+      height=16> <SPAN style="CURSOR: pointer"><A onclick=openFavoulist(); 
+      id=favourer></A></SPAN></TD>
+    <TD width=70 align=left>
+      <DIV id=favourdiv class=support01 style="LINE-HEIGHT: 28px" 
+      jQuery17109942777660757731="3">0人</DIV></TD>
+    <TD width=60 align=left>了这篇文章</TD></TR></TBODY></TABLE>
+<DIV class=showType>类别：<A class=operlink href="/1724/d-6">KVM虚拟化技术</A>┆<A 
+onclick="javascript:joingroups(1071101,'xiaoli110');return false;" 
+class=operlink>技术圈</A>(
+<SCRIPT src="http://blog.51cto.com/js/joingroup.php?tid=1071101"></SCRIPT>
+0)┆阅读(<SPAN id=readNum>323</SPAN>)┆评论(<SPAN id=cmtNum>0</SPAN>) ┆ <A 
+onclick="javascript:dfanologin('http://home.51cto.com/index.php?reback=http%253A%252F%252Fxiaoli110.blog.51cto.com%252F1724%252F1071101');return false;" 
+class=operlink href="#">推送到技术圈</A>┆<A href="/">返回首页</A></DIV>
+<DIV class=prevNext>上一篇 <A title=通过Libvirt控制KVM虚拟机资源的方法 class=operlink 
+href="/1724/1070201">通过Libvirt控制KVM虚拟机资源的方法</A> 下一篇 <A 
+title=KVM虚拟化开源高可用方案(七)GLUSTERFS搭建及常见故障处理 class=operlink 
+href="/1724/1071106">KVM虚拟化开源高可用方案(七)GLUSTERFS搭建及..</A> </DIV></DIV></DIV><!--showBottom end--></DIV><!--modCon--><SPAN 
+class=modBot></SPAN></DIV><!--artShow end--><SPAN class=blank></SPAN>
+<DIV class="relatedArt box"><A href="http://mobile.51cto.com/contest/2013/" 
+target=_blank><IMG 
+src="http://blog.51cto.com/attachment/201309/160144802.jpg"></A> </DIV>
+<DIV class="relatedArt box">
+<DIV id=zhuanti class=title name="zhuanti">
+<H2>相关文章</H2></DIV>
+<DIV class=modCon>
+<UL>
+  <LI><A title=ISA防火墙的基础应用与配置 
+  href="http://609650290.blog.51cto.com/5628230/1036793" 
+  target=_blank>ISA防火墙的基础应用与配置</A> </LI>
+  <LI><A title="Dell 驱动程序下载网址" 
+  href="http://sctrue.blog.51cto.com/1710723/1043447" target=_blank>Dell 
+  驱动程序下载网址</A> </LI>
+  <LI><A title="TMG2010 之创建访问规则" 
+  href="http://5608626.blog.51cto.com/5598626/1070450" target=_blank>TMG2010 
+  之创建访问规则</A> </LI>
+  <LI><A title=RAID技术参数规格 href="http://fool01.blog.51cto.com/5405664/1037132" 
+  target=_blank>RAID技术参数规格</A> </LI>
+  <LI><A title="3. VMware vSphere 5.1 学习系列之三：安装 ESXi" 
+  href="http://jacksuper.blog.51cto.com/2724857/1061549" target=_blank>3. VMware 
+  vSphere 5.1 学习系列之三：安装 ..</A> </LI>
+  <LI><A title=rlwrap解决sqlplus上下键和backspace键找历史命令 
+  href="http://itdaily.blog.51cto.com/373988/1046906" 
+  target=_blank>rlwrap解决sqlplus上下键和backspace键找历..</A> </LI>
+  <LI><A title=利用ISA实现网站发布&amp;&amp;协议重定向 
+  href="http://609650290.blog.51cto.com/5628230/1038509" 
+  target=_blank>利用ISA实现网站发布&amp;&amp;协议重定向</A> </LI>
+  <LI><A title="Iptables + L7 +squid 实现防火墙功能" 
+  href="http://609650290.blog.51cto.com/5628230/1039565" target=_blank>Iptables 
+  + L7 +squid 实现防火墙功能</A> </LI>
+  <LI><A title="vc操作excel文件的类 与CSpreadSheet 中文文档" 
+  href="http://mengdejun.blog.51cto.com/6188251/1050441" 
+  target=_blank>vc操作excel文件的类 与CSpreadSheet 中文文档</A> </LI>
+  <LI><A title=shell条件测试 href="http://425093014.blog.51cto.com/5109559/1062161" 
+  target=_blank>shell条件测试</A> </LI></UL><SPAN class=blank6></SPAN></DIV><!--modCon end--><SPAN class=modBot></SPAN></DIV><!--相关文章 end-->
+<DIV class="artComm box">
+<DIV class=title><A name=replay></A>
+<H2>文章评论</H2></DIV>
+<DIV id=artcomment class=modCon>
+<DIV>&nbsp;</DIV>
+<DIV>&nbsp;</DIV></DIV><!--modCon--><SPAN class=modBot></SPAN></DIV><!--commBox end--><A id=com_top_top href=""></A>
+<FORM id=form1 onsubmit='return commentSubmit(this,"");' method=post name=form1 
+action=/comment.php?><SPAN class=blank1></SPAN>
+<DIV class="box writeComm" style="MIN-HEIGHT: 30px"><A name=comment></A><INPUT 
+type=hidden value=comment name=action> <INPUT id=commenttid type=hidden 
+value=1071101 name=tid> <INPUT id=com_count_ajax type=hidden value=1 
+name=com_count_ajax> 
+<DIV class=title>
+<H2 
+class=fl>发表评论&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</H2><SPAN 
+class=fl><A class=mred href="http://doctor.51cto.com/develop-293.html" 
+target=_blank>【有奖门诊】谈企业桌面标准化及桌面安全管理，赢Technet专业版订阅！</A></SPAN> 
+<STYLE type=text/css>
+		a.mred:link{ color:#ff0000; text-decoration:underline;}
+		a.mred:visited{color:#ff0000;}
+		a.mred:hover{color:#ff0000;}
+		a.mred:active{color:#ff0000;}
+	</STYLE>
+</DIV>
+<DIV class=modCon>
+<DIV class=commForm>
+<DL>
+  <DT>昵&nbsp;&nbsp;称： </DT>
+  <DD><INPUT id=commentusername class="commInput fl" name=username><SPAN><A 
+  style="TEXT-DECORATION: underline" 
+  href="http://home.51cto.com/index.php?reback=http%253A%252F%252Fxiaoli110.blog.51cto.com%252F1724%252F1071101">登录</A>&nbsp;&nbsp;<A 
+  style="TEXT-DECORATION: underline" 
+  href="http://ucenter.51cto.com/reg_01.php?reback=http://blog.51cto.com" 
+  target=_blank>快速注册</A></SPAN> </DD></DL>
+<DL id=commentyanzheng>
+  <DT>验证码： </DT>
+  <DD><INPUT onclick=displaysecunum(); id=commentauthnum class=code 
+  name=authnum> <IMG onclick=refimg() id=secunum class=fl style="DISPLAY: none" 
+  width=78 height=29>
+  <P class=fl><SPAN id=spanfont style="DISPLAY: none">点击图片可刷新验证码</SPAN><SPAN 
+  id=clickfont style="DISPLAY: inline">请点击后输入验证码</SPAN><SPAN class=pl5><A 
+  style="TEXT-DECORATION: underline" 
+  href="http://51ctoblog.blog.51cto.com/26414/5591" 
+  target=_blank>博客过2级，无需填写验证码</A></SPAN></P></DD></DL>
+<DL>
+  <DT>内&nbsp;&nbsp;容： </DT>
+  <DD><TEXTAREA id=commentcontent class="writeCommCon f12" name=content></TEXTAREA> 
+  </DD></DL></DIV>
+<DIV class=writeCommBot><INPUT id=parentid type=hidden name=parentid> <INPUT onclick=commentSubmitend2() id=commentsubmit class="commBtn fl" type=button name=submit> 
+
+<P class=fl style="DISPLAY: none"><INPUT id=favour class=fl CHECKED 
+type=checkbox value=1 name=favour><SPAN class=fl>同时赞一个</SPAN></P></DIV><SPAN 
+class=blank></SPAN></DIV><!--modCon--><SPAN 
+class=modBot></SPAN></DIV></FORM><IFRAME id=iframe1 height=0 width=0 
+name=iframe1></IFRAME><!--发表评论 end--></DIV></DIV>
+<SCRIPT language=javascript>
+	function refimg(){
+		var randval = Math.random();
+		document.getElementById("secunum").src="/seccode.php?rnum="+randval;
+	}
+	function displaysecunum()
+	{
+		var displaystr = document.getElementById("secunum").style.display;
+		if(displaystr == 'none')
+		{
+			refimg();
+			document.getElementById("clickfont").style.display = 'none';
+			document.getElementById("secunum").style.display = 'inline';
+			document.getElementById("spanfont").style.display = 'inline';
+		}
+	}
+
+	function showMsn(){
+		document.getElementById("c02").style.display = "none";
+		document.getElementById("c01").style.display = "block";
+		document.getElementById("share").style.height = "83px";
+		document.getElementById("share").style.background = "none";
+	}
+	function showBBS(){
+		document.getElementById("c01").style.display = "none";
+		document.getElementById("c02").style.display = "block";
+		document.getElementById("share").style.height = "83px";
+		document.getElementById("share").style.background = "none";
+	}
+
+	//资源页面，分享按钮
+	function copyShareUrl(title){
+
+		if (window.clipboardData){
+
+			if(document.getElementById("c01").style.display == 'block')
+			{
+				copy = "推荐：" + title + "http://xiaoli110.blog.51cto.com/1724/1071101";
+				var alertText = "复制成功，你可以粘贴到MSN或QQ中发给好友。";
+			}
+			else
+			{
+				copy = "[url=" + "http://xiaoli110.blog.51cto.com/1724/1071101" + "][u]" + title + "[/u][/url]";
+				var alertText = "复制成功，你可以粘贴到论坛分享给坛友。";
+			}
+			window.clipboardData.clearData();
+			window.clipboardData.setData("Text", copy);
+			alert(alertText);
+		}
+		else if (window.netscape){
+			alert("您使用的浏览器不支持此复制功能，请使用Ctrl+C或鼠标右键。");
+			if(document.getElementById("c01").style.display == 'block')
+			{
+				document.getElementById("shareTextQM").value = "推荐：" + title + "http://xiaoli110.blog.51cto.com/1724/1071101";
+				document.getElementById("shareTextQM").select();
+			}
+			else
+			{
+				document.getElementById("shareTextBBS").value = "[url=" + "http://xiaoli110.blog.51cto.com/1724/1071101" + "][u]" + title + "[/u][/url]";
+                document.getElementById("shareTextBBS").select();
+			}
+		}
+		return false;
+	}
+	function select_login(){
+		document.getElementById('fixed').style.display='';
+	}
+	function commentcheck()
+	{
+		if(document.form1.content.value == "")
+		{
+			alert("评论内容为空!");
+			document.form1.content.focus();
+			return false;
+		}
+	}
+	function changename(){
+
+	var memberid=0;
+	memberid="";
+
+	if(document.getElementById('commentniming').checked){
+		document.getElementById('commentusername').disabled=false;
+		document.getElementById('commentusername').value='';
+		document.getElementById("indexhidden").style.display="none";
+		document.getElementById("commentindex").value='';
+		document.getElementById("commentyanzheng").style.display="";
+	}else{
+		document.getElementById('commentusername').disabled=true;
+		document.getElementById('commentusername').value="";
+		document.getElementById("indexhidden").style.display="";
+		document.getElementById("commentindex").value="http://.blog.51cto.com";
+		if(memberid>8)
+		{
+			document.getElementById("commentyanzheng").style.display="none";
+		}
+	}
+	}
+	function openFavoulist()
+	{
+		window.open ('http://blog.51cto.com/mod/favourlist.php?tid=1071101','newwindow','height=300,width=500,top=400,left=400,toolbar=no,menubar=no,scrollbars=no, resizable=no,location=no, status=no,z-look=yes');
+	}
+
+	var e_zti = document.getElementById('zti');//有专题锚点
+	var maodian = window.location.href;//锚点
+	if (e_zti) {
+		e_zti.href= (/[#]+/.test(maodian)) ? maodian : maodian + "#zhuanti";
+	}
+</SCRIPT>
+
+<SCRIPT src="http://blog.51cto.com/js/jquery-1.7.1.min.js"></SCRIPT>
+
+<SCRIPT src="http://blog.51cto.com/js/jquery.cookie.js"></SCRIPT>
+
+<SCRIPT src="http://blog.51cto.com/js/jquery.messager.js"></SCRIPT>
+<LINK rel=stylesheet type=text/css 
+href="http://blog.51cto.com/css/blog_top/blog_top.css">
+<SCRIPT language=javascript type=text/javascript 
+src="http://blog.51cto.com/js/blog_top_list.php"></SCRIPT>
+
+<STYLE>
+.backToTop {
+    display: none;
+	WIDTH: 45px;
+	height:45px;
+	BOTTOM: 20px;
+     position: fixed;
+    _position: absolute;
+    right: 140px;
+    bottom: 10px;
+    _bottom: "auto";
+    cursor: pointer;
+    opacity: .6;
+    filter: Alpha(opacity=60);
+	text-indent:-9999px;
+}
+.tops { background:url(/images/tops.jpg) no-repeat center center; }
+</STYLE>
+
+<SCRIPT type=text/javascript>
+(function() {
+    var backToTopTxt = "返回顶部", backToTopEle = $('<div class="backToTop tops"></div>').appendTo($("body"))
+        .text(backToTopTxt).attr("title", backToTopTxt).click(function() {
+            $("html, body").animate({ scrollTop: 0 }, 520);
+    }), backToTopFun = function() {
+        var st = $(document).scrollTop(), winh = $(window).height();
+        (st > 0)? backToTopEle.show(): backToTopEle.hide();    
+        //IE6下的定位
+        if (!window.XMLHttpRequest) {
+            backToTopEle.css("top", st + winh - 60);    
+        }
+    };
+    $(window).bind("scroll", backToTopFun);
+    $(function() { backToTopFun(); });
+})();
+</SCRIPT>
+
+<DIV title=返回顶部 class="backToTop tops" style="DISPLAY: block" 
+jQuery17109942777660757731="1">返回顶部</DIV>
+<DIV></DIV>
+<DIV></DIV>
+<DIV class=clear></DIV><!-- <script>
+jQuery(function(){
+	var html= "<div id=\"sogou_se_tgbar\" style=\"text-align:center;margin:0px auto 2px auto;clear:both;background:url(http://home.51cto.com/public/images/notice/sogou_se_tgbar_bg_final1.gif) repeat-x;width:950px;color:#000;font-size:13px;height:36px;z-index:21474836471\"><div style=\"float:left;cursor:pointer;width:910px;text-align:center;border-left:solid #efbf00 1px;height:32px; line-height:32px;txt-align:center;\"><span style=\"\">	<a href=\"http://51ctoblog.blog.51cto.com/26414/1093282\">【新年祝福征集】51CTO社区年底嘉年华活动正在征集博主祝福语，祝福以红包的形式随机的赠送给访问51CTO的网友 点此送祝福>></a></span></div><div onclick=\"document.getElementById('sogou_se_tgbar').style.display = 'none';\" style=\"float:right;width:20px;cursor:pointer;height:28px;padding:4px 8px 0px 8px;border-right:solid #efbf00 1px\"><img style=\"border:none;margin:4px 0px 0px 0px;\" src=\"http://home.51cto.com/public/images/notice/sogou_se_tgbar_close_final1.gif\"></div></div>"
+	jQuery('body').prepend(html);
+})
+</script> -->
+<DIV></DIV>
+<DIV id=footer>
+<DIV id=innerFooter>
+<CENTER><SMALL>Copyright By 51CTO.COM 版权所有<BR><BR><A 
+href="http://blog.51cto.com" target=_blank><IMG 
+src="http://img1.51cto.com/image/skin/30/copyright.jpg"></A> 
+</SMALL></CENTER></DIV></DIV>
+<SCRIPT charset=utf-8 
+src="http://home.51cto.com/index.php?s=/Index/getLoginStatus/reback/http%253A%252F%252Fxiaoli110.blog.51cto.com%252F1724%252F1071101"></SCRIPT>
+
+<DIV style="DISPLAY: none">
+<SCRIPT src="http://logs.51cto.com/rizhi/count/count.js"></SCRIPT>
+
+<SCRIPT 
+src="http://logs.51cto.com/rizhi2/count/count.php?&amp;counturl=http://logs.51cto.com/rizhi2&amp;pageurl=http%3A//xiaoli110.blog.51cto.com/1724/1071101&amp;referer=http%3A//xiaoli110.blog.51cto.com/1724/p-2&amp;language=zh-CN&amp;color=32&amp;screensize=1920*1080&amp;debug=undefined&amp;firsttime=113-9-10-20-28-7&amp;lasttime=2013-9-10-20-30-49&amp;type=1&amp;charset=gb2312&amp;timezone=-8"></SCRIPT>
+<IFRAME height=0 src="http://log.51cto.com/pageview.php?frompos=blog_art" 
+frameBorder=0 width=0 scrolling=no></IFRAME></DIV>
+<DIV style="DISPLAY: none">
+<SCRIPT language=JavaScript 
+src="http://s24.cnzz.com/stat.php?id=4274540&amp;web_id=4274540&amp;show=pic"></SCRIPT>
+
+<SCRIPT type=text/javascript charset=utf-8 
+src="http://c.cnzz.com/cnzz_core.php?web_id=4274540&amp;show=pic&amp;l=none"></SCRIPT>
+<A title=站长统计 href="http://www.cnzz.com/stat/website.php?web_id=4274540" 
+target=_blank><IMG border=0 hspace=0 src="http://icon.cnzz.com/pic.gif"></A>
+<DIV>
+<SCRIPT type=text/javascript>
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38670657-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</SCRIPT>
+</DIV></DIV></BODY></HTML>

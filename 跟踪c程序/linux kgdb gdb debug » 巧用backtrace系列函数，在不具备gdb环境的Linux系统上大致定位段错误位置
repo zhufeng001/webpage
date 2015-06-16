@@ -1,0 +1,650 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head profile="http://gmpg.org/xfn/11">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+
+	<title>linux kgdb gdb debug &raquo; 巧用backtrace系列函数，在不具备gdb环境的Linux系统上大致定位段错误位置</title>
+	<link rel="alternate" type="application/rss+xml" title="RSS 2.0 - 所有文章" href="http://www.kgdb.info/feed/" />
+	<link rel="alternate" type="application/rss+xml" title="RSS 2.0 - 所有评论" href="http://www.kgdb.info/comments/feed/" />
+	<link rel="pingback" href="http://www.kgdb.info/xmlrpc.php" />
+
+	<!-- style START -->
+	<!-- default style -->
+	<style type="text/css" media="screen">@import url( http://www.kgdb.info/wp-content/themes/inove/style.css );</style>
+	<!-- for translations -->
+			<link rel="stylesheet" href="http://www.kgdb.info/wp-content/themes/inove/chinese.css" type="text/css" media="screen" />
+		<!--[if IE]>
+		<link rel="stylesheet" href="http://www.kgdb.info/wp-content/themes/inove/ie.css" type="text/css" media="screen" />
+	<![endif]-->
+	<!-- style END -->
+
+	<!-- script START -->
+	<script type="text/javascript" src="http://www.kgdb.info/wp-content/themes/inove/js/base.js"></script>
+	<script type="text/javascript" src="http://www.kgdb.info/wp-content/themes/inove/js/menu.js"></script>
+	<!-- script END -->
+
+	<link rel="alternate" type="application/rss+xml" title="linux kgdb gdb debug &raquo; 巧用backtrace系列函数，在不具备gdb环境的Linux系统上大致定位段错误位置 评论 Feed" href="http://www.kgdb.info/linuxdev/backtrace_without_gdb/feed/" />
+<link rel='stylesheet' id='codebox-css'  href='http://www.kgdb.info/wp-content/plugins/wp-codebox/css/codebox.css?ver=0.1' type='text/css' media='screen' />
+<script type='text/javascript' src='http://www.kgdb.info/wp-includes/js/jquery/jquery.js?ver=1.3.2'></script>
+<script type='text/javascript' src='http://www.kgdb.info/wp-content/plugins/wp-codebox/js/codebox.js?ver=0.1'></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://www.kgdb.info/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://www.kgdb.info/wp-includes/wlwmanifest.xml" /> 
+<link rel='index' title='linux kgdb gdb debug' href='http://www.kgdb.info' />
+<link rel='start' title='kgdb抓虫日记 &#8211;  set breakpoint at mips' href='http://www.kgdb.info/kgdb/understand_kgdb/kgdb_bug_diary/kgdb-bugs-set-breakpoint-on-mips/' />
+<link rel='prev' title='gdb 和 watchpoint' href='http://www.kgdb.info/gdb/gdb_watchpoint/' />
+<link rel='next' title='Playing with ptrace, Part I &#8212; 玩转ptrace(一)' href='http://www.kgdb.info/gdb/playing_with_ptrace_part_i/' />
+<meta name="generator" content="WordPress 2.9.2" />
+<link rel='canonical' href='http://www.kgdb.info/linuxdev/backtrace_without_gdb/' />
+<link rel="shortcut icon" href="http://www.kgdb.info/favicon.ico" type="image/x-icon" /><!-- Favi -->
+<link rel="stylesheet" href="http://www.kgdb.info/wp-content/themes/inove/wp-recentcomments.css" type="text/css" media="screen" /><script type="text/javascript" src="http://www.kgdb.info/wp-content/plugins/wp-recentcomments/js/wp-recentcomments.js"></script><!-- wp thread comment 1.4.9.4.002 -->
+<style type="text/css" media="screen">
+
+.editComment, .editableComment, .textComment{
+	display: inline;
+}
+.comment-childs{
+	border: 1px solid #999;
+	margin: 5px 2px 2px 4px;
+	padding: 4px 2px 2px 4px;
+	background-color: white;
+}
+.chalt{
+	background-color: #E2E2E2;
+}
+#newcomment{
+	border:1px dashed #777;width:90%;
+}
+#newcommentsubmit{
+	color:red;
+}
+.adminreplycomment{
+	border:1px dashed #777;
+	width:99%;
+	margin:4px;
+	padding:4px;
+}
+.mvccls{
+	color: #999;
+}
+			
+</style>
+</head>
+
+
+<body>
+<!-- wrap START -->
+<div id="wrap">
+
+<!-- container START -->
+<div id="container"  >
+
+<!-- header START -->
+<div id="header">
+
+	<!-- banner START -->
+		<!-- banner END -->
+
+	<div id="caption">
+		<h1 id="title"><a href="http://www.kgdb.info/">linux kgdb gdb debug</a></h1>
+		<div id="tagline">专注于linux内核调试的站点</div>
+	</div>
+
+	<div class="fixed"></div>
+</div>
+<!-- header END -->
+
+<!-- navigation START -->
+<div id="navigation">
+	<!-- menus START -->
+	<ul id="menus">
+		<li class="page_item"><a class="home" title="首页" href="http://www.kgdb.info/">首页</a></li>
+		<li class="page_item page-item-165"><a href="http://www.kgdb.info/kgdb/" title="kgdb">kgdb</a></li>
+<li class="page_item page-item-169"><a href="http://www.kgdb.info/gdb/" title="gdb">gdb</a></li>
+<li class="page_item page-item-559"><a href="http://www.kgdb.info/linuxdev/" title="Linux开发">Linux开发</a></li>
+<li class="page_item page-item-402"><a href="http://www.kgdb.info/invitation/" title="参与/投稿">参与/投稿</a></li>
+<li class="page_item page-item-2"><a href="http://www.kgdb.info/about/" title="关于">关于</a></li>
+		<li><a class="lastmenu" href="javascript:void(0);"></a></li>
+	</ul>
+	<!-- menus END -->
+
+	<!-- searchbox START -->
+	<div id="searchbox">
+					<form action="http://www.kgdb.info" method="get">
+				<div class="content">
+					<input type="text" class="textfield" name="s" size="24" value="" />
+					<input type="submit" class="button" value="" />
+				</div>
+			</form>
+			</div>
+<script type="text/javascript">
+//<![CDATA[
+	var searchbox = MGJS.$("searchbox");
+	var searchtxt = MGJS.getElementsByClassName("textfield", "input", searchbox)[0];
+	var searchbtn = MGJS.getElementsByClassName("button", "input", searchbox)[0];
+	var tiptext = "请输入关键字...";
+	if(searchtxt.value == "" || searchtxt.value == tiptext) {
+		searchtxt.className += " searchtip";
+		searchtxt.value = tiptext;
+	}
+	searchtxt.onfocus = function(e) {
+		if(searchtxt.value == tiptext) {
+			searchtxt.value = "";
+			searchtxt.className = searchtxt.className.replace(" searchtip", "");
+		}
+	}
+	searchtxt.onblur = function(e) {
+		if(searchtxt.value == "") {
+			searchtxt.className += " searchtip";
+			searchtxt.value = tiptext;
+		}
+	}
+	searchbtn.onclick = function(e) {
+		if(searchtxt.value == "" || searchtxt.value == tiptext) {
+			return false;
+		}
+	}
+//]]>
+</script>
+	<!-- searchbox END -->
+
+	<div class="fixed"></div>
+</div>
+<!-- navigation END -->
+
+<!-- content START -->
+<div id="content">
+
+	<!-- main START -->
+	<div id="main">
+
+
+	<div id="postpath">
+		<a title="转到首页" href="http://www.kgdb.info/">首页</a>
+		 &gt; <a href="http://www.kgdb.info/category/linuxdev/" title="查看 LinuxDev 的全部文章" rel="category tag">LinuxDev</a>		 &gt; 巧用backtrace系列函数，在不具备gdb环境的Linux系统上大致定位段错误位置	</div>
+
+	<div class="post" id="post-561">
+		<h2>巧用backtrace系列函数，在不具备gdb环境的Linux系统上大致定位段错误位置</h2>
+		<div class="info">
+			<span class="date">2010年8月24日</span>
+			<span class="author"><a href="http://www.kgdb.info/author/ddd/" title="由 DDD 发表">DDD</a></span>										<span class="addcomment"><a href="#respond">发表评论</a></span>
+				<span class="comments"><a href="#comments">阅读评论</a></span>
+						<div class="fixed"></div>
+		</div>
+		<div class="content">
+			<div style="float:right;margin:0px 0px 0px 0px;"><a title="Post on Google Buzz" class="google-buzz-button" href="http://www.google.com/buzz/post" data-button-style="small-count" data-url="http://www.kgdb.info/linuxdev/backtrace_without_gdb/"></a><script type="text/javascript" src="http://www.google.com/buzz/api/button.js"></script></div><h2>1: 段错误产生的原因</h2>
+<p>简而言之,产生段错误就是访问了错误的内存段，一般是你没有权限，或者根本就不存在对应的物理内存,<br />
+尤其常见的是访问0地址.一旦一个程序发生了越界访问，系统就采取内存保护措施，并给那个程序发送<br />
+SIGSEGV信号，程序接到那个信号后就知道segmentation fault出现了。</p>
+<p>想对&#8221;段错误&#8221;有更详细的了解可以去阅读“Linux下的段错误产生的原因及调试方法” 这篇文章，本文的<br />
+内容基本是从那文章里提取出来的。</p>
+<h2>2: SIGSEGV信号处理函数</h2>
+<p>程序接到SIGSEGV信号后的缺省处理是退出程序,这也是为什么总是看到程序打印一个“segmentation fault”<br />
+信息后就消失了。我们可以使用<code> signal(SIGSEGV, &#038;your_function);</code>函数来接管SIGSEGV信号的处理，让<br />
+程序在发生段错误后，自动调用我们准备好的函数，从而在那个函数里来获取当前函数调用栈。</p>
+<h2>3: libc的Backtraces函数</h2>
+<p>在GDB里，可以简单的使用bt命令就可以获取函数调用栈，但如何通过代码获取当前函数调用栈？<br />
+这里我们可以通过libc库提供的<a href="http://www.gnu.org/software/libc/manual/html_node/Backtraces.html#Backtraces">Backtraces系列函数</a>。</p>
+
+<div class="wp_codebox_msgheader"><span class="right"><sup><a href="http://www.ericbess.com/ericblog/2008/03/03/wp-codebox/#examples" target="_blank" title="WP-CodeBox HowTo?"><span style="color: #99cc00">?</span></a></sup></span><span class="left"><a href="javascript:;" onclick="javascript:showCodeTxt('p561code1'); return false;">View Code</a> TEXT</span><div class="codebox_clear"></div></div><div class="wp_codebox"><table><tr id="p5611"><td class="code" id="p561code1"><pre class="text" style="font-family:monospace;">A backtrace is a list of the function calls that are currently active in a
+thread. The usual way to inspect a backtrace of a program is to use an
+external debugger such as gdb. However, sometimes it is useful to
+obtain a backtrace programmatically from within a program, e.g., for the
+purposes of logging or diagnostics.
+&nbsp;
+The header file execinfo.h declares three functions that obtain and
+manipulate backtraces of the current thread.</pre></td></tr></table></div>
+
+<h2>4: 实现步骤</h2>
+<p>4.1 在你的工程中添加如下代码：</p>
+
+<div class="wp_codebox_msgheader"><span class="right"><sup><a href="http://www.ericbess.com/ericblog/2008/03/03/wp-codebox/#examples" target="_blank" title="WP-CodeBox HowTo?"><span style="color: #99cc00">?</span></a></sup></span><span class="left"><a href="javascript:;" onclick="javascript:showCodeTxt('p561code2'); return false;">View Code</a> C</span><div class="codebox_clear"></div></div><div class="wp_codebox"><table><tr id="p5612"><td class="code" id="p561code2"><pre class="c" style="font-family:monospace;"><span style="color: #339933;">#include &lt;execinfo.h&gt;</span>
+<span style="color: #339933;">#include &lt;stdio.h&gt;</span>
+<span style="color: #339933;">#include &lt;stdlib.h&gt;</span>
+<span style="color: #339933;">#include &lt;signal.h&gt;</span>
+&nbsp;
+<span style="color: #993333;">void</span> dump<span style="color: #009900;">&#40;</span><span style="color: #993333;">int</span> signo<span style="color: #009900;">&#41;</span>
+<span style="color: #009900;">&#123;</span>
+    <span style="color: #993333;">void</span> <span style="color: #339933;">*</span>array<span style="color: #009900;">&#91;</span><span style="color: #0000dd;">30</span><span style="color: #009900;">&#93;</span><span style="color: #339933;">;</span>
+    size_t size<span style="color: #339933;">;</span>
+    <span style="color: #993333;">char</span> <span style="color: #339933;">**</span>strings<span style="color: #339933;">;</span>
+    size_t i<span style="color: #339933;">;</span>
+&nbsp;
+    size <span style="color: #339933;">=</span> backtrace <span style="color: #009900;">&#40;</span>array<span style="color: #339933;">,</span> <span style="color: #0000dd;">30</span><span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+    strings <span style="color: #339933;">=</span> backtrace_symbols <span style="color: #009900;">&#40;</span>array<span style="color: #339933;">,</span> size<span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+&nbsp;
+    fprintf <span style="color: #009900;">&#40;</span>stderr<span style="color: #339933;">,</span><span style="color: #ff0000;">&quot;Obtained %zd stack frames.nm&quot;</span><span style="color: #339933;">,</span> size<span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+&nbsp;
+    <span style="color: #b1b100;">for</span> <span style="color: #009900;">&#40;</span>i <span style="color: #339933;">=</span> <span style="color: #0000dd;">0</span><span style="color: #339933;">;</span> i <span style="color: #339933;">&lt;</span> size<span style="color: #339933;">;</span> i<span style="color: #339933;">++</span><span style="color: #009900;">&#41;</span>
+        fprintf <span style="color: #009900;">&#40;</span>stderr<span style="color: #339933;">,</span><span style="color: #ff0000;">&quot;%sn&quot;</span><span style="color: #339933;">,</span> strings<span style="color: #009900;">&#91;</span>i<span style="color: #009900;">&#93;</span><span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+&nbsp;
+    free <span style="color: #009900;">&#40;</span>strings<span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+&nbsp;
+    exit<span style="color: #009900;">&#40;</span><span style="color: #0000dd;">0</span><span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+<span style="color: #009900;">&#125;</span>
+&nbsp;
+Debug_Printf_FrameInfos<span style="color: #009900;">&#40;</span><span style="color: #009900;">&#41;</span>
+<span style="color: #009900;">&#123;</span>
+    signal<span style="color: #009900;">&#40;</span>SIGSEGV<span style="color: #339933;">,</span> <span style="color: #339933;">&amp;</span>dump<span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+<span style="color: #009900;">&#125;</span></pre></td></tr></table></div>
+
+<p>4.2 在mian函数开始位置处调用 Debug_Printf_FrameInfos() 函数<br />
+4.3 在编译程序时 加上 -g 选项</p>
+<h2>5 定位出错函数地址实例</h2>
+<p>这里以 test.c 为例，来查找出错函数地址</p>
+
+<div class="wp_codebox_msgheader"><span class="right"><sup><a href="http://www.ericbess.com/ericblog/2008/03/03/wp-codebox/#examples" target="_blank" title="WP-CodeBox HowTo?"><span style="color: #99cc00">?</span></a></sup></span><span class="left"><a href="javascript:;" onclick="javascript:showCodeTxt('p561code3'); return false;">View Code</a> C</span><div class="codebox_clear"></div></div><div class="wp_codebox"><table><tr id="p5613"><td class="code" id="p561code3"><pre class="c" style="font-family:monospace;"><span style="color: #339933;">#include &lt;execinfo.h&gt; </span>
+<span style="color: #339933;">#include &lt;stdio.h&gt;</span>
+<span style="color: #339933;">#include &lt;stdlib.h&gt;</span>
+<span style="color: #339933;">#include &lt;signal.h&gt;</span>
+&nbsp;
+<span style="color: #993333;">void</span> dump<span style="color: #009900;">&#40;</span><span style="color: #993333;">int</span> signo<span style="color: #009900;">&#41;</span>
+<span style="color: #009900;">&#123;</span>
+    <span style="color: #993333;">void</span> <span style="color: #339933;">*</span>array<span style="color: #009900;">&#91;</span><span style="color: #0000dd;">30</span><span style="color: #009900;">&#93;</span><span style="color: #339933;">;</span>
+    size_t size<span style="color: #339933;">;</span>
+    <span style="color: #993333;">char</span> <span style="color: #339933;">**</span>strings<span style="color: #339933;">;</span>
+    size_t i<span style="color: #339933;">;</span>
+&nbsp;
+    size <span style="color: #339933;">=</span> backtrace <span style="color: #009900;">&#40;</span>array<span style="color: #339933;">,</span> <span style="color: #0000dd;">30</span><span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+    strings <span style="color: #339933;">=</span> backtrace_symbols <span style="color: #009900;">&#40;</span>array<span style="color: #339933;">,</span> size<span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+&nbsp;
+    fprintf <span style="color: #009900;">&#40;</span>stderr<span style="color: #339933;">,</span><span style="color: #ff0000;">&quot;Obtained %zd stack frames.nm&quot;</span><span style="color: #339933;">,</span> size<span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+&nbsp;
+    <span style="color: #b1b100;">for</span> <span style="color: #009900;">&#40;</span>i <span style="color: #339933;">=</span> <span style="color: #0000dd;">0</span><span style="color: #339933;">;</span> i <span style="color: #339933;">&lt;=</span> size<span style="color: #339933;">;</span> i<span style="color: #339933;">++</span><span style="color: #009900;">&#41;</span>
+        fprintf <span style="color: #009900;">&#40;</span>stderr<span style="color: #339933;">,</span><span style="color: #ff0000;">&quot;%s<span style="color: #000099; font-weight: bold;">\n</span>&quot;</span><span style="color: #339933;">,</span> strings<span style="color: #009900;">&#91;</span>i<span style="color: #009900;">&#93;</span><span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+&nbsp;
+    free <span style="color: #009900;">&#40;</span>strings<span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+    exit<span style="color: #009900;">&#40;</span><span style="color: #0000dd;">0</span><span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+<span style="color: #009900;">&#125;</span>
+&nbsp;
+Debug_Printf_FrameInfos<span style="color: #009900;">&#40;</span><span style="color: #009900;">&#41;</span>
+<span style="color: #009900;">&#123;</span>
+    signal<span style="color: #009900;">&#40;</span>SIGSEGV<span style="color: #339933;">,</span> dump<span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+<span style="color: #009900;">&#125;</span>
+&nbsp;
+<span style="color: #993333;">void</span> func_c<span style="color: #009900;">&#40;</span><span style="color: #009900;">&#41;</span>
+<span style="color: #009900;">&#123;</span>
+    <span style="color: #339933;">*</span> <span style="color: #009900;">&#40;</span><span style="color: #009900;">&#40;</span><span style="color: #993333;">volatile</span> <span style="color: #993333;">char</span> <span style="color: #339933;">*</span><span style="color: #009900;">&#41;</span> <span style="color: #208080;">0x0</span><span style="color: #009900;">&#41;</span> <span style="color: #339933;">=</span> <span style="color: #208080;">0x999</span><span style="color: #339933;">;</span>
+<span style="color: #009900;">&#125;</span>
+<span style="color: #993333;">void</span> func_b<span style="color: #009900;">&#40;</span><span style="color: #009900;">&#41;</span>
+<span style="color: #009900;">&#123;</span>
+    func_c<span style="color: #009900;">&#40;</span><span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+<span style="color: #009900;">&#125;</span>
+<span style="color: #993333;">void</span> func_a<span style="color: #009900;">&#40;</span><span style="color: #009900;">&#41;</span>
+<span style="color: #009900;">&#123;</span>
+    func_b<span style="color: #009900;">&#40;</span><span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+<span style="color: #009900;">&#125;</span>
+<span style="color: #993333;">int</span> main<span style="color: #009900;">&#40;</span><span style="color: #009900;">&#41;</span>
+<span style="color: #009900;">&#123;</span>
+    Debug_Printf_FrameInfos<span style="color: #009900;">&#40;</span><span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+    func_a<span style="color: #009900;">&#40;</span><span style="color: #009900;">&#41;</span><span style="color: #339933;">;</span>
+    <span style="color: #b1b100;">return</span> <span style="color: #0000dd;">0</span><span style="color: #339933;">;</span>
+<span style="color: #009900;">&#125;</span></pre></td></tr></table></div>
+
+<p>该例程调用序列为:<br />
+<strong>main() -> func_a() -> func_b() -> func_c() -> 出错</strong></p>
+<h3>5.1编译程序: </h3>
+<p><strong># gcc -g test.c -o test</strong></p>
+<p>注：选项 -rdynamic 可用来通知链接器将所有符号添加到动态符号表中，如果你的链接器支持-rdynamic的话，<br />
+建议将其加上，即<br />
+<strong># gcc -rdynamic -g test.c -o test </strong></p>
+<h3>5.2 运行 test程序:</h3>
+
+<div class="wp_codebox_msgheader"><span class="right"><sup><a href="http://www.ericbess.com/ericblog/2008/03/03/wp-codebox/#examples" target="_blank" title="WP-CodeBox HowTo?"><span style="color: #99cc00">?</span></a></sup></span><span class="left"><a href="javascript:;" onclick="javascript:showCodeTxt('p561code4'); return false;">View Code</a> BASH</span><div class="codebox_clear"></div></div><div class="wp_codebox"><table><tr id="p5614"><td class="code" id="p561code4"><pre class="bash" style="font-family:monospace;"> <span style="color: #666666; font-style: italic;">#  ./test</span>
+Obtained <span style="color: #000000;">7</span> stack frames.nm.<span style="color: #000000; font-weight: bold;">/</span>a.out <span style="color: #7a0874; font-weight: bold;">&#91;</span>0x80484e3<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+<span style="color: #7a0874; font-weight: bold;">&#91;</span>0xb7f70420<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+.<span style="color: #000000; font-weight: bold;">/</span>a.out <span style="color: #7a0874; font-weight: bold;">&#91;</span>0x804859d<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+.<span style="color: #000000; font-weight: bold;">/</span>a.out <span style="color: #7a0874; font-weight: bold;">&#91;</span>0x80485a7<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+.<span style="color: #000000; font-weight: bold;">/</span>a.out <span style="color: #7a0874; font-weight: bold;">&#91;</span>0x80485c4<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+<span style="color: #000000; font-weight: bold;">/</span>lib<span style="color: #000000; font-weight: bold;">/</span>tls<span style="color: #000000; font-weight: bold;">/</span>i686<span style="color: #000000; font-weight: bold;">/</span>cmov<span style="color: #000000; font-weight: bold;">/</span>libc.so.6<span style="color: #7a0874; font-weight: bold;">&#40;</span>__libc_start_main+0xe0<span style="color: #7a0874; font-weight: bold;">&#41;</span> <span style="color: #7a0874; font-weight: bold;">&#91;</span>0xb7e1e450<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+.<span style="color: #000000; font-weight: bold;">/</span>a.out <span style="color: #7a0874; font-weight: bold;">&#91;</span>0x8048461<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+Segmentation fault</pre></td></tr></table></div>
+
+<p> 如果编译似加了-rdynamic选项 的话，将打印如下信息</p>
+
+<div class="wp_codebox_msgheader"><span class="right"><sup><a href="http://www.ericbess.com/ericblog/2008/03/03/wp-codebox/#examples" target="_blank" title="WP-CodeBox HowTo?"><span style="color: #99cc00">?</span></a></sup></span><span class="left"><a href="javascript:;" onclick="javascript:showCodeTxt('p561code5'); return false;">View Code</a> BASH</span><div class="codebox_clear"></div></div><div class="wp_codebox"><table><tr id="p5615"><td class="code" id="p561code5"><pre class="bash" style="font-family:monospace;"><span style="color: #666666; font-style: italic;"># ./test </span>
+Obtained <span style="color: #000000;">7</span> stack frames.nm.<span style="color: #000000; font-weight: bold;">/</span><span style="color: #7a0874; font-weight: bold;">test</span><span style="color: #7a0874; font-weight: bold;">&#40;</span>dump+0x1f<span style="color: #7a0874; font-weight: bold;">&#41;</span> <span style="color: #7a0874; font-weight: bold;">&#91;</span>0x80487c3<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+<span style="color: #7a0874; font-weight: bold;">&#91;</span>0xb7fbb420<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+.<span style="color: #000000; font-weight: bold;">/</span><span style="color: #7a0874; font-weight: bold;">test</span><span style="color: #7a0874; font-weight: bold;">&#40;</span>func_b+0x8<span style="color: #7a0874; font-weight: bold;">&#41;</span> <span style="color: #7a0874; font-weight: bold;">&#91;</span>0x804887d<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+.<span style="color: #000000; font-weight: bold;">/</span><span style="color: #7a0874; font-weight: bold;">test</span><span style="color: #7a0874; font-weight: bold;">&#40;</span>func_a+0x8<span style="color: #7a0874; font-weight: bold;">&#41;</span> <span style="color: #7a0874; font-weight: bold;">&#91;</span>0x8048887<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+.<span style="color: #000000; font-weight: bold;">/</span><span style="color: #7a0874; font-weight: bold;">test</span><span style="color: #7a0874; font-weight: bold;">&#40;</span>main+0x1b<span style="color: #7a0874; font-weight: bold;">&#41;</span> <span style="color: #7a0874; font-weight: bold;">&#91;</span>0x80488a4<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+<span style="color: #000000; font-weight: bold;">/</span>lib<span style="color: #000000; font-weight: bold;">/</span>tls<span style="color: #000000; font-weight: bold;">/</span>i686<span style="color: #000000; font-weight: bold;">/</span>cmov<span style="color: #000000; font-weight: bold;">/</span>libc.so.6<span style="color: #7a0874; font-weight: bold;">&#40;</span>__libc_start_main+0xe0<span style="color: #7a0874; font-weight: bold;">&#41;</span> <span style="color: #7a0874; font-weight: bold;">&#91;</span>0xb7e69450<span style="color: #7a0874; font-weight: bold;">&#93;</span>
+.<span style="color: #000000; font-weight: bold;">/</span><span style="color: #7a0874; font-weight: bold;">test</span> <span style="color: #7a0874; font-weight: bold;">&#91;</span>0x8048741<span style="color: #7a0874; font-weight: bold;">&#93;</span></pre></td></tr></table></div>
+
+<p><strong>打印信息比没加-rdynamic的程序多出了一个函数名称＋偏移地址..(func_b+0&#215;8)</strong></p>
+<h3>5.3 使用objdump获取程序所有符合</h3>
+<p>objdump -d ./test > tmp.txt</p>
+<h3>5.4  分析和查找</h3>
+<p>在tmp.txt 中查找<strong>0&#215;80485ad</strong>的地址，你会发现如下信息：<br />
+08048595 <func_b>:<br />
+ 8048595:   55                      push   %ebp<br />
+ 8048596:   89 e5                   mov    %esp,%ebp<br />
+ 8048598:   e8 eb ff ff ff          call   8048588 <func_c><br />
+<strong> 804859d</strong>:   5d                      pop    %ebp<br />
+ 804859e:   c3   </p>
+<p>其中 <strong>804859d</strong> 是调用（ call   8048588 <func_c>）c函数后的地址，虽然并没有直接定位到C函数，<br />
+通过汇编代码，基本可以推出是在C函数出现问题了。(pop指令不会导致段错误的)</p>
+<p>本文最早发布在 我的<a href="http://blog.csdn.net/dedodong/archive/2007/09/20/1792714.aspx">CSDN blog</a>上。</p>
+			<div class="fixed"></div>
+
+<p class="cp">本文地址：<br><a href="http://www.kgdb.info/linuxdev/backtrace_without_gdb/">http://www.kgdb.info/linuxdev/backtrace_without_gdb/</a><br />版权所有 &copy;   转载时必须以链接形式注明作者和原始出处！</p>
+
+		</div>
+		<div class="under">
+			<span class="categories">分类: </span><span><a href="http://www.kgdb.info/category/linuxdev/" title="查看 LinuxDev 的全部文章" rel="category tag">LinuxDev</a></span>			<span class="tags">标签: </span><span></span>		</div>
+	</div>
+
+	<!-- related posts START -->
+		<!-- related posts END -->
+
+	<script type="text/javascript" src="http://www.kgdb.info/wp-content/themes/inove/js/comment.js"></script>
+
+
+
+<div id="comments">
+
+<div id="cmtswitcher">
+			<a id="commenttab" class="curtab" href="javascript:void(0);" onclick="MGJS.switchTab('thecomments,commentnavi', 'thetrackbacks', 'commenttab', 'curtab', 'trackbacktab', 'tab');">评论 (0)</a>
+		<a id="trackbacktab" class="tab" href="javascript:void(0);" onclick="MGJS.switchTab('thetrackbacks', 'thecomments,commentnavi', 'trackbacktab', 'curtab', 'commenttab', 'tab');">Trackbacks (0)</a>
+				<span class="addcomment"><a href="#respond">发表评论</a></span>
+				<span class="addtrackback"><a href="http://www.kgdb.info/linuxdev/backtrace_without_gdb/trackback/">Trackback</a></span>
+		<div class="fixed"></div>
+</div>
+
+<div id="commentlist">
+	<!-- comments START -->
+	<ol id="thecomments">
+			<li class="messagebox">
+			本文目前尚无任何评论.		</li>
+		</ol>
+	<!-- comments END -->
+
+
+	<!-- trackbacks START -->
+			<ol id="thetrackbacks">
+							<li class="messagebox">
+					本文目前尚无任何 trackbacks 和 pingbacks.				</li>
+
+					</ol>
+		<div class="fixed"></div>
+	<!-- trackbacks END -->
+</div>
+
+</div>
+
+	<form action="http://www.kgdb.info/wp-comments-post.php" method="post" id="commentform">
+	<div id="respond">
+
+					
+			<div id="author_info">
+				<div class="row">
+					<input type="text" name="author" id="author" class="textfield" value="" size="24" tabindex="1" />
+					<label for="author" class="small">昵称 (必填)</label>
+				</div>
+				<div class="row">
+					<input type="text" name="email" id="email" class="textfield" value="" size="24" tabindex="2" />
+					<label for="email" class="small">电子邮箱 (我们会为您保密) (必填)</label>
+				</div>
+				<div class="row">
+					<input type="text" name="url" id="url" class="textfield" value="" size="24" tabindex="3" />
+					<label for="url" class="small">网址</label>
+				</div>
+			</div>
+
+			
+		
+		<!-- comment input -->
+		<div class="row">
+			<textarea name="comment" id="comment" tabindex="4" rows="8" cols="50"></textarea>
+		</div>
+
+		<!-- comment submit and rss -->
+		<div id="submitbox">
+			<a class="feed" href="http://www.kgdb.info/comments/feed/">订阅评论</a>
+			<div class="submitbutton">
+				<input name="submit" type="submit" id="submit" class="button" tabindex="5" value="提交评论" />
+			</div>
+						<input type="hidden" name="comment_post_ID" value="561" />
+			<div class="fixed"></div>
+		</div>
+
+	</div>
+	<p><input type="hidden" id="comment_reply_ID" name="comment_reply_ID" value="0" /><input type="hidden" id="comment_reply_dp" name="comment_reply_dp" value="0" /></p><div id="cancel_reply" style="display:none;"><a href="javascript:void(0)" onclick="movecfm(null,0,1,null);" style="color:red;">点击取消回复</a></div><script type="text/javascript">
+/* <![CDATA[ */
+var commentformid = "commentform";
+var USERINFO = false;
+var atreply = "none";
+/* ]]> */
+</script>
+<script type="text/javascript" src="http://www.kgdb.info/wp-content/plugins/wordpress-thread-comment/wp-thread-comment.js.php?jsver=common"></script>
+	</form>
+
+			<script type="text/javascript">MGJS.loadCommentShortcut();</script>
+	
+
+	<div id="postnavi">
+		<span class="prev"><a href="http://www.kgdb.info/gdb/playing_with_ptrace_part_i/" rel="next">Playing with ptrace, Part I &#8212; 玩转ptrace(一)</a></span>
+		<span class="next"><a href="http://www.kgdb.info/gdb/gdb_watchpoint/" rel="prev">gdb 和 watchpoint</a></span>
+		<div class="fixed"></div>
+	</div>
+
+
+	</div>
+	<!-- main END -->
+
+	
+<!-- sidebar START -->
+<div id="sidebar">
+
+<!-- sidebar north START -->
+<div id="northsidebar" class="sidebar">
+
+	<!-- feeds -->
+	<div class="widget widget_feeds">
+		<div class="content">
+			<div id="subscribe">
+				<a rel="external nofollow" id="feedrss" title="订阅这个博客的文章" href="http://www.kgdb.info/feed/">订阅</a>
+									<ul id="feed_readers">
+						<li id="google_reader"><a rel="external nofollow" class="reader" title="订阅到 Google" href="http://fusion.google.com/add?feedurl=http://www.kgdb.info/feed/"><span> Google</span></a></li>
+						<li id="youdao_reader"><a rel="external nofollow" class="reader" title="订阅到有道" href="http://reader.youdao.com/#url=http://www.kgdb.info/feed/"><span>有道</span></a></li>
+						<li id="xianguo_reader"><a rel="external nofollow" class="reader" title="订阅到鲜果" href="http://www.xianguo.com/subscribe.php?url=http://www.kgdb.info/feed/"><span>鲜果</span></a></li>
+						<li id="zhuaxia_reader"><a rel="external nofollow" class="reader" title="订阅到抓虾" href="http://www.zhuaxia.com/add_channel.php?url=http://www.kgdb.info/feed/"><span>抓虾</span></a></li>
+						<li id="yahoo_reader"><a rel="external nofollow" class="reader" title="订阅到 My Yahoo!"	href="http://add.my.yahoo.com/rss?url=http://www.kgdb.info/feed/"><span> My Yahoo!</span></a></li>
+						<li id="newsgator_reader"><a rel="external nofollow" class="reader" title="订阅到 newsgator"	href="http://www.newsgator.com/ngs/subscriber/subfext.aspx?url=http://www.kgdb.info/feed/"><span> newsgator</span></a></li>
+						<li id="bloglines_reader"><a rel="external nofollow" class="reader" title="订阅到 Bloglines"	href="http://www.bloglines.com/sub/http://www.kgdb.info/feed/"><span> Bloglines</span></a></li>
+						<li id="inezha_reader"><a rel="external nofollow" class="reader" title="订阅到哪吒"	href="http://inezha.com/add?url=http://www.kgdb.info/feed/"><span>哪吒</span></a></li>
+					</ul>
+							</div>
+						<div class="fixed"></div>
+		</div>
+	</div>
+
+	<!-- showcase -->
+	
+
+	<!-- posts -->
+	
+	<div class="widget">
+		<h3>Recent Posts</h3>
+		<ul>
+			<li><a href="http://www.kgdb.info/kgdb/kgdb_support_hwbp_on_arm/">kgdb support hardware breakpoint on arm</a></li><li><a href="http://www.kgdb.info/linuxdev/linux_memory_barriers_by_kouu/">linux内存屏障浅析</a></li><li><a href="http://www.kgdb.info/linuxdev/linux_memory_barriers/">LINUX内核内存屏障</a></li><li><a href="http://www.kgdb.info/linuxdev/msi/">MSI-HOWTO (翻 来自内核文档/Documentation/pci/MSI-HOWTO.txt)</a></li><li><a href="http://www.kgdb.info/linuxdev/linux_serials_opt/">Linux下串口编程</a></li><li><a href="http://www.kgdb.info/linuxdev/webkitarch/">WebKit 结构剖析</a></li><li><a href="http://www.kgdb.info/linuxdev/webkit_plugininterface/">WebKit 插件的那些事之六-Plugin类型注册和管理</a></li><li><a href="http://www.kgdb.info/linuxdev/webkit_pluginview/">WebKit 插件的那些事之五-PluginView</a></li><li><a href="http://www.kgdb.info/linuxdev/webkit_operateurl/">WebKit 插件的那些事之四-operateurl</a></li><li><a href="http://www.kgdb.info/linuxdev/webkit_pluginstream/">WebKit 插件的那些事之三-PluginStream</a></li>		</ul>
+	</div>
+
+	<!-- recent comments -->
+			<div class="widget">
+			<h3>Recent Comments</h3>
+			<ul>
+				<li id="rc_item_1" class="rc_item"><div class="rc_avatar rc_left"><img alt='' src='http://www.gravatar.com/avatar/32cc9f4fe62956c459cce14e4e74734b?s=32&amp;d=http%3A%2F%2Fwww.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D32&amp;r=G' class='avatar avatar-32 photo' height='32' width='32' /></div><div class="rc_info"><span class="author_name"><a rel="nofollow" href="http://www.kgdb.info/kgdb/kgdb_support_hwbp_on_arm/#comment-356">Wissem</a></span></div><div class="rc_excerpt">Yo, good looikn ... <span class="rc_expand"><a rel="nofollow" href="javascript:void(0);" onclick="RCJS.detail(356,'http://www.kgdb.info','limit--5|length--16|post--false|smilies--true',0,'正在加载');">&raquo;</a></span></div></li><li id="rc_item_2" class="rc_item"><div class="rc_avatar rc_left"><img alt='' src='http://www.gravatar.com/avatar/dde9c7a46266a67b4fdf40c17dfbcddb?s=32&amp;d=http%3A%2F%2Fwww.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D32&amp;r=G' class='avatar avatar-32 photo' height='32' width='32' /></div><div class="rc_info"><span class="author_name"><a rel="nofollow" href="http://www.kgdb.info/kgdb/use_kgdb/using_kgdb_base_qemu/#comment-345">Tao</a></span></div><div class="rc_excerpt">为什么在start_kernel... <span class="rc_expand"><a rel="nofollow" href="javascript:void(0);" onclick="RCJS.detail(345,'http://www.kgdb.info','limit--5|length--16|post--false|smilies--true',0,'正在加载');">&raquo;</a></span></div></li><li id="rc_item_3" class="rc_item"><div class="rc_avatar rc_left"><img alt='' src='http://www.gravatar.com/avatar/e5579af6ebf6e898e614853e9ab16ae0?s=32&amp;d=http%3A%2F%2Fwww.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D32&amp;r=G' class='avatar avatar-32 photo' height='32' width='32' /></div><div class="rc_info"><span class="author_name"><a rel="nofollow" href="http://www.kgdb.info/linuxdev/linux_memory_barriers_by_kouu/#comment-343">Frank</a></span></div><div class="rc_excerpt">介紹的非常詳細!!讓我對內存屏障... <span class="rc_expand"><a rel="nofollow" href="javascript:void(0);" onclick="RCJS.detail(343,'http://www.kgdb.info','limit--5|length--16|post--false|smilies--true',0,'正在加载');">&raquo;</a></span></div></li><li id="rc_item_4" class="rc_item"><div class="rc_avatar rc_left"><img alt='' src='http://www.gravatar.com/avatar/6be49b6559966ce070207a63b9536264?s=32&amp;d=http%3A%2F%2Fwww.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D32&amp;r=G' class='avatar avatar-32 photo' height='32' width='32' /></div><div class="rc_info"><span class="author_name"><a rel="nofollow" href="http://www.kgdb.info/kgdb/use_kgdb/using_kgdb_base_qemu/#comment-341">DDD</a></span></div><div class="rc_excerpt">kgdbOe 缺省是没有进入内核... <span class="rc_expand"><a rel="nofollow" href="javascript:void(0);" onclick="RCJS.detail(341,'http://www.kgdb.info','limit--5|length--16|post--false|smilies--true',0,'正在加载');">&raquo;</a></span></div></li><li id="rc_item_5" class="rc_item"><div class="rc_avatar rc_left"><img alt='' src='http://www.gravatar.com/avatar/f203fa8e82b735444726ed549684b08c?s=32&amp;d=http%3A%2F%2Fwww.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D32&amp;r=G' class='avatar avatar-32 photo' height='32' width='32' /></div><div class="rc_info"><span class="author_name"><a rel="nofollow" href="http://www.kgdb.info/kgdb/use_kgdb/using_kgdb_base_qemu/#comment-340">Blackrose</a></span></div><div class="rc_excerpt">你好，我用的是2.6.32的内核... <span class="rc_expand"><a rel="nofollow" href="javascript:void(0);" onclick="RCJS.detail(340,'http://www.kgdb.info','limit--5|length--16|post--false|smilies--true',0,'正在加载');">&raquo;</a></span></div></li><li id="rc_nav"><div><div id="rc_older"><a rel="nofollow" href="javascript:void(0);" onclick="RCJS.page('http://www.kgdb.info','limit--5|length--16|post--false|smilies--true',5,'正在加载');">下一页 &raquo;</a></div><div class="rc_fixed"></div></div></li>			</ul>
+		</div>
+	
+	<!-- tag cloud -->
+	<div id="tag_cloud" class="widget">
+		<h3>Tag Cloud</h3>
+		<a href='http://www.kgdb.info/tag/arm/' class='tag-link-56' title='1个主题' style='font-size: 8pt;'>arm</a>
+<a href='http://www.kgdb.info/tag/build/' class='tag-link-47' title='1个主题' style='font-size: 8pt;'>build</a>
+<a href='http://www.kgdb.info/tag/ctrlc/' class='tag-link-45' title='1个主题' style='font-size: 8pt;'>ctrl+c</a>
+<a href='http://www.kgdb.info/tag/debugger/' class='tag-link-37' title='4个主题' style='font-size: 11.137254901961pt;'>debugger</a>
+<a href='http://www.kgdb.info/tag/debugging/' class='tag-link-42' title='3个主题' style='font-size: 10.352941176471pt;'>debugging</a>
+<a href='http://www.kgdb.info/tag/gdb/' class='tag-link-1' title='12个主题' style='font-size: 14.352941176471pt;'>gdb</a>
+<a href='http://www.kgdb.info/tag/gdb%e8%bf%9c%e7%a8%8b%e4%b8%b2%e8%a1%8c%e5%8d%8f%e8%ae%ae/' class='tag-link-28' title='2个主题' style='font-size: 9.4117647058824pt;'>gdb远程串行协议</a>
+<a href='http://www.kgdb.info/tag/gtest/' class='tag-link-50' title='12个主题' style='font-size: 14.352941176471pt;'>gtest</a>
+<a href='http://www.kgdb.info/tag/kdb/' class='tag-link-44' title='1个主题' style='font-size: 8pt;'>kdb</a>
+<a href='http://www.kgdb.info/tag/kernel/' class='tag-link-51' title='1个主题' style='font-size: 8pt;'>kernel</a>
+<a href='http://www.kgdb.info/tag/kgdb/' class='tag-link-3' title='20个主题' style='font-size: 16pt;'>kgdb</a>
+<a href='http://www.kgdb.info/tag/kgdboe/' class='tag-link-11' title='1个主题' style='font-size: 8pt;'>kgdboe</a>
+<a href='http://www.kgdb.info/tag/kgdb%e6%8a%93%e8%99%ab%e6%97%a5%e8%ae%b0/' class='tag-link-26' title='8个主题' style='font-size: 13.098039215686pt;'>kgdb抓虫日记</a>
+<a href='http://www.kgdb.info/tag/kgdb%e6%ba%90%e4%bb%a3%e7%a0%81%e5%88%86%e6%9e%90/' class='tag-link-24' title='8个主题' style='font-size: 13.098039215686pt;'>kgdb源代码分析</a>
+<a href='http://www.kgdb.info/tag/kgdb%e9%85%8d%e7%bd%ae%e9%80%89%e9%a1%b9/' class='tag-link-25' title='1个主题' style='font-size: 8pt;'>kgdb配置选项</a>
+<a href='http://www.kgdb.info/tag/libfetion/' class='tag-link-46' title='1个主题' style='font-size: 8pt;'>libfetion</a>
+<a href='http://www.kgdb.info/tag/linux/' class='tag-link-41' title='6个主题' style='font-size: 12.313725490196pt;'>linux</a>
+<a href='http://www.kgdb.info/tag/linuxdev/' class='tag-link-35' title='1个主题' style='font-size: 8pt;'>LinuxDev</a>
+<a href='http://www.kgdb.info/tag/mygdb/' class='tag-link-38' title='1个主题' style='font-size: 8pt;'>mygdb</a>
+<a href='http://www.kgdb.info/tag/protobuf/' class='tag-link-48' title='1个主题' style='font-size: 8pt;'>protobuf</a>
+<a href='http://www.kgdb.info/tag/ptrace/' class='tag-link-36' title='5个主题' style='font-size: 11.764705882353pt;'>ptrace</a>
+<a href='http://www.kgdb.info/tag/qemu/' class='tag-link-29' title='2个主题' style='font-size: 9.4117647058824pt;'>qemu</a>
+<a href='http://www.kgdb.info/tag/softlockup/' class='tag-link-8' title='2个主题' style='font-size: 9.4117647058824pt;'>softlockup</a>
+<a href='http://www.kgdb.info/tag/stack/' class='tag-link-39' title='1个主题' style='font-size: 8pt;'>stack</a>
+<a href='http://www.kgdb.info/tag/tinylinux/' class='tag-link-52' title='1个主题' style='font-size: 8pt;'>tinylinux</a>
+<a href='http://www.kgdb.info/tag/watchpoint/' class='tag-link-34' title='3个主题' style='font-size: 10.352941176471pt;'>watchpoint</a>
+<a href='http://www.kgdb.info/tag/webkit/' class='tag-link-54' title='7个主题' style='font-size: 12.705882352941pt;'>webkit</a>
+<a href='http://www.kgdb.info/tag/webrtc/' class='tag-link-49' title='1个主题' style='font-size: 8pt;'>WebRTC</a>
+<a href='http://www.kgdb.info/tag/%e4%b8%80%e6%ad%a5%e4%b8%80%e6%ad%a5%e8%b7%9f%e6%88%91%e5%ad%a6linux/' class='tag-link-31' title='2个主题' style='font-size: 9.4117647058824pt;'>一步一步跟我学linux</a>
+<a href='http://www.kgdb.info/tag/%e4%bd%bf%e7%94%a8kgdb/' class='tag-link-30' title='2个主题' style='font-size: 9.4117647058824pt;'>使用kgdb</a>
+<a href='http://www.kgdb.info/tag/%e5%86%85%e5%ad%98%e5%b1%8f%e9%9a%9c%ef%bc%8c%e7%bf%bb%e8%af%91/' class='tag-link-55' title='1个主题' style='font-size: 8pt;'>内存屏障，翻译</a>
+<a href='http://www.kgdb.info/tag/%e5%8d%95%e6%ad%a5%e8%b0%83%e8%af%95/' class='tag-link-27' title='1个主题' style='font-size: 8pt;'>单步调试</a>
+<a href='http://www.kgdb.info/tag/%e6%95%99%e7%a8%8b/' class='tag-link-33' title='7个主题' style='font-size: 12.705882352941pt;'>教程</a>
+<a href='http://www.kgdb.info/tag/%e8%b0%83%e8%af%95%e5%af%84%e5%ad%98%e5%99%a8/' class='tag-link-32' title='1个主题' style='font-size: 8pt;'>调试寄存器</a>	</div>
+
+</div>
+<!-- sidebar north END -->
+
+<div id="centersidebar">
+
+	<!-- sidebar east START -->
+	<div id="eastsidebar" class="sidebar">
+	
+		<!-- categories -->
+		<div class="widget widget_categories">
+			<h3>Categories</h3>
+			<ul>
+					<li class="cat-item cat-item-40"><a href="http://www.kgdb.info/category/debugger-theory/" title="查看 debugger theory 下的所有文章">debugger theory</a>
+</li>
+	<li class="cat-item cat-item-1"><a href="http://www.kgdb.info/category/gdb/" title="查看 gdb 下的所有文章">gdb</a>
+</li>
+	<li class="cat-item cat-item-3"><a href="http://www.kgdb.info/category/kgdb/" title="查看 kgdb 下的所有文章">kgdb</a>
+</li>
+	<li class="cat-item cat-item-35"><a href="http://www.kgdb.info/category/linuxdev/" title="查看 LinuxDev 下的所有文章">LinuxDev</a>
+</li>
+			</ul>
+		</div>
+
+		</div>
+	<!-- sidebar east END -->
+
+	<!-- sidebar west START -->
+	<div id="westsidebar" class="sidebar">
+	
+		<!-- blogroll -->
+		<div class="widget widget_links">
+			<h3>Blogroll</h3>
+			<ul>
+				<li><a href="http://godorz.info" rel="co-worker">Arthur1989的blog</a></li>
+<li><a href="http://www.libfetion.org" rel="me" title="LibFetion Project" target="_blank">LibFetion</a></li>
+			</ul>
+		</div>
+
+		</div>
+	<!-- sidebar west END -->
+	<div class="fixed"></div>
+</div>
+
+<!-- sidebar south START -->
+<div id="southsidebar" class="sidebar">
+
+	<!-- archives -->
+	<div class="widget">
+		<h3>Archives</h3>
+					<ul>
+					<li><a href='http://www.kgdb.info/2012/09/' title='2012年九月'>2012年九月</a></li>
+	<li><a href='http://www.kgdb.info/2012/08/' title='2012年八月'>2012年八月</a></li>
+	<li><a href='http://www.kgdb.info/2012/07/' title='2012年七月'>2012年七月</a></li>
+	<li><a href='http://www.kgdb.info/2012/06/' title='2012年六月'>2012年六月</a></li>
+	<li><a href='http://www.kgdb.info/2012/05/' title='2012年五月'>2012年五月</a></li>
+	<li><a href='http://www.kgdb.info/2012/04/' title='2012年四月'>2012年四月</a></li>
+	<li><a href='http://www.kgdb.info/2012/03/' title='2012年三月'>2012年三月</a></li>
+	<li><a href='http://www.kgdb.info/2012/02/' title='2012年二月'>2012年二月</a></li>
+	<li><a href='http://www.kgdb.info/2012/01/' title='2012年一月'>2012年一月</a></li>
+	<li><a href='http://www.kgdb.info/2011/12/' title='2011年十二月'>2011年十二月</a></li>
+	<li><a href='http://www.kgdb.info/2011/11/' title='2011年十一月'>2011年十一月</a></li>
+	<li><a href='http://www.kgdb.info/2011/10/' title='2011年十月'>2011年十月</a></li>
+	<li><a href='http://www.kgdb.info/2011/09/' title='2011年九月'>2011年九月</a></li>
+	<li><a href='http://www.kgdb.info/2011/08/' title='2011年八月'>2011年八月</a></li>
+	<li><a href='http://www.kgdb.info/2011/07/' title='2011年七月'>2011年七月</a></li>
+	<li><a href='http://www.kgdb.info/2011/06/' title='2011年六月'>2011年六月</a></li>
+	<li><a href='http://www.kgdb.info/2011/05/' title='2011年五月'>2011年五月</a></li>
+	<li><a href='http://www.kgdb.info/2011/04/' title='2011年四月'>2011年四月</a></li>
+	<li><a href='http://www.kgdb.info/2011/03/' title='2011年三月'>2011年三月</a></li>
+	<li><a href='http://www.kgdb.info/2011/02/' title='2011年二月'>2011年二月</a></li>
+	<li><a href='http://www.kgdb.info/2011/01/' title='2011年一月'>2011年一月</a></li>
+	<li><a href='http://www.kgdb.info/2010/12/' title='2010年十二月'>2010年十二月</a></li>
+	<li><a href='http://www.kgdb.info/2010/11/' title='2010年十一月'>2010年十一月</a></li>
+	<li><a href='http://www.kgdb.info/2010/10/' title='2010年十月'>2010年十月</a></li>
+	<li><a href='http://www.kgdb.info/2010/09/' title='2010年九月'>2010年九月</a></li>
+	<li><a href='http://www.kgdb.info/2010/08/' title='2010年八月'>2010年八月</a></li>
+	<li><a href='http://www.kgdb.info/2010/07/' title='2010年七月'>2010年七月</a></li>
+	<li><a href='http://www.kgdb.info/2010/06/' title='2010年六月'>2010年六月</a></li>
+			</ul>
+			</div>
+
+	<!-- meta -->
+	<div class="widget">
+		<h3>Meta</h3>
+		<ul>
+			<li><a href="http://www.kgdb.info/wp-login.php?action=register">注册</a></li>			<li><a href="http://www.kgdb.info/wp-login.php">登录</a></li>
+		</ul>
+	</div>
+
+</div>
+<!-- sidebar south END -->
+
+</div>
+<!-- sidebar END -->
+	<div class="fixed"></div>
+</div>
+<!-- content END -->
+
+<!-- footer START -->
+<div id="footer">
+	<a id="gotop" href="#" onclick="MGJS.goTop();return false;">回到顶部</a>
+	<a id="powered" href="http://wordpress.org/">WordPress</a>
+	<div id="copyright">
+版权所有 &copy; 2010 <a href="mailto:libfetion@gmail.com">DDD</a>,<a href=" http://www.kgdb.info/">KGDB</a>. 本站内容除特殊说明外遵从<a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/3.0/us/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc-nd/3.0/us/80x15.png" /></a>创作共享协议, 转载请注明作者和出处.
+	</div>
+	<div id="themeinfo">
+		主题由 <a href="http://www.neoease.com/">NeoEase</a> 提供, 通过 <a href="http://validator.w3.org/check?uri=referer">XHTML 1.1</a> 和 <a href="http://jigsaw.w3.org/css-validator/check/referer?profile=css3">CSS 3</a> 验证.	</div>
+</div>
+<!-- footer END -->
+
+</div>
+<!-- container END -->
+</div>
+<!-- wrap END -->
+
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-4283246-4']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+</body>
+</html>
+

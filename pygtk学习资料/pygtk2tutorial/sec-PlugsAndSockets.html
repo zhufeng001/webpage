@@ -1,0 +1,148 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>10.13. Plugs and Sockets</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"><link rel="home" href="index.html" title="PyGTK 2.0 Tutorial"><link rel="up" href="ch-ContainerWidgets.html" title="Chapter 10. Container Widgets"><link rel="prev" href="sec-Notebooks.html" title="10.12. Notebooks"><link rel="next" href="ch-MenuWidget.html" title="Chapter 11. Menu Widget"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">10.13. Plugs and Sockets</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="sec-Notebooks.html">Prev</a> </td><th width="60%" align="center">Chapter 10. Container Widgets</th><td width="20%" align="right"> <a accesskey="n" href="ch-MenuWidget.html">Next</a></td></tr></table><hr></div><div class="sect1" title="10.13. Plugs and Sockets"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sec-PlugsAndSockets"></a>10.13. Plugs and Sockets</h2></div></div></div><p><code class="classname">Plugs</code> and <code class="classname">Sockets</code>
+cooperate to embed the user interface from one process into another process.
+This can also be accomplished using Bonobo.</p><div class="sect2" title="10.13.1. Plugs"><div class="titlepage"><div><div><h3 class="title"><a name="idp6429728"></a>10.13.1. Plugs</h3></div></div></div><p>A <code class="classname">Plug</code> encapsulates a user interface
+provided by one application so that it can be embedded in another
+application's user interface. The "embedded" signal alerts the plug
+application that the plug has been embedded in the other application's user
+interface.</p><p>A <code class="classname">Plug</code> is created using the following
+function:</p><pre class="programlisting">
+  plug = gtk.Plug(socket_id)
+</pre><p>which creates a new <code class="classname">Plug</code> and embeds it in
+the <code class="classname">Socket</code> identified by
+<em class="parameter"><code>socket_id</code></em>. If <em class="parameter"><code>socket_id</code></em> is 0L,
+the plug is left "unplugged" and can later be plugged into a
+<code class="classname">Socket</code> using the <code class="classname">Socket</code>
+<code class="methodname">add_id</code>() method.</p><p>The <code class="classname">Plug</code> method:</p><pre class="programlisting">
+  id = plug.get_id()
+</pre><p>returns the window ID of a <code class="classname">Plug</code>, that can
+be used to embed it inside a <code class="classname">Socket</code> using the
+<code class="classname">Socket</code> <code class="methodname">add_id</code>()
+method.</p><p>The <a class="ulink" href="examples/plug.py" target="_top"><span class="command"><strong>plug.py</strong></span></a> example
+program illustrates the use of a Plug:</p><pre class="programlisting">
+    1	#!/usr/bin/python
+    2	
+    3	import pygtk
+    4	pygtk.require('2.0')
+    5	import gtk,sys
+    6	
+    7	Wid = 0L
+    8	if len(sys.argv) == 2:
+    9	    Wid = long(sys.argv[1])
+   10	
+   11	plug = gtk.Plug(Wid)
+   12	print "Plug ID=", plug.get_id()
+   13	
+   14	def embed_event(widget):
+   15	    print "I (",widget,") have just been embedded!"
+   16	
+   17	plug.connect("embedded", embed_event)
+   18	
+   19	entry = gtk.Entry()
+   20	entry.set_text("hello")
+   21	def entry_point(widget):
+   22	    print "You've changed my text to '%s'" % widget.get_text()
+   23	
+   24	entry.connect("changed", entry_point)
+   25	plug.connect("destroy", gtk.mainquit)
+   26	
+   27	plug.add(entry)
+   28	plug.show_all()
+   29	
+   30	
+   31	gtk.mainloop()
+</pre><p>The program is invoked like:</p><pre class="programlisting">
+  plug.py [windowID]
+</pre><p>where <em class="parameter"><code>windowID</code></em> is the ID of a
+<code class="classname">Socket</code> to connect the <code class="classname">Plug</code>
+to.</p></div><div class="sect2" title="10.13.2. Sockets"><div class="titlepage"><div><div><h3 class="title"><a name="idp6438336"></a>10.13.2. Sockets</h3></div></div></div><p>A <code class="classname">Socket</code> provides the widget to embed a
+<code class="classname">Plug</code> widget from another application into your GUI
+transparently. An application creates a <code class="classname">Socket</code> widget
+and, passes that widget's window ID to another application, which then
+creates a <code class="classname">Plug</code> using that window ID as a
+parameter. Any widgets contained in the <code class="classname">Plug</code> appear
+inside the first application's window.</p><p>The <code class="classname">Socket</code> window ID is obtained by using
+the <code class="classname">Socket</code> method <code class="methodname">get_id</code>().
+Before using this method, the <code class="classname">Socket</code> must be
+realized, and added to its parent.</p><div class="note" title="Note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>If you pass the window ID of the <code class="classname">Socket</code>
+to another process that will create a <code class="classname">Plug</code> in the
+<code class="classname">Socket</code>, you must make sure that the
+<code class="classname">Socket</code> widget is not destroyed until that
+<code class="classname">Plug</code> is created.</p></div><p>When GTK+ is notified that the embedded window has been
+destroyed, then it will destroy the <code class="classname">Socket</code> as well.
+You should always, therefore, be prepared for your sockets to be destroyed
+at any time when the main event loop is running. Destroying a
+<code class="classname">Socket</code> will cause an embedded
+<code class="classname">Plug</code> to be destroyed as well.</p><p>The communication between a <code class="classname">Socket</code> and a
+<code class="classname">Plug</code> follows the XEmbed protocol. This protocol has
+also been implemented in other toolkits, e.g. Qt, allowing the same level of
+integration when embedding a Qt widget in GTK or vice versa.</p><p>Create a new empty <code class="classname">Socket</code>:</p><pre class="programlisting">
+  socket = gtk.Socket()
+</pre><p>The <code class="classname">Socket</code> must be contained in a
+toplevel window before you invoke the <code class="methodname">add_id</code>()
+method:</p><pre class="programlisting">
+  socket.add_id(window_id)
+</pre><p>which adds an XEMBED client, such as a
+<code class="classname">Plug</code>, to the <code class="classname">Socket</code>. The
+client may be in the same process or in a different process.</p><p>To embed a <code class="classname">Plug</code> in a
+<code class="classname">Socket</code>, you can either create the
+<code class="classname">Plug</code> with:</p><pre class="programlisting">
+  plug = gtk.Plug(0L)
+</pre><p>and then pass the number returned by the
+<code class="classname">Plug</code> <code class="methodname">get_id</code>() method to the
+<code class="classname">Socket</code> <code class="methodname">add_id</code>()
+method:</p><pre class="programlisting">
+  socket.add_id(plug)
+</pre><p>or you can invoke the <code class="classname">Socket</code>
+<code class="methodname">get_id</code>() method:</p><pre class="programlisting">
+    window_id = socket.get_id()
+</pre><p>to get the window ID for the socket, and then create the plug
+with:</p><pre class="programlisting">
+  plug = gtk.Plug(window_id)
+</pre><p>The <code class="classname">Socket</code> must have already be added
+into a toplevel window before you can make this call.</p><p>The <a class="ulink" href="examples/socket.py" target="_top"><span class="command"><strong>socket.py</strong></span></a> example
+program illustrates the use of a <code class="classname">Socket</code>:</p><pre class="programlisting">
+    1	#!/usr/bin/python
+    2	
+    3	import string
+    4	
+    5	import pygtk
+    6	pygtk.require('2.0')
+    7	import gtk,sys
+    8	
+    9	window = gtk.Window()
+   10	window.show()
+   11	
+   12	socket = gtk.Socket()
+   13	socket.show()
+   14	window.add(socket)
+   15	
+   16	print "Socket ID=", socket.get_id()
+   17	window.connect("destroy", gtk.mainquit)
+   18	
+   19	def plugged_event(widget):
+   20	    print "I (",widget,") have just had a plug inserted!"
+   21	
+   22	socket.connect("plug-added", plugged_event)
+   23	
+   24	if len(sys.argv) == 2:
+   25	    socket.add_id(long(sys.argv[1]))
+   26	
+   27	gtk.mainloop()
+</pre><p>To run the example you can either run <a class="ulink" href="examples/plug.py" target="_top"><span class="command"><strong>plug.py</strong></span></a> first:</p><pre class="programlisting">
+  $ python plug.py
+  Plug ID= 20971522
+</pre><p>and copy the output ID to the first arg of <a class="ulink" href="examples/socket.py" target="_top"><span class="command"><strong>socket.py</strong></span></a>:</p><pre class="programlisting">
+  $ python socket.py 20971522
+  Socket ID= 48234523
+  I ( &lt;gtk.Plug object (GtkPlug) at 0x3008dd78&gt; ) have just been embedded!
+  I ( &lt;gtk.Socket object (GtkSocket) at 0x3008ddf0&gt; ) have just had a plug inserted!
+</pre><p>Or you can run <a class="ulink" href="examples/socket.py" target="_top"><span class="command"><strong>socket.py</strong></span></a>:</p><pre class="programlisting">
+  $ python socket.py
+  Socket ID= 20971547
+</pre><p>and then run <a class="ulink" href="examples/plug.py" target="_top"><span class="command"><strong>plug.py</strong></span></a>, copying across
+the window ID:</p><pre class="programlisting">
+  $ python plug.py
+  20971547
+  I ( &lt;gtk.Socket object (GtkSocket) at 0x3008ddf0&gt; ) have just had a plug inserted!
+  Plug ID= 48234498
+</pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="sec-Notebooks.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch-ContainerWidgets.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch-MenuWidget.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">10.12. Notebooks </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 11. Menu Widget</td></tr></table></div></body></html>

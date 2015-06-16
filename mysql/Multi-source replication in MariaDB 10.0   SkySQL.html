@@ -1,0 +1,660 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Multi-source replication in MariaDB 10.0 | SkySQL</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="shortcut icon" href="/sites/all/themes/skynew/images/favicon.ico" type="image/x-icon" />
+<meta name="description" content="I have wanted multi-source replication in MySQL since 4.0, so I was delighted to see this feature appear in MariaDB 10.0. Let's explore the feature a little." />
+<meta name="copyright" content="All content copyright 2011 SkySQL Corporation Ab unless otherwise noted." />
+<link rel="canonical" href="http://www.skysql.com/blogs/dean-ellis/multi-source-replication-mariadb-100" />
+<meta name="revisit-after" content="1 day" />
+<link rel="alternate" type="application/rss+xml" title="Dean Ellis&#039;s blog" href="/blog/1221/feed" />
+  <link type="text/css" rel="stylesheet" media="all" href="/sites/default/files/advagg_css/css_2a018e73b010021cfdb60c54a17d96af_1.css" />
+<link type="text/css" rel="stylesheet" media="all" href="/sites/default/files/advagg_css/css_9bf3632f0e4eb480995ee1e3c4630ec6_2.css" />
+<link type="text/css" rel="stylesheet" media="all" href="/sites/default/files/advagg_css/css_faba49f0c8a73dd4d9b681363e3a986c_3.css" />
+<link type="text/css" rel="stylesheet" media="all" href="/sites/default/files/advagg_css/css_ba2e7c9fd023a63470106f3f45961f65_1.css" />
+<link type="text/css" rel="stylesheet" media="print" href="/sites/default/files/advagg_css/css_9c099da1f17f0da6e75224ed7f6fb724_2.css" />
+<!--[if IE]>
+<link type="text/css" rel="stylesheet" media="all" href="/sites/all/themes/skynew/css/ie.css?V" />
+<![endif]-->
+<!--[if lte IE 6]>
+<link type="text/css" rel="stylesheet" media="all" href="/sites/all/themes/skynew/css/ie6.css?V" />
+<![endif]-->
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+<script type="text/javascript" src="/sites/default/files/advagg_js/js_038ca9f6751380f807bf5f34364c2d26_0.js"></script>
+<script type="text/javascript" src="/sites/default/files/advagg_js/js_2f4590184930dccd65920b58c2962e2a_2.js"></script>
+<script type="text/javascript" src="/sites/all/modules/thickbox/thickbox_login.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/thickbox/thickbox.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/views_slideshow/js/jquery.cycle.all.min.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/views_slideshow/contrib/views_slideshow_singleframe/views_slideshow.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/views_slideshow/contrib/views_slideshow_thumbnailhover/views_slideshow.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/views_slideshow_ddblock/js/views_slideshow_ddblock.admin.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/ajax_comments/ajax_comments.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/gmap/js/gmap_views_ajax.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/views/js/base.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/views/js/ajax_view.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/ajax/jquery/jquery.a_form.packed.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/ajax/ajax.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/jquery_update/replace/jquery.form.js?V"></script>
+<script type="text/javascript" src="/sites/all/themes/skynew/js/skysql.js?V"></script>
+<script type="text/javascript" src="/sites/all/modules/ajax/plugins/thickbox/ajax_thickbox.js?V"></script>
+<script type="text/javascript">
+<!--//--><![CDATA[//><!--
+jQuery.extend(Drupal.settings, {"basePath":"\/","colorbox":{"transition":"elastic","speed":350,"opacity":"0.85","slideshow":false,"slideshowAuto":false,"slideshowSpeed":2500,"slideshowStart":"","slideshowStop":"","current":"{current} of {total}","previous":"\u00ab Prev","next":"Next \u00bb","close":"Close","overlayClose":true,"maxWidth":"100%","maxHeight":"100%"},"googleanalytics":{"trackOutgoing":1,"trackMailto":1,"trackDownload":1,"trackDownloadExtensions":"7z|aac|arc|arj|asf|asx|avi|bin|csv|doc|exe|flv|gif|gz|gzip|hqx|jar|jpe?g|js|mp(2|3|4|e?g)|mov(ie)?|msi|msp|pdf|phps|ppt|qtm?|ra(m|r)?|sea|sit|tar|tgz|torrent|txt|wav|wma|wmv|wpd|xls|xml|z|zip"},"jcarousel":{"ajaxPath":"\/jcarousel\/ajax\/views"},"nice_menus_options":{"delay":"800","speed":"fast"},"thickbox":{"close":"Close","next":"Next \u003E","prev":"\u003C Prev","esc_key":"or Esc Key","next_close":"Next \/ Close on last","image_count":"Image !current of !total","login_form_width":"255","login_form_height":"330","register_form_width":"460","register_form_height":"500"},"language_mode":"1","language_list":{"en":{"language":"en","name":"English","native":"English","direction":"0","enabled":"1","plurals":"0","formula":"","domain":"","prefix":"en","weight":"0","javascript":""},"fr":{"language":"fr","name":"French","native":"Fran\u00e7ais","direction":"0","enabled":"1","plurals":"2","formula":"($n\u003E1)","domain":"","prefix":"fr","weight":"1","javascript":"16dc8c4cdf020509d0009c798d8c06b4"},"de":{"language":"de","name":"German","native":"Deutsch","direction":"0","enabled":"1","plurals":"2","formula":"($n!=1)","domain":"","prefix":"de","weight":"2","javascript":"f681900bfad6061a80ac9b9e95b8ffde"},"ja":{"language":"ja","name":"Japanese","native":"\u65e5\u672c\u8a9e","direction":"0","enabled":"1","plurals":"2","formula":"($n!=1)","domain":"","prefix":"ja","weight":"3","javascript":"bfe6c8ace35b3a4333729cfa9dcda438"},"zh-hans":{"language":"zh-hans","name":"Chinese, Simplified","native":"\u7b80\u4f53\u4e2d\u6587","direction":"0","enabled":"1","plurals":"2","formula":"($n!=1)","domain":"","prefix":"zh","weight":"4","javascript":"85106b759de1da8e8123ef99123807f2"},"ko":{"language":"ko","name":"Korean","native":"\ud55c\uad6d\uc5b4","direction":"0","enabled":"1","plurals":"2","formula":"($n!=1)","domain":"","prefix":"ko","weight":"5","javascript":"6deadcb086f3129037678b71c7e036b0"}},"clean_url":"1","comment_preview_required":false,"ajax_comments_rows_in_reply":"3","ajax_comments_rows_default":"5","ajax_comments_always_expand_form":0,"ajax_comments_blink_new":1,"comment_bonus_api_fold_comments":1,"ajax_comments_nid":"2051","views":{"ajax_path":"\/views\/ajax","ajaxViews":[{"view_name":"training_course_list","view_display_id":"block_5","view_args":"","view_path":"node\/2051","view_base_path":"trainingcourselist","view_dom_id":1,"pager_element":0}]}});
+//--><!]]>
+</script>
+<script type="text/javascript">
+<!--//--><![CDATA[//><!--
+window.google_analytics_uacct="UA-18791647-1"
+//--><!]]>
+</script>
+</head>
+<body class="no-context page not-front not-logged-in node-type-blog i18n-en page-blogs-dean-ellis-multi-source-replication-mariadb-100 section-blogs one-sidebar sidebar-second">
+      <div id="skip-link"><a href="#main-menu">Jump to Navigation</a></div>
+  
+  <div id="page-wrapper"><div id="page">
+
+<div id="header-wrapper">
+    <div id="header"><div class="section clearfix">
+
+              <a href="/" title="Home" rel="home" id="logo"><img src="/sites/all/themes/skynew/images/blank.png" alt="Home" /></a>
+      
+      
+      <div class="region region-header">
+    <div id="block-block-7" class="block block-block first region-odd odd region-count-1 count-7">
+  
+  <div class="content">
+    <ul class="header-links">
+<li class="button-login"><a href="/user/login?destination=%2Fblogs%2Fdean-ellis%2Fmulti-source-replication-mariadb-100">Sign In</a></li><li><a href="/customers/portal" title="Support Portal">Support Portal</a></li>
+<li><a href="/about/news-events" title="News & Events">News & Events</a></li>
+<li><a href="/blog" title="SkySQL Blog">Blog</a></li>
+<li><a href="http://www.mariadb.com" title="MariaDB.com" target="_blank">MariaDB.com</a></li>
+<li><a href="/about/contact" title="Contact">Contact</a></li>
+</ul>  </div>
+
+  </div><!-- /.block -->
+  <div id="block-block-42" class="block block-block region-even even region-count-2 count-8">
+  
+  <div class="content">
+    <div id="signup-button" class="button red"><a href="/user/register?destination=%2Fblogs%2Fdean-ellis%2Fmulti-source-replication-mariadb-100">Sign Up</a></div>  </div>
+
+  </div><!-- /.block -->
+</div><!-- /.region -->
+              <div id="navigation"><div class="section clearfix">
+
+          <div class="region region-navigation">
+    <div id="block-nice_menus-1" class="block block-nice_menus first region-odd even region-count-1 count-6">
+  
+  <div class="content">
+    <ul class="nice-menu nice-menu-down" id="nice-menu-1"><li class="menu-11405 menuparent menu-path-node-1300 first  odd "><a href="/why-skysql">Why SkySQL?</a><ul><li class="menu-14323 menu-path-node-1528 first  odd "><a href="/why-skysql/mariadb-mysql">MariaDB &amp; MySQL</a></li>
+<li class="menu-24683 menu-path-node-1792 even "><a href="/why-skysql/mariadb-galera">MariaDB &amp; Galera</a></li>
+<li class="menu-14328 menu-path-node-1533 odd "><a href="/why-skysql/skysql-high-availability">SkySQL &amp; High Availability</a></li>
+<li class="menu-25399 menu-path-node-1953 even "><a href="/downloads/mariadb-enterprise-cluster" title="">MariaDB Enterprise Cluster</a></li>
+<li class="menu-16297 menu-path-node-1576 odd "><a href="/why-skysql/whitepapers" title="">Whitepapers</a></li>
+<li class="menu-24734 menu-path-node-1815 even "><a href="/why-skysql/datasheets">Datasheets</a></li>
+<li class="menu-16621 menu-path-node-1614 odd "><a href="/why-skysql/webinars" title="">Webinars</a></li>
+<li class="menu-26402 menu-path-node-2133 even "><a href="/why-skysql/roadshows" title="">Roadshows</a></li>
+<li class="menu-14327 menu-path-node-1532 odd "><a href="/why-skysql/faqs" title="">FAQs</a></li>
+<li class="menu-22544 menu-path-node-1685 even  last "><a href="/blog" title="">Blogs</a></li>
+</ul>
+</li>
+<li class="menu-11046 menuparent menu-path-node-1087 even "><a href="/products">Products</a><ul><li class="menu-11051 menu-path-node-182 first  odd "><a href="/products/subscription-services">Subscription Services</a></li>
+<li class="menu-11052 menu-path-node-98 even "><a href="/products/consulting">Consulting</a></li>
+<li class="menu-11053 menu-path-node-7 odd "><a href="/products/training">Training</a></li>
+<li class="menu-12118 menu-path-node-1469 even "><a href="/products/remote-dba">Remote DBA</a></li>
+<li class="menu-11033 menu-path-node-1084 odd  last "><a href="/products/pricing-plans">Pricing &amp; Plans</a></li>
+</ul>
+</li>
+<li class="menu-14224 menuparent menu-path-node-1526 odd "><a href="/customers">Customers</a><ul><li class="menu-11933 menu-path-node-1406 first  odd "><a href="/customers/success-stories">Success Stories</a></li>
+<li class="menu-11039 menu-path-node-1040 even "><a href="/customers/videos">Videos</a></li>
+<li class="menu-11424 menu-path-node-1302 odd  last "><a href="/customers/presentations">Presentations</a></li>
+</ul>
+</li>
+<li class="menu-14225 menuparent menu-path-node-1527 even "><a href="/downloads">Downloads</a><ul><li class="menu-25491 menu-path-https--mariadbcom-products-mariadb-enterprise first  odd "><a href="https://mariadb.com/products/mariadb-enterprise" target="_blank" title="">MariaDB Enterprise</a></li>
+<li class="menu-26214 menu-path-https--mariadbcom-products-mariadb-enterprise-cluster even "><a href="https://mariadb.com/products/mariadb-enterprise-cluster" target="_blank" title="">MariaDB Enterprise Cluster</a></li>
+<li class="menu-25294 menu-path-node-1936 odd "><a href="/downloads/maxscale-mariadb-mysql-query-tool-downloads" title="">MaxScale</a></li>
+<li class="menu-18833 menu-path-node-1689 even "><a href="/downloads/mariadb-audit-plugin" title="">MariaDB Audit Plugin</a></li>
+<li class="menu-22803 menu-path-node-1724 odd "><a href="/downloads/mariadb-audit-plugin-mysql" title="">MariaDB Audit Plugin for MySQL</a></li>
+<li class="menu-22807 menu-path-node-1725 even "><a href="/downloads/mariadb-galera-cluster" title="">MariaDB Galera Cluster</a></li>
+<li class="menu-22832 menu-path-node-1734 odd  last "><a href="/downloads/java-cc-connectors-mariadb" title="">MariaDB Client Libraries</a></li>
+</ul>
+</li>
+<li class="menu-11156 menuparent menu-path-node-30 odd  last "><a href="/about" title="About SkySQL, the Company and the People behind it
+">About</a><ul><li class="menu-11157 menu-path-node-956 first  odd "><a href="/about/news-events" title="Find Events, Webinars, News and Press Releases">News &amp; Events</a></li>
+<li class="menu-11433 menu-path-node-50 even "><a href="/about/management">Management</a></li>
+<li class="menu-11431 menu-path-node-40 odd "><a href="/about/board-directors">Board of Directors</a></li>
+<li class="menu-11432 menu-path-node-45 even "><a href="/about/advisors">Advisors</a></li>
+<li class="menu-11430 menu-path-node-34 odd "><a href="/about/investors">Investors</a></li>
+<li class="menu-15195 menu-path-node-1573 even "><a href="/about/partners" title="">Partners</a></li>
+<li class="menu-11159 menu-path-node-55 odd "><a href="/about/careers">Careers</a></li>
+<li class="menu-11441 menu-path-node-70 even "><a href="/about/legal">Legal</a></li>
+<li class="menu-4294 menu-path-node-391 odd  last "><a href="/about/contact">Contact</a></li>
+</ul>
+</li>
+</ul>
+  </div>
+
+  </div><!-- /.block -->
+</div><!-- /.region -->
+
+        </div></div><!-- /.section, /#navigation -->
+      
+    </div></div><!-- /.section, /#header -->
+
+              <div id="search-box"><form action="/blogs/dean-ellis/multi-source-replication-mariadb-100"  accept-charset="UTF-8" method="post" id="search-theme-form">
+<div><div class="floating-search">
+<div id="search" class="container-inline">
+  <div class="form-item" id="edit-search-theme-form-1-wrapper">
+ <label for="edit-search-theme-form-1">Search this site: </label>
+ <input placeholder="Search" type="text" maxlength="128" name="search_theme_form" id="edit-search-theme-form-1" size="15" value="" title="Enter the terms you wish to search for." class="form-text" />
+</div>
+<div class="element-invisible">
+  <input type="submit" name="op" id="edit-submit" value="Search"  class="form-submit" />
+</div>
+<input type="hidden" name="form_build_id" id="form-8bdffde04372ce9d84f6926e74feec33" value="form-8bdffde04372ce9d84f6926e74feec33"  />
+<input type="hidden" name="form_id" id="edit-search-theme-form" value="search_theme_form"  />
+</div>
+<i class="icon-search"></i>
+</div>
+
+</div></form>
+</div>
+      </div><!-- /#header-wrapper -->
+
+    <div id="main-wrapper"><div id="main" class="clearfix with-navigation">
+
+        <div class="breadcrumb"><a href="/">Home</a> › <a href="/blog">Blogs</a> › <a href="/blogs/1221">Dean Ellis&#039;s blog</a> › Multi-source replication in MariaDB 10.0</div>      <div id="content" class="column"><div class="section">
+
+        
+        
+                  <h1 class="title">Multi-source replication in MariaDB 10.0</h1>
+                                
+                <div id="content-top">
+        <div class="region region-content-top">
+    <div id="block-block-44" class="block block-block first region-odd odd region-count-1 count-9">
+  
+  <div class="content">
+    <script type="text/javascript" src="http://w.sharethis.com/button/buttons.js"></script><script type="text/javascript">stLight.options({doNotCopy:true});</script><p><span  class='st_twitter_button' displayText='Tweet'></span><span  class='st_facebook_button' displayText='Facebook'></span><span  class='st_plusone_button' ></span><span  class='st_linkedin_button'></span><span  class='st_pinterest_button'></span><span  class='st_digg_button' displayText='Digg'></span> </p>
+  </div>
+
+  </div><!-- /.block -->
+</div><!-- /.region -->
+        </div>
+        
+        <div id="content-area">
+          <div id="node-2051" class="node node-type-blog node-promoted build-mode-full clearfix">
+  
+  
+  <div class="content">
+    <p>I have wanted multi-source replication in MySQL since 4.0, so I was delighted to see this feature appear in MariaDB 10.0. Let's explore the feature a little.</p>
+<p>What is it? Multi-source replication allows a single slave server to replicate changes from multiple masters. Simple enough. I originally wanted this feature (well over 10 years ago now) to consolidate data from several different database servers onto a single server for reporting and backup purposes.</p>
+<p>So, let's have an overview. I started three MariaDB servers: msr1, msr2, and msr3. I want msr1 to replicate changes from both msr2 and msr3, so I log into msr1 and configure replication (simplified for the sake of brevity):</p>
+<p><code>CHANGE MASTER 'msr2' TO MASTER_HOST='10.0.0.152', MASTER_PORT=5002, MASTER_USER='replicant';<br />
+CHANGE MASTER 'msr3' TO MASTER_HOST='10.0.0.153', MASTER_PORT=5003, MASTER_USER='replicant';<br />
+START ALL SLAVES;<br />
+</code></p>
+<p>Then I confirm that everything appears to be working:</p>
+<p><code>SHOW ALL SLAVES STATUS\G<br />
+*************************** 1. row ***************************<br />
+              Connection_name: msr2<br />
+              Slave_SQL_State: Slave has read all relay log; waiting for the slave I/O thread to update it<br />
+               Slave_IO_State: Waiting for master to send event<br />
+                  Master_Host: 127.0.0.1<br />
+                  Master_User: replicant<br />
+                  Master_Port: 5002<br />
+             Slave_IO_Running: Yes<br />
+            Slave_SQL_Running: Yes<br />
+*************************** 2. row ***************************<br />
+              Connection_name: msr3<br />
+              Slave_SQL_State: Slave has read all relay log; waiting for the slave I/O thread to update it<br />
+               Slave_IO_State: Waiting for master to send event<br />
+                  Master_Host: 127.0.0.1<br />
+                  Master_User: replicant<br />
+                  Master_Port: 5003<br />
+             Slave_IO_Running: Yes<br />
+            Slave_SQL_Running: Yes</code></p>
+<p>On msr1, the replication threads for both masters are visible in <code>SHOW PROCESSLIST</code>, and as one would expect, changes made on msr2 and msr3 are successfully replicated down to msr1. For simple use cases, multi-source replication in MariaDB 10.0 is almost too easy to configure.</p>
+<p>If you are adventurous and know exactly what you are doing, it's worth noting that this works with ring/circular replication as well, so that you can configure each server to replicate from all of the others, potentially preventing the need for log_slave_updates. There are plenty of caveats to this approach, particularly for avoiding duplicate key violations and bad data when modifying the same table from different servers.</p>
+<p>Exploring multi-master scenarios will soon lead you to MariaDB 10.0's Global Transaction ID functionality, which also works with multi-source replication and can be configured fairly easily. ex:</p>
+<p><code>CHANGE MASTER 'msr2' TO MASTER_HOST='10.0.0.152', MASTER_PORT=5002, MASTER_USER='replicant', MASTER_USE_GTID=CURRENT_POS;</code></p>
+<p>Exploring those kind of replication topologies would be an entirely different blog post, however.</p>
+<p>You can read more about these features in the MariaDB knowledge base:</p>
+<p><a href="https://mariadb.com/kb/en/multi-source-replication/" title="https://mariadb.com/kb/en/multi-source-replication/">https://mariadb.com/kb/en/multi-source-replication/</a></p>
+<p><a href="https://mariadb.com/kb/en/global-transaction-id/#use-with-multi-source-replication-and-other-multi-master-setups" title="https://mariadb.com/kb/en/global-transaction-id/#use-with-multi-source-replication-and-other-multi-master-setups">https://mariadb.com/kb/en/global-transaction-id/#use-with-multi-source-r...</a></p>
+<p>This is just one of several great new features in the upcoming MariaDB 10.0, offering some very interesting possibilities. Check it out!</p>
+  </div>
+
+<div class="author-bio clearfix">
+<h2>About the Author</h2>
+<div class="author-pic">
+<img src="http://www.skysql.com/sites/default/files/imagecache/management_photo/pictures/picture-1221.jpg" alt="" title="" width="72" height="72" class="imagecache imagecache-management_photo"/></div>
+<div class="author-detail">
+<div class="author-name"> </div>
+<div class="author-blurb">Dean Ellis is Vice President of Technical Support at SkySQL. He has worked with support for MySQL since 2003. </div>
+</div>
+</div>
+      <div class="meta">
+              <span class="submitted">
+          Submitted by Dean Ellis on March 27, 2014 - 9:25pm GMT        </span>
+      
+          </div>
+  
+  <ul class="links inline"><li class="blog_usernames_blog first"><a href="/blogs/1221" title="Read Dean Ellis&#039;s latest blog entries.">Dean Ellis&#039;s blog</a></li>
+<li class="comment_forbidden last"><span><a href="/user/login?destination=node%2F2051%23comment-form">Login</a> or <a href="/user/register?destination=node%2F2051%23comment-form">register</a> to post comments</span></li>
+</ul></div><!-- /.node -->
+<div id="comments" class="comment_wrapper">
+  
+  <a id="comment-265"></a>
+<div class="comment first last odd comment-container clearfix">
+
+  <div class="comment-details">
+  <img src="//www.gravatar.com/avatar/0ca383acf4c5e2a46af4fa6294a78b9c">
+
+  <div class="author">richardbensley</div>
+  <div class="submitted">
+    10:55 Mar 28  </div>
+  </div>
+
+  <div class="comment-body">
+      <h3 class="title">
+      <a href="/blogs/dean-ellis/multi-source-replication-mariadb-100#comment-265" class="active active">replication filters</a>          </h3>
+  
+  <div class="content">
+    <p>It's also worth noting that replication filters are not only dynamic (<a href="https://mariadb.com/kb/en/dynamic-replication-variables/" title="https://mariadb.com/kb/en/dynamic-replication-variables/">https://mariadb.com/kb/en/dynamic-replication-variables/</a>), but you can also set specific replication filters to each multi-source replication stream.</p>
+<p>For example, to ignore the mysql.users table from 'msr3' add the following dynamically or to your config:<br />
+msr3.replicate-ignore-table=mysql.users</p>
+<p>More reading:<br />
+<a href="https://mariadb.com/kb/en/multi-source-replication/#fixedreplicate-fixed-variables" title="https://mariadb.com/kb/en/multi-source-replication/#fixedreplicate-fixed-variables">https://mariadb.com/kb/en/multi-source-replication/#fixedreplicate-fixed...</a><br />
+<a href="https://blog.mariadb.org/dynamic-replication-filters-our-wheel-will-be-square/" title="https://blog.mariadb.org/dynamic-replication-filters-our-wheel-will-be-square/">https://blog.mariadb.org/dynamic-replication-filters-our-wheel-will-be-s...</a></p>
+  </div>
+
+
+    <ul class="links"><li class="comment_forbidden first last"><span><a href="/user/login?destination=node%2F2051%23comment-form">Login</a> or <a href="/user/register?destination=node%2F2051%23comment-form">register</a> to post comments</span></li>
+</ul>  </div>
+</div><!-- /.comment -->
+  
+  </div>
+        </div>
+
+        
+        
+      </div></div><!-- /.section, /#content -->
+
+
+      
+      <div class="region region-sidebar-second column sidebar"><div class="section">
+    <div id="block-block-50" class="block block-block first region-odd odd region-count-1 count-1">
+      <h2 class="title">Join Our Webinars</h2>
+  
+  <div class="content">
+    <p>MySQL Tips and Tricks presented by SkySQL Experts</p>
+<p><center><a href="/why-skysql/webinars" title="Sign-Up For SkySQL Webinars Now" class="button">Register Now</a></center></p>
+  </div>
+
+  </div><!-- /.block -->
+  <div id="block-block-52" class="block block-block region-even even region-count-2 count-2">
+  
+  <div class="content">
+    <p class="blog-rss"><a href="/blog/feed" target="_blank" title="SkySQL Blog RSS Feed Subscribe">RSS Subscribe</a></p>
+  </div>
+
+  </div><!-- /.block -->
+  <div id="block-block-51" class="block block-block region-odd odd region-count-3 count-3">
+      <h2 class="title">About SkySQL</h2>
+  
+  <div class="content">
+    <p>SkySQL is a global software vendor specialising in high availability and high performance MySQL. With a client base consisting of global brands such Google, Fusion-io, HP, Virgin Mobile, Craigslist, Harvard University and numerous small to medium businesses, SkySQL is perfectly suited to help with any of your MySQL needs.</p>
+  </div>
+
+  </div><!-- /.block -->
+  <div id="block-views-training_course_list-block_5" class="block block-views region-even even region-count-4 count-4">
+      <h2 class="title">Training Schedule</h2>
+  
+  <div class="content">
+    <div class="views_view view view-training-course-list view-id-training_course_list view-display-id-block_5 training-dates-hub view-dom-id-1">
+  
+  
+  
+  
+      <div class="view-content">
+      <div class="unformatted-group">
+  <div class="views-row views-row-1 views-row-odd views-row-first">
+      
+  <div class="views-field-field-start-date-value">
+                <span class="field-content"><span class="date-display-single">19 May</span></span>
+  </div>
+  
+  <div class="views-field-title">
+                <span class="field-content"><a href="/products/mysql-training/schedule/administering-mysql-database-stuttgart-may">Administering a MySQL Database, Stuttgart, May</a></span>
+  </div>
+  
+  <div class="views-field-field-location-value">
+                <span class="field-content"></span>
+  </div>
+  
+  <div class="views-field-field-location-lookup-nid">
+                <span class="field-content">Stuttgart</span>
+  </div>
+  </div>
+  <div class="views-row views-row-2 views-row-even">
+      
+  <div class="views-field-field-start-date-value">
+                <span class="field-content"><span class="date-display-single">19 May</span></span>
+  </div>
+  
+  <div class="views-field-title">
+                <span class="field-content"><a href="/products/mysql-training/schedule/administering-mariadbmysql-database">Administering a MariaDB/MySQL Database</a></span>
+  </div>
+  
+  <div class="views-field-field-location-value">
+                <span class="field-content"></span>
+  </div>
+  
+  <div class="views-field-field-location-lookup-nid">
+                <span class="field-content">Live Virtual Classes</span>
+  </div>
+  </div>
+  <div class="views-row views-row-3 views-row-odd">
+      
+  <div class="views-field-field-start-date-value">
+                <span class="field-content"><span class="date-display-single">26 May</span></span>
+  </div>
+  
+  <div class="views-field-title">
+                <span class="field-content"><a href="/products/mysql-training/schedule/high-availability-mysql-database-hamburg-may">High Availability for the MySQL Database, Hamburg, May</a></span>
+  </div>
+  
+  <div class="views-field-field-location-value">
+                <span class="field-content"></span>
+  </div>
+  
+  <div class="views-field-field-location-lookup-nid">
+                <span class="field-content">Hamburg</span>
+  </div>
+  </div>
+  <div class="views-row views-row-4 views-row-even">
+      
+  <div class="views-field-field-start-date-value">
+                <span class="field-content"><span class="date-display-single">26 May</span></span>
+  </div>
+  
+  <div class="views-field-title">
+                <span class="field-content"><a href="/products/mysql-training/schedule/administering-mysql-cluster-26-28-may-warsawpoland">Administering MySQL Cluster 26-28 May Warsaw/Poland</a></span>
+  </div>
+  
+  <div class="views-field-field-location-value">
+                <span class="field-content"></span>
+  </div>
+  
+  <div class="views-field-field-location-lookup-nid">
+                <span class="field-content">Warsaw</span>
+  </div>
+  </div>
+  <div class="views-row views-row-5 views-row-odd views-row-last">
+      
+  <div class="views-field-field-start-date-value">
+                <span class="field-content"><span class="date-display-single">02 Jun</span></span>
+  </div>
+  
+  <div class="views-field-title">
+                <span class="field-content"><a href="/products/mysql-training/schedule/developing-applications-mysql-stuttgart-jun">Developing Applications with MySQL, Stuttgart, Jun</a></span>
+  </div>
+  
+  <div class="views-field-field-location-value">
+                <span class="field-content"></span>
+  </div>
+  
+  <div class="views-field-field-location-lookup-nid">
+                <span class="field-content">Stuttgart</span>
+  </div>
+  </div>
+</div>
+    </div>
+  
+  
+  
+  
+      <div class="view-footer">
+      <p><a href=" /products/mysql-training/schedule" title="See Full Schedule">See Full Schedule »</a></p>
+    </div>
+  
+  
+</div><!-- /.view -->
+  </div>
+
+  </div><!-- /.block -->
+  <div id="block-views-Blogs-block_2" class="block block-views region-odd odd region-count-5 count-5">
+      <h2 class="title">Archive</h2>
+  
+  <div class="content">
+    <div class="views_view view view-Blogs view-id-Blogs view-display-id-block_2 view-dom-id-2">
+  
+  
+  
+  
+      <div class="view-content">
+      <div class="item-list">
+  <ul class="views-summary">
+      <li><a href="/why-skysql/blog/archive/201405">May 2014</a>
+              (2)
+          </li>
+      <li><a href="/why-skysql/blog/archive/201404">April 2014</a>
+              (19)
+          </li>
+      <li><a href="/why-skysql/blog/archive/201403">March 2014</a>
+              (12)
+          </li>
+      <li><a href="/why-skysql/blog/archive/201402">February 2014</a>
+              (23)
+          </li>
+      <li><a href="/why-skysql/blog/archive/201401">January 2014</a>
+              (8)
+          </li>
+      <li><a href="/why-skysql/blog/archive/201312">December 2013</a>
+              (2)
+          </li>
+      <li><a href="/why-skysql/blog/archive/201311">November 2013</a>
+              (2)
+          </li>
+      <li><a href="/why-skysql/blog/archive/201310">October 2013</a>
+              (3)
+          </li>
+      <li><a href="/why-skysql/blog/archive/201309">September 2013</a>
+              (3)
+          </li>
+      <li><a href="/why-skysql/blog/archive/201306">June 2013</a>
+              (2)
+          </li>
+    </ul>
+</div>
+    </div>
+  
+  
+  
+  
+  
+  
+</div><!-- /.view -->
+  </div>
+
+  </div><!-- /.block -->
+</div></div><!-- /.section, /.region -->
+
+    </div></div><!-- /#main, /#main-wrapper -->
+
+<div id="cta-message-wrapper"><div id="cta-message" class="clearfix">
+</div></div> <!-- #cta-message, #cta-message-wrapper" -->
+
+<div id="footer-wrapper">
+<div id="footer"><div class="section clearfix">
+  <div class="region region-footer">
+    <div id="block-block-32" class="block block-block first region-odd even region-count-1 count-10">
+  
+  <div class="content">
+    <div class="contact stacked">
+<h2>Need a quotation? Speak to our sales team</h2>
+<table width="100%">
+<tr>
+<td width="50%"  valign="top">
+<p><strong>Europe</strong><br /><a href="mailto:sales-EMEA@skysql.com">sales-EMEA@skysql.com</a><br />Benelux +358 50 5710528<br />Denmark +45 69 918 495<br />Finland +358 9 42597815<br />France +33 1 82 88 37 38<br />Germany +49 89 220 61124<br />Italy +39 02 40 70 82 17<br />Norway +47 2 1018944<br />Sweden +46 840 838 825<br />UK &amp; Ireland +44 20 3355 2937</p>
+</td>
+<td width="50%" valign="top">
+<p><strong>North America</strong><br /><a href="mailto:sales-AMER@skysql.com">sales-AMER@skysql.com</a><br />+1 877 303 5799 (toll free)</p>
+<p><strong>Central &amp; South America</strong><br />
+Mexico: +52 55 8526 2940<br />Brasil: +55 11 4040 4715<br />Argentina: +54 11 5219 4130</p>
+<p><strong>APAC</strong><br /><a href="mailto:sales-APAC@skysql.com">sales-APAC@skysql.com</a><br />Japan +81 3 6859 8542<br />Korea +82 2 2120 7005</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="some stacked">
+<h2>Follow Us</h2>
+<ul>
+<li><a href="http://twitter.com/skysql" class="twitter-icon">Follow us on Twitter</a></li>
+<li><a href="http://facebook.com/skysql" class="fb-icon">Follow us on Facebook</a></li>
+<li><a href="http://www.linkedin.com/companies/1214250" class="li-icon">Connect on LinkedIn</a></li>
+<li><a href="https://plus.google.com/u/0/117544963211695643458/posts" class="gplus-icon">+1 on Google+</a></li>
+<li><a href="http://github.com/skysql" class="github-icon">Connect on GitHub</a></li>
+</ul>
+</div>
+  </div>
+
+  </div><!-- /.block -->
+</div><!-- /.region -->
+        
+</div></div></div><!-- #footer, #footer-wrapper -->
+
+<div id="footer-bottom-wrapper"><div id="footer-bottom" class="clearfix">
+<div class="region region-footer-bottom">
+    <div id="block-block-19" class="block block-block first region-odd odd region-count-1 count-11">
+  
+  <div class="content">
+    <div class="padded">SkySQL is the leading global provider of Support Services, Consulting, Training and Remote DBA and services for the MariaDB and MySQL databases. With over 400 enterprise customers worldwide, SkySQL employs the stars of the MariaDB and MySQL communities and enjoys sponsorship from the original creators of MariaDB & MySQL.</div>  </div>
+
+  </div><!-- /.block -->
+  <div id="block-menu-secondary-links" class="block block-menu region-even even region-count-2 count-12">
+  
+  <div class="content">
+    <ul class="menu"><li class="expanded first"><a href="/why-skysql" title="">Why SkySQL?</a><ul class="menu"><li class="leaf first"><a href="/why-skysql/mariadb-mysql" title="">MySQL &amp; MariaDB</a></li>
+<li class="leaf"><a href="/why-skysql/mariadb-galera" title="">MariaDB &amp; Galera</a></li>
+<li class="leaf"><a href="/why-skysql/skysql-high-availability" title="">SkySQL &amp; High Availability</a></li>
+<li class="leaf"><a href="/downloads/mariadb-enterprise-cluster" title="">MariaDB Enterprise Cluster</a></li>
+<li class="leaf"><a href="/why-skysql/whitepapers" title="">Whitepapers</a></li>
+<li class="leaf"><a href="/why-skysql/webinars" title="">Webinars</a></li>
+<li class="leaf"><a href="/why-skysql/faqs" title="">FAQs</a></li>
+<li class="leaf last"><a href="/blog" title="">Blogs</a></li>
+</ul></li>
+<li class="expanded"><a href="/products" title="">Products</a><ul class="menu"><li class="leaf first"><a href="/products/subscription-services">Subscription Services</a></li>
+<li class="leaf"><a href="/products/consulting">Consulting</a></li>
+<li class="leaf"><a href="/products/training">Training</a></li>
+<li class="leaf last"><a href="/products/remote-dba" title="">Remote DBA</a></li>
+</ul></li>
+<li class="expanded"><a href="/customers" title="">Customers</a><ul class="menu"><li class="leaf first"><a href="/customers/success-stories" title="">Success Stories</a></li>
+<li class="leaf"><a href="/customers/presentations" title="">Presentations</a></li>
+<li class="leaf last"><a href="/customers/videos" title="">Videos</a></li>
+</ul></li>
+<li class="expanded"><a href="/downloads" title="">Downloads</a><ul class="menu"><li class="leaf first"><a href="http://www.mariadb.com/downloads" title="">MariaDB Enterprise</a></li>
+<li class="leaf"><a href="https://mariadb.com/products/mariadb-enterprise-cluster" target="_blank" title="">MariaDB Enterprise Cluster</a></li>
+<li class="leaf"><a href="/downloads/maxscale-mariadb-mysql-query-tool-downloads" title="">MaxScale</a></li>
+<li class="leaf"><a href="/downloads/mariadb-audit-plugin" title="">MariaDB Audit Plugin</a></li>
+<li class="leaf"><a href="/downloads/mariadb-audit-plugin-mysql" title="">MariaDB Audit Plugin for MySQL</a></li>
+<li class="leaf"><a href="/downloads/mariadb-galera-cluster" title="">MariaDB Galera Cluster</a></li>
+<li class="leaf last"><a href="/downloads/java-cc-connectors-mariadb" title="">MariaDB Client Libraries</a></li>
+</ul></li>
+<li class="expanded last"><a href="/about" title="">About</a><ul class="menu"><li class="leaf first"><a href="/about/news-events" title="SkySQL mentions in the press and other news outlets.">News &amp; Events</a></li>
+<li class="leaf"><a href="/about/management" title="">Management</a></li>
+<li class="leaf"><a href="/about/advisors" title="">Advisors</a></li>
+<li class="leaf"><a href="/about/board-directors" title="">Board of Directors</a></li>
+<li class="leaf"><a href="/about/investors" title="">Investors</a></li>
+<li class="collapsed"><a href="/about/partners" title="">Partners</a></li>
+<li class="leaf"><a href="/about/careers" title="">Careers</a></li>
+<li class="leaf"><a href="/about/legal">Legal</a></li>
+<li class="leaf last"><a href="/about/contact" title="">Contact</a></li>
+</ul></li>
+</ul>  </div>
+
+  </div><!-- /.block -->
+  <div id="block-block-54" class="block block-block region-odd odd region-count-3 count-13">
+  
+  <div class="content">
+    <div class="copyright">&copy; Copyright 2014 SkySQL Corporation Ab. SkySQL and MariaDB are trademarks of SkySQL Corporation Ab.  MySQL is a trademark of MySQL AB. <a href="/about/legal/trademarks" title="Trademarks">Trademarks Statement</a></div>  </div>
+
+  </div><!-- /.block -->
+</div><!-- /.region -->
+  <div id="footer-message"></div>
+</div></div><!-- #footer-bottom, #footer-bootom-wrapper" -->
+
+  </div></div><!-- /#page, /#page-wrapper -->
+
+  <div class="region region-page-closure">
+    <div id="block-block-45" class="block block-block first region-odd even region-count-1 count-14">
+  
+  <div class="content">
+    <script src='/sites/all/libraries/barometer/barometer.js?v=2' type='text/javascript'></script>
+<script type="text/javascript" charset="utf-8">
+BAROMETER.load('TkggHqY2wprpdOsSjCDkP');
+</script>  </div>
+
+  </div><!-- /.block -->
+  <div id="block-block-11" class="block block-block region-even odd region-count-2 count-15">
+  
+  <div class="content">
+    <!-- Start of Async HubSpot Analytics Code -->
+    <script type="text/javascript">
+        (function(d,s,i,r) {
+            if (d.getElementById(i)){return;}
+            var n=d.createElement(s),e=d.getElementsByTagName(s)[0];
+            n.id=i;n.src='//js.hubspot.com/analytics/'+(Math.ceil(new Date()/r)*r)+'/229877.js';
+            e.parentNode.insertBefore(n, e);
+        })(document,"script","hs-analytics",300000);
+    </script>
+<!-- End of Async HubSpot Analytics Code -->  </div>
+
+  </div><!-- /.block -->
+  <div id="block-block-8" class="block block-block region-odd even region-count-3 count-16">
+  
+  <div class="content">
+    <div style="border:collapse;margin:0;padding:0;height:0;">
+<script type="text/javascript" language="javascript">llactid=22942</script><script type="text/javascript" language="javascript" src="https://trackalyzer.com/trackalyze_secure.js"></script></div>  </div>
+
+  </div><!-- /.block -->
+  <div id="block-block-15" class="block block-block region-even odd region-count-4 count-17">
+  
+  <div class="content">
+    <script type="text/javascript">llfrmid=22942</script><script type="text/javascript" src="http://formalyzer.com/formalyze_init.js"></script><script type="text/javascript" src="http://formalyzer.com/formalyze_call.js"></script>  </div>
+
+  </div><!-- /.block -->
+  <div id="block-block-53" class="block block-block region-odd even region-count-5 count-18">
+  
+  <div class="content">
+    <script type="text/javascript">
+adroll_adv_id = "2SP6TWUIHVGAFLQSCTH5DO";
+adroll_pix_id = "CK4ETNKW3BG7LIYWH4AYMI";
+(function () {
+var oldonload = window.onload;
+window.onload = function(){
+   __adroll_loaded=true;
+   var scr = document.createElement("script");
+   var host = (("https:" == document.location.protocol) ? "https://s.adroll.com" : "http://a.adroll.com");
+   scr.setAttribute('async', 'true');
+   scr.type = "text/javascript";
+   scr.src = host + "/j/roundtrip.js";
+   ((document.getElementsByTagName('head') || [null])[0] ||
+    document.getElementsByTagName('script')[0].parentNode).appendChild(scr);
+   if(oldonload){oldonload()}};
+}());
+</script>  </div>
+
+  </div><!-- /.block -->
+</div><!-- /.region -->
+
+  <script type="text/javascript">
+<!--//--><![CDATA[//><!--
+var _gaq=_gaq||[];_gaq.push(["_setAccount","UA-18791647-1"]);_gaq.push(["_setVar","anonymous user"]);_gaq.push(['_setDomainName','skysql.com']);_gaq.push(['_setAllowLinker',true]);_gaq.push(["_trackPageview"]);(function(){var ga=document.createElement("script");ga.type="text/javascript";ga.async=true;ga.src=("https:"==document.location.protocol?"https://ssl":"http://www")+".google-analytics.com/ga.js";var s=document.getElementsByTagName("script")[0];s.parentNode.insertBefore(ga,s)})()
+//--><!]]>
+</script>
+
+</body>
+</html>

@@ -1,0 +1,564 @@
+<!doctype html public "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"  xml:lang="zh-CN" lang="zh-CN">
+<head>
+	
+<title>MySQL数据库优化：操作系统-详解MySQL数据库优化的方案与实践-IT168 技术开发专区</title>
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<meta http-equiv="content-language" content="gb2312" />
+<meta content="all" name="robots" />
+<meta content="index, follow" name="googlebot" />
+<meta name="description" content="最近一段时间，我们整理了一些关于Percona，Linux，Flashcache，硬件设备的优化经验，分享给大家……"/>
+<link rel="StyleSheet" href="http://resourcestest.it168.com/style/0911style.css?dst=2012712yyl" type="text/css" media="screen" />
+<link rel="StyleSheet" href="/detailinclude/styleMac.css?dat=20120807yyl" type="text/css" media="screen" />
+<link rel="StyleSheet" href="http://pf.pcpop.com/css/It168Article.css?v=20120723000" type="text/css" media="screen" />
+<link rel="StyleSheet" href="http://resourcestest.it168.com/style/style_itpub.css" type="text/css" media="screen"/>
+<script type="text/javascript" src="/detailinclude/articlecommon.js?dt=yyl620"></script>
+<script src="http://tjs.sjs.sinajs.cn/open/api/js/wb.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript">
+	var reqUrl = window.location.href.toLowerCase();
+	if (reqUrl.lastIndexOf("itpub.net")>0)
+	{
+		document.domain='itpub.net';
+	}
+	else
+	{
+				document.domain='it168.com';
+			}
+	var articleONeCode = "000000001213725";
+	var articleCode = "1213725";
+	var articlePath = "http://tech.it168.com/a2011/0705/1213/000001213725.shtml";
+	var articleUrl = "http://tech.it168.com/a2011/0705/1213/000001213725.shtml";
+	var articleTitle = "详解MySQL数据库优化的方案与实践";
+	var articlecuPage = 2;
+	var articlePageCount = 3;
+	var articleChannelCode = "4";
+	var chanstr = "4";
+	var articleTypeName="技术";
+	var typeid = "";
+	var pinpaiid = "";
+	var productid ="";
+	var brndnamestr="";
+	var pageType = "article";
+		function keySearch()
+	{
+	     var q=document.getElementById("q").value;
+		 if(q=="")
+		 {
+			alert("请输入关键词！");
+			return null;
+		 }		 
+		 document.getElementById("SouSearch").action ="http://sou.it168.com/search?q="+q+"&f="+chanstr;
+         document.getElementById("SouSearch").submit();
+	}
+</script>
+</head>
+<body>
+<div style="margin: 0pt auto 8px; width: 980px;display:none;" id="adPosition1">
+<div id="ADV_1311"></div>
+</div>
+<div class="mian_nav mt8">
+    <div class="logo"><a href="http://www.itpub.net"><img src="http://resourcestest.it168.com/images/logo.jpg" /></a></div>
+	     <div class="class_menu">
+	  <div id="LoginFalse" class="glo"><span><a href="http://www.itpub.net/">返回首页</a> <a href="http://www.it168.com/">返回IT168首页</a></span> 
+	  <script type="text/javascript">
+		document.write('<scr'+'ipt type="text/javascript" src="http://sso.itpub.net/tiitpub.js.php?print=yes"></scr'+'ipt>');
+	  </script> </div>
+      <div class="class_menu1 mt8"><a href="http://archive.it168.com/100004/default.shtml" target="_blank">最新</a> <a href="http://publish.itpub.net/" target="_blank">门户</a> <a href="http://www.itpub.net/list.html" target="_blank">论坛</a> <a href="http://publish.itpub.net/lists/0233/0/0233.shtml" target="_blank">新闻</a> <a href="http://publish.itpub.net/lists/0242/0/0242.shtml" target="_blank">文档</a> <a href="http://download.itpub.net/" target="_blank">下载</a> <a href="http://www.itpub.net/shopcp.php" target="_blank">商店</a> <a href="http://tech.it168.com/lists/0226/0/0226.shtml" target="_blank">专题</a> <a href="http://itmanager.itpub.net/" target="_blank">CTO</a> <a href="http://cio.it168.com" target="_blank">CIO</a> <span><a href="http://job.itpub.net/" target="_blank">人才</a> <a href="http://publish.itpub.net/book.shtml" target="_blank">图书</a> <a href="http://edu.itpub.net/" target="_blank">培训</a> <a href="http://publish.itpub.net/kb.shtml" target="_blank">wiki</a><a href="http://publish.itpub.net/tougao/" target="_blank">投稿</a></span></div>
+      <div class="class_menu2"><span class="bold">频道</span>  <a href="http://publish.itpub.net/oracle/index.shtml" target="_blank">Oracle</a>&nbsp;&nbsp;<a href="http://publish.itpub.net/db2/index.shtml" target="_blank">DB2</a>&nbsp;&nbsp;<a href="http://publish.itpub.net/sqlserver/index.shtml" target="_blank">SQL Server</a>&nbsp;&nbsp;<a href="http://publish.itpub.net/mysql/index.shtml" target="_blank">MySQL</a>&nbsp;&nbsp;<a href="http://tech.it168.com/erp/index.shtml" target="_blank">ERP</a>&nbsp;&nbsp;<a href="http://publish.itpub.net/java/index.shtml" target="_blank">Java</a>&nbsp;&nbsp;<a href="http://publish.itpub.net/dotnet/index.shtml" target="_blank">.NET</a>&nbsp;&nbsp;<a href="http://publish.itpub.net/opensource/index.shtml" target="_blank">开源</a>&nbsp;&nbsp;<a href="http://publish.itpub.net/mobile/index.shtml" target="_blank">移动</a>&nbsp;&nbsp;<a href="http://publish.itpub.net/management/index.shtml" target="_blank">管理</a>&nbsp;&nbsp;<a href="http://publish.itpub.net/soa.shtml" target="_blank">SOA</a>&nbsp;&nbsp;<a href="http://publish.itpub.net/testing/index.shtml" target="_blank">测试</a>&nbsp;&nbsp;<a href="http://publish.itpub.net/bi/index.shtml" target="_blank">BI</a>&nbsp;&nbsp;<a href="http://tech.it168.com/scm/index.shtml" target="_blank">SCM</a>  <span class="bold span1">专区</span> <a href="http://ibm-iste.itpub.net/" target="_blank">IBM</a>&nbsp;&nbsp; <a href="http://tech.it168.com/en-ms/index.shtml" target="_blank">微软</a>&nbsp;&nbsp;<a href="http://tech.it168.com/Oracle.shtml" target="_blank">Oracle</a>&nbsp;&nbsp;<a href="http://tech.it168.com/wec.shtml" target="_blank">WebSphere</a></div>
+      <div class="class_menu3"><span class="bold">互动</span> <a href="http://space.itpub.net/" target="_blank">空间</a> <a href="http://weblog.itpub.net/" target="_blank">blog</a> <a href="http://space.itpub.net/action-group/" target="_blank">圈子</a> <a href="http://www.ixpub.net/" target="_blank">IXPUB</a> <span class="bold">社区</span> <a href="http://www.itpub.net/index.php?gid=1" target="_blank">数据库技术</a> <a href="http://www.itpub.net/index.php?gid=71" target="_blank">信息化</a> <a href="http://www.itpub.net/index.php?gid=33" target="_blank">开发技术</a> <a href="http://www.itpub.net/index.php?gid=121" target="_blank">项目管理</a>   <a href="http://www.itpub.net/index.php?gid=140" target="_blank">IBM软件技术</a> <a href="http://ms.itpub.net/" target="_blank">微软专区</a> <a href="http://cuda.itpub.net" target="_blank">CUDA编程技术</a>   <a href="http://www.mobpub.net/index.php" target="_blank">移动开发</a></div>
+      <div class="clear"></div>
+	</div>
+</div>
+<div class="posi">
+<span>
+<form id="SouSearch" name="SouSearch" method="post" target="_blank"><input type="text" id="q" name="q" class="inp4" value="" onFocus="this.select();" /> 
+<input id="SouSearch" type="button" class="btn2" value="搜索" onclick="keySearch();"/>
+</form>
+</span>
+当前位置：
+<a href="http://www.it168.com/">IT168首页</a> > <a href='http://tech.it168.com' target='_blank'>技术开发</a>
+ > <b>详解MySQL数据库优化的方案与实践</b></div>
+
+<div class="clear"></div>
+<!-- 分类-->
+	
+
+				
+																														<!-- content 1-->
+<div class="Content">
+<!-- left -->
+<div class="l2">
+<div id="adPosition2" style="display:none;">
+<div id="ADV_1417"></div>
+</div>
+<form action="" method="get" target="_blank" id="urlFrm" style="display:none"></form>
+<div class="bor1 mt8">
+	<div class="t1">
+	<h1>详解MySQL数据库优化的方案与实践</h1>	</div>
+		<div class="t2">
+2011年07月06日00:05
+		<!--42844-->
+<!--False-->
+来源：<a href='http://www.hellodb.net/2011/07/mysql-linux-hardware-tuning.html' target='_blank'>hellodb.net</a>
+ 作者： jacky
+ 编辑：<a href="http://archive.it168.com/user/%ba%fa%c3%fa%e6%ab/" target="_blank">胡铭娅</a> 
+评论：<span id="page_CommentCount">0</span>条
+</div>
+<!--wordstart-->
+<div class="word" id="detailWord">
+
+<p><b>　　<a href='http://product.it168.com/list/b/0501_1.shtml' target='_blank' class="nounderline" title='操作系统'>操作系统</a></b></p><p><b>　　1.IO调度算法</b></p><p>　　Linux有四种IO调度算法：CFQ，Deadline，Anticipatory和NOOP，CFQ是默认的IO调度算法。完全随机的访问环境下，CFQ与Deadline，NOOP性能差异很小，但是一旦有大的连续IO，CFQ可能会造成小IO的响应延时增加，所以数据库环境建议修改为deadline算法，表现更稳定。我们的环境统一使用deadline算法。</p><p>　　IO调度算法都是基于磁盘设计，所以减少磁头移动是最重要的考虑因素之一，但是使用Flash存储设备之后，不再需要考虑磁头移动的问题，可以使用NOOP算法。NOOP的含义就是NonOperation，意味着不会做任何的IO优化，完全按照请求来FIFO的方式来处理IO。</p><p>　　减少预读：/sys/block/sdb/queue/read_ahead_kb，默认128，调整为16。</p><p>　　增大队列：/sys/block/sdb/queue/nr_requests，默认128，调整为512。</p><p><b>　　2.NUMA设置</b></p><p>　　单机单实例，建议关闭NUMA，关闭的方法有三种：</p><p>　　(1) 硬件层，在BIOS中设置关闭。</p><p>　　(2) OS内核，启动时设置numa=off。</p><p>　　(3) 可以用numactl命令将<a href='http://product.it168.com/list/b/0205_1.shtml' target='_blank' class="nounderline" title='内存'>内存</a>分配策略修改为interleave(交叉)，有些硬件可以在BIOS中设置。</p><p>　　单机多实例，请参考：<a target="_blank" href="http://www.hellodb.net/2011/06/mysql_multi_instance.html"><font color="#0066cc">http://www.hellodb.net/2011/06/mysql_multi_instance.html</font></a></p><p><b>　　3.文件系统设置</b></p><p>　　我们使用XFS文件系统，XFS有两个设置：su(stripe size)和sw(stirpe width)，要根据硬件层RAID来设置这两个参数，比如10块盘做RAID10，条带大小为64K，XFS设置为su=64K，sw=10。</p><p>　　xfs mount参数：defaults,rw,noatime,nodiratime,noikeep,nobarrier,allocsize=8M,attr2,largeio,inode64,swalloc</p><p><b>　　数据库</b></p><p><b>　　1.Flashcache参数</b></p><p>　　创建flashcache：flashcache_create -b 4k cachedev /dev/sdc /dev/sdb</p><p>　　指定flashcache的block大小与Percona的page大小相同。</p><p>　　Flashcache参数设置：</p><p>　　flashcache.fast_remove = 1：打开fast remove特性，关闭机器时，无需将cache中的脏块写入磁盘。</p><p>　　flashcache.reclaim_policy = 1：脏块刷出策略，0：FIFO，1：LRU。</p><p>　　flashcache.dirty_thresh_pct = 90：flashcache上每个hash set上的脏块阀值。</p><p>　　flashcache.cache_all = 1：cache所有内容，可以用黑名单过滤。</p><p>　　flashecache.write_merge = 1：打开写入合并，提升写磁盘的性能。</p><p><b>　　2.Percona参数</b></p><p>　　innodb_page_size：如果使用fusionio，4K的性能最好;使用SAS磁盘，设置为8K。如果全表扫描很多，可以设置为16K。比较小的page size，可以提升cache的命中率。</p><p>　　innodb_adaptive_checkpoint：如果使用fusionio，设置为3，提高刷新频率到0.1秒;使用SAS磁盘，设置为2，采用estimate方式刷新脏页。</p><p>　　innodb_io_capacity：根据IOPS能力设置，使用fuionio可以设置10000以上。</p><p>　　innodb_flush_neighbor_pages = 0：针对fusionio或者SSD，因为随机IO足够好，所以关闭此功能。</p><p>　　innodb_flush_method=ALL_O_DIRECT：公版的MySQL只能将数据库文件读写设置为DirectIO，对于Percona可以将log和数据文件设置为direct方式读写。但是我不确定这个参数对于innodb_flush_log_at_trx_commit的影响。</p><p>　　innodb_read_io_threads = 1：设置预读线程设置为1，因为线性预读的效果并不明显，所以无需设置更大。</p><p>　　innodb_write_io_threads = 16：设置写线程数量为16，提升写的能力。</p><p>　　innodb_fast_checksum = 1：开启Fast checksum特性。</p>
+
+</div>
+<!--电商-->
+<div id="articledianshang"></div>
+<!--电商-->
+						<!--wordend-->
+<div class="w600">
+	<div class="cont_1" onClick="_gaq.push(['_trackEvent', 'blockArea', 'Click', 'relateArticle',1,true]);">
+		<div class="t">相关阅读：</div>
+		<ul>
+										<li><a title="MySQL数据库新特性之存储过程入门教程" href="http://tech.it168.com/a2011/0701/1212/000001212103.shtml" target="_blank">MySQL数据库新特性之存储过程入门教程</a></li>
+											<li><a title="解读MySQL"debian sys maint"安全设置" href="http://tech.it168.com/a2011/0704/1212/000001212802.shtml" target="_blank">解读MySQL"debian sys maint"安全设置</a></li>
+											<li><a title="MySQL技巧 使用二进制日志恢复数据" href="http://tech.it168.com/a2011/0705/1213/000001213492.shtml" target="_blank">MySQL技巧 使用二进制日志恢复数据</a></li>
+														<li><a title="你我的中国韵 德正K60扩音器免费试用" href="http://sound.it168.com/a2012/0706/1368/000001368913.shtml" target="_blank">你我的中国韵 德正K60扩音器免费试用</a></li>
+					<li><a title="【成都】会议首选 索尼VPL-EX146促3990" href="http://projector.it168.com/a2012/0706/1368/000001368912.shtml" target="_blank">【成都】会议首选 索尼VPL-EX146促3990</a></li>
+					<li><a title="从腾讯Q立方 看Web-App发展机遇" href="http://net.it168.com/a2012/0706/1368/000001368909.shtml" target="_blank">从腾讯Q立方 看Web-App发展机遇</a></li>
+					<li><a title="【成都】完美小本 I3芯X220i-AF2不足5K" href="http://notebook.it168.com/a2012/0706/1368/000001368910.shtml" target="_blank">【成都】完美小本 I3芯X220i-AF2不足5K</a></li>
+					<li><a title="2012国际POS机及相关设备展圆满落幕" href="http://net.it168.com/a2012/0706/1368/000001368908.shtml" target="_blank">2012国际POS机及相关设备展圆满落幕</a></li>
+					<li><a title="拥2500流明度 ASK C2225现仅售10900元" href="http://projector.it168.com/a2012/0706/1368/000001368906.shtml" target="_blank">拥2500流明度 ASK C2225现仅售10900元</a></li>
+						</ul>
+		<div class="clear"></div>
+	</div>
+</div>
+<!-- 分页-->
+<div class="fy2" id="zyf" style="display:none"><span onclick="hid()"> </span>提示：试试“← →”可以实现快速翻页</div>
+<div class="page">
+<a href='http://tech.it168.com/a2011/0705/1213/000001213725.shtml' rel=nofollow>上一页</a><a href='http://tech.it168.com/a2011/0705/1213/000001213725.shtml' rel=nofollow>1</a><div class='an'>2</div><a href='http://tech.it168.com/a2011/0705/1213/000001213725_2.shtml' rel=nofollow>3</a><a href='http://tech.it168.com/a2011/0705/1213/000001213725_2.shtml' rel=nofollow>下一页</a>
+<a href="http://tech.it168.com/a2011/0705/1213/000001213725_all.shtml" rel=nofollow>查看全文</a>
+</div>
+<!-- 内容导航-->
+
+<div class="w600" style="padding:0px;">
+	<div class="bor2">
+		<div class="t">【内容导航】</div>
+			<div class="l">
+				<ul class="list2">
+				<li>第1页：<a href='http://tech.it168.com/a2011/0705/1213/000001213725.shtml' title='MySQL数据库优化：硬件'>MySQL数据库优化：硬件</a></li><li>第2页：<a href='http://tech.it168.com/a2011/0705/1213/000001213725_1.shtml' title='MySQL数据库优化：操作系统'>MySQL数据库优化：操作系统</a></li>
+				</ul>
+			</div>
+		<div class="l">
+		<ul class="list2">
+	<li>第3页：<a href='http://tech.it168.com/a2011/0705/1213/000001213725_2.shtml' title='MySQL数据库优化：监控'>MySQL数据库优化：监控</a></li>
+		</ul>
+	</div>
+	<div class="clear"></div>
+	</div>
+</div>
+	</div>
+
+<script type="text/javascript" src="" id="tmpsrc" charset="utf-8"></script>
+	<script type="text/javascript">
+document.getElementById('page_CommentCount').innerHTML="--";
+document.getElementById('tmpsrc').src="http://comment.it168.com/view/replies_ajax_count.js?bu=1&du="+articleCode;
+</script>
+<div class="fengxiang">
+<div class="fengxiang_l">
+<!-- Baidu Button BEGIN -->
+    <div id="bdshare" class="bdshare_t bds_tools_32 get-codes-bdshare">
+        <span class="bds_more">更多</span>
+        <a class="bds_qzone"></a>
+        <a class="bds_tqq"></a>
+        <a class="bds_renren"></a>
+        <a class="bds_kaixin001"></a>
+        <a class="bds_tsohu"></a>
+    </div>
+<script type="text/javascript" id="bdshare_js" data="type=tools" ></script>
+<script type="text/javascript" id="bdshell_js"></script>
+<script type="text/javascript">
+	document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + new Date().getHours();
+</script>
+<!-- Baidu Button END -->
+</div>
+<div class="fengxiang_r"  style="width: 314px;">
+<wb:share-button social="text" height="20" width="300" appkey="4118687864"></wb:share-button>
+</div>
+<div>
+<wb:follow-button uid="1278485542" type="red_2" width="136" height="24" ></wb:follow-button>
+</div>
+
+</div>
+
+<style>
+.fengxiang{width:670px; height:30px; padding-top:10px;}
+.fengxiang_l{width:195px; float:left;}
+.fengxiang_r{width:450px; float:left;}
+span.bds_more, .bds_tools a {display:block;font-family:'宋体', Arial;height:16px;float:left;cursor:pointer;padding-top:0px;padding-bottom:0px;padding-left:22px;}
+.bds_tools a {background:url("http://resourcestest.it168.com/images/baidu_bg.png") no-repeat!important}
+.bds_tools_32 a {background:url("http://resourcestest.it168.com/images/baidu_bg.png") no-repeat!important;width:24px;height:24px;display:block;float:left;margin-right:8px;text-indent:-100em;cursor:pointer}
+.bds_tools_32 span.bds_more {background: url("http://resourcestest.it168.com/images/baidu_bg.png") 0 0 no-repeat!important;width:24px;height:24px;text-indent:-100em;padding-left:0; margin-right:8px;}
+.bds_tools_32 a.bds_qzone {background-position:0 -25px!important}
+.bds_tools_32 a.bds_tqq{background-position:0 -50px!important}
+.bds_tools_32 a.bds_renren {background-position:0 -75px!important}
+.bds_tools_32 a.bds_tsohu {background-position:0 -125px!important}
+.bds_tools_32 a.bds_kaixin001 {background-position:0 -100px!important}
+</style>
+<!-- bor3 -->
+<div id="MC_Area" style="padding-top:10px;clear:both;"></div> 
+<div class="bor3 mt8" id="pping_placehold"></div>
+<div id="adPosition10" class="mt8" style="display:none;">
+<div id="ADV_1905"></div>
+</div>
+<!-- 版权声明-->
+<div class="bor4 mt8">
+<b>本文欢迎转载，转载请注明：</b><br />转载自IT168：<a id="copyrightit168" href="http://tech.it168.com/a2011/0705/1213/000001213725.shtml" target="_blank">http://tech.it168.com/a2011/0705/1213/000001213725.shtml</a> [<a href="javascript:" onclick="window.clipboardData.setData('Text','转载自IT168：http://tech.it168.com/a2011/0705/1213/000001213725.shtml');alert('\n已成功复制到剪切板。')">复制</a>]
+</div>
+
+<div id="ADV_19317" class="mt10"></div>
+
+</div>
+<!-- right -->
+<div class="r2">
+<!-- ad -->
+<div id="adPosition3" style="display:none;">
+<div id="ADV_1907"></div>
+</div>
+<div id="adPosition5" style="display:none;" class="mt8">
+<div id="ADV_1274"></div>
+</div>
+
+
+<!-- 产品信息-->
+<div id="adPosition6" class="mt8" style="display:none;">
+<div id="ADV_1275"></div>
+</div>
+<div id="adPosition7" class="mt8" style="display:none;">
+<div id="ADV_1276"></div>
+</div>
+
+<div id="adPosition8" class="mt8" style="display:none;">
+<div id="ADV_2739"></div>
+</div>
+<div class="bor1107 mt8">
+		<div class="tit2" id="doc01" style="margin-top:0px;"><a href="javascript:" class="here">最新文档</a><a href="javascript:">热门文档</a></div>
+		<div class="bor113" id="doc01_Content0">
+			<ul class="list1107" id="docTime">
+			<li ><a href="http://wenku.it168.com/d_000939504.shtml" target="_blank">VxWorks 下多页图形界面的设计.pdf</a></li>
+<li ><a href="http://wenku.it168.com/d_000984024.shtml" target="_blank">富士通半导体变频方案-钟成宝.pdf</a></li>
+<li ><a href="http://wenku.it168.com/d_000939762.shtml" target="_blank">PHP 手册.doc</a></li>
+<li ><a href="http://wenku.it168.com/d_000984025.shtml" target="_blank">嵌入式工业计算机和人机界面的软件创新</a></li>
+<li ><a href="http://wenku.it168.com/d_000939514.shtml" target="_blank">内置 HD61202 控制驱动器图形液晶显示模</a></li>
+<li ><a href="http://wenku.it168.com/d_000939510.shtml" target="_blank">内藏HD61202及其兼容控制驱动器图形液晶</a></li>
+<li ><a href="http://wenku.it168.com/d_000939777.shtml" target="_blank">智能电表主控程序程序设计.doc</a></li>
+<li ><a href="http://wenku.it168.com/d_000984017.shtml" target="_blank">智能家居-林景仁.pdf</a></li>
+<li ><a href="http://wenku.it168.com/d_000984019.shtml" target="_blank">Industrial Motors &#38; Motor Contro</a></li>
+<li class="ba0"><a href="http://wenku.it168.com/d_000940945.shtml" target="_blank">範例：8051 計時器中斷控制練習(C 語言</a></li>
+
+		</ul>
+		</div>
+		<div class="bor113" id="doc01_Content1">
+			<ul class="list1107" id="docdowntxt">
+			<li ><a href="http://wenku.it168.com/d_000897563.shtml" target="_blank">Android核心技术与实例详解（第2版）(含</a></li>
+<li ><a href="http://wenku.it168.com/d_000837128.shtml" target="_blank">C++程序设计语言_特别版 （1-310页）.p</a></li>
+<li ><a href="http://wenku.it168.com/d_000821993.shtml" target="_blank">基于AOP的角色访问控制模型设计与实现.</a></li>
+<li ><a href="http://wenku.it168.com/d_000838054.shtml" target="_blank">c++_学习资料课件分享.ppt</a></li>
+<li ><a href="http://wenku.it168.com/d_000820629.shtml" target="_blank">有米学堂嘉宾主讲稿《移动互联网产品设</a></li>
+<li ><a href="http://wenku.it168.com/d_000820948.shtml" target="_blank">Silverlight 入门：第一部分——开发工</a></li>
+<li ><a href="http://wenku.it168.com/d_000821392.shtml" target="_blank">这个程序说明了怎么通过C语言的子函数返</a></li>
+<li ><a href="http://wenku.it168.com/d_000823197.shtml" target="_blank">嵌入式开发入门之经典系列文章.pdf</a></li>
+<li ><a href="http://wenku.it168.com/d_000829723.shtml" target="_blank">疯狂Java：突破程序员基本功的16课 李刚</a></li>
+<li class="ba0"><a href="http://wenku.it168.com/d_000907088.shtml" target="_blank">java程序员由菜鸟到笨鸟.pdf</a></li>
+
+			</ul>
+		</div>
+</div>
+<script type="text/javascript">
+	iniMenu('doc01',0,'a',100);
+</script>
+<!-- 热文-热评 -->
+<div class="bor1107 mt8">
+		<div class="tit2" id="tab03" style="margin-top:0px;"><a href="javascript:" class="here">一周热文</a><a href="javascript:">一周热评</a></div>
+		<div class="bor113" id="tab03_Content0" onClick="_gaq.push(['_trackEvent', 'blockArea', 'Click', 'hotArticle',2,true]);">
+			<ul class="list1107">
+						<li ><a href="http://tech.it168.com/a2013/0502/1479/000001479046.shtml" target="_blank">品友互动携门户网站引跑数据广告云时代</a></li>
+		<li ><a href="http://tech.it168.com/a2013/0503/1479/000001479142.shtml" target="_blank">企业应如何开发一个基于SOA的集成框架</a></li>
+		<li ><a href="http://tech.it168.com/a2013/0503/1479/000001479393.shtml" target="_blank">GOMX正能量：电商企业参会热度上升</a></li>
+		<li ><a href="http://tech.it168.com/a2013/0503/1479/000001479465.shtml" target="_blank">GOMX看网络营销新趋势：邮件营销或复兴</a></li>
+		<li ><a href="http://tech.it168.com/a2013/0504/1479/000001479565.shtml" target="_blank">360浏览器5周年 举办“致青春”Party</a></li>
+		<li ><a href="http://tech.it168.com/a2013/0423/1475/000001475622.shtml" target="_blank">IBM启动蜂潮行动 技术精神落地中国</a></li>
+		<li ><a href="http://tech.it168.com/a2013/0506/1479/000001479726.shtml" target="_blank">Facebook在Web性能方面的秘密武器</a></li>
+		<li ><a href="http://tech.it168.com/a2013/0506/1479/000001479730.shtml" target="_blank">移动信息化来袭：2013移动开发工具报告</a></li>
+		<li ><a href="http://tech.it168.com/a2013/0506/1479/000001479749.shtml" target="_blank">解读MySQL 5.6 查询优化器新功能</a></li>
+		<li class="ba0"><a href="http://tech.it168.com/a2013/0506/1479/000001479963.shtml" target="_blank">微信O2O 永难实现的美梦即将破灭的泡沫</a></li>
+	
+		</ul>
+		</div>
+		<div class="bor113" id="tab03_Content1" onClick="_gaq.push(['_trackEvent', 'blockArea', 'Click', 'hotRecommendation',2,true]);">
+			<ul class="list1107">
+						<li class="ba0"><a href="http://tech.it168.com/a2012/1018/1409/000001409823.shtml" target="_blank">SyScan大会现场学习编写Linux Rootkits</a></li>
+	
+			</ul>
+		</div>
+</div>
+<script type="text/javascript">
+	iniMenu('tab03',0,'a',100);
+</script>
+<div><div id="ADV_17633"></div>
+<div class="mt8">
+<div id="divapp" ></div>
+</div>
+<div class="mt8">
+    <div class="bor6 mt8" style="padding:0;" id="bcomNetshop">
+       <div class="lg_t3"><span style="float:left"><script type="text/javascript">if(typeof(channelNameSt)!="undefined"){document.write(channelNameSt);}</script>网购比价</span></div>
+       <div id="scomNetshop"></div> 
+    </div>
+</div>
+<div class="bor1107 mt8">
+		<div class="tit2" id="tab02"><a href="javascript:" class="here">推荐文章</a><a href="javascript:">推荐产品</a></div>
+		<div class="bor113" id="tab02_Content0" onClick="_gaq.push(['_trackEvent', 'blockArea', 'Click', 'recommendArticle',2,true]);">
+			<ul class="list1107">
+				<li ><a href="http://elec.it168.com/tu/1475687_1.shtml" target="_blank">影院搬回家 长虹U-MAX客厅电视特性解析</a></li>
+<li ><a href="http://mobile.it168.com/a2013/0412/1472/000001472111.shtml" target="_blank">HTC One港版13日预购 售价4546元</a></li>
+<li ><a href="http://www.it168.com/redian/Galaxy/" target="_blank">八核体验待优化 三星Galaxy S4独家评测</a></li>
+<li ><a href="http://mobile.it168.com/a2013/0320/1463/000001463884.shtml" target="_blank">1.6GHz四核 日版三星Galaxy S3售价2300</a></li>
+<li ><a href="http://notebook.it168.com/a2013/0401/1468/000001468120.shtml" target="_blank">只有两家！怎么买正品瑞士军刀笔记本包</a></li>
+<li ><a href="http://gps.it168.com/a2013/0410/1471/000001471207.shtml" target="_blank">不到3万元 多款汽车电子导航产品推荐</a></li>
+<li ><a href="http://ultrabook.it168.com/a2013/0326/1466/000001466068.shtml" target="_blank">流畅实用还够炫 Yoga13流畅操作全体验</a></li>
+<li ><a href="http://notebook.it168.com/a2013/0318/1463/000001463252.shtml" target="_blank">轻薄才是王道 联想U410-IFI报价4788元</a></li>
+<li ><a href="http://notebook.it168.com/a2013/0325/1465/000001465729.shtml" target="_blank">彪悍校园新玩物！联想Y400游戏性能解析</a></li>
+<li ><a href="http://blog.chinaunix.net/uid-20069582-id-3605777.html" target="_blank">漫谈Hadoop HDFS Balancer</a></li>
+<li ><a href="http://blog.chinaunix.net/uid-7607759-id-3579895.html" target="_blank">配置HADOOP开发环境代码开发和调试示例</a></li>
+<li ><a href="http://wenku.it168.com/tag/43203_0_5.shtml" target="_blank">国产数据库</a></li>
+<li ><a href="http://topic.it168.com/factory/sap/list_02.html" target="_blank">SAP实时企业-企业移动化</a></li>
+<li ><a href="http://mobile.it168.com/a2013/0415/1472/000001472724.shtml" target="_blank">5199元哪买合算?三星Galaxy S4预售汇总</a></li>
+<li class="ba0"><a href="http://cioctoclub.it168.com/" target="_blank">IT168 CIO/CTO俱乐部官方网站</a></li>
+
+			</ul>
+		</div>
+		<div class="bor113" id="tab02_Content1" onClick="_gaq.push(['_trackEvent', 'blockArea', 'Click', 'recommendProduct',2,true]);">
+			<ul class="list0923">
+				<li ><a href="http://product.it168.com/detail/doc/501966/detail.shtml" target="_blank" title = "三星GALAXY S4">三星GALAXY S4</a></li>
+<li ><a href="http://product.it168.com/detail/doc/569784/index.shtml" target="_blank" title = "小米2A">小米2A</a></li>
+<li ><a href="http://product.it168.com/detail/doc/572469/index.shtml" target="_blank" title = "小米2S">小米2S</a></li>
+<li ><a href="http://product.it168.com/detail/doc/473736/index.shtml" target="_blank" title = "小米2">小米2</a></li>
+<li ><a href="http://product.pcpop.com/000433179/Index.html" target="_blank" title = "小米2S">小米2S</a></li>
+<li ><a href="http://product.it168.com/detail/doc/527442/index.shtml" target="_blank" title = "苹果iPhone5s">苹果iPhone5s</a></li>
+<li ><a href="http://product.it168.com/detail/doc/457164/index.shtml" target="_blank" title = "苹果iPhone6">苹果iPhone6</a></li>
+<li ><a href="http://product.it168.com/detail/doc/470615/index.shtml" target="_blank" title = "苹果iPad4">苹果iPad4</a></li>
+<li ><a href="http://product.it168.com/detail/doc/564669_1_1/comment.shtml" target="_blank" title = "联想K900">联想K900</a></li>
+<li ><a href="http://product.it168.com/detail/doc/576073/price.shtml" target="_blank" title = "联想S920">联想S920</a></li>
+<li ><a href="http://product.it168.com/detail/doc/568914/pingce.shtml" target="_blank" title = "三星galaxy S4 mini">三星galaxy S4 mini</a></li>
+<li ><a href="http://product.it168.com/detail/doc/466604/index.shtml" target="_blank" title = "HTC ONE">HTC ONE</a></li>
+<li ><a href="http://product.it168.com/list/b/06403689_1.shtml" target="_blank" title = "创维液晶电视">创维液晶电视</a></li>
+<li ><a href="http://product.it168.com/list/b/06402245_1.shtml" target="_blank" title = "海信液晶电视">海信液晶电视</a></li>
+<li ><a href="http://product.it168.com/list/b/06400243_1.shtml" target="_blank" title = "TCL液晶电视">TCL液晶电视</a></li>
+<li ><a href="http://product.it168.com/list/b/06400221_1.shtml" target="_blank" title = "夏普液晶电视">夏普液晶电视</a></li>
+<li ><a href="http://product.it168.com/list/b/06402672_1.shtml" target="_blank" title = "长虹液晶电视">长虹液晶电视</a></li>
+<li ><a href="http://product.it168.com/list/b/06401493_1.shtml" target="_blank" title = "康佳液晶电视">康佳液晶电视</a></li>
+<li ><a href="http://product.it168.com/detail/doc/483643/detail.shtml" target="_blank" title = "康佳LED32E330C">康佳LED32E330C</a></li>
+<li ><a href="http://product.it168.com/detail/doc/522143/index.shtml" target="_blank" title = "创维彩电42E615L">创维彩电42E615L</a></li>
+<li ><a href="http://product.it168.com/detail/doc/472297/index.shtml" target="_blank" title = "海信彩电LED32K300">海信彩电LED32K300</a></li>
+<li ><a href="http://product.it168.com/detail/doc/504290/news.shtml" target="_blank" title = "TCL L42F3210E">TCL L42F3210E</a></li>
+<li ><a href="http://product.it168.com/list/b/07341542_1.shtml" target="_blank" title = "格力空调">格力空调</a></li>
+<li ><a href="http://product.it168.com/list/b/07347154_1.shtml" target="_blank" title = "美的空调">美的空调</a></li>
+<li ><a href="http://product.it168.com/list/b/07340330_1.shtml" target="_blank" title = "海尔空调">海尔空调</a></li>
+<li ><a href="http://product.it168.com/list/b/07346762_1.shtml" target="_blank" title = "大金空调">大金空调</a></li>
+<li ><a href="http://product.it168.com/detail/doc/491008/index.shtml" target="_blank" title = "TCL KFRd-25GW/DE22">TCL KFRd-25GW/DE22</a></li>
+<li ><a href="http://product.it168.com/detail/doc/493932/index.shtml" target="_blank" title = "奥克斯KFR-23GW/SFD+2">奥克斯KFR-23GW/SFD</a></li>
+<li ><a href="http://product.it168.com/detail/doc/498909/index.shtml" target="_blank" title = "海尔空调KFR-35GW/03GFC12">海尔空调KFR-35GW/0</a></li>
+<li class="ba0"><a href="http://product.it168.com/detail/doc/486310/index.shtml" target="_blank" title = "海尔KFR-35GW/05FFC23">海尔KFR-35GW/05FFC</a></li>
+
+			</ul>
+		</div>
+	<div class="clear"></div>
+    </div>
+<script type="text/javascript">
+	iniMenu('tab02',0,'a',100);
+</script>
+<div class="mt8">
+<div id="ADV_16603"></div>
+</div>
+<div class="mt8">
+ <div class="bor6 mt8" style="padding:0;">
+      <div class="lg_t3"><span><a href="http://www.autohome.com.cn/" target="_blank">更多>></a></span><a href="http://www.autohome.com.cn/" target="_blank">汽车之家内容精选</a></div>
+      <ul class="imgList1">
+        <li><a href="http://www.autohome.com.cn/drive/201305/522325.html" target="_blank"><img width="120" height="90" src="http://www0.autoimg.cn/2013/5/3/z_2013050311494907297.jpg" alt="" title=""></a>
+            <p><a href="http://www.autohome.com.cn/drive/201305/522325.html" target="_blank">全面测试2013款讴歌RDX</a></p>
+          </li>
+ <li><a href="http://www.autohome.com.cn/advice/201305/520002.html" target="_blank"><img width="120" height="90" src="http://www0.autoimg.cn/2013/4/28/z_2013042816393842434.jpg" alt="" title=""></a>
+            <p><a href="http://www.autohome.com.cn/advice/201305/520002.html" target="_blank">看编辑都开什么车（1）</a></p>
+          </li>
+ <li><a href="http://club.autohome.com.cn/bbs/thread-c-162-22022333-1.html" target="_blank"><img width="120" height="90" src="http://img.autohome.com.cn/album/images/2013/5/6/12090_3d63_948bd97e.jpg" alt="" title=""></a>
+            <p><a href="http://club.autohome.com.cn/bbs/thread-c-162-22022333-1.html" target="_blank">911 Carrera S 3.8L</a></p>
+          </li>
+ <li><a href="http://club.autohome.com.cn/bbs/thread-c-364-21904317-1.html" target="_blank"><img width="120" height="90" src="http://img.autohome.com.cn/album/images/2013/4/19/12090_ce05_0d91c672.jpg" alt="" title=""></a>
+            <p><a href="http://club.autohome.com.cn/bbs/thread-c-364-21904317-1.html" target="_blank">行摄新加坡街头魅影</a></p>
+          </li>
+ <li><a href="http://v.autohome.com.cn/v_8_22213.html" target="_blank"><img width="120" height="90" src="http://www0.autoimg.cn/video/carimg/2013/5/2/z_2013050218231456631.jpg" alt="" title=""></a>
+            <p><a href="http://v.autohome.com.cn/v_8_22213.html" target="_blank">个性的跨界产品 歌诗图</a></p>
+          </li>
+ <li><a href="http://v.autohome.com.cn/v_4_22208.html" target="_blank"><img width="120" height="90" src="http://www0.autoimg.cn/video/carimg/2013/5/2/z_2013050215404470235.jpg" alt="" title=""></a>
+            <p><a href="http://v.autohome.com.cn/v_4_22208.html" target="_blank">夫妻偷油被发现落荒而逃</a></p>
+          </li>
+        </ul>
+    </div>
+</div>
+
+<script type="text/javascript" src="http://open.pcpop.com/js/SequelLian.js"></script>
+<script type="text/javascript">
+	var line = SequelLian.init();
+	line.ChannelId = 4; //频道id(参数)
+	line.ChannelPageId = 9; //频道页id(参数)
+	line.ChannelPageBlockId = 124; //频道页面块id(参数)
+	line.DivIds = "detailWord"; //需要操作a标签的div(用id获取div),可传多个(参数)   id与class必选其一,且只能先其一
+	line.BindEvent();
+</script>
+
+</div>
+<div class="clear"></div>
+
+</div>
+
+<!-- footer -->
+<script type="text/javascript" src="/detailinclude/McCommon.js?dt=20111017"></script>
+	<script>
+var channelpropertyid=4; //频道id
+var channelpropertycateid="";//频道属性
+var articlePropertyID=6;//文章属性
+var SeriesId=""; //产品小类id
+var BrandId=""; //品牌id
+</script>
+<script type="text/javascript" src="http://resourcestest.it168.com/it168_head_foot/footer.js"></script>
+<script type="text/javascript" src="http://resourcestest.it168.com/artile_product/article_prodct.js"></script>
+<div id="ADV_17363"></div>
+<!--评论信息-->
+<script language="javascript">
+var pping_bu  = 1;
+var pping_cu  = 4;
+var pping_du  ='1213725';
+var pping_tt  = "详解MySQL数据库优化的方案与实践";
+var pping_url ='http://tech.it168.com/a2011/0705/1213/000001213725.shtml';
+var pping_ie  = 'gbk';
+var pping_style = '1';
+var pping_callback = function(json) {
+    document.getElementById('page_CommentCount').innerHTML = json.count;
+};
+</script>
+<script type="text/javascript">
+    var MC_siteid = 2; 
+    var MC_LoginUrl = "http://sso.it168.com/Login?return_url=" + location.href;
+    var MC_action_pace = "http://"+location.hostname+"/Ajax/MicroComment/MC_Action.ashx/";
+	var MC_Css = 1 ;
+    var MC_aid = 1213725;
+	var MC=new MicroComment();
+	MC.Main(10,0);
+</script>
+<script type="text/javascript" src="http://comment.it168.com/view/replies_ajax.js" charset="utf-8"></script>
+<script language="javascript" src="http://stat.it168.com/pv.js"></script>
+<script>
+var click_channelid =24;
+function sendPV(upurl){    
+    var pvTrack = new PvTrack();
+    pvTrack.type = 11; // 频道类别ID
+    pvTrack.channel = 24; // 频道ID
+    pvTrack.pageType = 103;
+	pvTrack.referrer = upurl;
+    pvTrack.track();
+}
+window.setTimeout("sendPV('')", 500);
+</script>
+
+<script src="http://stat.it168.com/ClickPv.js" type="text/javascript"></script>
+<script type="text/javascript">
+    function ClickPv(pbid,bdid,spid,ckpid,scid,bid,pid) {
+        var clickpvtrack = new ClickPvTrack();
+        clickpvtrack.cid = 4; 
+        clickpvtrack.cpid = 9; 
+        clickpvtrack.pbid = pbid; 
+        clickpvtrack.bdid = bdid; 
+        clickpvtrack.spid = spid;
+        clickpvtrack.ckpid = ckpid;
+        clickpvtrack.scid = scid;
+        clickpvtrack.bid = bid;
+        clickpvtrack.pid = pid;
+        clickpvtrack.track();
+    }  
+</script>
+<script language="javascript" src="http://resourcestest.it168.com/jscript/Global.js?2012712"></script>
+<script  type='text/javascript' src="http://resourcestest.it168.com/jscript/ADCodeForChannelCode.js?yyl"></script>
+<script type='text/javascript' src='http://168.it168.com/js/802.js'></script>
+<script type='text/javascript' src='http://168.it168.com/ajs/802.js'></script>
+<script type='text/javascript' src='http://topic.it168.com/StatisticsUserAct/js/StatisticsUserAct.js'></script>
+<script type="text/javascript">
+if(typeof(typeid)!="undefined" && typeid != "")
+{
+    var str = "<scr"+"ipt charset='utf-8' type='text/javascript' src='http://open.pcpop.com/Ajax_ElectricBusinessDifference.aspx?subCategorySN="+typeid+"&divId=scomNetshop&top=3&siteType=2&outerDivID=bcomNetshop&siteid=4&pageType=9' >" + "<\/script>";
+	document.write(str);
+}
+else
+{
+    document.getElementById("bcomNetshop").style.display="none"
+}
+</script>
+<script type="text/javascript">
+var website=GetCookie('naizuier');
+if(website==null && document.getElementById("zyf"))
+{
+ document.getElementById('zyf').style.display="block"; 
+}
+function hid()
+{
+	SetCookie('naizuier','article','m',30);
+	document.getElementById("zyf").style.display="none";	
+}
+</script>
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-20433473-1']);
+  _gaq.push(['_addOrganic', 'baidu', 'word']);
+  _gaq.push(['_addOrganic', 'google', 'q']);
+  _gaq.push(['_addOrganic', 'soso', 'w']);
+  _gaq.push(['_addOrganic', 'yodao', 'q']);
+  _gaq.push(['_addOrganic', 'vnet', 'kw']);
+  _gaq.push(['_addOrganic', 'sogou', 'query']);
+  _gaq.push(['_addOrganic', '118114', 'kw']);
+  _gaq.push(['_addOrganic', '3721', 'name']);
+  _gaq.push(['_setDomainName', '.it168.com']);
+ _gaq.push(['_trackPageview']);
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = 
+true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + 
+'.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, 
+s);
+  })();
+</script>
+<script>
+if(articleChannelCode == "20")
+{
+document.getElementById("ADV_3009").style.display="inline";
+}
+</script>
+<script type="text/javascript" src="http://168.it168.com/adjs/setcm.js"></script>
+
+
+
+
+<script language="javascript">
+ document.onkeydown=function(e){
+	  e = (e) ? e : event;
+    var code = (e.charCode) ? e.charCode : ((e.keyCode) ? e.keyCode : ((e.which) ? e.which : 0));
+	  if(code==37 && (2 > 1)){
+	    //进入上一页
+	    location.href = 'http://tech.it168.com/a2011/0705/1213/000001213725.shtml';
+	   }	 
+	  if(code==39 && (3 <= 3)){
+	   location.href = 'http://tech.it168.com/a2011/0705/1213/000001213725_2.shtml';
+	  }
+}
+</script>
+
+</body>
+</html>
